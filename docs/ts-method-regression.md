@@ -25,3 +25,5 @@ A képi evaluate fixture összes 5040 fizikai permutációját a kézi és gener
 
 
 A kiadás előtti review a fixed abszolút sorhelyét 120 teljes permutációval ellenőrzi: a független sorok a rögzített sor két oldala között is átkerülhetnek. Külön teszt fedi az érvénytelen/ütköző fixedPosition értékeket és a duplikált tartalomhoz tartozó pozícióhű tanút. A browser-workbench kör 21 esetben vizsgálja a szerzői/preview folyamatokat, a fixed keresztezést, a késői formázási/értékelési válaszok eldobását és a mobilnézeteket. A strict workbench/governance build és a negatív architektúrakaputesztek az új natív TypeScript-szeletet is védik.
+
+A Playwright poll-feltételek explicit függvények; nem igénylik expression-string eval engedélyezését a szigorú szerver CSP mellett. A Linux CI ugyanazt a teljes böngészős kört futtatja.

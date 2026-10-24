@@ -150,7 +150,7 @@ try:
             page.route('**/api/author/preview',delayed)
             try:
                 page.locator('[data-check]').click();expect(page.locator('.solution-zone .code-row[data-index="1"] code')).to_contain_text('const b')
-                page.wait_for_function('!document.querySelector(".report.accepted")')
+                page.wait_for_function('() => !document.querySelector(".report.accepted")')
             finally:page.unroute('**/api/author/preview',delayed)
         case('an evaluation response cannot overwrite feedback after a new move',stale_report)
         def fixed():
@@ -168,8 +168,8 @@ try:
         def copy_fullscreen_styles():
             author(page);page.locator('[data-all]').click();page.locator('[data-copy-solution]').click();expect(page.locator('.note')).to_contain_text('másolva')
             assert 'return a + b' in page.evaluate('navigator.clipboard.readText()').replace('\r\n','\n')
-            page.locator('[data-fullscreen]').click();page.wait_for_function('document.fullscreenElement===document.querySelector("#app") || document.querySelector("#app").classList.contains("ng-fullscreen")')
-            page.locator('[data-fullscreen]').click();page.wait_for_function('!document.fullscreenElement && !document.querySelector("#app").classList.contains("ng-fullscreen")')
+            page.locator('[data-fullscreen]').click();page.wait_for_function('() => document.fullscreenElement===document.querySelector("#app") || document.querySelector("#app").classList.contains("ng-fullscreen")')
+            page.locator('[data-fullscreen]').click();page.wait_for_function('() => !document.fullscreenElement && !document.querySelector("#app").classList.contains("ng-fullscreen")')
             assert abs(page.locator('#app').bounding_box()['width']-1500)<2
             colors=page.locator('.solution-zone .code-row').evaluate_all('(rows)=>rows.slice(0,2).map(r=>getComputedStyle(r).backgroundColor)');assert colors[0]!=colors[1]
             assert page.locator('.solution-zone .gutter span').all_text_contents()==['1','2','3','4','5']

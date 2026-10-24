@@ -275,6 +275,12 @@ A teljes TypeScript-migráció P3–P5 lépései továbbra is nyitottak. A tanul
 
 ### Végleges helyi kapuk és kiadási nyom
 
-A végleges helyi Node-kör **264/264 sikeres teszt**, négy referenciaaudit, 18 UTF-8 root/docs dokumentum és helyi linkjeik; az AGENTS és rekurzív ADR-dokumentumok a governance-kapuban külön ellenőrzöttek. Az architektúrakapu 51 production fájlt és nyolc TypeScript-forrásgazdájú böngészőmodult vizsgál. Npm audit: **0 ismert sérülékenység**.
+A végleges helyi Node-kör **265/265 sikeres teszt**, négy referenciaaudit, 18 UTF-8 root/docs dokumentum és helyi linkjeik; az AGENTS és rekurzív ADR-dokumentumok a governance-kapuban külön ellenőrzöttek. Az architektúrakapu 51 production fájlt és nyolc TypeScript-forrásgazdájú böngészőmodult vizsgál. Npm audit: **0 ismert sérülékenység**.
 
-A teljes böngészős kör öt szkriptből áll: offline, valódi HTTP, **32** Node/Pages mátrixeset, **36** valódi húzási eset és **21** workbench folyamat. A kiadás előtti naplók: premerge-check-all.log és premerge-browser-all.log. A távoli PR/CI és az egyesítés konkrét állapotát a Git/GitHub kiadási nyom rögzíti; a korábbi szakaszok „nem történt push/deployment” megjegyzései a helyi audit akkori lezárására vonatkoznak.
+A teljes böngészős kör öt szkriptből áll: offline, valódi HTTP, **32** Node/Pages mátrixeset, **36** valódi húzási eset és **21** workbench folyamat. Az első teljes kiadás előtti naplók: premerge-check-all.log és premerge-browser-all.log. Az utolsó Unicode-prefix javítást is tartalmazó végső kör: unicode-review-node.log és unicode-review-browser.log. A távoli PR/CI és az egyesítés konkrét állapotát a Git/GitHub kiadási nyom rögzíti; a korábbi szakaszok „nem történt push/deployment” megjegyzései a helyi audit akkori lezárására vonatkoznak.
+
+
+Utolsó tartalmi review: a trimStart a vezető nem ASCII whitespace-et is eltávolította, miközben a validátor csak ASCII szóköz/tab előtagot normalizál. A regresszió JS és TS, Beautify és lexikai utak mellett NBSP/EM SPACE/BOM előtagokkal reprodukálta a veszteséget (review-unicode-red.log). A két meglévő formatter-kifejezés a validátorral azonos ASCII-prefixre javult. Így a kirajzolás–másolás–visszaillesztés nem változtatja meg ezt a tartalmat. Az öt fő commit után ez külön, hatodik javító commitként követhető, a felhasználó által kért kiadás részeként.
+
+
+Az első távoli Linux CI a Node- és architektúrakapun átment, majd a Playwright fullscreen-várakozásán CSP EvalError hibát jelzett (Actions run 40090680405). Az expression-string alak implicit evalt igényelt az ottani Chromiumban. A három wait_for_function feltétel explicit JavaScript függvénnyé alakult; a szerver script-src self CSP-je változatlan. Ez külön tesztinfrastruktúra-javító commit, és nem a produkciós biztonsági szabály lazítása. A teljes Windows kör mellett a végső GitHub CI bizonyítja a Linux kompatibilitást.
