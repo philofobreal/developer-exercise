@@ -9,6 +9,8 @@ const result = (status, reason, message, exploredStates, positions) => ({ status
  * No JS/TS execution, eval, vm, or server-side source parsing.
  */
 export function validateSubmission(compiledOrRaw, submission, opts = {}) {
+    if (!compiledOrRaw || typeof compiledOrRaw !== 'object')
+        return result('invalid_reference', 'invalid_model', 'Hiányzó referencia.', 0);
     const compiled = 'profiles' in compiledOrRaw && 'definition' in compiledOrRaw
         ? compiledOrRaw : compileDefinition(compiledOrRaw);
     if (isModelError(compiled))
@@ -18,20 +20,29 @@ export function validateSubmission(compiledOrRaw, submission, opts = {}) {
         return result('rejected', 'invalid_submission', 'Feladatazonosító, verzió vagy beküldési séma eltér.', 0);
     if (submission.lines.length !== def.tokens.length)
         return result('rejected', 'wrong_length', `Várt elemszám: ${def.tokens.length}, beküldött: ${submission.lines.length}.`, 0);
-    if (submission.lines.some(x => typeof x !== 'string' || x.length > 2048 || /[\r\n\u2028\u2029]/.test(x)))
+    if (submission.lines.some(x => typeof x !== 'string' || Array.from(x).length > 2048 || /[\r\n\u2028\u2029]/.test(x)))
         return result('rejected', 'unknown_content', 'Érvénytelen kódsor szerepel a beküldésben.', 0);
     const tokens = def.tokens;
-    const candidates = submission.lines.map(line => tokens.flatMap((t, i) => normalizeLine(line, t.normalization ?? 'indent') === normalizeLine(t.code, t.normalization ?? 'indent') ? [i] : []));
+    const tokenKeys = tokens.map(t => `${t.normalization ?? 'indent'}\u0000${normalizeLine(t.code, t.normalization ?? 'indent')}`);
+    const index = new Map();
+    tokenKeys.forEach((key, i) => { const items = index.get(key) ?? []; items.push(i); index.set(key, items); });
+    const candidates = submission.lines.map(line => [
+        ...(index.get(`indent\u0000${normalizeLine(line, 'indent')}`) ?? []),
+        ...(index.get(`exact\u0000${line}`) ?? [])
+    ].sort((a, b) => a - b));
     const impossible = candidates.flatMap((a, i) => a.length ? [] : [i]);
     if (impossible.length)
         return result('rejected', 'unknown_content', 'A feladatban nem engedélyezett sor található.', 0, impossible);
+    const pinnedMismatch = tokens.flatMap(token => token.fixedPosition !== undefined && normalizeLine(submission.lines[token.fixedPosition], token.normalization ?? 'indent') !== normalizeLine(token.code, token.normalization ?? 'indent') ? [token.fixedPosition] : []);
+    if (pinnedMismatch.length)
+        return result('rejected', 'rule_violation', 'A rögzített sor tartalma nem a kötelező sorhelyen áll.', 0, pinnedMismatch);
+    candidates.forEach((items, position) => { candidates[position] = items.filter(index => tokens[index].fixedPosition === undefined || tokens[index].fixedPosition === position); });
     const counts = new Map();
-    for (const t of tokens) {
-        const key = `${t.normalization ?? 'indent'}\u0000${normalizeLine(t.code, t.normalization ?? 'indent')}`;
+    for (const key of tokenKeys) {
         counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     // Fast sufficient multiplicity check: all candidates map to exactly one key set.
-    const singles = candidates.map(a => new Set(a.map(i => `${tokens[i].normalization ?? 'indent'}\u0000${normalizeLine(tokens[i].code, tokens[i].normalization ?? 'indent')}`)));
+    const singles = candidates.map(a => new Set(a.map(i => tokenKeys[i])));
     if (singles.every(s => s.size === 1)) {
         const got = new Map();
         for (const s of singles) {
@@ -44,12 +55,16 @@ export function validateSubmission(compiledOrRaw, submission, opts = {}) {
     const ids = tokens.map(t => t.id), byId = new Map(ids.map((id, i) => [id, i]));
     const opening = new Map(def.blocks.map(b => [byId.get(b.open), b.id]));
     const closing = new Map(def.blocks.map(b => [byId.get(b.close), b.id]));
-    const maxStates = Math.max(1, Math.min(1_000_000, Math.floor(opts.maxStates ?? 30_000)));
+    const maxStates = Math.max(1, Math.min(1_000_000, Math.floor(Number.isFinite(opts.maxStates) ? opts.maxStates : 30_000)));
     let totalStates = 0;
     let exceeded = false;
-    function scopesValid(assignment) {
+    function scopesValid(assignment, partial = false) {
         const stack = [];
         for (const idx of assignment) {
+            // The assigned prefix already determines lexical ownership. A later
+            // assignment cannot repair a wrong scope earlier in that prefix.
+            if (idx < 0)
+                return partial;
             const t = tokens[idx];
             const closeId = closing.get(idx);
             if (closeId !== undefined) {
@@ -85,6 +100,8 @@ export function validateSubmission(compiledOrRaw, submission, opts = {}) {
                 return false;
             }
             totalStates++;
+            if (!scopesValid(assignment, true))
+                return false;
             if (depth === visitOrder.length)
                 return scopesValid(assignment);
             const position = visitOrder[depth];
@@ -118,7 +135,7 @@ export function validateSubmission(compiledOrRaw, submission, opts = {}) {
             return false;
         }
         if (dfs(0))
-            return { ...result('accepted', null, 'Az összeállított tartalomsorozathoz létezik minden szabályt kielégítő hozzárendelés.', totalStates), matchedProfile: profile.id };
+            return { ...result('accepted', null, 'Az összeállított tartalomsorozathoz létezik minden szabályt kielégítő hozzárendelés.', totalStates), matchedProfile: profile.id, matchedTokenIds: [...assignment].map(index => tokens[index].id) };
         if (exceeded)
             break;
     }

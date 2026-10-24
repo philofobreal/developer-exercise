@@ -5,22 +5,31 @@
   "type": "module",
   "description": "Framework-free programming line-order exercise engine with verified constraints",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node scripts/sync-vendor.mjs && node scripts/sync-schema.mjs && tsc -p tsconfig.json",
     "test": "npm run build:pages && node --test tests/*.test.mjs",
     "start": "npm run build && node server.mjs",
-    "check": "npm run test && npm run verify:models",
+    "check": "npm run test && node scripts/verify-models.mjs",
     "verify:models": "npm run build && node scripts/verify-models.mjs",
     "test:browser": "python tests/browser-v7-offline.playwright.py",
     "test:browser:server": "python tests/browser-v7.playwright.py",
     "test:ts-methods": "npm run build && node --test tests/ts-methods.test.mjs tests/http-flow.test.mjs",
     "build:pages": "npm run build && node scripts/build-pages.mjs",
     "verify:pages": "npm run build:pages && node --test tests/pages-build.test.mjs tests/pages-api.test.mjs",
-    "check:all": "npm run check && npm run verify:pages"
+    "check:all": "npm run check"
   },
   "devDependencies": {
+    "@types/node": "22.20.5",
+    "acorn": "8.19.0",
+    "ajv": "8.20.0",
+    "js-beautify": "1.13.13",
     "typescript": "5.8.3"
   },
   "engines": {
     "node": ">=20"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/philofobreal/developer-exercise.git"
+  },
+  "homepage": "https://philofobreal.github.io/developer-exercise/"
 }

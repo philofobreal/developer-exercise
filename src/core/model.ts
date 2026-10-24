@@ -35,10 +35,14 @@ function hasCycle(ids: Set<string>, edges: OrderingEdge[]): boolean {
 /** Validate trusted author data once when publishing/loading it, NEVER trust the browser's copy. */
 export function compileDefinition(def: ExerciseDefinition): CompiledRules | ValidationResult {
   if (!def || def.schemaVersion !== 1 || typeof def.id !== 'string' || !def.id || typeof def.language !== 'string' || !def.language || typeof def.title !== 'string' || typeof def.description !== 'string' || !Number.isSafeInteger(def.revision) || def.revision < 1) return failed('Érvénytelen sémaverzió vagy feladatazonosító.');
-  if (!Array.isArray(def.tokens) || def.tokens.length < 1 || def.tokens.length > 500 || !Array.isArray(def.blocks) || def.blocks.length > 250 || (def.edges !== undefined && !Array.isArray(def.edges)) || (def.profiles !== undefined && !Array.isArray(def.profiles))) return failed('Érvénytelen feladatméret.');
-  const tokenIds = new Set<string>();
+  if (!Array.isArray(def.tokens) || def.tokens.length < 1 || def.tokens.length > 500 || !Array.isArray(def.blocks) || def.blocks.length > 250 || (def.edges !== undefined && (!Array.isArray(def.edges)||def.edges.length>5000)) || (def.profiles !== undefined && !Array.isArray(def.profiles))) return failed('Érvénytelen feladatméret.');
+  const tokenIds = new Set<string>(),fixedPositions=new Set<number>();
   for (const t of def.tokens) {
-    if (!t || typeof t.id !== 'string' || !t.id || tokenIds.has(t.id) || typeof t.code !== 'string' || !isSingleLine(t.code) || t.code.length > 2048 || (t.scope !== null && typeof t.scope !== 'string') || (t.after !== undefined && (!Array.isArray(t.after) || t.after.length > 500)) || (t.normalization !== undefined && t.normalization !== 'indent' && t.normalization !== 'exact')) return failed('Duplikált token vagy érvénytelen kódsor.');
+    if (!t || typeof t.id !== 'string' || !t.id || tokenIds.has(t.id) || typeof t.code !== 'string' || !isSingleLine(t.code) || Array.from(t.code).length > 2048 || (t.scope !== null && typeof t.scope !== 'string') || (t.after !== undefined && (!Array.isArray(t.after) || t.after.length > 500 || new Set(t.after).size!==t.after.length)) || (t.normalization !== undefined && t.normalization !== 'indent' && t.normalization !== 'exact')) return failed('Duplikált token vagy érvénytelen kódsor.');
+    if(t.fixedPosition!==undefined){
+      if(!Number.isSafeInteger(t.fixedPosition)||t.fixedPosition<0||t.fixedPosition>=def.tokens.length||fixedPositions.has(t.fixedPosition))return failed('Érvénytelen vagy ütköző rögzített sorhely.');
+      fixedPositions.add(t.fixedPosition);
+    }
     tokenIds.add(t.id);
   }
   const blocks = new Map<string, { open: string; close: string; parent: string | null }>();
@@ -73,7 +77,7 @@ export function compileDefinition(def: ExerciseDefinition): CompiledRules | Vali
   for (const b of blocks.values()) base.push({before:b.open,after:b.close});
   base.push(...(def.edges ?? []));
   const extras = def.profiles?.length ? def.profiles : [{id:'base',edges:[]}];
-  if (extras.length > 32 || new Set(extras.map(x=>x.id)).size!==extras.length) return failed('Érvénytelen vagy ismétlődő alternatíva.');
+  if (extras.length > 32 || extras.some(x=>!x||typeof x.id!=='string'||!Array.isArray(x.edges)) || new Set(extras.map(x=>x.id)).size!==extras.length) return failed('Érvénytelen vagy ismétlődő alternatíva.');
   const profiles = [];
   for (const profile of extras) {
     if (typeof profile?.id !== 'string' || !profile.id || !Array.isArray(profile.edges) || profile.edges.length>5000) return failed('Érvénytelen alternatíva.');
@@ -83,7 +87,7 @@ export function compileDefinition(def: ExerciseDefinition): CompiledRules | Vali
     if (hasCycle(tokenIds,edges)) return failed(`Körkörös sorrendi feltétel: ${profile.id}`);
     profiles.push({id:profile.id,edges});
   }
-  return {definition:def,profiles};
+  return {definition:structuredClone(def),profiles:structuredClone(profiles)};
 }
 
 export function isModelError(result: CompiledRules | ValidationResult): result is ValidationResult {

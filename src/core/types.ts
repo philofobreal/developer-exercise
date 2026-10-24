@@ -17,6 +17,8 @@ export interface CodeToken {
   after?: string[];
   /** Indentation normalization MUST be verified safe when authoring. */
   normalization?: Normalization;
+  /** Optional absolute zero-based submission position; does not partition other tokens. */
+  fixedPosition?: number;
 }
 
 export interface LexicalBlock {
@@ -34,7 +36,7 @@ export interface OrderingEdge {
   after: string;
 }
 
-/** Exactly one alternate profile must be satisfiable. Empty list = base only. */
+/** At least one alternate profile must be satisfiable. Empty list = base only. */
 export interface OrderingProfile {
   id: string;
   edges: OrderingEdge[];
@@ -64,7 +66,7 @@ export interface Submission {
 }
 
 export interface ValidationOptions {
-  /** Deterministic maximum number of candidate assignments tested per profile. */
+  /** Deterministic maximum number of search states across all profiles combined. */
   maxStates?: number;
 }
 export type ValidationStatus = 'accepted' | 'rejected' | 'indeterminate' | 'invalid_reference';
@@ -80,6 +82,8 @@ export interface ValidationResult {
   positions?: number[];
   /** Author profile used for the successful witness. */
   matchedProfile?: string;
+  /** Server-computed witness: submitted position -> trusted token ID. Not client identity. */
+  matchedTokenIds?: string[];
   /** Search iterations used, not a timing-based resource budget. */
   exploredStates: number;
 }
