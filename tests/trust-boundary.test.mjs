@@ -1,0 +1,20 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {ExerciseCatalog} from '../src/server/catalog.mjs';
+import {createApplication} from '../src/server/http.mjs';
+import {compileCodeLineExercise} from '../dist/index.js';
+const model=JSON.parse(await readFile(new URL('../examples/sum-js.json',import.meta.url),'utf8'));
+test('learner HTTP evaluation never parses code or accepts client grading rules',async t=>{
+ const compiled=compileCodeLineExercise(model),catalog=new ExerciseCatalog(new Map([[model.id,{model,compiled:compiled.compiled}]]));
+ catalog.parser=()=>{throw Error('Learner parsing forbidden');};
+ const server=createApplication({catalog,staticRoot:new URL('../public',import.meta.url).pathname});
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>new Promise(resolve=>server.close(resolve)));
+ const post=async body=>(await fetch(`http://127.0.0.1:${server.address().port}/api/evaluate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
+ const lines=model.lines.map(x=>x.code),body={exerciseId:model.id,revision:model.revision,lines};
+ assert.equal((await post(body)).status,'accepted');
+ const altered=[...lines];altered[1]='globalThis.executed = true;';
+ const report=await post({...body,lines:altered,model:{...model,lines:altered.map((code,i)=>({...model.lines[i],code,dependencies:[]}))},profiles:[],dependencies:[]});
+ assert.equal(report.status,'rejected');assert.equal(globalThis.executed,undefined);
+ assert.equal((await post(body)).status,'accepted');
+});

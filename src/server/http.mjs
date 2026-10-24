@@ -7,7 +7,7 @@ import {AuthoringError} from '../author/generator.mjs';
 const mime={'.txt':'text/plain; charset=utf-8','.ts':'text/plain; charset=utf-8','.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.map':'application/json; charset=utf-8'};
 const headers={
   'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer',
-  'Content-Security-Policy':"default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
+  'Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
 };
 function json(res,status,data){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(data));}
 async function readJson(req,limit){const parts=[];let size=0;
@@ -19,7 +19,7 @@ export function createApplication({catalog,staticRoot}){
     for(const [name,value] of Object.entries(headers))res.setHeader(name,value);
     const ip=req.socket.remoteAddress??'',now=Date.now(),counter=rate.get(ip)??{since:now,count:0};
     if(now-counter.since>60_000){counter.since=now;counter.count=0;}
-    rate.set(ip,counter);if(++counter.count>120)return json(res,429,{error:'Too many requests'});
+    rate.set(ip,counter);if(req.method==='POST'&&++counter.count>120)return json(res,429,{error:'Too many requests'});
     if(rate.size>2000)for(const [key,v] of rate)if(now-v.since>60_000)rate.delete(key);
     let route;
     try{route=decodeURIComponent(new URL(req.url??'/',`http://${req.headers.host||'localhost'}`).pathname);}

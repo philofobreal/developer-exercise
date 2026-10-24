@@ -1,14 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {fileURLToPath} from 'node:url';
 import {ExerciseCatalog} from '../src/server/catalog.mjs';
-const catalog=await ExerciseCatalog.open(new URL('../examples/',import.meta.url).pathname);
+const catalog=await ExerciseCatalog.open(fileURLToPath(new URL('../examples/',import.meta.url)));
 const input={language:'javascript',title:'Author edited dependency graph',description:'a/b independent',source:`function calc() {
   const a = 1;
   const b = 2;
   return a + b;
 }`};
 test('Model editing: author compile -> invalid permutation -> edited references -> accepted same submission',async()=>{
- const first=await catalog.createDraft(input);const model=first.model;
+ const generated=await catalog.createDraft(input);const strict=structuredClone(generated.model);strict.lines[2].dependencies=[strict.lines[1].id];
+ const first=await catalog.createDraft({model:strict});const model=first.model;
  assert.equal(model.lines.length,5);
  const altered=model.lines.map(l=>l.code);[altered[1],altered[2]]=[altered[2],altered[1]];
  assert.equal(catalog.preview({draftId:first.draftId,lines:altered}).status,'rejected');
