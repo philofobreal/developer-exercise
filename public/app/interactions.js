@@ -147,7 +147,7 @@ export function installAuthoringFlows(root, state, render) {
                 state.author.language = 'typescript';
             else if (/\.(mjs|js)$/i.test(file.name))
                 state.author.language = 'javascript';
-            state.author.message = `${file.name} betöltve. A forrás még nincs alkalmazva.`;
+            state.author.message = `${file.name} betöltve. A forrás még nincs alkalmazva. A cím és leírás nem változik automatikusan; ellenőrizd őket.`;
         }
         catch (error) {
             if (!current())

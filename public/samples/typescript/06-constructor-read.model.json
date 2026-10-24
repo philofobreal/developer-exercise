@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 2,
+  "id": "ts-sample-06-constructor-read",
+  "revision": 1,
+  "language": "typescript",
+  "title": "Constructor read/write veszély",
+  "description": "A második this-értékadás olvassa az első által írt mezőt. A declare sorok ettől függetlenek.",
+  "lines": [
+    {
+      "id": 1,
+      "sourceLine": 1,
+      "code": "class Writing {",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "sourceLine": 2,
+      "code": "  declare first: number;",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "sourceLine": 3,
+      "code": "  declare second: number;",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 4,
+      "sourceLine": 4,
+      "code": "  constructor(first: number) {",
+      "dependencies": [
+        2,
+        3
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 5,
+      "sourceLine": 5,
+      "code": "    this.first = first;",
+      "dependencies": [
+        4
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 6,
+      "sourceLine": 6,
+      "code": "    this.second = this.first + 1;",
+      "dependencies": [
+        5
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 7,
+      "sourceLine": 7,
+      "code": "  }",
+      "dependencies": [
+        6
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 8,
+      "sourceLine": 8,
+      "code": "}",
+      "dependencies": [
+        7
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 9,
+      "sourceLine": 9,
+      "code": "const value = new Writing(3);",
+      "dependencies": [
+        8
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "scope-1",
+      "kind": "block",
+      "parentScopeId": null,
+      "openLineId": 1,
+      "closeLineId": 8
+    },
+    {
+      "id": "scope-2",
+      "kind": "function",
+      "parentScopeId": "scope-1",
+      "openLineId": 4,
+      "closeLineId": 7,
+      "functionBlock": 1
+    }
+  ],
+  "edges": [],
+  "profiles": [],
+  "authoring": {
+    "strategy": "ast-hierarchy",
+    "reason": "",
+    "omittedBlocks": 0,
+    "semanticEquivalenceProven": false,
+    "dependencyPolicy": "scoped-type-members-v3",
+    "note": "A külön nevű, egysoros interface-/típusadatmezők és declare osztálymezők felcserélhetők. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.",
+    "dependencyHints": [
+      {
+        "name": "first",
+        "declarationLine": 2,
+        "usageLine": 5
+      },
+      {
+        "name": "first",
+        "declarationLine": 4,
+        "usageLine": 5
+      },
+      {
+        "name": "second",
+        "declarationLine": 3,
+        "usageLine": 6
+      },
+      {
+        "name": "first",
+        "declarationLine": 2,
+        "usageLine": 6
+      },
+      {
+        "name": "Writing",
+        "declarationLine": 1,
+        "usageLine": 9
+      }
+    ]
+  }
+}

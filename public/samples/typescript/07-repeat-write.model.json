@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 2,
+  "id": "ts-sample-07-repeat-write",
+  "revision": 1,
+  "language": "typescript",
+  "title": "Két írás ugyanarra a mezőre",
+  "description": "Az utolsó írás nyer: azonos property-név nem jelent független műveletet.",
+  "lines": [
+    {
+      "id": 1,
+      "sourceLine": 1,
+      "code": "class Repeated {",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "sourceLine": 2,
+      "code": "  value = 0;",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "sourceLine": 3,
+      "code": "  constructor() {",
+      "dependencies": [
+        2
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 4,
+      "sourceLine": 4,
+      "code": "    this.value = 1;",
+      "dependencies": [
+        3
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 5,
+      "sourceLine": 5,
+      "code": "    this.value = 2;",
+      "dependencies": [
+        4
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 6,
+      "sourceLine": 6,
+      "code": "  }",
+      "dependencies": [
+        5
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 7,
+      "sourceLine": 7,
+      "code": "}",
+      "dependencies": [
+        6
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 8,
+      "sourceLine": 8,
+      "code": "const value = new Repeated();",
+      "dependencies": [
+        7
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "scope-1",
+      "kind": "block",
+      "parentScopeId": null,
+      "openLineId": 1,
+      "closeLineId": 7
+    },
+    {
+      "id": "scope-2",
+      "kind": "function",
+      "parentScopeId": "scope-1",
+      "openLineId": 3,
+      "closeLineId": 6,
+      "functionBlock": 1
+    }
+  ],
+  "edges": [],
+  "profiles": [],
+  "authoring": {
+    "strategy": "ast-hierarchy",
+    "reason": "",
+    "omittedBlocks": 0,
+    "semanticEquivalenceProven": false,
+    "dependencyPolicy": "scoped-primitive-dag-v2",
+    "note": "A külön nevű, egysoros interface-/típusadatmezők és declare osztálymezők felcserélhetők. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.",
+    "dependencyHints": [
+      {
+        "name": "value",
+        "declarationLine": 2,
+        "usageLine": 4
+      },
+      {
+        "name": "value",
+        "declarationLine": 2,
+        "usageLine": 5
+      },
+      {
+        "name": "Repeated",
+        "declarationLine": 1,
+        "usageLine": 8
+      }
+    ]
+  }
+}

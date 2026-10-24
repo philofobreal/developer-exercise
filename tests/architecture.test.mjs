@@ -30,3 +30,10 @@ test('typed author engine alone may call the shared compiler; other author algor
  assert.ok(inspectModule('src/author/another.ts',source).some(e=>e.rule==='author-boundary'));
  assert.ok(inspectModule('src/core/another.ts',"import {LanguageEngine} from '../author/engine.js';").some(e=>e.rule==='core-boundary'));
 });
+
+test('only the legacy generator may wire the typed type-member projection',()=>{
+ const source="import {typeMemberOrdering} from '../../dist/author/type-member-ordering.js';";
+ assert.deepEqual(inspectModule('src/author/generator.mjs',source),[]);
+ assert.ok(inspectModule('src/author/another.mjs',source).some(error=>error.rule==='author-boundary'));
+ assert.deepEqual(inspectModule('src/author/type-member-ordering.ts',"import type ts from 'typescript';"),[]);
+});

@@ -19,6 +19,7 @@
   "include": [
     "scripts/architecture-rules.ts",
     "scripts/verify-architecture.ts",
-    "scripts/stage-python-probe.ts"
+    "scripts/stage-python-probe.ts",
+    "scripts/build-typescript-samples.ts"
   ]
 }

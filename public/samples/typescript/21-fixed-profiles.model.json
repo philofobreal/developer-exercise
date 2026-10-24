@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 2,
+  "id": "ts-sample-21-fixed-profiles",
+  "revision": 1,
+  "language": "typescript",
+  "title": "Kézzel rögzített hely és OR profilok",
+  "description": "A középső sor fixed; az első és harmadik sorrendjére két alternatív profil van. Ez explicit szerzői JSON-beállítás.",
+  "lines": [
+    {
+      "id": 1,
+      "sourceLine": 1,
+      "code": "const a = 1;",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "sourceLine": 2,
+      "code": "const b = 2;",
+      "dependencies": [],
+      "fixed": true,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "sourceLine": 3,
+      "code": "const c = 3;",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [],
+  "edges": [],
+  "profiles": [
+    {
+      "id": "a-before-c",
+      "edges": [
+        {
+          "before": 1,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "id": "c-before-a",
+      "edges": [
+        {
+          "before": 3,
+          "after": 1
+        }
+      ]
+    }
+  ],
+  "authoring": {
+    "strategy": "ast-hierarchy",
+    "reason": "",
+    "omittedBlocks": 0,
+    "semanticEquivalenceProven": false,
+    "dependencyPolicy": "scoped-primitive-dag-v2",
+    "dependencyHints": [],
+    "note": "Explicit szerzői példa: a középső sor fixed, a két profil OR-kapcsolatú. Ezeket a forrás önmagában nem állítja elő."
+  }
+}

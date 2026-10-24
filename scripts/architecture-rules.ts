@@ -13,7 +13,8 @@ export function inspectModule(file:string,source:string):Violation[]{
   if(core&&!resolved.startsWith('src/core/'))report('core-boundary','Core must remain independent of browser, author, transport and Node libraries: '+specifier);
   if(ui&&!(resolved.startsWith('src/workbench/')||specifier==='../formatter.js'||typeOnly&&resolved.startsWith('dist/')))report('presentation-boundary','Presentation may use only its own modules, explicit formatter port and domain types: '+specifier);
   const authorEngine=normalized==='src/author/engine.ts'&&resolved==='dist/index.js';
-  if(author&&!(resolved.startsWith('src/author/')||authorEngine||typeOnly&&(resolved.startsWith('src/core/')||resolved.startsWith('dist/')||specifier==='typescript')))report('author-boundary','Author algorithms must remain browser-safe and infrastructure independent: '+specifier);
+  const typedMemberProjection=normalized==='src/author/generator.mjs'&&resolved==='dist/author/type-member-ordering.js';
+  if(author&&!(resolved.startsWith('src/author/')||authorEngine||typedMemberProjection||typeOnly&&(resolved.startsWith('src/core/')||resolved.startsWith('dist/')||specifier==='typescript')))report('author-boundary','Author algorithms must remain browser-safe and infrastructure independent: '+specifier);
   if(!python&&(resolved.startsWith('src/python/')||resolved.startsWith('dist/python/')||specifier==='pyodide'))report('python-isolation','Python runtime is currently author-probe infrastructure only; product and learner paths must not import it.');
   const nodePython=['src/python/node-parser.ts','src/python/node-worker.ts'].includes(normalized);
   if(python&&!(resolved.startsWith('src/python/')||resolved==='dist/author/python-parser.js'||nodePython&&(specifier.startsWith('node:')||specifier==='pyodide')))report('python-boundary','Parser infrastructure may use only its own modules and author DTO port; Node imports belong only to process entry points.');

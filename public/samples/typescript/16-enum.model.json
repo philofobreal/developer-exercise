@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 2,
+  "id": "ts-sample-16-enum",
+  "revision": 1,
+  "language": "typescript",
+  "title": "Enum automatikus értékekkel",
+  "description": "Az enumtagok sorrendje az automatikus numerikus értékeket is meghatározza.",
+  "lines": [
+    {
+      "id": 1,
+      "sourceLine": 1,
+      "code": "enum Mode {",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "sourceLine": 2,
+      "code": "  First,",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "sourceLine": 3,
+      "code": "  Second,",
+      "dependencies": [
+        2
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 4,
+      "sourceLine": 4,
+      "code": "}",
+      "dependencies": [
+        3
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 5,
+      "sourceLine": 5,
+      "code": "const value = Mode.Second;",
+      "dependencies": [
+        4
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "scope-1",
+      "kind": "block",
+      "parentScopeId": null,
+      "openLineId": 1,
+      "closeLineId": 4
+    }
+  ],
+  "edges": [],
+  "profiles": [],
+  "authoring": {
+    "strategy": "ast-hierarchy",
+    "reason": "",
+    "omittedBlocks": 0,
+    "semanticEquivalenceProven": false,
+    "dependencyPolicy": "scoped-primitive-dag-v2",
+    "dependencyHints": [
+      {
+        "name": "Mode",
+        "declarationLine": 1,
+        "usageLine": 5
+      },
+      {
+        "name": "Second",
+        "declarationLine": 3,
+        "usageLine": 5
+      }
+    ]
+  }
+}

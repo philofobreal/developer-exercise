@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 2,
+  "id": "ts-sample-08-setter",
+  "revision": 1,
+  "language": "typescript",
+  "title": "Setter mellékhatása",
+  "description": "Két külön nevű this-értékadás is hívhat settert; a trace megőrzi a hívási sorrendet.",
+  "lines": [
+    {
+      "id": 1,
+      "sourceLine": 1,
+      "code": "const trace: string[] = [];",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "sourceLine": 2,
+      "code": "class Setters {",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "sourceLine": 3,
+      "code": "  set first(value: number) { trace.push(\"first:\" + value); }",
+      "dependencies": [
+        2
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 4,
+      "sourceLine": 4,
+      "code": "  set second(value: number) { trace.push(\"second:\" + value); }",
+      "dependencies": [
+        3
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 5,
+      "sourceLine": 5,
+      "code": "  constructor() {",
+      "dependencies": [
+        4
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 6,
+      "sourceLine": 6,
+      "code": "    this.first = 1;",
+      "dependencies": [
+        5
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 7,
+      "sourceLine": 7,
+      "code": "    this.second = 2;",
+      "dependencies": [
+        6
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 8,
+      "sourceLine": 8,
+      "code": "  }",
+      "dependencies": [
+        7
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 9,
+      "sourceLine": 9,
+      "code": "}",
+      "dependencies": [
+        8
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 10,
+      "sourceLine": 10,
+      "code": "const value = new Setters();",
+      "dependencies": [
+        9
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "scope-1",
+      "kind": "block",
+      "parentScopeId": null,
+      "openLineId": 2,
+      "closeLineId": 9
+    },
+    {
+      "id": "scope-2",
+      "kind": "function",
+      "parentScopeId": "scope-1",
+      "openLineId": 5,
+      "closeLineId": 8,
+      "functionBlock": 1
+    }
+  ],
+  "edges": [],
+  "profiles": [],
+  "authoring": {
+    "strategy": "ast-hierarchy",
+    "reason": "",
+    "omittedBlocks": 0,
+    "semanticEquivalenceProven": false,
+    "dependencyPolicy": "scoped-primitive-dag-v2",
+    "note": "A külön nevű, egysoros interface-/típusadatmezők és declare osztálymezők felcserélhetők. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.",
+    "dependencyHints": [
+      {
+        "name": "trace",
+        "declarationLine": 1,
+        "usageLine": 3
+      },
+      {
+        "name": "trace",
+        "declarationLine": 1,
+        "usageLine": 4
+      },
+      {
+        "name": "first",
+        "declarationLine": 3,
+        "usageLine": 6
+      },
+      {
+        "name": "second",
+        "declarationLine": 4,
+        "usageLine": 7
+      },
+      {
+        "name": "Setters",
+        "declarationLine": 2,
+        "usageLine": 10
+      }
+    ]
+  }
+}

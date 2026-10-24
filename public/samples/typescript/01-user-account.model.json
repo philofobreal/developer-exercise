@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 2,
+  "id": "ts-sample-01-user-account",
+  "revision": 1,
+  "language": "typescript",
+  "title": "UserAccount – a beküldött példa",
+  "description": "Az interface adatmezői felcserélhetők. A normál class mezők és this-értékadások sorrendje megmarad, mert a kulcssorrend is megfigyelhető.",
+  "lines": [
+    {
+      "id": 1,
+      "sourceLine": 1,
+      "code": "interface User {",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "sourceLine": 2,
+      "code": "  name: string;",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "sourceLine": 3,
+      "code": "  id: number;",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 4,
+      "sourceLine": 4,
+      "code": "}",
+      "dependencies": [
+        2,
+        3
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 5,
+      "sourceLine": 6,
+      "code": "class UserAccount {",
+      "dependencies": [
+        4
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 6,
+      "sourceLine": 7,
+      "code": "  name: string;",
+      "dependencies": [
+        5
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 7,
+      "sourceLine": 8,
+      "code": "  id: number;",
+      "dependencies": [
+        6
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 8,
+      "sourceLine": 10,
+      "code": "  constructor(name: string, id: number) {",
+      "dependencies": [
+        7
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 9,
+      "sourceLine": 11,
+      "code": "    this.name = name;",
+      "dependencies": [
+        8
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-3",
+      "normalization": "indent"
+    },
+    {
+      "id": 10,
+      "sourceLine": 12,
+      "code": "    this.id = id;",
+      "dependencies": [
+        9
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-3",
+      "normalization": "indent"
+    },
+    {
+      "id": 11,
+      "sourceLine": 13,
+      "code": "  }",
+      "dependencies": [
+        10
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 12,
+      "sourceLine": 14,
+      "code": "}",
+      "dependencies": [
+        11
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 13,
+      "sourceLine": 16,
+      "code": "const user: User = new UserAccount(\"Murphy\", 1);",
+      "dependencies": [
+        12
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "scope-1",
+      "kind": "block",
+      "parentScopeId": null,
+      "openLineId": 1,
+      "closeLineId": 4
+    },
+    {
+      "id": "scope-2",
+      "kind": "block",
+      "parentScopeId": null,
+      "openLineId": 5,
+      "closeLineId": 12
+    },
+    {
+      "id": "scope-3",
+      "kind": "function",
+      "parentScopeId": "scope-2",
+      "openLineId": 8,
+      "closeLineId": 11,
+      "functionBlock": 1
+    }
+  ],
+  "edges": [],
+  "profiles": [],
+  "authoring": {
+    "strategy": "ast-hierarchy",
+    "reason": "",
+    "omittedBlocks": 0,
+    "semanticEquivalenceProven": false,
+    "dependencyPolicy": "scoped-type-members-v3",
+    "note": "A külön nevű, egysoros interface-/típusadatmezők és declare osztálymezők felcserélhetők. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.",
+    "dependencyHints": [
+      {
+        "name": "name",
+        "declarationLine": 7,
+        "usageLine": 11
+      },
+      {
+        "name": "name",
+        "declarationLine": 10,
+        "usageLine": 11
+      },
+      {
+        "name": "id",
+        "declarationLine": 8,
+        "usageLine": 12
+      },
+      {
+        "name": "id",
+        "declarationLine": 10,
+        "usageLine": 12
+      },
+      {
+        "name": "UserAccount",
+        "declarationLine": 6,
+        "usageLine": 16
+      }
+    ]
+  }
+}
