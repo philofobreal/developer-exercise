@@ -9,6 +9,10 @@
 | Ajv | 8.20.0 | MIT; build/test függőség; standalone ellenőrzőt generál, saját licencét a generált forráshoz mellékeljük |
 | @types/node | 22.20.5 | MIT; kizárólag fejlesztési típusdefiníció a governance buildhez, `node_modules/@types/node/LICENSE`; nem böngészős runtime |
 | Playwright (Python) | 1.64.1 | Apache-2.0; tesztinfrastruktúra, nem kerül az alkalmazásba |
+| Pyodide | 314.0.7 | MPL-2.0; izolált author parser-szelet, a termék Pages artifactjában még nincs. [Upstream licenc](licenses/LICENSE-pyodide.txt), [pinned hash-manifeszt](python-runtime-manifest.json) |
+| CPython a Pyodide-ban | 3.14.2 | PSF és beépített upstream notice-ok: [eredeti CPython licenc](licenses/LICENSE-cpython.txt) |
+
+A Pyodide-licenc a `b1e4fcc2488962f6360a97f19b9982d6fdb5d16f` upstream commit `LICENSE` fájlja; a CPython-licenc a `v3.14.2` tagből származik. A runtime csak az npm-lockfile és az öt fájlt ellenőrző manifeszt egyezésekor kerül a külön parser-teszthostba. A termékbe bekötés előtt a teljes runtime terjesztési/support-felülvizsgálat továbbra is kiadási feltétel, lásd [platformstátusz](python-parser-platform.md).
 
 A Prism licencszövege a hivatalos [v1.25.0 tagből](https://github.com/PrismJS/prism/blob/v1.25.0/LICENSE) származik, blob SHA: `528949f42d9e142f1fd4b1c0e7dba074bba91ba2`. A korábbi dokumentáció tévesen MIT-nek nevezte a TypeScript licencét; a telepített compiler tényleges licence Apache-2.0.
 

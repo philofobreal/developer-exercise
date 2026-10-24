@@ -6,7 +6,9 @@ const require=createRequire(import.meta.url);
 const root=process.cwd(),out=path.join(root,'_site');
 await rm(out,{recursive:true,force:true});
 await cp(path.join(root,'public'),out,{recursive:true});
-await cp(path.join(root,'dist'),path.join(out,'dist'),{recursive:true});
+const distRoot=path.join(root,'dist');
+// The isolated Python parser is a test/library slice until product integration (ADR-005).
+await cp(distRoot,path.join(out,'dist'),{recursive:true,filter:source=>path.relative(distRoot,source).split(path.sep)[0]!=='python'});
 await cp(path.join(root,'src/author'),path.join(out,'author'),{recursive:true});
 await cp(path.join(root,'examples'),path.join(out,'examples'),{recursive:true});
 const names=(await readdir(path.join(root,'examples'))).filter(n=>n.endsWith('.json')).sort();

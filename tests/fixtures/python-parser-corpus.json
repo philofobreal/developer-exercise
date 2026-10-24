@@ -1,0 +1,426 @@
+[
+  {
+    "id": "empty",
+    "source": "",
+    "kinds": [
+      "Module"
+    ]
+  },
+  {
+    "id": "comments-only",
+    "source": "#!/usr/bin/env python3\n# coding: utf-8\n# árvíztűrő 😀\n\n",
+    "kinds": [
+      "Module"
+    ]
+  },
+  {
+    "id": "unicode-and-crlf",
+    "source": "árvíz = '😀'\r\n结果 = árvíz\r\n",
+    "kinds": [
+      "Assign",
+      "Name",
+      "Constant"
+    ]
+  },
+  {
+    "id": "no-final-newline",
+    "source": "x = 1",
+    "kinds": [
+      "Assign"
+    ]
+  },
+  {
+    "id": "literals-lossless",
+    "source": "big = 999999999999999999999999999999999\nvalues = (1e999, 3j, b'\\x00', True, None, ...)\n",
+    "kinds": [
+      "Tuple",
+      "Constant"
+    ]
+  },
+  {
+    "id": "literal-whitespace",
+    "source": "text = '''first\n\t  literal  \n\nlast'''\nraw = r'\\t  '\n",
+    "kinds": [
+      "Constant"
+    ]
+  },
+  {
+    "id": "implicit-continuation",
+    "source": "values = [\n    1,  # first\n\n    2,\n]\nresult = (\n    values[0]\n    + values[1]\n)\n",
+    "kinds": [
+      "List",
+      "Subscript",
+      "BinOp"
+    ]
+  },
+  {
+    "id": "explicit-continuation",
+    "source": "result = 1 + \\\n    2\n",
+    "kinds": [
+      "BinOp"
+    ]
+  },
+  {
+    "id": "semicolon",
+    "source": "x = 1; y = 2; total = x + y\n",
+    "kinds": [
+      "Assign",
+      "BinOp"
+    ]
+  },
+  {
+    "id": "suite-not-scope",
+    "source": "if True:\n    x = 1\nelif False:\n    x = 2\nelse:\n    x = 3\n",
+    "kinds": [
+      "If"
+    ],
+    "scopeKinds": [
+      "module"
+    ]
+  },
+  {
+    "id": "inline-suite",
+    "source": "if True: x = 1; y = 2\n",
+    "kinds": [
+      "If",
+      "Assign"
+    ]
+  },
+  {
+    "id": "loops-else",
+    "source": "for i in range(4):\n    if i == 2:\n        continue\nelse:\n    i = -1\nwhile False:\n    break\nelse:\n    done = True\n",
+    "kinds": [
+      "For",
+      "While",
+      "Continue",
+      "Break"
+    ],
+    "scopeKinds": [
+      "module"
+    ]
+  },
+  {
+    "id": "function-nonlocal-global",
+    "source": "value = 0\ndef outer(a, /, b=1, *, c=2):\n    local = a\n    def inner(*args, **kwargs):\n        nonlocal local\n        global value\n        local += 1\n        value = local\n        return args, kwargs, b, c\n    return inner\n",
+    "kinds": [
+      "FunctionDef",
+      "Nonlocal",
+      "Global",
+      "AugAssign"
+    ],
+    "scopeKinds": [
+      "module",
+      "annotation",
+      "function",
+      "annotation",
+      "function"
+    ]
+  },
+  {
+    "id": "decorated-async-class",
+    "source": "@decorate('never called')\nclass C(Base):\n    @staticmethod\n    async def fetch(item: int) -> str:\n        async with acquire() as resource:\n            async for row in resource:\n                await consume(row)\n        return str(item)\n",
+    "kinds": [
+      "ClassDef",
+      "AsyncFunctionDef",
+      "AsyncWith",
+      "AsyncFor",
+      "Await"
+    ],
+    "scopeKinds": [
+      "module",
+      "class",
+      "annotation",
+      "function"
+    ]
+  },
+  {
+    "id": "combining-character",
+    "source": "á = '😀é'\nresult = á\n",
+    "kinds": [
+      "Assign",
+      "Name"
+    ]
+  },
+  {
+    "id": "bom-text-explicit-rejection",
+    "source": "﻿x = 1\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "try-except-else-finally",
+    "source": "try:\n    value = risky()\nexcept (ValueError, TypeError) as error:\n    value = str(error)\nelse:\n    value += 'ok'\nfinally:\n    cleanup()\n",
+    "kinds": [
+      "Try",
+      "ExceptHandler"
+    ],
+    "scopeKinds": [
+      "module"
+    ]
+  },
+  {
+    "id": "exception-groups",
+    "source": "try:\n    raise ExceptionGroup('group', [ValueError()])\nexcept* ValueError as errors:\n    handle(errors)\n",
+    "kinds": [
+      "TryStar",
+      "Raise"
+    ]
+  },
+  {
+    "id": "with-multiple",
+    "source": "with (open('never-read') as f, lock()):\n    data = f.read()\n",
+    "kinds": [
+      "With"
+    ]
+  },
+  {
+    "id": "match-guards",
+    "source": "match payload:\n    case {'kind': 'point', 'xy': [x, y]} if x > 0:\n        result = x + y\n    case Point(x=x, y=y):\n        result = (x, y)\n    case [first, *rest] | (first, *rest):\n        result = rest\n    case _:\n        result = None\n",
+    "kinds": [
+      "Match",
+      "MatchMapping",
+      "MatchClass",
+      "MatchOr",
+      "MatchStar"
+    ]
+  },
+  {
+    "id": "comprehension-lambda-walrus",
+    "source": "items = [n*n for n in range(10) if n % 2]\nlookup = {n: n*n for n in items}\nunique = {n for n in items}\nstream = (n for n in items)\nfn = lambda x: (seen := x + 1)\n",
+    "kinds": [
+      "ListComp",
+      "DictComp",
+      "SetComp",
+      "GeneratorExp",
+      "Lambda",
+      "NamedExpr"
+    ]
+  },
+  {
+    "id": "comprehension-closure-mixed",
+    "source": "def f(items):\n    total = 0\n    values = [(total := total + x) for x in items]\n    return [lambda: x for x in values], total\n",
+    "kinds": [
+      "NamedExpr",
+      "Lambda"
+    ]
+  },
+  {
+    "id": "generators",
+    "source": "def gen():\n    yield 1\n    yield from other()\nasync def agen():\n    yield 2\n",
+    "kinds": [
+      "Yield",
+      "YieldFrom",
+      "AsyncFunctionDef"
+    ]
+  },
+  {
+    "id": "imports-not-loaded",
+    "source": "import definitely_missing_package_93821\nfrom missing_module import thing as alias\nraise RuntimeError('MUST NOT EXECUTE')\nopen('MUST_NOT_CREATE', 'w').write('no')\n",
+    "kinds": [
+      "Import",
+      "ImportFrom",
+      "Raise",
+      "Call"
+    ]
+  },
+  {
+    "id": "fstring-pep701",
+    "source": "name = 'world'\nvalue = f\"hello {name!r:>10} {f'{name}'}\"\nother = f'{ {\"x\": 1}[\"x\"] }'\n",
+    "kinds": [
+      "JoinedStr",
+      "FormattedValue"
+    ]
+  },
+  {
+    "id": "template-string-314",
+    "source": "name = 'world'\nvalue = t'hello {name}'\n",
+    "kinds": [
+      "TemplateStr",
+      "Interpolation"
+    ]
+  },
+  {
+    "id": "type-parameters",
+    "source": "type Pair[T] = tuple[T, T]\nclass Box[T]:\n    def get(self, value: T) -> T:\n        return value\ndef identity[T](value: T) -> T:\n    return value\n",
+    "kinds": [
+      "TypeAlias",
+      "TypeVar",
+      "ClassDef",
+      "FunctionDef"
+    ]
+  },
+  {
+    "id": "tabs-consistent",
+    "source": "if True:\n\tx = 1\n\tif x:\n\t\ty = 2\n",
+    "kinds": [
+      "If",
+      "Assign"
+    ]
+  },
+  {
+    "id": "formfeed-indent",
+    "source": "if True:\n\f    x = 1\n",
+    "kinds": [
+      "If",
+      "Assign"
+    ]
+  },
+  {
+    "id": "unpacking-slicing-delete",
+    "source": "first, *rest = values\nvalues[1:3:2] = rest\ndel values[0]\nassert first, 'required'\n",
+    "kinds": [
+      "Starred",
+      "Slice",
+      "Delete",
+      "Assert"
+    ]
+  },
+  {
+    "id": "mixed-large-structure",
+    "source": "from __future__ import annotations\n@decorate\nclass Service[T]:\n    async def run(self, rows: list[T]):\n        total = 0\n        try:\n            async with acquire() as resource:\n                for row in rows:\n                    match row:\n                        case {'value': value} if value:\n                            total += value\n                        case _:\n                            continue\n        except ValueError as error:\n            raise RuntimeError(f'{error}') from error\n        else:\n            return [x for x in (total,) if x]\n        finally:\n            cleanup()\n",
+    "kinds": [
+      "ClassDef",
+      "AsyncWith",
+      "Match",
+      "Try",
+      "Raise",
+      "ListComp"
+    ]
+  },
+  {
+    "id": "bad-colon",
+    "source": "if True\n    pass\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "unexpected-indent",
+    "source": "    x = 1\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "inconsistent-dedent",
+    "source": "if True:\n    x = 1\n  y = 2\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "tab-space-ambiguity",
+    "source": "if True:\n\tx = 1\n        y = 2\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "top-level-return",
+    "source": "return 1\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "top-level-break",
+    "source": "break\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "top-level-continue",
+    "source": "continue\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "top-level-await",
+    "source": "await work()\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "top-level-yield",
+    "source": "yield 1\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "nonlocal-missing",
+    "source": "def f():\n    nonlocal missing\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "global-after-use",
+    "source": "def f():\n    print(x)\n    global x\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "duplicate-argument",
+    "source": "def f(x, x):\n    pass\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "break-in-nested-function",
+    "source": "while True:\n    def f():\n        break\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "except-star-mixed",
+    "source": "try:\n    pass\nexcept ValueError:\n    pass\nexcept* TypeError:\n    pass\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "except-star-return",
+    "source": "def f():\n    try:\n        pass\n    except* ValueError:\n        return 1\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "pattern-unreachable",
+    "source": "match x:\n    case capture:\n        pass\n    case 1:\n        pass\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "pattern-alternative-binding",
+    "source": "match x:\n    case [a] | [b]:\n        pass\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "walrus-comprehension-iteration",
+    "source": "values = [(x := 1) for x in items]\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "star-import-function",
+    "source": "def f():\n    from math import *\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "unclosed-string",
+    "source": "text = '''unfinished\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "unclosed-bracket",
+    "source": "values = [1,\n 2\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "bad-backslash",
+    "source": "x = 1 \\ trailing\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "reserved-keyword",
+    "source": "class = 1\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "assignment-target",
+    "source": "1 = x\n",
+    "error": "syntax_error"
+  },
+  {
+    "id": "deep-parser-limit",
+    "source": "value = (((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((1)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))\n",
+    "error": "resource_limit"
+  },
+  {
+    "id": "lexical-budget-64",
+    "source": "x = ((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((1))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))\n",
+    "kinds": [
+      "Assign"
+    ]
+  },
+  {
+    "id": "lexical-budget-65",
+    "source": "x = (((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((1)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))\n",
+    "error": "resource_limit"
+  }
+]

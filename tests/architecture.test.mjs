@@ -9,10 +9,19 @@ for(const [file,source,rule] of [
  ['src/author/bad.mjs',"import {readFile} from 'node:fs';",'author-boundary'],
  ['src/core/bad.ts','new Function("return 1");','no-execution'],
  ['src/workbench/bad.ts','const bad: any = 1;','strictness'],
- ['src/workbench/bad.ts','// @ts-nocheck\nconst bad = 1;','strictness']
+ ['src/workbench/bad.ts','// @ts-nocheck\nconst bad = 1;','strictness'],
+ ['src/server/bad.mjs',"import {createNodePythonParser} from '../python/node-parser.js';",'python-isolation'],
+ ['src/python/browser-parser.ts',"import fs from 'node:fs';",'python-boundary'],
+ ['src/python/runtime.ts','runtime.runPython(source);','python-source-data'],
+ ['src/python/runtime.ts','runtime.runPythonAsync(source);','python-source-data'],
+ ['src/python/runtime.ts','runtime.loadPackagesFromImports(source);','python-source-data']
 ])test('architecture gate rejects '+rule+' in '+file,()=>assert.ok(inspectModule(file,source).some(error=>error.rule===rule)));
 test('architecture gate permits type-only core contract and local presentation modules',()=>{
  assert.deepEqual(inspectModule('src/workbench/good.ts',"import type {ValidationResult} from '../../dist/index.js';import {icon} from './icons.js';"),[]);
+});
+test('Python trusted bootstrap has the sole fixed runPython exception',()=>{
+ assert.deepEqual(inspectModule('src/python/runtime.ts','runtime.runPython(PYTHON_AUDIT_BOOTSTRAP);'),[]);
+ assert.ok(inspectModule('src/python/other.ts','runtime.runPython(PYTHON_AUDIT_BOOTSTRAP);').some(error=>error.rule==='python-source-data'));
 });
 
 test('typed author engine alone may call the shared compiler; other author algorithms retain their boundary',()=>{

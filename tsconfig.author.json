@@ -6,5 +6,5 @@
     "noUncheckedIndexedAccess": true, "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true, "skipLibCheck": true
   },
-  "include": ["src/author/engine.ts"]
+  "include": ["src/author/**/*.ts"]
 }

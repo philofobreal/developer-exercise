@@ -18,6 +18,7 @@
   },
   "include": [
     "scripts/architecture-rules.ts",
-    "scripts/verify-architecture.ts"
+    "scripts/verify-architecture.ts",
+    "scripts/stage-python-probe.ts"
   ]
 }

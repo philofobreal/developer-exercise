@@ -84,6 +84,8 @@ A `dependencies` az előzménysorok állandó ID-jait tartalmazza: mindegyiknek 
 
 ## Kiadás és bizalmi határ
 
+A Python-integráció első könyvtári szelete külön author parserport: rögzített CPython, izolált Node-folyamat/worker és közös edge-case korpusz. Python-feladatgenerálás és UI még nincs. [Implementált határ és ellenőrzések](docs/python-parser-platform.md), [teljes taskterv](docs/python-adapter-plan.md). Célzott ellenőrzés: `npm run test:python`, majd `npm run test:browser:python`.
+
 `npm run build:pages` a publikálható statikus demót az `_site/` mappába készíti. A **Local Demo / Preview Validation** a böngészőben fut, eredménye nem hitelesített vizsgaeredmény. A **Trusted Server Validation** a Node-szerveren tárolt szabályokat használja, tanulói kódot nem futtat és nem parse-ol. A saját szerzői előnézet egyik üzemmódban sem hiteles vizsgacsatorna.
 
 A projekt nem tartalmaz bejelentkezési rendszert vagy üzemi jogosultságkezelést. Éles vizsgaszolgáltatáshoz ezeket a [biztonsági szerződés](docs/security.md) szerint külön kell biztosítani.

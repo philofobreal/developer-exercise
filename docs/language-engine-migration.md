@@ -1,6 +1,6 @@
 # Language-Agnostic Exercise Engine – migrációs terv és állapot
 
-Alap: main `96da72e8241a2c99e13053dfcfd9797e2bdc3060`; feature ág: `codex/language-agnostic-foundations`. A döntés indoklása és elrejtett tudás: [ADR-003](adr/003-language-ir-and-codeline-v3.md). Az eddigi governance és üzleti invariánsok kötelező elfogadási feltételek.
+Alap: main `96da72e8241a2c99e13053dfcfd9797e2bdc3060`; eredeti feature ág: `codex/language-agnostic-foundations`. Az alapok PR #2-ben mainre kerültek (`b779c6c`), a három logikai commit története megmaradt. A döntés indoklása és elrejtett tudás: [ADR-003](adr/003-language-ir-and-codeline-v3.md). Az eddigi governance és üzleti invariánsok kötelező elfogadási feltételek. Az alábbi T-taskok az alapmigráció lezárt állapotát rögzítik; az azóta megkezdett Python parser-szelet aktuális státusza külön [platformjelentés](python-parser-platform.md).
 
 | Task | Függőség | Eredmény és elfogadási feltétel | Állapot |
 | --- | --- | --- | --- |
@@ -11,7 +11,7 @@ Alap: main `96da72e8241a2c99e13053dfcfd9797e2bdc3060`; feature ág: `codex/langu
 | T05 – typed plugin author engine | T03, T04 | Explicit regiszter, verzió és capability ellenőrzés; JS/TS port bridge; author audit és adapter contract tesztek | kész |
 | T06 – render és indent port | T02, T03 | Unitonként fizikai sorok, nincs gráfszivárgás; semantic indent exact; ismeretlen nyelvhez nincs JS formázás | kész |
 | T07 – kapuk és dokumentáció | T01–T06 | Schema generálás, strict build, modulhatár-negatív tesztek, Node/Pages regressziók és CI; pontos korlátlista | kész |
-| P01 – Python parser kiválasztása | T01–T07 | Verziózott grammar, Unicode/offset mapping, diagnosztika és author erőforráskorlát | nyitott, következő munka |
+| P01 – Python parser kiválasztása | T01–T07 | Verziózott grammar, Unicode/offset mapping, diagnosztika és author erőforráskorlát | parser/platform szelet implementálva; IR offset mapper (PY-03) és release-feltételek nyitottak |
 | P02 – Python native IR adapter | P01 | INDENT/DEDENT, multiline statement/literal, dekorátor, suite vs binding scope; biztonságos dependency policy | nyitott, nincs implementálva |
 | P03 – Python termékintegráció | P02 | UI nyelvválasztó, szerver/Pages capability, unit-drag/persistence v3, formatter és browser mátrix | nyitott, nincs implementálva |
 
@@ -35,12 +35,12 @@ Helyi ellenőrzés: 2026-10-24, Windows, Node 25.2.1, TypeScript 5.8.3, Python 3
 - `npm run test:browser:all`: sikeres offline és valódi Node HTTP alkalmazás, 32 HTTP/Pages mátrixeset, 36 drag és 21 workbench eset. Az új `test:browser:engine` külön is sikeresen futott: v3 JS/TS bridge, natív IR virtuális suite, exact whitespace, standalone Schema és modulbetöltés valós Pages-alútvonalon.
 - Új Node-szerződéstesztek: a suite összes 720 fizikai sorpermutációja független megengedettségi halmazzal, atomi unitok, virtuális EOF-határok és közös close/open sor, több kötelező előzmény, fixed átlépés, OR-profilok közös budgettel, multiplicitás, Schema/runtime egyezés, source span, async plugin és capability hibák. A teljes 436 soros TS fixture áthalad az új bridge-en is; a régi 31 metódusteszt megmarad.
 
-A sandbox a localhost-kapcsolatokat EACCES hibával blokkolta, ezért a HTTP- és böngészős tesztek az engedélyezett tesztfuttatási környezetben futottak; teszt kihagyására vagy gyengítésére nem került sor. A Playwright a repo ignorált `.venv` könyvtárába került. Nincs runtime függőség- vagy lockfile-módosítás.
+A sandbox a localhost-kapcsolatokat EACCES hibával blokkolta, ezért a HTTP- és böngészős tesztek az engedélyezett tesztfuttatási környezetben futottak; teszt kihagyására vagy gyengítésére nem került sor. A Playwright a repo ignorált `.venv` könyvtárába került. A T01–T07 alapcommitban nem volt runtime függőség- vagy lockfile-módosítás; az utána indult author Python-szelet már rögzített Pyodide-függőséget használ.
 
-A CI az új teszteket a meglévő check/all-browser kapukban futtatja; külön `git diff --exit-code` ellenőrzi a forrásból generált dist/browser/Schema kimenetet. A verify → tested Pages artifact → deploy lánc és jogosultságai változatlanok. A feature PR nem main-merge és nem deployment.
+A CI az új teszteket a meglévő check/all-browser kapukban futtatja; külön `git diff --exit-code` ellenőrzi a forrásból generált dist/browser/Schema kimenetet. A verify → tested Pages artifact → deploy lánc és jogosultságai változatlanok. Az eredeti feature PR #2 mainre zárult, az új Python-szelet külön feature ág.
 
 ## Átadás
 
-T01–T07 kész. A [szerződés és használati példa](language-engine-contract.md) az adapter implementálásának belépője. P01–P03 nyitott, Python parser/adapter nincs a kész elemek közé sorolva. Az új API opt-in; a régi UI és session v2 formátuma szándékosan megmarad. A szerkezetileg elfogadott programok szemantikai ekvivalenciája továbbra is szerzői felelősség, nem a modell automatikus állítása.
+T01–T07 kész. A [szerződés és használati példa](language-engine-contract.md) az adapter implementálásának belépője. P01 author parser-szelete elkészült, de a source mapper, a natív Python IR-adapter (P02) és a termékintegráció (P03) még nyitott. Az új API opt-in; a régi UI és session v2 formátuma szándékosan megmarad. A szerkezetileg elfogadott programok szemantikai ekvivalenciája továbbra is szerzői felelősség, nem a modell automatikus állítása.
 
-P01–P03 részletes folytatása: [Python-adapter és termékintegráció terve](python-adapter-plan.md), PY-01–PY-11 taskokkal, platform-/parser-döntéssel és kiadási kapukkal. Ez terv, nem kész Python-implementáció.
+P01–P03 részletes folytatása: [Python-adapter és termékintegráció terve](python-adapter-plan.md), PY-01–PY-11 taskokkal, platform-/parser-döntéssel és kiadási kapukkal. A tervet és a [megvalósítás pontos határát](python-parser-platform.md) együtt kell olvasni; teljes Python-adapter még nincs.
