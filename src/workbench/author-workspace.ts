@@ -14,11 +14,18 @@ export function refreshAuthorStatus(root:HTMLElement,state:WorkbenchState):void 
  else if(!pending)tab?.querySelector('.dirty-dot')?.remove();
 }
 interface Workspace {author:AuthorDraft;baseline:AuthorDraft;modelDraft:string;modelMessage:string;authorModel?:CodeLineExercise;}
+const nextRequest=(state:WorkbenchState):number=>state.authorRequestGeneration=(state.authorRequestGeneration??0)+1;
+/** Capture at user intent, before file/clipboard/network I/O; the latest reference action wins. */
+export function captureAuthorRequest(state:WorkbenchState):()=>boolean {
+ const generation=nextRequest(state),current=captureAuthorAdmission(state);
+ return ()=>generation===state.authorRequestGeneration&&current();
+}
 export function createAuthorWorkspace(state:WorkbenchState){
  const drafts=new Map<string,Workspace>();let current:string|null=null;
  const key=(exercise:Pick<ExerciseSummary,'id'|'revision'>):string=>JSON.stringify([exercise.id,exercise.revision]);
  const save=():void=>{if(current)drafts.set(current,structuredClone({author:state.author,baseline:state.authorBaseline??state.author,modelDraft:state.modelDraft,modelMessage:state.modelMessage,authorModel:state.authorModel}));};
  function select(exercise:ExerciseSummary):void {
+  nextRequest(state);
   save();current=key(exercise);
   let workspace=drafts.get(current);
   if(!workspace){
@@ -30,6 +37,7 @@ export function createAuthorWorkspace(state:WorkbenchState){
  }
  /** Call only after installPreview succeeds; save() must precede that atomic admission. */
  function admit(model:CodeLineExercise,source?:string):void {
+  nextRequest(state);
   const author:AuthorDraft={title:model.title,description:model.description,language:model.language,source:source??model.lines.map(l=>l.code).join('\n'),message:''};
   state.author=author;state.authorBaseline={...author};current=key(model);save();
   const activeKeys=new Set(state.exercises.map(key));for(const oldKey of drafts.keys())if(!activeKeys.has(oldKey))drafts.delete(oldKey);

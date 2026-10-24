@@ -1,3 +1,4 @@
+import { captureAuthorRequest } from './author-workspace.js';
 const views = ['sort', 'edit', 'author', 'model'];
 export function activateView(state, attempt, formatted, next) {
     if (!views.includes(next))
@@ -47,7 +48,7 @@ export async function dispatchWorkbenchAction(event, handler, onError) {
     const button = event.target instanceof Element ? event.target.closest('button') : null;
     if (!button || running.has(button))
         return;
-    const busy = button.matches('[data-check],[data-author-apply],[data-model-apply],[data-format],[data-author-format],[data-author-sample]');
+    const busy = button.matches('[data-check],[data-author-apply],[data-model-apply],[data-model-refresh],[data-format],[data-author-format],[data-author-sample]');
     const original = button.innerHTML, disabled = button.disabled, hadFocus = document.activeElement === button, owner = button.closest('#app');
     const context = owner ? { exercise: owner.dataset.renderedExercise, view: owner.dataset.renderedView } : undefined;
     const action = button.getAttributeNames().find(name => name.startsWith('data-'));
@@ -81,7 +82,7 @@ export async function dispatchWorkbenchAction(event, handler, onError) {
 }
 /** Two author inputs converge on the same compiled preview; learner mode is UI isolation, not authorization. */
 export function installAuthoringFlows(root, state, render) {
-    let returnView = 'sort', fileRequest = 0;
+    let returnView = 'sort';
     root.addEventListener('input', event => {
         const editor = event.target;
         if (!(editor instanceof HTMLTextAreaElement))
@@ -132,17 +133,15 @@ export function installAuthoringFlows(root, state, render) {
         const file = input.files?.[0];
         if (!file)
             return;
-        const ticket = ++fileRequest, before = state.author.source, active = state.active, author = state.author;
+        const current = captureAuthorRequest(state);
         try {
             if (file.size > 200000)
                 throw Error('A forrásfájl legfeljebb 200 KB lehet.');
             const source = (await file.text()).replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
             if (source.length > 50000)
                 throw Error('Legfeljebb 50000 karakteres forrás tölthető be.');
-            if (ticket !== fileRequest || state.active !== active || state.author !== author)
+            if (!current())
                 return;
-            if (state.author.source !== before)
-                throw Error('A forrás időközben módosult. Válaszd ki újra a fájlt.');
             state.author.source = source;
             if (/\.ts$/i.test(file.name))
                 state.author.language = 'typescript';
@@ -151,7 +150,7 @@ export function installAuthoringFlows(root, state, render) {
             state.author.message = `${file.name} betöltve. A forrás még nincs alkalmazva.`;
         }
         catch (error) {
-            if (state.active !== active || state.author !== author)
+            if (!current())
                 return;
             state.author.message = error instanceof Error ? error.message : 'A forrásfájl nem olvasható.';
         }

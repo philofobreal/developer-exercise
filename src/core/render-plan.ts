@@ -22,6 +22,6 @@ export function prepareRenderPlan(model: CodeLineExerciseV3): RenderPlan | Valid
 export function projectDisplayRows(unit: RenderUnit, policy: IndentPolicy, display?: readonly string[]): string[] {
   const original = unit.rows.map(r => r.code);
   if (policy.mode === 'semantic' || policy.display === 'preserve' || !display || display.length !== original.length) return original;
-  if (display.some((code, i) => typeof code !== 'string' || /[\r\n\u2028\u2029]/.test(code) || normalizeLine(code, unit.rows[i]!.normalization) !== normalizeLine(original[i]!, unit.rows[i]!.normalization))) return original;
+  if (original.some((_, i) => { const code = display[i]; return typeof code !== 'string' || /[\r\n\u2028\u2029]/.test(code) || normalizeLine(code, unit.rows[i]!.normalization) !== normalizeLine(original[i]!, unit.rows[i]!.normalization); })) return original;
   return [...display];
 }

@@ -1,5 +1,6 @@
 /** Typed author-time entry point. ASTs and parser infrastructure stay inside adapters. */
-import { compileCodeLineExerciseV3, prepareRenderPlan, upgradeCodeLineExerciseV2 } from '../../dist/index.js';
+import { compileCodeLineExercise, compileCodeLineExerciseV3, prepareRenderPlan, upgradeCodeLineExerciseV2 } from '../../dist/index.js';
+import {reconcileDependencies} from './dependency-refresh.js';
 import type { CodeLineExercise, CodeLineExerciseV3, CompiledRules, IndentPolicy, LanguageIR, RenderPlan } from '../../dist/index.js';
 
 export interface AuthorSource { source: string; title?: string; description?: string; }
@@ -69,6 +70,20 @@ export interface LegacyJSTSPorts {
   generate(input: AuthorSource & { language: 'javascript' | 'typescript' }): CodeLineExercise | Promise<CodeLineExercise>;
   audit(model: CodeLineExercise): void | Promise<void>;
   format(source: string, language: 'javascript' | 'typescript'): FormatResult | Promise<FormatResult>;
+}
+
+/** Explicit author reanalysis: preserve reference identity/content, fixed slots and manual edges/profiles. */
+export async function refreshLegacyDependencies(input: CodeLineExercise, ports: Pick<LegacyJSTSPorts, 'generate' | 'audit'>): Promise<CodeLineExercise> {
+ const snapshot = structuredClone(input), initial = compileCodeLineExercise(snapshot);
+ if ('status' in initial) throw new AdapterContractError(initial.message);
+ await ports.audit(snapshot);
+ const generated = await ports.generate({source: snapshot.lines.map(line => line.code).join('\n'), language: snapshot.language, title: snapshot.title, description: snapshot.description});
+ const checked = compileCodeLineExercise(generated);
+ if ('status' in checked) throw new AdapterContractError(checked.message);
+ await ports.audit(generated);
+ const refreshed = reconcileDependencies(snapshot, generated), result = compileCodeLineExercise(refreshed);
+ if ('status' in result) throw new AdapterContractError(result.message);
+ return refreshed;
 }
 
 export function createLegacyJSTSBridge(language: 'javascript' | 'typescript', ports: LegacyJSTSPorts): LanguagePlugin {

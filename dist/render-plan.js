@@ -13,7 +13,7 @@ export function projectDisplayRows(unit, policy, display) {
     const original = unit.rows.map(r => r.code);
     if (policy.mode === 'semantic' || policy.display === 'preserve' || !display || display.length !== original.length)
         return original;
-    if (display.some((code, i) => typeof code !== 'string' || /[\r\n\u2028\u2029]/.test(code) || normalizeLine(code, unit.rows[i].normalization) !== normalizeLine(original[i], unit.rows[i].normalization)))
+    if (original.some((_, i) => { const code = display[i]; return typeof code !== 'string' || /[\r\n\u2028\u2029]/.test(code) || normalizeLine(code, unit.rows[i].normalization) !== normalizeLine(original[i], unit.rows[i].normalization); }))
         return original;
     return [...display];
 }

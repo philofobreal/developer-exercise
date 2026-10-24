@@ -6,10 +6,14 @@ A műhely programozási sorrendező feladatok készítését és kipróbálásá
 
 A munkafolyamat két szerzői belépési pontja ugyanahhoz az alkalmazott feladathoz vezet:
 
-- **Forráskód:** JS/MJS/TS/TXT fájl helyi betöltése vagy vágólap → szerkesztés/formázás → Alkalmazás → generált modell és rendezési próba. A fájlbetöltés önmagában nem aktivál új feladatot. Legfeljebb 200 KB fájl és 50000 karakter forrás támogatott; a szerver méretkorlátjai továbbra is érvényesek.
+- **Referenciaforrás:** JS/MJS/TS/TXT fájl helyi betöltése vagy vágólap → szerkesztés/formázás → Alkalmazás → generált modell és rendezési próba. A fájlbetöltés önmagában nem aktivál új feladatot. Legfeljebb 200 KB fájl és 50000 karakter forrás támogatott; a szerver méretkorlátjai továbbra is érvényesek.
 - **Adatmodell:** teljes CodeLine JSON szerkesztése/beillesztése vagy JSON-fájl betöltése → meglévő Schema/strukturális/szintaktikai admission → ugyanaz a próba. Ez kezdő feladat nélkül is elérhető. A meglévő fájlimport sikeres ellenőrzés után közvetlenül aktivál; a JSON-szerkesztőben végzett módosítás külön alkalmazandó.
 
 JSON alkalmazásakor a referenciaforrás kitöltődik a modell soraiból. Forrás alkalmazásakor a generált teljes JSON szerkeszthető. A forrás újraalkalmazása új modellt generál, nem egyesíti automatikusan a régi kézi JSON-szabályokat; ezek exportálhatók. A forrássorszám metaadat, nem megoldáspozíció.
+
+Az Adatmodell külön **Sorfüggőségek újraszámítása** művelete az aktuális JSON sorfüggőségeit frissíti a jelenlegi JS/TS elemzővel, azonos sor-/blokkstruktúra mellett. Kód, sor-ID, fixed, kézi élek és profilok megmaradnak; kompatibilis kitöltés újraértékelődik. A normál import nem hívja. Régi generált modellnél a felület elmagyarázza, hogy a `dependencyHints` nem validátorszabály. [Példa és javított JSON](evaluate-legacy-serial-case.md).
+
+A fájl-/vágólap-/hálózati olvasás előtt rögzített közös szerzői kérésgeneráció védi a referenciát: újabb szerzői művelet, szövegmódosítás vagy feladatváltás után a késői eredmény nem aktiválhat modellt. A JSON- és session-fájlok olvasás előtti védelme is ugyanide tartozik; a védelem memóriabeli, nem sessionmező. [ADR-006](adr/006-explicit-dependency-refresh-and-review-guards.md).
 
 ## Próba és tanulói preview
 
@@ -40,6 +44,6 @@ Elsődleges irányelvek: [WAI-ARIA tabs](https://www.w3.org/WAI/ARIA/apg/pattern
 
 A megjelenítési implementáció a src/workbench natív strict TypeScript-forrása. A public/app megfelelő JS-moduljai buildtermékek; a régi importútvonalak megmaradnak. Az architektúrakapu a forrás/emit egyezést is ellenőrzi. Az eredeti üzleti JS-portok átmeneti állapotát az [ADR-001](adr/001-typescript-workbench-and-boundaries.md) nevezi meg; ettől az egész repository még nem vált TypeScriptté.
 
-A `npm run test:browser:workbench` 25 folyamatot vizsgál Node/Pages módban: modellből indítás, source file pending/apply és JSON-fájl, forrás/JSON összekapcsolás, referencia gépelése és feladatváltáskori draft-megőrzés, megoldás/reference szétválasztás, explicit rendezőből újratöltés, learner preview izoláció/visszatérés, tabs/draft, fókusz/details/contextual copy, ismételt async check elkerülése, késői admission-/mintabetöltési/formázási/értékelési válaszok védelme, fixed körüli keresztezés és három mobilméret. A meglévő offline/HTTP/32 esetű mátrix/36 drag kör is megmaradt. A scrolltesztek látható sort választanak a tényleges sormagasságból, így a pixelméret megváltoztatása nem keveredik a scroll megőrzésével.
+A `npm run test:browser:workbench` 29 folyamatot vizsgál Node/Pages módban: modellből indítás, source file pending/apply és JSON-fájl, forrás/JSON összekapcsolás, referencia gépelése és feladatváltáskori draft-megőrzés, megoldás/reference szétválasztás, explicit rendezőből újratöltés, learner preview izoláció/visszatérés, tabs/draft, fókusz/details/contextual copy, ismételt async check elkerülése, késői admission-/mintabetöltési/formázási/értékelési válaszok védelme, fixed körüli keresztezés és három mobilméret. A meglévő offline/HTTP/32 esetű mátrix/36 drag kör is megmaradt. A scrolltesztek látható sort választanak a tényleges sormagasságból, így a pixelméret megváltoztatása nem keveredik a scroll megőrzésével.
 
 A mezők, Tab/behúzás, beszúrás és fixed részletes üzleti jelentése: [működési szerződés](business-technical-contract.md).

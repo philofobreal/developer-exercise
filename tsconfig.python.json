@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", "module": "ES2022", "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM"], "types": ["node"], "rootDir": "src/python", "outDir": "dist/python",
+    "strict": true, "declaration": true, "sourceMap": true, "noEmitOnError": true,
+    "noUncheckedIndexedAccess": true, "noFallthroughCasesInSwitch": true, "noImplicitOverride": true, "skipLibCheck": true
+  },
+  "include": ["src/python/**/*.ts"]
+}

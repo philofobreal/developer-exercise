@@ -54,3 +54,19 @@ test('Pages failed import at full capacity preserves the last valid preview',asy
   assert.equal((await api.previewDraft({draftId:first.draftId,lines:first.model.lines.map(x=>x.code)})).status,'accepted');
  }finally{globalThis.ts=saved;}
 });
+
+test('Pages imports serial legacy rules exactly; dependency refresh requires explicit intent',async()=>{
+ const saved=globalThis.ts;globalThis.ts={...createRequire(import.meta.url)('typescript'),sys:undefined};
+ try{
+  const api=await import('../_site/app/pages-api.js');
+  const model=JSON.parse(await readFile(new URL('./fixtures/evaluate-legacy-serial.model.json',import.meta.url),'utf8'));
+  const lines=[1,3,5,2,4,6,7].map(id=>model.lines.find(line=>line.id===id).code);
+  const first=await api.compileDraft({model});
+  assert.deepEqual(first.model.lines.map(line=>line.dependencies),model.lines.map(line=>line.dependencies));
+  assert.equal((await api.previewDraft({draftId:first.draftId,lines})).status,'rejected');
+  const second=await api.compileDraft({model:first.model,refreshDependencies:true});
+  assert.equal((await api.previewDraft({draftId:second.draftId,lines})).status,'accepted');
+  assert.equal((await api.previewDraft({draftId:first.draftId,lines})).status,'rejected');
+  await assert.rejects(api.compileDraft({model,refreshDependencies:'yes'}));
+ }finally{globalThis.ts=saved;}
+});

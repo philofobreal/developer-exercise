@@ -46,4 +46,6 @@ export interface LegacyJSTSPorts {
     audit(model: CodeLineExercise): void | Promise<void>;
     format(source: string, language: 'javascript' | 'typescript'): FormatResult | Promise<FormatResult>;
 }
+/** Explicit author reanalysis: preserve reference identity/content, fixed slots and manual edges/profiles. */
+export declare function refreshLegacyDependencies(input: CodeLineExercise, ports: Pick<LegacyJSTSPorts, 'generate' | 'audit'>): Promise<CodeLineExercise>;
 export declare function createLegacyJSTSBridge(language: 'javascript' | 'typescript', ports: LegacyJSTSPorts): LanguagePlugin;

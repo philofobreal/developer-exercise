@@ -1,5 +1,6 @@
 /** Accessible navigation, draft continuity and action feedback share one UI policy. */
 import type {AttemptSnapshot,ViewName,WorkbenchState} from './contracts.js';
+import {captureAuthorRequest} from './author-workspace.js';
 const views:readonly ViewName[]=['sort','edit','author','model'];
 export function activateView(state:WorkbenchState,attempt:AttemptSnapshot,formatted:string[],next:ViewName):void {
  if(!views.includes(next))return;
@@ -37,7 +38,7 @@ export function installWorkbenchKeyboard(root:HTMLElement):void {
 const running=new WeakSet<HTMLButtonElement>();
 export async function dispatchWorkbenchAction(event:MouseEvent,handler:(button:HTMLButtonElement)=>Promise<void>,onError?:(error:unknown)=>void):Promise<void>{
  const button=event.target instanceof Element?event.target.closest<HTMLButtonElement>('button'):null;if(!button||running.has(button))return;
- const busy=button.matches('[data-check],[data-author-apply],[data-model-apply],[data-format],[data-author-format],[data-author-sample]');
+ const busy=button.matches('[data-check],[data-author-apply],[data-model-apply],[data-model-refresh],[data-format],[data-author-format],[data-author-sample]');
  const original=button.innerHTML,disabled=button.disabled,hadFocus=document.activeElement===button,owner=button.closest<HTMLElement>('#app');
  const context=owner?{exercise:owner.dataset.renderedExercise,view:owner.dataset.renderedView}:undefined;
  const action=button.getAttributeNames().find(name=>name.startsWith('data-'));
@@ -51,7 +52,7 @@ export async function dispatchWorkbenchAction(event:MouseEvent,handler:(button:H
 
 /** Two author inputs converge on the same compiled preview; learner mode is UI isolation, not authorization. */
 export function installAuthoringFlows(root:HTMLElement,state:WorkbenchState,render:()=>void):void {
- let returnView:ViewName='sort',fileRequest=0;
+ let returnView:ViewName='sort';
  root.addEventListener('input',event=>{
   const editor=event.target;if(!(editor instanceof HTMLTextAreaElement))return;
   if(editor.id==='code-editor'){
@@ -71,15 +72,15 @@ export function installAuthoringFlows(root:HTMLElement,state:WorkbenchState,rend
  });
  root.addEventListener('change',async event=>{
   const input=event.target;if(!(input instanceof HTMLInputElement)||!input.hasAttribute('data-source-file'))return;
-  const file=input.files?.[0];if(!file)return;const ticket=++fileRequest,before=state.author.source,active=state.active,author=state.author;
+  const file=input.files?.[0];if(!file)return;const current=captureAuthorRequest(state);
   try{
    if(file.size>200000)throw Error('A forrásfájl legfeljebb 200 KB lehet.');
    const source=(await file.text()).replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n');
    if(source.length>50000)throw Error('Legfeljebb 50000 karakteres forrás tölthető be.');
-   if(ticket!==fileRequest||state.active!==active||state.author!==author)return;if(state.author.source!==before)throw Error('A forrás időközben módosult. Válaszd ki újra a fájlt.');
+   if(!current())return;
    state.author.source=source;if(/\.ts$/i.test(file.name))state.author.language='typescript';else if(/\.(mjs|js)$/i.test(file.name))state.author.language='javascript';
    state.author.message=`${file.name} betöltve. A forrás még nincs alkalmazva.`;
-  }catch(error){if(state.active!==active||state.author!==author)return;state.author.message=error instanceof Error?error.message:'A forrásfájl nem olvasható.';}
+  }catch(error){if(!current())return;state.author.message=error instanceof Error?error.message:'A forrásfájl nem olvasható.';}
   if(!state.learnerPreview&&state.view==='author')render();
  });
  root.addEventListener('click',event=>{if(event.target instanceof Element&&event.target.closest('[data-import-source]'))root.querySelector<HTMLInputElement>('[data-source-file]')?.click();});

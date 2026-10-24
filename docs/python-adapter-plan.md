@@ -1,6 +1,6 @@
 # Python-adapter és termékintegráció – megvalósítási terv
 
-Állapot: kizárólag terv, 2026-10-24. Python parser, adapter, függőség vagy nyelvválasztó-opció ebben a változásban nem készül. A [Language IR alap](language-engine-migration.md) T01–T07 eredménye és az [ADR-003](adr/003-language-ir-and-codeline-v3.md) a kiindulópont. A korábbi P01–P03 feladatot az alábbi PY-taskok bontják végrehajtható részekre.
+Állapot: 2026-10-24. Ez eredetileg a Python előtti alapokhoz készült terv; azóta PY-01/PY-02 könyvtári parser/platform szelete megvalósult, lásd [platformeredmények és korlátok](python-parser-platform.md), [ADR-005](adr/005-isolated-python-parser-port.md). Natív Python → IR adapter, nyelvválasztó és termékintegráció még nincs. A [Language IR alap](language-engine-migration.md) T01–T07 eredménye és az [ADR-003](adr/003-language-ir-and-codeline-v3.md) a kiindulópont. A korábbi P01–P03 feladatot az alábbi PY-taskok bontják végrehajtható részekre; a következő megvalósítási lépés PY-03.
 
 ## Döntési javaslat
 
@@ -10,7 +10,7 @@ Az egységes Node/Pages működés első vizsgálandó megoldása ugyanaz a rög
 
 A kutatáskor ellenőrzött jelölt Pyodide 314.0.7; a 314-es sorozat Python 3.14-re váltott. Az első cél ezért Python 3.14, nem egy meg nem határozott „Python 3”. PY-01-ben a tényleges runtime patchverziót, artifact hash-t, csomaglicenceket, Node- és Chromium-kompatibilitást kell rögzíteni; az oracle ugyanazt a Python-verziót használja. A mai CI Python 3.13-as browser-tesztinfrastruktúrája ettől külön fogalom. [Pyodide kiadási jegyzetek](https://pyodide.org/en/stable/project/changelog.html).
 
-Ez ajánlott megoldás, még nem méréssel elfogadott függőségválasztás. Ha a CSP, helyi/offline csomagolás, memória vagy betöltési költség nem felel meg, PY-01 lezárása helyett új ADR szükséges. Tartalék a szerveroldali natív CPython ugyanazon parserprotokollal, és a Pages Python-autorálás őszintén letiltott capability-je a parity elkészültéig. Más grammarre történő néma fallback nem megengedett. Egy alternatív TS/WASM parser külön CPython-differenciáltesztet és scope-auditot igényelne.
+A könyvtári választást azóta rögzített verzióval, hash-ekkel és Node/Chromium méréssel elfogadtuk az ADR-005-ben. A termék CSP-je, OS-szintű memóriahatára és kiadási licencellenőrzése továbbra is release gate. Ha ezek nem felelnek meg, új ADR szükséges. Tartalék a szerveroldali natív CPython ugyanazon parserprotokollal, és a Pages Python-autorálás őszintén letiltott capability-je a parity elkészültéig. Más grammarre történő néma fallback nem megengedett. Egy alternatív TS/WASM parser külön CPython-differenciáltesztet és scope-auditot igényelne.
 
 ## Feldolgozás, végrehajtás nélkül
 
@@ -93,4 +93,4 @@ Nincs automatikusan vállalt naptári határidő: PY-01 mérése és a választo
 - Böngésző: Node és Pages alútvonal, offline assetek, késői worker-válasz, libraryváltás, source/JSON draft, pointer/touch/keyboard, hosszú és többsoros unit, scroll, gutter, clipboard, session és mobilnézet.
 - CI: régi `check:all` + összes browser-suite, parserparity, licenc/hash, generated-source gate, v2 mentés és új v3 példamodellek publikálási auditja; kizárólag a tesztelt artifact telepíthető.
 
-Az első Python verzió csak PY-01–PY-10 után kész. Az adapter könyvtári működése PY-05-nél még nem teljes termékintegráció. Az általános szemantikai ekvivalencia és a Python minden jövőbeli verziója nem része a kész definíciónak. Ebben a munkában az összes PY-task tervezett, implementációjuk nem indult el.
+Az első Python verzió csak PY-01–PY-10 után kész. Az adapter könyvtári működése PY-05-nél még nem teljes termékintegráció. Az általános szemantikai ekvivalencia és a Python minden jövőbeli verziója nem része a kész definíciónak. A terv mainre zárása után külön ágon elindult a PY-01/PY-02 author parser-szelet; az implementált határ, platformbizonyíték és a nyitott release-feltételek a [parserstátuszban](python-parser-platform.md) találhatók. PY-03–PY-11 még nyitott.

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createAuthorWorkspace,authorDraftPending,captureAuthorAdmission} from '../public/app/author-workspace.js';
+import {createAuthorWorkspace,authorDraftPending,captureAuthorAdmission,captureAuthorRequest} from '../public/app/author-workspace.js';
 import {reloadEditorFromArrangement,markEditorDraft} from '../public/app/interactions.js';
 const first={id:'first',revision:1,title:'First',description:'First task',language:'javascript',lines:[{id:1,code:'const a = 1;'}]};
 const second={...first,id:'second',title:'Second',language:'typescript',lines:[{id:1,code:'const b: number = 2;'}]};
@@ -26,6 +26,13 @@ test('late source or JSON admission cannot replace newer edits or another task',
  for(const mutate of [s=>s.active='other',s=>s.author.source+='new',s=>s.author.title='new',s=>s.author.language='typescript',s=>s.modelDraft+='new']){
   const state=make();createAuthorWorkspace(state).select(first);const current=captureAuthorAdmission(state);assert.equal(current(),true);mutate(state);assert.equal(current(),false);
  }
+});
+test('author intent ordering begins before file I/O and invalidates earlier reads/responses and same-task roundtrips',()=>{
+ const state=make(),workspace=createAuthorWorkspace(state);workspace.select(first);
+ const oldFile=captureAuthorRequest(state),newFile=captureAuthorRequest(state);assert.equal(oldFile(),false);assert.equal(newFile(),true);
+ workspace.select(second);workspace.select(first);assert.equal(newFile(),false);
+ const read=captureAuthorRequest(state);state.author.source+='newer';assert.equal(read(),false);
+ const request=captureAuthorRequest(state);workspace.admit({...first,schemaVersion:2,lines:[],blocks:[]});assert.equal(request(),false);
 });
 test('explicit solution reload discards only the editor draft, preserving arrangement, report and reference',()=>{
  const attempt={answer:[1,null,2],pool:[],draft:'',report:{status:'accepted'},feedback:'',generation:3};markEditorDraft(attempt,'unfinished');

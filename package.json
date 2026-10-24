@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Framework-free programming line-order exercise engine with verified constraints",
   "scripts": {
-    "build": "node scripts/sync-vendor.mjs && node scripts/sync-schema.mjs && tsc -p tsconfig.json && tsc -p tsconfig.author.json && tsc -p tsconfig.workbench.json && tsc -p tsconfig.governance.json",
+    "build": "node scripts/sync-vendor.mjs && node scripts/sync-schema.mjs && tsc -p tsconfig.json && tsc -p tsconfig.author.json && tsc -p tsconfig.python.json && tsc -p tsconfig.workbench.json && tsc -p tsconfig.governance.json",
     "test": "npm run build:pages && node --test tests/*.test.mjs",
     "start": "npm run build && node server.mjs",
     "check": "npm run test && node dist-tools/verify-architecture.js && node scripts/verify-models.mjs && node scripts/verify-docs.mjs",
@@ -13,16 +13,18 @@
     "test:browser": "python -X utf8 tests/browser-v7-offline.playwright.py",
     "test:browser:server": "python -X utf8 tests/browser-v7.playwright.py",
     "test:ts-methods": "npm run build && node --test tests/ts-methods.test.mjs tests/http-flow.test.mjs",
-    "build:pages": "npm run build && node scripts/build-pages.mjs",
+    "build:pages": "npm run build && node scripts/build-pages.mjs && node dist-tools/stage-python-probe.js",
     "verify:pages": "npm run build:pages && node --test tests/pages-build.test.mjs tests/pages-api.test.mjs",
     "check:all": "npm run check",
     "test:browser:matrix": "python -X utf8 tests/browser-matrix.playwright.py",
-    "test:browser:all": "npm run test:browser && npm run test:browser:server && npm run test:browser:matrix && npm run test:browser:drag && npm run test:browser:workbench && npm run test:browser:engine",
+    "test:browser:all": "npm run test:browser && npm run test:browser:server && npm run test:browser:matrix && npm run test:browser:drag && npm run test:browser:workbench && npm run test:browser:engine && npm run test:browser:python",
     "test:browser:drag": "python -X utf8 tests/browser-drag.playwright.py",
     "verify:architecture": "npm run build && node dist-tools/verify-architecture.js",
     "test:browser:workbench": "python -X utf8 tests/browser-workbench.playwright.py",
     "test:engine": "npm run build:pages && node --test tests/language-engine*.test.mjs",
-    "test:browser:engine": "python -X utf8 tests/browser-engine.playwright.py"
+    "test:browser:engine": "python -X utf8 tests/browser-engine.playwright.py",
+    "test:python": "npm run build:pages && node --test tests/python-parser.test.mjs",
+    "test:browser:python": "python -X utf8 tests/browser-python.playwright.py"
   },
   "devDependencies": {
     "@types/node": "22.20.5",
@@ -38,5 +40,8 @@
     "type": "git",
     "url": "git+https://github.com/philofobreal/developer-exercise.git"
   },
-  "homepage": "https://philofobreal.github.io/developer-exercise/"
+  "homepage": "https://philofobreal.github.io/developer-exercise/",
+  "dependencies": {
+    "pyodide": "314.0.7"
+  }
 }

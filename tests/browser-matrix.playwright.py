@@ -211,8 +211,11 @@ try:
             with page.expect_download() as download:page.locator('[data-export-session]').click()
             session=json.loads(Path(download.value.path()).read_text(encoding='utf-8'));assert session['kind']=='ngdynamic-session'
             page.locator('[data-reset]').click();page.locator('[data-session-file]').set_input_files({'name':'session.json','mimeType':'application/json','buffer':json.dumps(session).encode()});expect(page.locator('.solution-zone .code-row').last.locator('code')).to_have_text('}')
-            assert values(page)==before
+            expect(page.locator('.solution-zone .code-text code')).to_have_text(before)
+            assert values(page)==before  # Preserve exact whitespace after waiting for async admission.
             page.locator('[data-save-local]').click();page.reload();expect(page.locator('[data-task]').first).to_be_visible();page.locator('[data-load-local]').click();expect(page.locator('.solution-zone .code-row').last.locator('code')).to_have_text('}')
+            # Both the initial exercise and imported preview end in "}"; await the full async restore.
+            expect(page.locator('.solution-zone .code-text code')).to_have_text(before)
             assert values(page)==before
         case('model/session files and opt-in local save survive reload',transfers)
         def full_ts():
