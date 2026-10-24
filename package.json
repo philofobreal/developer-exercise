@@ -6,7 +6,7 @@
   "description": "Framework-free programming line-order exercise engine with verified constraints",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "npm run build && node --test tests/*.test.mjs",
+    "test": "npm run build:pages && node --test tests/*.test.mjs",
     "start": "npm run build && node server.mjs",
     "check": "npm run test && npm run verify:models",
     "verify:models": "npm run build && node scripts/verify-models.mjs",
