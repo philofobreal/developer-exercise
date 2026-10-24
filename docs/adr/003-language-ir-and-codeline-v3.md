@@ -25,3 +25,5 @@ Nem vezetünk minden nyelvet JS AST-n át, mert elveszítené a suite- és white
 A v2 bridge csak a megtartott függvényekből képez binding scope metaadatot; nem állít teljes JS/TS binding IR-t. A v3 engedélyezett sorrendjei továbbra is szerzői korlátokat igazolnak, nem általános szemantikai ekvivalenciát. Az adapter author-time kódja megbízható; a szerzői elemzés sandboxolása külön élesítési feladat.
 
 Taskok, elfogadási feltételek, Python-átadás és tesztbizonyíték: [migrációs terv](../language-engine-migration.md).
+
+A későbbi review pontosította a natív source-hűség admissionjét: minden fizikai sor, az üres sor is kötelező; az opcionális végső LF csak sorhatár. Hiányos/sparse display-javaslat nem válhat renderelt eredménnyé. A v2 bridge dokumentált kihagyásai és whitespace-kompatibilitása megmarad.

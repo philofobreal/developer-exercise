@@ -3,15 +3,20 @@ export const PYTHON_AUDIT_BOOTSTRAP = String.raw `
 import ast as _ast, io as _io, json as _json, sys as _sys
 import symtable as _symtable, tokenize as _tokenize, token as _token, warnings as _warnings
 
-def _ng_node(value, depth=0):
+def _ng_node(value, depth=0, budget=None):
+    if budget is None:
+        budget = [0]
+    budget[0] += 1
+    if budget[0] > 50_000 or isinstance(value, list) and len(value) > 20_000:
+        raise RecursionError('AST projection size budget exceeded')
     if depth > 150:
         raise RecursionError('AST projection depth exceeded')
     if isinstance(value, _ast.AST):
         start = {'line': value.lineno, 'column': value.col_offset} if hasattr(value, 'lineno') else None
         end = {'line': value.end_lineno, 'column': value.end_col_offset} if getattr(value, 'end_lineno', None) is not None else None
-        return {'kind': type(value).__name__, 'fields': {key: _ng_node(item, depth + 1) for key, item in _ast.iter_fields(value)}, 'start': start, 'end': end}
+        return {'kind': type(value).__name__, 'fields': {key: _ng_node(item, depth + 1, budget) for key, item in _ast.iter_fields(value)}, 'start': start, 'end': end}
     if isinstance(value, list):
-        return [_ng_node(item, depth + 1) for item in value]
+        return [_ng_node(item, depth + 1, budget) for item in value]
     if value is None or isinstance(value, (str, bool)):
         return value
     return {'literalType': type(value).__name__, 'value': repr(value)}

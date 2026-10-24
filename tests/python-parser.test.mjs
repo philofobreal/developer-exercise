@@ -89,6 +89,21 @@ test('real process timeout, cancellation of shared runtime, restart, close', {ti
  parser.close(); await rejectsCode(parser.audit('x = 1'), 'closed');
 });
 
+test('permitted-size but over-complex Python source reports resource_limit and the parser remains usable',async t=>{
+ const parser=createNodePythonParser();t.after(()=>parser.close());
+ const source='values = [\n'+Array.from({length:41},()=> '0,'.repeat(500)).join('\n')+'\n]\n';
+ assert.ok(source.length<50000);await rejectsCode(parser.audit(source),'resource_limit');
+ assert.equal((await parser.audit('x=1')).tree.kind,'Module');
+});
+
+test('runtime failure terminates the actor; a later request opens a fresh transport',async t=>{
+ const real=createNodePythonParser();t.after(()=>real.close());const audit=await real.audit('x=1');
+ let connections=0,terminated=0;
+ const parser=createParserClient(reply=>{const instance=++connections;return {send:request=>queueMicrotask(()=>reply(instance===1?{protocolVersion:1,requestId:request.requestId,ok:false,error:{code:'runtime_error',message:'Transient loader failure'}}:{protocolVersion:1,requestId:request.requestId,ok:true,audit})),terminate:()=>terminated++};});
+ t.after(()=>parser.close());await rejectsCode(parser.audit('x=1'),'runtime_error');
+ assert.equal(terminated,1);assert.deepEqual(await parser.audit('x=1'),audit);assert.equal(connections,2);
+});
+
 test('transport identity, malformed replies, late response isolation and queue budget', async () => {
  let receive, terminated = 0, sent = [];
  const parser = createParserClient(reply => { receive = reply; return {send: request => sent.push(request), terminate: () => terminated++}; });

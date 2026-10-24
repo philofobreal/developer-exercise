@@ -9,6 +9,7 @@ from playwright.sync_api import sync_playwright
 from browser_support import ROOT, launch
 
 BASE_CSP = "default-src 'self'; script-src 'self'; connect-src 'self'; worker-src 'self'; object-src 'none'"
+transient_loads = 0
 
 
 class Probe(SimpleHTTPRequestHandler):
@@ -16,18 +17,24 @@ class Probe(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(ROOT / 'test-results' / 'python-site'), **kwargs)
 
     def do_GET(self):
+        global transient_loads
         parts = self.path.split('/', 3)
-        if len(parts) < 4 or parts[1] not in ('scoped', 'strict', 'pages') or parts[2] != 'developer-exercise':
+        if len(parts) < 4 or parts[1] not in ('scoped', 'strict', 'pages', 'transient') or parts[2] != 'developer-exercise':
             self.send_error(404)
             return
         self.policy = parts[1]
         self.path = '/' + parts[3]
+        if self.policy == 'transient' and self.path == '/vendor/python/pyodide.mjs':
+            transient_loads += 1
+            if transient_loads == 1:
+                self.send_error(503, 'Intentional transient fixture failure')
+                return
         super().do_GET()
 
     def end_headers(self):
         if getattr(self, 'policy', 'pages') != 'pages':
             policy = BASE_CSP
-            if self.policy == 'scoped' and self.path.split('?')[0] == '/dist/python/browser-worker.js':
+            if self.policy in ('scoped', 'transient') and self.path.split('?')[0] == '/dist/python/browser-worker.js':
                 policy = policy.replace("script-src 'self'", "script-src 'self' 'wasm-unsafe-eval'")
             self.send_header('Content-Security-Policy', policy)
         super().end_headers()
@@ -116,11 +123,30 @@ try:
                     assert offline == 'Module', offline
                 assert not external, external
                 context.close()
+            # A failed dynamic runtime import must be retriable on the same public port.
+            # The worker's rejected loader promise cannot survive into the next request.
+            context = browser.new_context()
+            page = context.new_page()
+            page.goto(f'http://127.0.0.1:{server.server_port}/transient/developer-exercise/')
+            retry = page.evaluate('''async () => {
+                const {createBrowserPythonParser}=await import('./dist/python/browser-parser.js');
+                const parser=createBrowserPythonParser();
+                try {
+                    const first=await parser.audit('x=1',{timeoutMs:30_000}).then(()=> 'unexpected-success',error=>error.code);
+                    const second=(await parser.audit('x=2',{timeoutMs:30_000})).tree.kind;
+                    const large=await parser.audit('x=['+'0,'.repeat(20_500)+']',{timeoutMs:30_000}).then(()=> 'unexpected-success',error=>error.code);
+                    const afterLimit=(await parser.audit('x=3')).tree.kind;
+                    return {first,second,large,afterLimit};
+                } finally {parser.close();}
+            }''')
+            assert retry == {'first':'runtime_error','second':'Module','large':'resource_limit','afterLimit':'Module'}, retry
+            assert transient_loads == 2, transient_loads
+            context.close()
         finally:
             browser.close()
 finally:
     server.shutdown()
     server.server_close()
 (ROOT / 'test-results/python-platform.json').write_text(json.dumps(metrics, indent=2), encoding='utf-8')
-print(f'PASS Python platform: {len(corpus)} full Node/Chromium DTO cases, scoped worker CSP / Pages subpath, lazy same-origin assets, warm offline runtime, cancel/restart/close; strict CSP fails closed')
+print(f'PASS Python platform: {len(corpus)} full Node/Chromium DTO cases, scoped worker CSP / Pages subpath, lazy same-origin assets, warm offline runtime, cancel/restart/close, transient loader retry and AST budget; strict CSP fails closed')
 print(json.dumps(metrics))

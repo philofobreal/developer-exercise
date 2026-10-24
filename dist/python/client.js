@@ -27,7 +27,7 @@ export function createParserClient(connect) {
             item.resolve(audit);
         }
         catch (error) {
-            if (error instanceof PythonParserError && error.code !== 'invalid_protocol') {
+            if (error instanceof PythonParserError && error.code !== 'invalid_protocol' && error.code !== 'runtime_error') {
                 pending.delete(value.requestId);
                 item.cleanup();
                 item.reject(error);

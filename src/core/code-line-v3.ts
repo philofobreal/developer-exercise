@@ -23,6 +23,8 @@ export function compileCodeLineExerciseV3(raw: CodeLineExerciseV3): AdaptResult 
   if (ir.units.some(u => u.containerId !== null && !containers.has(u.containerId) || u.bindingScopeId !== null && !scopes.has(u.bindingScopeId))) return invalid('Hiányzó konténer vagy binding scope.');
   if (ir.indentPolicy.mode === 'semantic' && ir.lines.some(l => l.normalization !== 'exact')) return invalid('A szemantikus behúzás exact sorokat igényel.');
   const physical = ir.source.split('\n'), offsets: number[] = [];
+  const physicalCount = physical.length - (ir.source.endsWith('\n') ? 1 : 0);
+  if (ir.analysis.strategy === 'native' && (ir.lines.length !== physicalCount || ir.lines.some((line, index) => line.sourceSpan.start.line !== index + 1))) return invalid('A natív IR-nek minden fizikai forrássort meg kell őriznie; csak a végső sorhatár nem önálló sor.');
   let offset = 0; for (const row of physical) { offsets.push(offset); offset += row.length + 1; }
   let previousLine = 0;
   for (const line of ir.lines) {

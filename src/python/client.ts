@@ -23,7 +23,7 @@ export function createParserClient(connect: TransportFactory): PythonParser {
    const audit = decodePythonReply(value, item.request);
    pending.delete(value.requestId); item.cleanup(); item.resolve(audit);
   } catch (error) {
-   if (error instanceof PythonParserError && error.code !== 'invalid_protocol') {
+   if (error instanceof PythonParserError && error.code !== 'invalid_protocol' && error.code !== 'runtime_error') {
     pending.delete(value.requestId); item.cleanup(); item.reject(error);
    } else reset(error instanceof Error ? error : new PythonParserError('invalid_protocol', 'Hibás parserprotokoll.'));
   }

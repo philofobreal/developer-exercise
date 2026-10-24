@@ -11,7 +11,8 @@ export async function createAuditRuntime(load: PyodideLoader, indexURL: string):
  if (typeof audit !== 'function') throw new PythonParserError('runtime_error', 'A rögzített Python auditfüggvény nem érhető el.');
  return request => {
   const raw: unknown = audit(request.source);
-  if (typeof raw !== 'string' || raw.length > 8_000_000) throw new PythonParserError('invalid_protocol', 'Érvénytelen Python DTO-méret.');
+  if (typeof raw !== 'string') throw new PythonParserError('invalid_protocol', 'Érvénytelen Python DTO-típus.');
+  if (raw.length > 8_000_000) throw new PythonParserError('resource_limit', 'A Python elemzés DTO-méretkerete elfogyott.');
   let value: unknown;
   try { value = JSON.parse(raw); }
   catch { throw new PythonParserError('invalid_protocol', 'A Python auditválasz nem érvényes JSON.'); }

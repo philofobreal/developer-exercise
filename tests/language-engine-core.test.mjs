@@ -156,6 +156,15 @@ test('UTF-16 physical spans preserve blank lines, CRLF mapping and astral charac
   assert.equal(v3.ir.source.includes('\r'), false);
 });
 
+test('native IR cannot drop executable or blank physical source rows; a terminal LF is only a delimiter',()=>{
+ for(const codes of [['first()', 'must_run()', 'last()'],['first()', '', 'last()']]){
+  const model=irExercise(codes);model.ir.lines.splice(1,1);model.ir.units.splice(1,1);
+  assert.equal(compileCodeLineExerciseV3(model).status,'invalid_reference');
+ }
+ const terminal=irExercise(['one','']);terminal.ir.source+='\n';assert.ok(!compileCodeLineExerciseV3(terminal).status);
+ const missingTail=irExercise(['one','two']);missingTail.ir.lines.pop();missingTail.ir.units.pop();assert.equal(compileCodeLineExerciseV3(missingTail).status,'invalid_reference');
+});
+
 test('IR runtime shape matches standalone Ajv; semantic admission rejects corrupt references', async () => {
   const schemas = await Promise.all(['schema.json', 'language-ir.schema.json', 'codeline-v3.schema.json'].map(async f => JSON.parse(await readFile(new URL('../docs/' + f, import.meta.url), 'utf8'))));
   const ajv = new Ajv({ strict: true }); schemas.forEach(s => ajv.addSchema(s));
@@ -199,6 +208,7 @@ test('render preparation hides grading rules and preserves unit/row boundaries a
   const policy = { mode: 'presentation', tabWidth: 5, display: 'adapter' };
   assert.deepEqual(projectDisplayRows(unit, policy, original.map(l => l.trimStart())), original.map(l => l.trimStart()));
   for (const unsafe of [['merged'], original.map(l => l + '\n'), original.map(l => l + 'changed')]) assert.deepEqual(projectDisplayRows(unit, policy, unsafe), original);
+  assert.deepEqual(projectDisplayRows(unit, policy, new Array(original.length)), original);
   unit.rows[0].normalization = 'exact';
   assert.deepEqual(projectDisplayRows(unit, policy, original.map(l => l.trimStart())), original);
 });

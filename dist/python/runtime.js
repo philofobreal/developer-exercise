@@ -11,8 +11,10 @@ export async function createAuditRuntime(load, indexURL) {
         throw new PythonParserError('runtime_error', 'A rögzített Python auditfüggvény nem érhető el.');
     return request => {
         const raw = audit(request.source);
-        if (typeof raw !== 'string' || raw.length > 8_000_000)
-            throw new PythonParserError('invalid_protocol', 'Érvénytelen Python DTO-méret.');
+        if (typeof raw !== 'string')
+            throw new PythonParserError('invalid_protocol', 'Érvénytelen Python DTO-típus.');
+        if (raw.length > 8_000_000)
+            throw new PythonParserError('resource_limit', 'A Python elemzés DTO-méretkerete elfogyott.');
         let value;
         try {
             value = JSON.parse(raw);

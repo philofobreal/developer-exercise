@@ -14,6 +14,8 @@ A port Unicode source stringet fogad; CRLF/CR → LF konverziót végez, által�
 
 A tokenizálás legfeljebb 64 egymásba ágyazott INDENT/zárójel és 50000 token keretét engedi; a DTO AST-/scope-/méretkorlátja további védelmet ad. A lexical preflight megelőzi a compilert: a túlmély zárójelezés Node és Chromium eltérő WASM stackhibája helyett közös `resource_limit` eredményt ad. Hibás forrásból a tokenizer csak szerzői diagnosztikát adhat, elfogadott DTO kizárólag teljes compile/AST/symtable audit után készül. A code objectet nem hajtjuk végre.
 
+Az AST DTO előállítása is közös csomópont-/listahosszkeretet használ; a forrás- és tokenkereten belüli nagyon széles AST `resource_limit` diagnosztikát kap. A túl nagy szerializált válasz is erőforráshiba, a hibás protokollalak továbbra is `invalid_protocol`. A loader/runtime hibája lezárja az izolált actort, így a következő kérés ugyanazon parserporton új runtime-betöltést indíthat. Ezt valódi Chromium-teszt első modulbetöltésre adott 503 válasszal ellenőrzi; normál szintaktikai/erőforrás-diagnosztika után a működő runtime használható marad.
+
 ## Megismételhető bizonyíték
 
 ```sh
