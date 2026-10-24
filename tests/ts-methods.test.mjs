@@ -19,7 +19,7 @@ test('a teljes melléklet formázása megőrzi a 31 TS tagot és szintaktikailag
 const formatted=formatTypedSource(raw,'typescript',ts);assert.equal(formatted.formatter,'typescript-language-service');parse(formatted.code);
 assert.deepEqual(namedMethods(formatted.code).map(x=>x.name),methods.map(x=>x.name));
 assert.equal(formatTypedSource(formatted.code,'typescript',ts).code,formatted.code,'A TS formázás idempotens');
-const {model,compiled}=getModel(formatted.code);assert.equal(model.lines.length,436);assert.equal(model.authoring?.strategy,'conservative-serial');
+const {model,compiled}=getModel(formatted.code);assert.equal(model.lines.length,436);assert.equal(model.authoring?.strategy,'ast-hierarchy');assert.ok(model.blocks.length>20);assert.ok(model.lines.some(l=>l.functionBlock>0));
 const changed=model.lines.map(x=>x.code);changed[0]='import { WHAT } from "other";';
 assert.equal(validateSubmission(compiled,{exerciseId:model.id,revision:1,lines:changed}).status,'rejected');
 });

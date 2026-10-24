@@ -4,6 +4,7 @@ Run: python tests/browser-v7.playwright.py. Requires Playwright and Chromium.
 import os, json, time, socket, subprocess, urllib.request
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from browser_support import launch, ARTIFACTS
 ROOT=Path(__file__).resolve().parent.parent
 with socket.socket() as s:
     s.bind(('127.0.0.1',0));PORT=s.getsockname()[1]
@@ -16,7 +17,7 @@ try:
         except Exception: time.sleep(.1)
     else: raise AssertionError('Server did not start: '+proc.stderr.read().decode()[:300])
     with sync_playwright() as p:
-        browser=p.chromium.launch(headless=True,executable_path='/usr/bin/chromium',args=['--no-sandbox','--disable-dev-shm-usage'])
+        browser=launch(p)
         page=browser.new_page(viewport={'width':1500,'height':950});errors=[]
         page.on('pageerror',lambda err:errors.append(str(err)))
         page.goto(BASE,wait_until='domcontentloaded',timeout=15000)
@@ -27,10 +28,15 @@ try:
         page.locator('[data-author-apply]').click()
         page.locator('.solution-zone .code-row').first.wait_for()
         assert page.locator('.solution-zone .code-row').count()==5
+        # Author can explicitly tighten an automatically independent declaration.
+        page.locator('[data-view="model"]').click()
+        strict=json.loads(page.locator('#model-editor').input_value());strict['lines'][2]['dependencies']=[2]
+        page.locator('#model-editor').fill(json.dumps(strict));page.locator('[data-model-apply]').click()
+        page.locator('.solution-zone .code-row').first.wait_for()
         page.locator('[data-all]').click()
         page.locator('[data-check]').click()
         page.get_by_text('Elfogadva',exact=False).first.wait_for()
-        # Move b above a, and prove the initial conservative dependency rejects it.
+        # Move b above a, and prove the explicitly tightened dependency rejects it.
         page.locator('[data-up="2"]').click()
         before=page.locator('.solution-zone .code-text code').all_text_contents()
         assert 'const b' in before[1] and 'const a' in before[2],before
@@ -65,13 +71,14 @@ try:
         page.locator('[data-all]').click()
         page.evaluate('document.querySelector(".solution-zone").scrollTop = 3000')
         saved=page.evaluate('document.querySelector(".solution-zone").scrollTop')
-        page.locator('[data-down="120"]').click()
+        visible_index=page.locator('.solution-zone').evaluate('(zone)=>Math.floor(zone.scrollTop/zone.querySelector(".code-row").getBoundingClientRect().height)+3')
+        page.locator(f'[data-down="{visible_index}"]').click()
         restored=page.evaluate('document.querySelector(".solution-zone").scrollTop')
         assert saved>1000 and abs(saved-restored)<2,(saved,restored)
         assert page.locator('[data-fullscreen]').count()==1
         assert page.locator('.code-row').count()>=220
         print('PASS real Chromium: width, author, model changes affect validation, attempt retained, true drop, 220-line scroll, syntax colors, fullscreen; no JS errors')
-        page.screenshot(path=str(ROOT/'docs/v7-browser-preview.png'),full_page=False)
+        page.screenshot(path=str(ARTIFACTS/'http.png'),full_page=False)
         browser.close()
 finally:
     proc.terminate()

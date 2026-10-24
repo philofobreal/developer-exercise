@@ -16,10 +16,11 @@ export const LEGACY_SENTINEL='_____code_line_end_;';
  * When beautifier rewrites a marker boundary, only the independent lexer is used.
  */
 export function legacyIndentHints(lines,beautify){
-  if(typeof beautify!=='function')return null;
+  if(typeof beautify!=='function'||lines.some(x=>x.includes(LEGACY_SENTINEL)))return null;
   try{
     const annotated=lines.map(line=>line.trim()+LEGACY_SENTINEL).join('');
     const output=beautify(annotated,ORIGINAL_BEAUTIFY_OPTIONS);
+    if(typeof output!=='string'||output===annotated)return null;
     const chunks=output.split(LEGACY_SENTINEL);
     if(chunks.length!==lines.length+1)return null;
     return chunks.slice(0,-1).map(chunk=>{

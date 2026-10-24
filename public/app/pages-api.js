@@ -2,9 +2,10 @@
  * This is NEVER an authoritative server-grade grading endpoint. */
 import {compileCodeLineExercise,validateSubmission} from '../dist/index.js';
 import {generateCodeLineExercise} from '../author/generator.mjs';
-import {formatTypedSource} from '../author/ts-format.mjs';
-import {beautifier,formatEditor} from '../formatter.js';
+import {getLanguageAdapter} from '../author/languages.mjs';
+import {auditReference} from '../author/audit.mjs';
 
+export const validationMode='local-demo';
 const records = new Map();
 const drafts = new Map();
 let nextDraft = 1;
@@ -38,16 +39,17 @@ export async function getExercises(){
   }));
 }
 export async function compileDraft(body){
-  if(drafts.size>=MAX_DRAFTS)drafts.delete(drafts.keys().next().value);
   let model;
   if(body?.model){
     if(typeof body.model!=='object'||Array.isArray(body.model))throw Error('A szerzői modell nem objektum.');
-    model={...body.model,id:'draft',revision:1};
+    model={...structuredClone(body.model),id:'draft',revision:1};
   }else model=generateCodeLineExercise(body??{},getTypeScript());
   if(!model.lines?.length||model.lines.length>MODEL_LIMIT)throw Error('Túl sok kódsor.');
   const draftId='pages-'+nextDraft++;
   model={...model,id:'author-'+draftId,revision:1};
   const compiled=assertSafeModel(model);
+  auditReference(model,getTypeScript());
+  if(drafts.size>=MAX_DRAFTS)drafts.delete(drafts.keys().next().value);
   drafts.set(draftId,{model,compiled});
   return {draftId,model,previewOnly:true,mode:'local-demo'};
 }
@@ -67,6 +69,5 @@ export async function loadTypeScriptFixture(){
   return res.text();
 }
 export async function formatSource(source,language){
-  if(language==='javascript'&&beautifier())return {code:formatEditor(source),formatter:'js-beautify',indentSize:5};
-  return formatTypedSource(source,language,getTypeScript());
+  return getLanguageAdapter(language).format(source,getTypeScript());
 }

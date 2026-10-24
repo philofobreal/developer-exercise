@@ -1,154 +1,82 @@
-# ngDynamic CodeLine v5 — matematikai modell, validáció és formázás
+# Strukturális helyesség és normalizálás
 
-## 1. Cél és bizalmi határ
+## Két külön ellenőrzési útvonal
 
-A szerkesztőben szabadon áthelyezhető **kódsorokat** jelenítünk meg, a megoldás viszont nem futtatódik. A tanulói beküldés a fizikailag összeállított `string[]` kódsorokat tartalmazza. A hiteles referencia **csak a szerveren** van; a böngészőben megjelenített CodeLine/adatmodell szerzői *előnézet*, nem a hitelesítendő szabályhalmaz forrása.
+Szerzői oldal: teljes referenciaforrás → nyelvi parser → formázás és AST-modell → Schema/struktúra/szintaxis/eredeti sorrend audit → publikálható referencia vagy nem hiteles előnézet.
 
-Két külön folyamat van:
+Tanulói oldal: szerverben tárolt szabályok + a beküldött kódsorok tartalma → strukturális bijekciókeresés. Nincs kódfuttatás, TypeScript-fordítás vagy parser a tanulói értékelésben.
 
-1. **Szerzői oldal (összetettebb, nyelvspecifikus):** parserrel validált eredeti JS/TS kód → formázás → `CodeLineExercise` → `compileCodeLineExercise` → hitelesített referencia. Nem állítjuk, hogy a referencia futásidejű helyessége parserből bizonyítható.
-2. **Tanulói oldal (olcsó, nyelvfüggetlen):** rendezett szövegsorok → tartalom- és szabályellenőrzés. Nincs `eval`, VM, JS/TS interpreter, AST-parse vagy programfuttatás a beküldött kóddal.
+## Adatmodell
 
-Az autorálás jelenlegi generátora **konzervatív**, szomszédos `dependencies` láncot épít, ha nem tud felelősen következtetni a felcserélhetőségre. Összetett blokkhatároknál (`});`, `} else {`, összetett TS deklarációk) blokkok nélküli `conservative-serial` modellre tér át. Ez tudatosan szűkebb megoldáshalmaz, nem általános szemantikai analízis.
-
-## 2. A CodeLine és a normalizálás
-
-```ts
+```typescript
 interface CodeLine {
-  id: number;              // technikai azonosító, nem szemantikai azonosság
-  code: string;            // pontosan egy fizikai kódsor
-  dependencies: number[];  // mindnek valahol korábban kell szerepelnie
-  fixed: boolean;          // abszolút referenciapozíció
-  functionBlock: number;   // funkciótulajdonos, 0 = top-level
+  id: number;
+  code: string;
+  dependencies: number[];
+  fixed: boolean;
+  functionBlock: number;
 }
 interface StructuredCodeLine extends CodeLine {
-  scopeId: string | null;  // lexikai blokk, nem csak függvény
+  scopeId: string | null;
+  sourceLine?: number;
   normalization?: 'indent' | 'exact';
 }
 ```
 
-- `indent`: kizárólag a **vezető** szóközök/tabok ignorálhatók; a köztes és lezáró karakterek maradnak. Csak akkor alkalmazható, ha a szerzői feldolgozás azt biztonságosnak minősítette.
-- `exact`: minden karakter számít, például whitespace-érzékeny template literal vagy más nyelvi konstrukció esetén.
-- `functionBlock` önmagában nem tárolja a `for`, `if`, `try` scope-ját, ezért szükséges a külön `scopeId` és a `blocks` tábla.
-- A `fixed` nem pusztán UI-tilalom: a fordító minden előtte és mögötte lévő referenciatokenhez sorrendi élt ad, így a validátor is kikényszeríti az abszolút helyét.
+Az `id` technikai azonosság, nem a program szemantikai identitása. A `dependencies` valamennyi megadott előzményt követeli meg, tetszőleges távolságra. A `fixed` az abszolút referenciasor-pozíciót jelenti. A `functionBlock` a megtartott függvénytulajdonost, a `scopeId` a reprezentált közvetlen lexikai konténert jelöli.
 
-## 3. Formális helyesség
+A JSON Schema a mezőalakot, felsorolt normalizálási módokat, egyedi függőségeket és méretkorlátokat ellenőrzi. A TypeScript-fordító külön vizsgálja az egyedi sor-/blokkazonosítókat, a létező hivatkozásokat, a funkciótulajdonost, a hierarchia és a függőségi gráf körmentességét, a blokkhatárok scope-ját és a profilokat. A két réteg kiegészíti egymást; a Schema nem fejez ki minden gráfinvariánst.
 
-Legyen:
+## Matematikai elfogadási feltétel
 
-- `T = {t₁,…,tₙ}` a hiteles referenciatokenek **előfordulásainak** halmaza;
-- `S = (s₁,…,sₙ)` a beküldött kódsorok sorozata;
-- `Nₜ(x)` az adott tokenhez tartozó engedélyezett normalizálás;
-- `E_p` a kötelező, irányított megelőzési reláció az aktuális `p` profilban (több `after`, `edges`, `fixed`, blokknyitás/zárás);
-- `B` a hiteles, egymásba ágyazott scope-hierarchia.
+Legyen `T` a referencia tokenelőfordulásainak halmaza, `S = (s₁,…,sₙ)` a beküldött sorozat, `Nₜ` a token normalizálása, `Eₚ` egy profil kötelező éleinek halmaza, `B` a blokkhierarchia.
 
-A megoldás elfogadható, ha **létezik** olyan bijekció
+Az elfogadáshoz léteznie kell egy `f: {1,…,n} → T` bijekciónak és legalább egy `p` profilnak úgy, hogy:
 
-\[
- f : \{1,\dots,n\} \to T,
-\]
+1. Minden pozícióra `N_f(i)(sᵢ) = N_f(i)(code(f(i)))`.
+2. Minden `u → v` élre `pos_f(u) < pos_f(v)`.
+3. A blokknyitók és -zárók szabályos scope-vermet alkotnak, minden sor a kijelölt konténerben van.
+4. A fixed tokenek eredeti abszolút helyükön állnak; a fordító belső fixedPosition korlátra vetíti őket, a keresés csak a megfelelő pozíción engedi a rögzített token hozzárendelését. A többi token nem kap implicit oldalkorlátot.
 
-amelyre egyszerre igaz:
+`Accept(S) ⇔ ∃p ∃f ∈ Bij(S,T): Content(f) ∧ Order(f,Eₚ) ∧ Scope(f,B) ∧ Fixed(f)`.
 
-1. **Tartalmi megfelelés**: minden `i` esetén `N_{f(i)}(sᵢ) = N_{f(i)}(code(f(i)))`.
-2. **Részleges rendezés**: minden `(u,v) ∈ E_p` esetén `pos_f(u) < pos_f(v)` (nem követel szomszédságot).
-3. **Lexikai struktúra**: a balról jobbra olvasott nyitó-/záróblokkok szabályos, egymásba ágyazott veremmel feldolgozhatók, és minden sor a kijelölt `scope`-ban van.
-4. **Profilválasztás**: legalább egy `p` alternatív profil teljesíthető, a profilon belül minden szabály együttesen kötelező (**OR a profilok között; AND a szabályok között**).
+A profilok között OR, egy profilon belül AND a kapcsolat. `a → c` és `b → c` önmagában nem rögzíti `a` és `b` sorrendjét. Ezzel a modell részleges rendezést enged, nem feltétlenül egyetlen megoldást.
 
-Formulában:
+Például az 50-es sor `dependencies: [10, 20]` értékével a `10, 30, 20, 40, 50` és a `20, 40, 10, 30, 50` sorrend is megfelel a függőségeknek. Az `50, 10, 20, 30, 40` és a `10, 50, 20, 30, 40` nem felel meg. A tömb sorrendje nem számít, az összes felsorolt előzménynek korábban kell állnia. Más szabályok (scope, fixed, edges, profiles) ettől függetlenül korlátozhatják a teljes elrendezést.
 
-\[
- Accept(S) \iff \exists p\;\exists f\in Bij(S,T): Content(f)\land Order(f,E_p)\land Scope(f,B).
-\]
+A generátor scope-onként, kompozicionálisan dolgozza fel az utasításlistákat. Az egysoros, primitív const deklarációk valódi kötésfeloldásból kapnak előzményeket, a külső scope-ban létrehozott konstansokra is hivatkozhatnak. Az egyszerű primitív let inicializálások is lehetnek függetlenek; a módosítható let értékéből olvasó kifejezést viszont nem kezeli állandóként. A TypeScript szimbólumai megkülönböztetik a shadowingot. A megtartott blokkhatárok a sorok lexikai helyét ettől függetlenül korlátozzák.
 
-### 3.1 Azonos `}` sorok
+A hívások, módosítások, vezérlésátadások, ismeretlen kifejezések és kommentegységek a saját utasításlistájukban konzervatív sorrendi korlátot képeznek; az ilyen belső hatás az összetett utasítást a szülőben is korláttá teszi. A tiszta belső blokkok önálló egységként rendezhetők a külső kötésfüggőségeik szerint. A szintetikus élek tranzitív redundanciája csökken, a ténylegesen olvasott sorok explicit függősége megmarad. Közös fizikai sorhatárnál az AST-intervallumfallback továbbra is érvényes. With esetén a forrássorrend megmarad.
 
-Két `}` sor külön ID-val is ugyanahhoz a normalizált karakterlánchoz tartozhat. A validátor nem az ID-kat követeli vissza, hanem megvizsgálja, létezik-e olyan **globális** bijekció, amely a két sor hozzárendelésének cseréjével minden függőséget és scope-ot teljesít. Így a felcserélt tokenazonosító nem lesz hamis hiba, de egy hibás blokkba helyezett zárójel elutasítható.
+Teljes soronkénti példa, a 5040 permutáció ellenőrzése, a beágyazási szabályok és a hívási korlát részletes magyarázata: [evaluate függvény elemzése](evaluate-ordering-analysis.md).
 
-### 3.2 Függőségi gráf
+Az `id` az adott feladatverzión belüli állandó azonosság: átrendezéskor nem számozzuk újra, a dependencies ezt hivatkozza. A generátor által rögzített opcionális `sourceLine` az eredeti fizikai forrássor 1-től induló száma, üres sorokkal együtt; csak tájékoztató adat. Nem lehet vele szabályt vagy azonosságot felülírni. Új forrásgenerálás új modellt hoz létre; nem ígérünk globális, szerkesztéseken átívelő ID-állandóságot. A meglévő modellek és kézzel megadott függőségek továbbra is változatlanul importálhatók.
 
-A kötelező megelőzéseket DAG irányított élei jelölik. Például `a → c`, `b → c` nem rögzíti `a` és `b` sorrendjét. Egyszerre több előzmény szükséges; egyetlen előd nem írná le pontosan ezt a követelményt. A modellnek nincs futásidejű adatfüggőség-felismerése: az élek szerzői igazolást igényelnek.
 
-### 3.3 Miért nem elég egy DAG mindenre?
+Két azonos normalizált tartalmú `}` sor technikai ID-ja felcserélhető, ha létezik a teljes gráfot és scope-ot egyszerre teljesítő tartalmi hozzárendelés. A validátor nem kéri vissza az eredeti ID-kat. Siker esetén a `matchedTokenIds` mező a beküldött pozíciók sorrendjében tartalmazza a szerveren kiszámított referencia-token-ID-kat (CodeLine esetén `n:<id>`). Ez egy érvényes tanú, azonos tartalmú soroknál nem feltétlenül az egyetlen. A kliens által állított megfeleltetés nem vesz részt az értékelésben. A UI lenyitható táblázatban mutatja a pozíciót, referencia-ID-t, forrássort és a saját modell előzmény-ID-it. Hiányzó vagy duplikált tartalom ettől még elutasítandó.
 
-A DAG lineáris kiterjesztései fejezik ki a megengedett sorrendeket, de a `A-B-C VAGY C-B-A` megoldáshalmaz nem írható le pontosan egyetlen részleges rendezéssel. Erre szolgál az alternatív `profiles` OR-kapcsolata, a `blocks` és a `fixed` szabályok. Opcionális tokenek, tetszőleges szöveges átírás vagy teljes szemantikai ekvivalencia **nem** része a mostani sor-rendezős modellnek.
+## Normalizálás és keresés
 
-## 4. Algoritmus implementációja
+`indent`: kizárólag a vezető szóköz és tab ignorálható; a sor belseje és vége számít. `exact`: minden kódegység számít. Többsoros template/string payload sorai, köztük az üres sorok, csak exact módban publikálhatók. Új nyelveknél a whitespace biztonságát a saját adapternek kell meghatároznia.
 
-A [`src/core/code-line.ts`](../src/core/code-line.ts) adapter:
+A referenciasorok normalizált kulcsok szerint előindexeltek. A keresés tartalmi multiplicitás-ellenőrzést, MRV/függőségi sorrendezést, a már hozzárendelt prefix korai scope-ellenőrzését és determinisztikus visszalépést használ. A költségkeret az összes profilon közös; a kimerülése `indeterminate`, soha nem automatikus `rejected`.
 
-1. ellenőrzi az ID-k egyediségét, a `dependencies`, `functionBlock`, `scopeId`, `fixed` mezőket;
-2. a számazonosítókat a belső `n:<id>` kulcsokra fordítja;
-3. a `fixed` pozíciót megelőzési élekkel kódolja;
-4. a `blocks`, `edges`, `profiles` szabályokat a `src/core/model.ts` fordítónak adja át;
-5. visszautasítja a körkörös függőséget, hiányzó blokkot, inkonzisztens hierarchiát, hibás referenciaadatot.
+- `accepted`: találtunk minden szabályt teljesítő tanút.
+- `rejected`: a tartalom vagy a teljesen végigvizsgált szabályrendszer nem felel meg.
+- `indeterminate`: a keret vagy infrastruktúra miatt nincs megbízható döntés.
+- `invalid_reference`: a referencia szerződése hibás; ez nem tanulói hiba.
 
-A [`src/core/validator.ts`](../src/core/validator.ts) ellenőrzés:
+## Strukturális és szemantikai helyesség
 
-1. beküldési séma és elemszám, maximális sorhossz, egyetlen fizikai sor/token;
-2. minden beküldési pozícióhoz `Cᵢ` jelölthalmaz képzése a tartalmi egyenértékűségből;
-3. lehetetlen sorok és (amennyiben egyértelmű) multiplicitás korai kizárása;
-4. egy profilon belül korlátos DFS + MRV (legkevesebb lehetséges jelölt először), az élek azonnali részleges ellenőrzésével;
-5. teljes hozzárendelésnél pontos scope-veremellenőrzés;
-6. az első elfogadható teljes hozzárendelés tanúja alapján `accepted`.
+Az automatikus modell csak az elemzés által támogatott tiszta részekben oldja fel a forrássorrendet. Az AST megtartja a reprezentálható hierarchiát. Közös fizikai soron összefutó blokkhatároknál csak az érintett intervallumok kapnak kötelező sorrendéleket; ezt az `authoring` metaadat és a felület jelzi.
 
-Egyedi, nem ismétlődő kódoknál a hozzárendelés egyszerű, így a gráfellenőrzés a tokenek és élek számában közel lineáris: `O(N+E)`. **Ismétlődő soroknál az általános bijekciókeresés legrosszabb esetben exponenciális**, és a jelenlegi algoritmus nem garantál polinomiális időt. A `maxStates` alapértelmezés szerint 30 000, maximum 1 000 000. A keresési keret kimerülése **`indeterminate`**, soha nem hamis `rejected`.
+A deklaráció/használat-jelzések nem veszik figyelembe teljeskörűen a mellékhatásokat, kivételeket, aliasokat, inicializálási sorrendet vagy időfüggést. A dependencyHints önmagában nem engedélyez automatikus szemantikai szabadságot; a külön statementOrdering végzi a dokumentált, korlátozott lazítást. Kézi dependency-/profilváltoztatás és alternatív megoldás tesztelése lehetséges; a szemantikai helyesség hitelesítése a szerző feladata.
 
-A négy státusz: `accepted`, `rejected`, `indeterminate`, `invalid_reference`. A `rejected` az adott hiteles referencia szerinti szabálysértést, **nem** a program általános szemantikai hibáját bizonyítja.
+Részletek: [formázás](modularitas-es-elobehuzas.md), [adapterek](language-adapters.md), [architektúra](architecture.md), [tesztállítások](ts-method-regression.md).
 
-## 5. A formázás és a vizuális sorrend különválasztása
 
-### 5.1 Szerzői formázás
+## Tervezési alapok
 
-| Nyelv | Elsődleges formázó | Indok |
-|---|---|---|
-| JavaScript | JS Beautify 1.13.13 (böngésző); TS Language Service tartalék a szerveren | A meglévő ngDynamic örökség, 5 szóközös indent; JS grammar |
-| TypeScript | TypeScript Language Service 5.8.3 | TS AST/típusannotációk és generikus szignatúrák megőrzése |
+A csomópont-ID + kötelező előzmények modell irányított körmentes gráfot és annak topologikus sorrendjeit írja le. Ez a szokásos megelőzési szemantika, nem távolság- vagy szomszédsági követelmény: [Python graphlib hivatalos leírás](https://docs.python.org/3/library/graphlib.html). A szerzői kötésfeloldás a rögzített TypeScript-verzió `Program`/`TypeChecker`/`getSymbolAtLocation` API-jára épül: [TypeScript Compiler API](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API). Az ID, forráshely és kódtartalom különválasztása, valamint a szűk automatikus lazítás ezekre épülő projektbeli tervezési döntés, nem egyetlen kötelező ipari séma.
 
-A szerveres `POST /api/author/format` diagnosztikát futtat, és a formázott forráskódot visszaparzolja. A szerzői `compile` lépésnél a parser és a lexer az ismert TS/JS struktúrákat dolgozza fel. Ez **nem** a tanulói beküldés kiértékelésének része.
-
-### 5.2 Rendezési megjelenítés — a képen jelzett hiba
-
-A v4 `_____code_line_end_;` jelölőt illesztett minden befejezetlen kódsor mögé, majd JS Beautify után darabolta a kimenetet. Hiányos kifejezéseknél (pl. függvényhívás, tömbspread, `});`, generikus TS szignatúra) a formázó **több fizikai sort helyezhetett egy draggable tokenbe**, vagy átmozgathatott sorhatárokat. A sorszám/gutter viszont továbbra is egy tokent jelölt: ebből jött a képen látható összeolvadás és a páros/páratlan sorok csúszása.
-
-**V5 javítás:** rendezés közben TS-re a szerzői oldalon már formázott eredeti token szövege jelenik meg (nem küldjük félig kész TS-kódot a JS Beautify-hoz). JS-nél a megoldást csak akkor formázzuk újra JS Beautify-jal, ha (i) a fizikai sorok száma megegyezik; (ii) a sorok `trim()` tartalma pozíciónként ugyanaz; (iii) nem keletkezik új sor a tokenen belül. Minden más esetben megtartjuk az eredeti sorok karaktereit, az eredeti behúzással. Egy vizuális sor mindig egy tokent jelent. Ez biztonságos kompromisszum: **egy hiányos vagy hibás rendezési állapotban az automatikus újraindentálás nem garantált**. A kész programot a szerzői szerkesztőben a nyelvazonos formázóval újra lehet formázni.
-
-A Prism alapértelmezett CSS-e a `.token.operator`/`.token.entity` elemekre `hsla(0,0%,100%,.5)` hátteret adott, innen jöttek a `=`, `=>`, `+` mögötti szürke négyzetek. Ezt a v5 a betöltött témában és a felületre scope-olt stílusban is átlátszóra állítja. A `<pre>` minden esetben `white-space:pre`, `overflow-x:auto`, fizikai egysoros magasságot kap.
-
-## 6. UI interakciók és scrollmegőrzés
-
-A `render()` újraépíti az alkalmazás DOM-ját, ezért a v4-ben minden drop `scrollTop=0` eredménnyel járt. A v5:
-
-- render előtt eltárolja a két `.drop-zone[data-zone]` függőleges és vízszintes scrollértékét, feladat-ID + zónanév kulccsal;
-- render és sorszám/gutter frissítés után **visszaállítja** a `scrollTop` és `scrollLeft` értékeket;
-- a drop, nyilakkal történő átrendezés és + / − gomb is a közös renderútvonalat használja;
-- a 100%-os szélességű `#app` nem korlátozódik 1200 pixelre; a fullscreen API és a CSS fallback változatlanul működik.
-
-Nagyobb DOM/scrollmagasság-változásnál az utolsó érték a böngésző által támogatott maximumra korlátozódik; a v5 pixelpozíciót, nem sorankort rögzített horgonyt őriz meg.
-
-## 7. Más nyelvek és a JS Beautify
-
-**Más nyelveket nem érdemes JavaScriptre fordítani csak azért, hogy a JS Beautify kezelhesse őket.** A transzpiláció megváltoztatja az AST-t, megsemmisítheti az eredeti kommenteket, importokat, nyelvi idiomákat, behúzást, sőt egyes szintaktikai szerkezeteket. JS Beautify nem általános nyelvi formázó. TypeScript esetén is a natív TypeScript Language Service a helyes megoldás.
-
-Bővítéshez szükséges adapterek, nyelvenként:
-
-```ts
-interface LanguageAdapter {
-  language: string;
-  parseAndValidate(source: string): Promise<void>;
-  format(source: string, indentSize: number): Promise<string>;
-  tokenize(source: string): Promise<StructuredCodeLine[]>;
-  normalize(line: StructuredCodeLine): string;
-  verifyModel(model: CodeLineExercise): Promise<void>;
-}
-```
-
-Javaslat: Pythonhoz Black/Ruff, Javához google-java-format, C#/Roslyn, Rusthoz rustfmt, Go-hoz gofmt; mind szerzői/izolált környezetben. A kész, ellenőrzött modell ugyanarra a **nyelvfüggetlen szerveroldali** validátorra adható át, amely nem értelmezi a beküldött programnyelvet. Pythonban az indentáció **szintaktikai elem**, tehát `normalization:'indent'` nem alkalmazható automatikusan; más nyelvekben template-/string-kontextusnál is `exact` szükséges.
-
-## 8. Tesztelés és korlátok
-
-Futtatás: `npm install && npm run check`; UI-integrációhoz `npm run test:browser` (telepített Chromium szükséges).
-
-A v5 regressziók ellenőrzik: a formázó soha nem csúsztat két tokent egy fizikai vizuális sorra; a TypeScript kódsorokat nem küldi JS Beautify-n keresztül; a formázó nem változtat meg token-tartalmat; a Prism operátorok háttere átlátszó; a hosszú, scrollos dropzóna mozgatás után megtartja a pozíciót; fullscreen és másolás gombok megjelennek; a teljes mellékelt `CopyFieldUtilityService` metódusai formázásból és modellgenerálásból változatlanul tesztelhetők.
-
-A browser test külön elérhető környezeti teszt; ha Chromium nem indul a rendszerben, a teszt **nem tekinthető lefutottnak**. A szerver hitelesítést, rate limitinget, perzisztens tárolást és éles telepítési keményítést még igényel.
+A fixed korábbi horgonyéleinek túlkorlátozását az [ADR-002](adr/002-fixed-positions.md) javítja. A teljes munkafolyamat és tabulálás: [üzleti és technikai szerződés](business-technical-contract.md).

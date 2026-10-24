@@ -1,90 +1,27 @@
-# ngDynamic v6 – élő behúzás, modulhatárok és korrekt validáció
+# Formázási felelősségek és tartalommegőrzés
 
-## Mi romlott el v5-ben?
+## Teljes szerzői forrás
 
-A v5 `public/formatter.js` meghívta a JS Beautify-t egy összeillesztett kódszövegen, **de eldobta az eredményt**, ha a formázó sorszerkezete vagy valamelyik kódsor tartalma eltért a referencia tokenhatáraitól. TypeScriptre eleve kihagyta a formázást. Ez akadályozta meg az élő indentálást éppen az eredeti ngDynamic legértékesebb használatánál: hiányos és hibásan rendezett kódnál.
+A `src/author/languages.mjs` nyelvi adaptere auditálja a teljes referenciát. JavaScriptnél Acorn ellenőrzi a JS-grammatikát (script vagy module), a TypeScript compiler AST-je szolgáltatja a közös struktúrát. TypeScriptnél a saját parser ellenőrzi a szintaxist. A külön Formázás művelet mindkét nyelvnél a TypeScript Language Service-t használja; itt sorokat is lehet tördelni. Az Alkalmazás az akkor megadott forrásból hoz létre CodeLine-elemeket, és nem hív automatikusan teljes forrásformázást.
 
-## A v6 szerződése
+## Részleges tanulói összeállítás
 
-Legyenek a feladat állandó tokenjei `t_i = (id_i, code_i, normalization_i)`, a tanuló állapota pedig egy pozíciókat tartalmazó sorozat `A = [id_1, null, id_2, ...]`.
+`formatForIDE(rows,{language})` megjelenítési projekció, ugyanannyi elemmel, mint a bemenete. Az `attempt.js` a még üres fizikai pozíciókat külön őrzi, majd visszailleszti őket. Nem az eredeti referenciasorrend, hanem az aktuális tokenrend határozza meg a kontextust.
 
-A megjelenítő `F(A)` eredménye ugyanannyi fizikai sor, mint a nem üres pozíciók száma. Bármely `i` pozícióra, amely nem `exact`:
+- `lexical-indenter.js`: toleráns állapotgép; code/string/comment/regex/template módok, karakterosztály és escape, interpolációs és zárójelvermek. A kontrollzárójel és az értéket befejező zárójel külön slash-kontextust ad. A hibás regex EOL-nál lezárul, nem nyel el további blokkokat. Rossz zárójel nem pattint le idegen keretet.
+- `legacy-beautifier.js`: az eredeti JS Beautify 1.13.13 konfiguráció és `_____code_line_end_;` segédjelölés. A jelölő kizárólag a formázó ideiglenes szövegében él. Ütköző marker, eltérő sorszám, széttördelt sor, kivétel vagy no-op formatter esetén nincs megbízható javaslat.
+- `formatter.js`: JS-nél a megbízható Beautify-prefixel korrigálható a lexikai mélység; nem követel mechanikus egyenlőséget. Csak behúzási prefixet használ, a formázó által visszaadott tokentartalmat soha. Érvénytelen egyedi hintnél lexikai fallback. TS, `exact`, backticket vagy folytatott stringet tartalmazó bemenetnél konzervatívan a lexikai projekció dönt.
 
-```
-stripLeadingWhitespace(F(A)[i]) = stripLeadingWhitespace(code(A[i]))
-```
+Öt szóköz az alap. Minden `indent` sorra `display.replace(/^[ \t]*/, '') === code.replace(/^[ \t]*/, '')`: csak az ASCII szóköz/tab előtag változhat. A sor eleji NBSP, EM SPACE és BOM is megmarad, mert a validátor ezeket tartalomnak tekinti. `exact` sorra minden kódegység azonos. A többsoros literál nyers tartalmi sorainak vezető whitespace-e is változatlan. A megjelenítési eredmény nem lesz az automatikus értékelés bemenete; a validátor az eredeti elem tartalmát kapja.
 
-`exact` esetén minden karakter változatlan. A validátor **nem** használja `F(A)` eredményét. A megjelenítés kizárólag a behúzást számolja újra.
+## Eltérés az eredeti ngDynamic eljárástól
 
-### 1. Teljes forráskód formázása – szerzői oldal
+Az eredeti konfiguráció és marker-alapú darabolás fennmaradt, és valódi JS Beautify-val összehasonlító teszt vizsgálja. A marker nem kerülhet a domainmodellbe, és egy draggable elem nem bontható szét vagy vonható össze. A teljes forrás újraformázása külön szerződés; a hibás vagy hiányos program vizuális behúzását nem tesszük függővé sikeres parsingtól.
 
-- JavaScript: `js-beautify` v1.13.13; az eredeti projekt ötszóközös beállításaival.
-- TypeScript: TypeScript Language Service. A generikusok, type literalok, tuple-ök, visszatérési típusok JavaScript-formázóval nem kezelhetők megbízhatóan.
-- A referenciaadat modellje mentés előtt AST- és modell-validáción megy át.
+Teszt: `tests/lexical-context.test.mjs`, `tests/legacy-comparison.test.mjs`, a korábbi live-indent, formatter-contract és 31 TS-tag regressziói.
 
-### 2. Részleges/tetszőleges sorrendben összeállított kód – tanulói oldal
+## Korlátok
 
-A `formatForIDE(rows, { language })` az összes aktuális, már behelyezett kódsor alapján újra megállapítja a behúzást. Nem számol az eredeti sorpozícióval, így a `function`, `for`, `if` vagy `}` mozgatására az összes következő sor megjelenítése azonnal változhat.
+A hiányos program slash-kontextusa nem minden hibás tokenfolyamnál dönthető el egyértelműen; ez a projekció best effort, nem parserhelyettesítő. JSX/TSX, proposal-szintaxis és más nyelvek külön adaptert igényelnek. A garantált szerződés a sor- és tartalommegőrzés, nem minden hibás program ideális esztétikai formázása.
 
-- A JS-adapter **megtartja** az eredeti `_____code_line_end_;` jelölőt és a beállításokat, de csak formázási segédinformációként. Nem írja át a tokeneket.
-- A toleráns lexikai motor kezeli a kapcsos, szögletes és kerek zárójelek nyitását-zárását, köztük a `});` kombinációkat is; a stringekben és kommentekben található zárójeleket nem számítja.
-- Ha a JS Beautify átszabja a sorhatárokat, a motor **nem ad vissza hibás sor-/token-hozzárendelést**, hanem a saját szintaxis-környezeti indenterét használja.
-- A TypeScript tanulói nézet a toleráns szkennerre épül; **nem** hívja meg a JS Beautify-t hibás/részleges TS programokon.
-- A kódrészletek normálizálása kizárólag megjelenítési behúzást érint. Ez nem nyelvi helyességellenőrzés.
-- A már a szerkesztőben jelen lévő üres helyek nem változtatják meg az egymás után behelyezett kódelemek kontextusát.
-
-Ezzel a v6 nem egyszerűen „visszakapcsolja a JS Beautify-t” minden sorra. A régi, fontos viselkedést visszaadja, miközben az újabb modell token- és sorazonossági invariánsait megőrzi.
-
-**Korlát:** a toleráns motor nem AST-parser. Regexliterálok összetett mintái, multiline interpolált template literálok, JSX, TSX és olyan nyelvek, ahol a whitespace szintaktikai elem, speciális adaptert igényelnek. Ezt nem lehet garantáltan megoldani a JavaScript-behúzó általánosításával.
-
-## A kiértékelés matematikai modellje változatlan
-
-A referencia tokenhalmaza `T`, a beküldött *tartalom* sorozata `S`.
-
-A megoldás akkor elfogadott, ha létezik egy kölcsönösen egyértelmű leképezés `f: S → T`, amelyre:
-
-1. A sorok normalizált tartalma megegyezik (`indent` vagy `exact`).
-2. Minden `u → v` függőségre `pos(f^{-1}(u)) < pos(f^{-1}(v))`.
-3. A `fixed` sorok referencia szerinti pozíciója változatlan.
-4. A blokkhatárokhoz tartozó `scope`-verem helyesen épül fel és záródik le.
-5. Legalább egy megengedett alternatív profil összes szabálya teljesül.
-
-A keresés korlátos; ha nem állapítható meg döntés a megadott költségkereten belül, az eredmény **`indeterminate`**, nem hibásként elutasított megoldás.
-
-A forráskód végrehajtása vagy JS/TS-értékelése a validátorban nem történik. A referencia modell hitelességéért továbbra is a szerzői folyamat felel. A formázás sem jóváhagyást, sem elutasítást nem okozhat.
-
-## Ousterhout: A Philosophy of Software Design – az alkalmazott elvek
-
-- **Deep modules:** `formatter.js` külső interfésze `formatForIDE`, a megvalósítás mögötte rejti a lexer állapotot, sentinel-t és nyelvi eseteket. Nem sok apró, rosszul absztrahált wrapperre bontjuk.
-- **Information hiding:** a megjelenítő csak pozíciókat és tokentartalmat kap. Nem ismeri a függőségi gráfot; a HTTP-réteg nem ismeri a validátor belső algoritmusát.
-- **Low cognitive load:** a `createAttemptController()` magába zárja az ID-k mozgatását, fix sorokat, sorpozíciókat és szerkesztői visszaalakítást. A DOM-eseménykezelő csak kifejezi a felhasználói szándékot.
-- **Separate general purpose from special purpose:** JavaScript/TypeScript szerzői formázás külön szolgáltatás, tanulói részleges behúzás külön szerződés.
-- **Handle errors deliberately:** a referenciát fordításkor validáljuk; a szerverhez nem jut el a felhasználó által átírt hiteles modell; a keresési limit `indeterminate`.
-- **Strategic programming:** a tesztek a modulok garantált viselkedését (tokeneket megőrző reindent, függőségi modell) rögzítik, nem belső függvényhívásokhoz kötődnek.
-
-## Modulok
-
-| Fájl | Nyilvános felelősség |
-|---|---|
-| `public/formatter.js` | Egyetlen, stabil IDE formázó interfész |
-| `public/formatting/lexical-indenter.js` | Részleges JS/TS szintaxis-környezeti behúzás |
-| `public/formatting/legacy-beautifier.js` | Régi konfiguráció + sentinel alapú hint |
-| `public/app/attempt.js` | A megoldás állapota; mozgás, csere, szerkesztői visszaalakítás |
-| `public/app/view.js` | Renderelés és Prism-szintaxiskiemelés |
-| `public/app/ui-utilities.js` | Sorszámgutter, másolás, scrollmegőrzés |
-| `public/app/api.js` | Formázó, generáló, validáló HTTP szerződések |
-| `public/ui.js` | Eseménykoordináció és képernyőállapot |
-| `src/server/catalog.mjs` | Hiteles referenciák és szerzői előnézetek kezelése |
-| `src/server/http.mjs` | HTTP, védelem, statikus erőforrások |
-| `src/core/*.ts` | Adatmodell-validáció és matematikai kiértékelés |
-| `src/author/*.mjs` | Szerzői parserek és modellgenerálás |
-
-## Regressziós tesztek
-
-- `npm run check` – TypeScript build, unit/integrációs tesztek és referencia modellek ellenőrzése.
-- `tests/live-indent.test.mjs` – JS/TS, zárójelek, kommentek, hibás sorrend, sentinel és adatvesztés tiltása.
-- `tests/live-ts-method-format.test.mjs` – a mellékelt TS service 31 külön osztálytagja, teljes 436 soros reprezentáció, mozgatás és szerkesztés.
-- `tests/validator.test.mjs` – egyenértékű sorok, függőségek, scope, `fixed`, alternatív profilok.
-- `tests/http-flow.test.mjs` – szerzői és értékelő API.
-
-A grafikus böngészős teszteket a jelenlegi futtatókörnyezet Chromium-hozzáférési korlátozása miatt külön kell futtatni: `npm run test:browser`. A CLI-tesztek sikeressége **nem** bizonyítja a böngészős interakciók végponttól végpontig helyességét.
+A Tab billentyű pontos szerkesztési viselkedése, a fixed pozíció és a másolás/értékelés kapcsolata: [üzleti és technikai szerződés](business-technical-contract.md).

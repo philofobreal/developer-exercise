@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 2,
+  "id": "evaluate-ordering",
+  "revision": 1,
+  "language": "javascript",
+  "title": "A képen látható függvény összes sorrendje",
+  "description": "A note független; c az a és b után; return a c és note után.",
+  "lines": [
+    {
+      "id": 1,
+      "sourceLine": 1,
+      "code": "function evaluate() {",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "sourceLine": 2,
+      "code": "     const note = 'ready';",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "sourceLine": 3,
+      "code": "     const a = 10;",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 4,
+      "sourceLine": 4,
+      "code": "     const b = 20;",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 5,
+      "sourceLine": 5,
+      "code": "     const c = a + b;",
+      "dependencies": [
+        3,
+        4
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 6,
+      "sourceLine": 6,
+      "code": "     return { c, note };",
+      "dependencies": [
+        2,
+        5
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 7,
+      "sourceLine": 7,
+      "code": "}",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "fn",
+      "kind": "function",
+      "functionBlock": 1,
+      "parentScopeId": null,
+      "openLineId": 1,
+      "closeLineId": 7
+    }
+  ]
+}

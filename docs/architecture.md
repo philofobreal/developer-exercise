@@ -1,9 +1,44 @@
 # Architecture
 
-Trusted `CodeLineExercise` JSON → `compileCodeLineExercise` → audit function ancestry → lower to `ExerciseDefinition` → add absolute-slot edges for `fixed` lines → `compileDefinition` → validate reference order → store compiled model on Node server.
+The application has explicit authoring, compilation, evaluation and presentation boundaries. It contains no Angular runtime.
 
-Client gets *only* display line content, id, fixed and functionBlock, plus exercise metadata. It builds stable fixed slots and fills movable positions. A learner POSTs `exerciseId`, `revision`, `lines: string[]`. Server retrieves its own compiled reference and `validateSubmission` tests whether a content-preserving bijection exists under one profile and a valid lexical scope stack. It never accepts browser-supplied dependencies, fixed flags, or reference blocks.
+| Boundary | Public contract | Hidden responsibility |
+| --- | --- | --- |
+| Language adapters | parse, format, tokenize, structure, whitespace, optional analyzeDependencies/statementOrdering | JS grammar, TS AST, binding identity and literal safety |
+| Generator | source → CodeLineExercise | physical-row mapping, AST intervals, representable hierarchy, limited fallback, scope-compositional primitive statement dependencies |
+| Reference audit | auditReference(model, parser) | author syntax and exact-whitespace requirements |
+| Model compilation | compileCodeLineExercise | generated JSON Schema check, referential integrity, DAG, scopes, ownership, fixed positions |
+| Validator | validateSubmission | content bijection, multiplicity, profiles, assigned-prefix scope pruning and bounded search |
+| Catalog | createDraft, preview, evaluate | trusted references, immutable admission snapshots and expiring previews |
+| Attempt | insertFromPool, moveInAnswer, applyText, formattedAnswer | stable identities, fixed slots, atomic editor changes and blank positions |
+| Author lifecycle | installPreview | compatible attempts and atomic preview replacement |
+| Persistence | exportSession, restoreAttempt | versioned author/attempt files, identity audits, report exclusion |
+| Input adapter | createInsertionDrag | native/pointer/touch/keyboard, marker, midpoint, animation compensation, focus and announcement |
+| Presentation | render, field registry | escaped HTML, Prism, editors and extensible hierarchy |
+| API adapters | author/preview/evaluate contracts | server calls or explicitly local Pages demonstration |
+| Deployment | one verify job → reusable deploy | exact tested artifact, failure gating, restricted publication permission |
 
-Reference integrity + alternative constraints are **author-time** concerns. Correctness of all accepted programs depends on authoring sound constraints. `indeterminate` protects against exceeding the bounded matching search.
+These are deep modules in Ousterhout's sense: a small interface hides a coherent policy. Separating persistence and author lifecycle removes policy from event handlers; splitting files alone is not the architectural objective. The learner DOM never receives the trusted dependency graph. Author preview models may display their own dependency tables; successful grading returns a content-verified token witness, without disclosing trusted ordering edges. The core does not know browsers, parsers, CSS or formatting libraries.
 
-`CodeLine` alone cannot distinguish nested braces; `scopeId` + `blocks` do. Function IDs denote owning function rather than scope. This avoids conflating a function with a `for` block. Syntax-preserving reindentation is view-only via js-beautify.
+`docs/schema.json` is the single shape contract. `scripts/sync-schema.mjs` uses pinned Ajv to generate `src/core/schema-check.ts`, which compiles into the same browser-safe runtime checker for Node and Pages. Semantic graph checks remain handwritten TypeScript. `scripts/sync-vendor.mjs` copies pinned formatter/parser assets and their licenses before compilation.
+
+AST intervals with unique physical boundary rows become explicit blocks. Shared close/open rows such as `} else {` cannot represent two independent boundary events in the current one-row/one-token model. Only those intervals receive mandatory original-order edges; representable enclosing and nested blocks remain. `authoring.omittedBlocks` and the reason explicitly expose this projection limit. Function ownership refers to retained function scopes. A richer boundary-event representation is a future schema change, not silently fabricated structure.
+
+The frontend only commits a preview after server/local admission succeeds. Newer author requests supersede older ones; dependency-only updates preserve compatible attempts and reevaluate them. No persisted report or imported rule can replace a trusted server record.
+
+The stylesheet has one ordered set of design tokens, base components, IDE/editor components, input states, fullscreen, token styling and responsive rules. There are no version-stacked `!important` patches. Real browser checks cover full width, alternate rows, operators, gutters, fullscreen, scrolling and input behavior.
+
+Reference identity, original physical source location and current solution position are separate concepts. Dependencies reference immutable IDs within one exercise revision. Optional sourceLine is diagnostic metadata; matchedTokenIds is a server-computed positional witness. Legacy CodeLine v2 models remain valid and their rules are not regenerated on import.
+
+
+## Typed workbench and governance
+
+The authoritative presentation sources now live in src/workbench. View contracts expose exercise/attempt snapshots and a small text/fixed/formattedAnswer port; they do not expose parser or search implementations. Interaction policy owns tabs, draft continuity, source-file staging and busy feedback; continuity owns focus/selection/details replacement behavior. The renderer has one public render operation and owns contextual HTML, escaping and UI hierarchy.
+
+The pre-existing controller, attempt, persistence, clipboard/input, author and server modules remain explicitly inventoried JS/MJS. Native TypeScript declarations describe the transitional ports; they do not certify the legacy modules as type checked. New presentation and governance implementation is strict native TypeScript with noEmitOnError, noUncheckedIndexedAccess and no handwritten any/ts-ignore. The core explicitly excludes Node ambient types.
+
+`docs/architecture-policy.json` records legacy exceptions and TypeScript-owned generated browser modules. `scripts/architecture-rules.ts` and `scripts/verify-architecture.ts` enforce import directions, forbidden production execution/DOM leakage, typed-source rules and source/emit consistency. Negative tests exercise the gates. Cohesion, small public interfaces and deep modules still require architectural review; they cannot all be established by static string/AST checks.
+
+Read [AI governance](ai-governance.md), [ADR-001](adr/001-typescript-workbench-and-boundaries.md) and the [workflow design](ui-ux-workflows.md) for responsibilities, prioritization and remaining migration stages.
+
+The fixed constraint is positional, not an ordering partition: [ADR-002](adr/002-fixed-positions.md). Product-to-code traceability, indentation and insertion contracts: [business and technical contract](business-technical-contract.md).

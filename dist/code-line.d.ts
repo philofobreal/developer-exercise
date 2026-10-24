@@ -13,6 +13,8 @@ export interface CodeLine {
 }
 /** Separates nested lexical scopes from ownership of functions, and raw whitespace from indentation. */
 export interface StructuredCodeLine extends CodeLine {
+    /** Original one-based physical source line; metadata, never an ordering key. */
+    sourceLine?: number;
     scopeId: string | null;
     normalization?: Normalization;
 }
@@ -47,6 +49,19 @@ export interface CodeLineExercise {
             after: number;
         }[];
     }[];
+    authoring?: {
+        strategy?: string;
+        reason?: string;
+        note?: string;
+        omittedBlocks?: number;
+        semanticEquivalenceProven?: false;
+        dependencyPolicy?: 'primitive-const-islands-v1' | 'scoped-primitive-dag-v2';
+        dependencyHints?: {
+            name: string;
+            declarationLine: number;
+            usageLine: number;
+        }[];
+    };
 }
 export type AdaptResult = {
     definition: ExerciseDefinition;

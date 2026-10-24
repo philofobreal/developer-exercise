@@ -48,3 +48,41 @@ test('whitespace-leading indent ignored; line body changes rejected',async()=>{
 test('invalid unknown extra or missing lines are rejected',async()=>{
  const ref=await read('sum-js');expectStatus(evalRef(ref,lines(ref).slice(1)),'rejected');expectStatus(evalRef(ref,[...lines(ref),'{}']),'rejected');
 });
+
+
+test('v2 dependencies require every predecessor earlier, with arbitrary gaps and array order',()=>{
+ const ref={schemaVersion:2,id:'dependency-distance',revision:1,language:'javascript',title:'Dependency distances',description:'',blocks:[],lines:[
+  {id:10,code:'const a = 1;',dependencies:[]},
+  {id:20,code:'const b = 2;',dependencies:[]},
+  {id:30,code:'const x = 3;',dependencies:[]},
+  {id:40,code:'const y = 4;',dependencies:[]},
+  {id:50,code:'const c = a + b;',dependencies:[10,20]}
+ ].map(line=>({...line,fixed:false,functionBlock:0,scopeId:null}))};
+ const permutations=items=>items.length<=1?[items]:items.flatMap((item,i)=>permutations(items.filter((_,j)=>i!==j)).map(rest=>[item,...rest]));
+ const orders=permutations(ref.lines);
+ for(const dependencies of [[10,20],[20,10]]){
+  ref.lines.at(-1).dependencies=dependencies;
+  let accepted=0;
+  for(const order of orders){
+   const position=id=>order.findIndex(line=>line.id===id);
+   const valid=position(10)<position(50)&&position(20)<position(50);
+   expectStatus(evalRef(ref,order.map(line=>line.code)),valid?'accepted':'rejected');
+   if(valid)accepted++;
+  }
+  assert.equal(orders.length,120);
+  assert.equal(accepted,40);
+ }
+});
+
+
+test('fixed means absolute position only: all 120 permutations agree with an independent position oracle',()=>{
+ const ref={schemaVersion:2,id:'fixed-only',revision:1,language:'javascript',title:'Fixed slots',description:'',blocks:[],lines:[1,2,3,4,5].map(id=>({id,code:`const v${id} = ${id};`,dependencies:[],fixed:id===3,functionBlock:0,scopeId:null}))};
+ const compiled=compileCodeLineExercise(ref);assert.ok(!compiled.status,compiled.message);
+ const permutations=items=>items.length<=1?[items]:items.flatMap((item,i)=>permutations(items.filter((_,j)=>i!==j)).map(rest=>[item,...rest]));
+ let accepted=0;
+ for(const order of permutations(ref.lines)){
+  const expected=order[2].id===3;const report=validateSubmission(compiled.compiled,{exerciseId:ref.id,revision:1,lines:order.map(line=>line.code)});
+  expectStatus(report,expected?'accepted':'rejected');if(report.accepted)accepted++;
+ }
+ assert.equal(accepted,24);
+});

@@ -2,7 +2,6 @@
 import {cp,copyFile,mkdir,readdir,rm,writeFile,readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {createRequire} from 'node:module';
-import {execFileSync} from 'node:child_process';
 const require=createRequire(import.meta.url);
 const root=process.cwd(),out=path.join(root,'_site');
 await rm(out,{recursive:true,force:true});
@@ -13,9 +12,9 @@ await cp(path.join(root,'examples'),path.join(out,'examples'),{recursive:true});
 const names=(await readdir(path.join(root,'examples'))).filter(n=>n.endsWith('.json')).sort();
 await writeFile(path.join(out,'examples','manifest.json'),JSON.stringify(names,null,2)+'\n');
 await writeFile(path.join(out,'.nojekyll'),'');
-let tsSource;
-try{tsSource=require.resolve('typescript/lib/typescript.js');}
-catch{tsSource=path.join(execFileSync('npm',['root','-g'],{encoding:'utf8'}).trim(),'typescript/lib/typescript.js');}
+await copyFile(path.join(root,'docs/schema.json'),path.join(out,'schema.json'));
+await copyFile(path.join(root,'src/core/LICENSE-ajv.txt'),path.join(out,'vendor/LICENSE-ajv.txt'));
+const tsSource=require.resolve('typescript/lib/typescript.js');
 await mkdir(path.join(out,'vendor'),{recursive:true});
 await copyFile(tsSource,path.join(out,'vendor','typescript.js'));
 await copyFile(path.join(path.dirname(path.dirname(tsSource)),'LICENSE.txt'),path.join(out,'vendor','LICENSE-typescript.txt'));

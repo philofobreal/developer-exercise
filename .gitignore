@@ -3,3 +3,9 @@ _site/
 coverage/
 *.log
 .DS_Store
+test-results/
+.venv/
+__pycache__/
+*.pyc
+
+dist-tools/

@@ -12,7 +12,7 @@ test('Pages demo: exercises → local validation → author → edited model →
  const require=createRequire(import.meta.url);
  let ts;
  try{ts=require('typescript');}catch{ts=require(join(execFileSync('npm',['root','-g'],{encoding:'utf8'}).trim(),'typescript/lib/typescript.js'));}
- globalThis.ts=ts;
+ globalThis.ts={...ts,sys:undefined};
  globalThis.fetch=async url=>{
    const pathname=fileURLToPath(url instanceof URL?url:new URL(url));
    try{return new Response(await readFile(pathname),{status:200});}
@@ -42,4 +42,15 @@ test('Pages demo: exercises → local validation → author → edited model →
    assert.match(tsFmt.code,/number/);
    const fixture=await api.loadTypeScriptFixture();assert.ok(fixture.includes('CopyFieldUtilityService'));
  }finally{globalThis.fetch=nativeFetch;globalThis.ts=originalTS;}
+});
+
+test('Pages failed import at full capacity preserves the last valid preview',async()=>{
+ const saved=globalThis.ts;globalThis.ts={...createRequire(import.meta.url)('typescript'),sys:undefined};
+ try{
+  const api=await import('../_site/app/pages-api.js');let first;
+  for(let i=0;i<25;i++){const draft=await api.compileDraft({source:`const v${i} = ${i};`,language:'javascript'});if(i===0)first=draft;}
+  const invalid=structuredClone(first.model);invalid.lines[0].code='const a = ;';
+  await assert.rejects(api.compileDraft({model:invalid}),/Szintaktikai/);
+  assert.equal((await api.previewDraft({draftId:first.draftId,lines:first.model.lines.map(x=>x.code)})).status,'accepted');
+ }finally{globalThis.ts=saved;}
 });

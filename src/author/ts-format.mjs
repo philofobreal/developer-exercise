@@ -1,7 +1,7 @@
 /** Format JS/TS author content with the TypeScript language service.
  * Never execute or typecheck learner code. Pure text edits + syntax parse.
  */
-import {AuthoringError} from './generator.mjs';
+import {AuthoringError} from './errors.mjs';
 
 export const FORMAT_OPTIONS=Object.freeze({
   indentSize:5, tabSize:5, convertTabsToSpaces:true, newLineCharacter:'\n',

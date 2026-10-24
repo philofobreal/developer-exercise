@@ -1,0 +1,24 @@
+# Nyelvi adapterek
+
+A `registerLanguageAdapter(id, adapter)` és `getLanguageAdapter(id)` a szerzői nyelvkezelés nyilvános API-ja. A regisztráció ellenőrzi a szükséges metódusokat és tiltja a névütközést. JavaScript és TypeScript működő adapterrel rendelkezik; új nyelvek nem kész implementációk.
+
+| Metódus | Feladat |
+| --- | --- |
+| `parse(source, infrastructure)` | Nyelvspecifikus szintaktikai audit, soha nem programfuttatás |
+| `format(source, infrastructure)` | Teljes szerzői dokumentum formázása |
+| `tokenize(tree, infrastructure)` | Nyelvi tokenek, nem regexes forráshelyettesítés |
+| `structure(tree, infrastructure)` | Fizikai nyitó/záró sorok és blokkfajták |
+| `whitespace(tree, infrastructure)` | Olyan fizikai sorok halmaza, amelyek payloadja `exact` kezelést igényel |
+| `analyzeDependencies(tree, infrastructure)` | Opcionális deklaráció/használat-jelzések, szerzői támpontként |
+| `statementOrdering(tree, infrastructure)` | Opcionális scope-onkénti utasításgráf, külső kötések és konzervatív hatás-/vezérlési korlátok, 0-alapú fizikai forrássorokra |
+| `declarationGroups(tree, infrastructure)` | Korábbi, kompatibilitásból megtartott lokális támpont; a generátor már a statementOrdering eredményét használja |
+
+A beépített JS-adapter Acornt és TypeScript AST-t használ; a TS-adapter a TypeScript infrastruktúráját. A generátor és a szerver formázó végpontja a regiszteren át választ adaptert. A frontend részleges JS/TS behúzója önálló, toleráns megjelenítési réteg; ez nem teszi a TypeScript compilert kötelezővé tanulói szerverértékeléskor.
+
+Új nyelvhez önálló parser/formatter/tokenizáló szükséges. A közös AST-intervallum eredmény és a whitespace-policy szerződéséhez kell illeszteni. Ezenkívül szándékosan bővíteni kell a CodeLine v2 Schema és a TypeScript exercise-típus nyelvlistáját, valamint a UI nyelvválasztóját és megjelenítési adapterét. A strukturális validátor belső keresése ettől változatlan marad. A belső ExerciseDefinition nyelvmezője már bővíthető.
+
+Python esetén minden szintaktikailag jelentős behúzást `exact` módban kell kezelni, vagy külön, bizonyítottan megfelelő normalizálást bevezetni egy új sémaverzióban. Nem engedett automatikusan a JS/TS `indent` módját ráalkalmazni. Más nyelvet nem fordítunk JavaScriptre a Beautify használatához.
+
+Az adapterregisztráció és a metódusszerződés külön tesztet kap; a JS/TS adapterek tényleges formázási/generálási/értékelési integráción is átesnek. Az importált külső adapter kódja megbízható alkalmazáskód, nem a tanuló által feltölthető plugin.
+
+A közös `dependency-analysis.mjs` böngészőben is működő compiler hosttal oldja fel a kötéseket. A statement-ordering.mjs kompozicionális elemzése csak a szerzői generáláskor fut. A tanulói értékelő továbbra is a megbízható modell DAG-ját és a tartalmi bijekciót vizsgálja; nem futtat vagy parse-ol tanulói kódot.

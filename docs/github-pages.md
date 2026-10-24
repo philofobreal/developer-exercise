@@ -1,42 +1,35 @@
-# GitHub Pages – nyilvános demó és szerveres rendszer
+# GitHub Pages kiadás
 
-## Két futtatási mód
+Repository: [philofobreal/developer-exercise](https://github.com/philofobreal/developer-exercise). A helyes célútvonal: [https://philofobreal.github.io/developer-exercise/](https://philofobreal.github.io/developer-exercise/).
 
-1. **Node.js alkalmazás** (`npm start`): a referenciafeladatok és az értékelési szabályok a szerveren maradnak. A `POST /api/evaluate` és a szerzői API valós szerveroldali kiértékelést végez.
-2. **GitHub Pages demó** (`npm run build:pages`): az `_site/` statikus mappa kerül publikálásra. A böngészőben ugyanaz a `dist/validator.js` és `dist/code-line.js` validációs mag fut, helyi szerzői generátorral és TypeScript Language Service-szel. A szabályok **nyilvánosan letölthetők**, a feladatokat a böngésző maga ellenőrzi; ezért ez NEM hiteles, visszaélésektől védett vizsgarendszer.
+## Helyi ellenőrzés
 
-A demó megőrzi a feladatkészítőt, a forráskód és JSON szerkesztését, a modell újraalkalmazását, a beszúró drag & drop-ot, az élő behúzást, a copy-t és a fullscreen-t. Az állapotot nem tárolja tartósan. A TypeScript compiler helyben a vendor mappából töltődik, nem a GitHub Pages-en futó Node szerverről.
-
-## Publikálás új repositoryból
-
-1. GitHubon hozz létre **Public**, üres repositoryt `ngdynamic-codeline-demo` néven a `philofobreal` fiók alatt. (Ne add hozzá automatikusan a README-t vagy licencet.)
-2. A projektgyökérben futtasd:
-
-```bash
-git init
-git branch -M main
-git add .
-git commit -m "feat: ngDynamic CodeLine v7 and Pages demo"
-git remote add origin https://github.com/philofobreal/ngdynamic-codeline-demo.git
-git push -u origin main
-```
-
-3. A repository **Settings → Pages → Build and deployment → Source** mezőjében válaszd a **GitHub Actions** opciót. A `.github/workflows/pages.yml` a push után ellenőrzi a teszteket, elkészíti az `_site` buildet és közzéteszi az oldalt.
-4. Nyisd meg az Actions-t és ellenőrizd a `Test and deploy GitHub Pages demo` workflow sikerét.
-5. A várható URL: `https://philofobreal.github.io/ngdynamic-codeline-demo/` (csak a sikeres publikálás után használható).
-
-A GitHub Pages a repository jogosultságai és fiókbeállításai szerint engedélyezhető; szükség lehet a Pages workflow környezetének engedélyezésére.
-
-## Tesztelés
-
-```bash
-npm install
+```sh
+npm ci
 npm run check:all
-python3 -m http.server 9000 --directory _site
+npm run test:browser:all
 ```
 
-A demó böngészőben: `http://localhost:9000/`. Ne `file://` útvonalon nyisd meg, mert az ES modulok és a `fetch` használata HTTP-t igényel.
+A `check:all` elkészíti az `_site/` statikus kiadást. Önálló build: `npm run build:pages`. A böngészős kör előfeltétele a README-ben dokumentált Python/Playwright telepítés.
 
-## Biztonsági korlát
+Az artifact relatív belépési útvonalakat, helyi Prismet, JS Beautify-t, TypeScript compilert, Acorn JS-parsert, tiszta strukturális validátort, példafeladatokat és a publikált `schema.json` fájlt tartalmazza. Node-szerver nem kerül bele. A valódi HTTP-alapú teszt `/developer-exercise/` alól tölti be; a sikeres gyökérútvonalas megnyitás önmagában nem elég.
 
-A GitHub Pages **nem** futtatja a Node.js API-t. A szerveroldali értékelésnek külön, hitelesített HTTPS-backendre kell kerülnie, és a kliensnek akkor a megfelelő API végpontot kell használnia. A GitHub Pages demó elfogadása nem hivatalos pontszám. Az elkészített statikus buildet ne használd éles tanulói értékelésre.
+## GitHub Actions
+
+A `.github/workflows/ci.yml` push, pull request vagy kézi indítás esetén:
+
+1. Lockfile alapján telepít (`npm ci`), előkészíti a Python/Chromium környezetet.
+2. Egyszer futtatja a teljes Node-kört és a referenciaauditot; ugyanebből a buildből származik az `_site/`.
+3. Futtatja mind az öt böngészős szkriptet: offline, valódi HTTP, Node/Pages mátrix, drag és szerzői/preview munkafolyamatok.
+4. Siker után, kizárólag `main`/`master` ágon és nem PR-eseménynél feltölti az ellenőrzött Pages-artifactot.
+5. A `needs: verify` függőségű deploy job meghívja a `.github/workflows/pages.yml` újrafelhasználható workflow-t. Az nem épít és nem tesztel újra; ugyanazt az artifactot publikálja.
+
+Sikertelen build vagy bármely teszthiba után nincs Pages-feltöltés/deployment. A diagnosztikai artifact ettől függetlenül megőrződik. A Pages-beállításban **GitHub Actions** legyen a kiadási forrás. A deploy job `pages: write`, `id-token: write` jogosultságot kap; a tesztjob csak olvasási jogosultságot.
+
+A helyi Git origin még mutathat korábbi névre; ellenőrzés: `git remote -v`. A távoli beállítást a helyi audit nem módosítja automatikusan. Új repository létrehozása nem szükséges.
+
+## Demó és szerver eltérése
+
+Pages: **Local Demo / Preview Validation**. Minden referencia és szabály eljut a böngészőbe; az elfogadás nem hitelesített vizsgaeredmény. Node: **Trusted Server Validation**. A tanulói kérés csak feladatazonosítót, verziót és kódsorokat ad; szabályt nem határoz meg. Mindkét mód külön, nem hiteles szerzői előnézetet kezel, és referenciaimportkor szintaktikai auditot futtat.
+
+Az audit során helyi buildet és HTTP-alapú statikus ellenőrzést végzünk. Ez nem igazolja a távoli GitHub-beállításokat vagy egy tényleges Actions-futás/deployment sikerét.

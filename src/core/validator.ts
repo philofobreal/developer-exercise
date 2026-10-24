@@ -12,21 +12,31 @@ const result = (status: ValidationResult['status'], reason: ValidationResult['re
  * No JS/TS execution, eval, vm, or server-side source parsing.
  */
 export function validateSubmission(compiledOrRaw: CompiledRules | import('./types.js').ExerciseDefinition, submission: Submission, opts: ValidationOptions={}):ValidationResult {
+  if(!compiledOrRaw||typeof compiledOrRaw!=='object')return result('invalid_reference','invalid_model','Hiányzó referencia.',0);
   const compiled = 'profiles' in compiledOrRaw && 'definition' in compiledOrRaw
     ? compiledOrRaw as CompiledRules : compileDefinition(compiledOrRaw as import('./types.js').ExerciseDefinition);
   if(isModelError(compiled)) return compiled;
   const def=compiled.definition;
   if(submission?.exerciseId!==def.id||submission.revision!==def.revision||!Array.isArray(submission.lines))return result('rejected','invalid_submission','Feladatazonosító, verzió vagy beküldési séma eltér.',0);
   if(submission.lines.length!==def.tokens.length)return result('rejected','wrong_length',`Várt elemszám: ${def.tokens.length}, beküldött: ${submission.lines.length}.`,0);
-  if(submission.lines.some(x=>typeof x!=='string'||x.length>2048||/[\r\n\u2028\u2029]/.test(x)))return result('rejected','unknown_content','Érvénytelen kódsor szerepel a beküldésben.',0);
+  if(submission.lines.some(x=>typeof x!=='string'||Array.from(x).length>2048||/[\r\n\u2028\u2029]/.test(x)))return result('rejected','unknown_content','Érvénytelen kódsor szerepel a beküldésben.',0);
   const tokens=def.tokens;
-  const candidates:number[][]=submission.lines.map(line=>tokens.flatMap((t,i)=>normalizeLine(line,t.normalization??'indent')===normalizeLine(t.code,t.normalization??'indent')?[i]:[]));
+  const tokenKeys=tokens.map(t=>`${t.normalization??'indent'}\u0000${normalizeLine(t.code,t.normalization??'indent')}`);
+  const index=new Map<string,number[]>();
+  tokenKeys.forEach((key,i)=>{const items=index.get(key)??[];items.push(i);index.set(key,items);});
+  const candidates:number[][]=submission.lines.map(line=>[
+    ...(index.get(`indent\u0000${normalizeLine(line,'indent')}`)??[]),
+    ...(index.get(`exact\u0000${line}`)??[])
+  ].sort((a,b)=>a-b));
   const impossible=candidates.flatMap((a,i)=>a.length?[]:[i]);
   if(impossible.length)return result('rejected','unknown_content','A feladatban nem engedélyezett sor található.',0,impossible);
+  const pinnedMismatch=tokens.flatMap(token=>token.fixedPosition!==undefined&&normalizeLine(submission.lines[token.fixedPosition]!,token.normalization??'indent')!==normalizeLine(token.code,token.normalization??'indent')?[token.fixedPosition]:[]);
+  if(pinnedMismatch.length)return result('rejected','rule_violation','A rögzített sor tartalma nem a kötelező sorhelyen áll.',0,pinnedMismatch);
+  candidates.forEach((items,position)=>{candidates[position]=items.filter(index=>tokens[index]!.fixedPosition===undefined||tokens[index]!.fixedPosition===position);});
   const counts=new Map<string,number>();
-  for(const t of tokens){const key=`${t.normalization??'indent'}\u0000${normalizeLine(t.code,t.normalization??'indent')}`;counts.set(key,(counts.get(key)??0)+1);}
+  for(const key of tokenKeys){counts.set(key,(counts.get(key)??0)+1);}
   // Fast sufficient multiplicity check: all candidates map to exactly one key set.
-  const singles=candidates.map(a=>new Set(a.map(i=>`${tokens[i]!.normalization??'indent'}\u0000${normalizeLine(tokens[i]!.code,tokens[i]!.normalization??'indent')}`)));
+  const singles=candidates.map(a=>new Set(a.map(i=>tokenKeys[i]!)));
   if(singles.every(s=>s.size===1)){
     const got=new Map<string,number>();for(const s of singles){const k=[...s][0]!;got.set(k,(got.get(k)??0)+1);}
     if([...counts].some(([k,v])=>got.get(k)!==v))return result('rejected','wrong_multiplicity','A kódsorok előfordulási száma nem egyezik.',0);
@@ -34,13 +44,16 @@ export function validateSubmission(compiledOrRaw: CompiledRules | import('./type
   const ids=tokens.map(t=>t.id),byId=new Map(ids.map((id,i)=>[id,i]));
   const opening=new Map(def.blocks.map(b=>[byId.get(b.open)!,b.id]));
   const closing=new Map(def.blocks.map(b=>[byId.get(b.close)!,b.id]));
-  const maxStates=Math.max(1,Math.min(1_000_000,Math.floor(opts.maxStates??30_000)));
+  const maxStates=Math.max(1,Math.min(1_000_000,Math.floor(Number.isFinite(opts.maxStates)?opts.maxStates!:30_000)));
   let totalStates=0;
   let exceeded=false;
 
-  function scopesValid(assignment:Int32Array):boolean {
+  function scopesValid(assignment:Int32Array,partial=false):boolean {
     const stack:string[]=[];
     for(const idx of assignment){
+      // The assigned prefix already determines lexical ownership. A later
+      // assignment cannot repair a wrong scope earlier in that prefix.
+      if(idx<0)return partial;
       const t=tokens[idx]!;
       const closeId=closing.get(idx);
       if(closeId!==undefined){
@@ -68,6 +81,7 @@ export function validateSubmission(compiledOrRaw: CompiledRules | import('./type
     function dfs(depth:number):boolean {
       if(totalStates>=maxStates){exceeded=true;return false;}
       totalStates++;
+      if(!scopesValid(assignment,true))return false;
       if(depth===visitOrder.length)return scopesValid(assignment);
       const position=visitOrder[depth]!;
       for(const idx of candidates[position]!){
@@ -87,7 +101,7 @@ export function validateSubmission(compiledOrRaw: CompiledRules | import('./type
       }
       return false;
     }
-    if(dfs(0))return {...result('accepted',null,'Az összeállított tartalomsorozathoz létezik minden szabályt kielégítő hozzárendelés.',totalStates),matchedProfile:profile.id};
+    if(dfs(0))return {...result('accepted',null,'Az összeállított tartalomsorozathoz létezik minden szabályt kielégítő hozzárendelés.',totalStates),matchedProfile:profile.id,matchedTokenIds:[...assignment].map(index=>tokens[index]!.id)};
     if(exceeded)break;
   }
   if(exceeded)return result('indeterminate','search_budget','A keresési keret elfogyott; a megoldás NEM minősíthető hibásnak.',totalStates);
