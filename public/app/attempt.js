@@ -9,7 +9,7 @@ export const normalize=(s,mode='indent')=>mode==='indent'?s.replace(/^[ \t]*/,''
 export const createAttempt=e=>({
   pool:e.lines.filter(l=>!l.fixed).map(l=>l.id),
   answer:e.lines.map(l=>l.fixed?l.id:null),
-  custom:new Map(),draft:'',report:null,feedback:''
+  custom:new Map(),draft:'',report:null,feedback:'',generation:0
 });
 
 /** Pure position-aware insertion. Mutates the caller's array only on success. */
@@ -76,11 +76,11 @@ export function createAttemptController(getExercise,getAttempt){
   };
   // Legacy programmatic compatibility: no swap is used by the drag/drop UI.
   const intoSolution=(index,slot)=>insertFromPool(index,slot??getAttempt().answer.findIndex(x=>x===null));
-  const swap=(i,j)=>{const a=getAttempt();if(i===j||fixed(i)||fixed(j)||i<0||j<0||i>=a.answer.length||j>=a.answer.length)return false;
-    [a.answer[i],a.answer[j]]=[a.answer[j],a.answer[i]];return true;};
+  const swap=(i,j)=>moveInAnswer(i,j>i?j+1:j);
   const applyText=source=>{
     const e=getExercise(),a=getAttempt(),input=source.replace(/\r\n?/g,'\n').split('\n');
     if(input.length>e.lines.length)return {ok:false,message:'Túl sok fizikai sor.'};
+    if(e.lines.some((l,i)=>l.fixed&&(typeof input[i]!=='string'||normalize(input[i],l.normalization)!==normalize(l.code,l.normalization))))return {ok:false,message:'Rögzített sor nem módosítható vagy helyezhető át.'};
     const available=e.lines.map(l=>l.id),answer=Array(e.lines.length).fill(null),custom=new Map();
     for(let i=0;i<input.length;i++){
       const ref=e.lines[i];
@@ -89,7 +89,7 @@ export function createAttemptController(getExercise,getAttempt){
       }
     }
     for(let i=0;i<input.length;i++){
-      const line=input[i];if(!line.trim()||answer[i]!==null)continue;
+      const line=input[i];if(answer[i]!==null||(!line.trim()&&!available.some(id=>{const ref=e.lines.find(l=>l.id===id);return ref.normalization==='exact'&&ref.code===line;})))continue;
       const j=available.findIndex(id=>{const ref=e.lines.find(l=>l.id===id);return normalize(line,ref.normalization)===normalize(ref.code,ref.normalization);});
       if(j>=0)answer[i]=available.splice(j,1)[0];
       else{const id=`edited_${i}`;custom.set(id,line);answer[i]=id;}
