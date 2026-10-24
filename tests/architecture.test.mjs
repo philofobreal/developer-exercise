@@ -14,3 +14,10 @@ for(const [file,source,rule] of [
 test('architecture gate permits type-only core contract and local presentation modules',()=>{
  assert.deepEqual(inspectModule('src/workbench/good.ts',"import type {ValidationResult} from '../../dist/index.js';import {icon} from './icons.js';"),[]);
 });
+
+test('typed author engine alone may call the shared compiler; other author algorithms retain their boundary',()=>{
+ const source="import {compileCodeLineExerciseV3} from '../../dist/index.js';";
+ assert.deepEqual(inspectModule('src/author/engine.ts',source),[]);
+ assert.ok(inspectModule('src/author/another.ts',source).some(e=>e.rule==='author-boundary'));
+ assert.ok(inspectModule('src/core/another.ts',"import {LanguageEngine} from '../author/engine.js';").some(e=>e.rule==='core-boundary'));
+});

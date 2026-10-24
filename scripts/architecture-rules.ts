@@ -12,7 +12,8 @@ export function inspectModule(file:string,source:string):Violation[]{
   const resolved=specifier.startsWith('.')?path.posix.normalize(path.posix.join(path.posix.dirname(normalized),specifier)):specifier;
   if(core&&!resolved.startsWith('src/core/'))report('core-boundary','Core must remain independent of browser, author, transport and Node libraries: '+specifier);
   if(ui&&!(resolved.startsWith('src/workbench/')||specifier==='../formatter.js'||typeOnly&&resolved.startsWith('dist/')))report('presentation-boundary','Presentation may use only its own modules, explicit formatter port and domain types: '+specifier);
-  if(author&&!(resolved.startsWith('src/author/')||typeOnly&&(resolved.startsWith('src/core/')||resolved.startsWith('dist/')||specifier==='typescript')))report('author-boundary','Author algorithms must remain browser-safe and infrastructure independent: '+specifier);
+  const authorEngine=normalized==='src/author/engine.ts'&&resolved==='dist/index.js';
+  if(author&&!(resolved.startsWith('src/author/')||authorEngine||typeOnly&&(resolved.startsWith('src/core/')||resolved.startsWith('dist/')||specifier==='typescript')))report('author-boundary','Author algorithms must remain browser-safe and infrastructure independent: '+specifier);
   if(specifier==='node:vm'||specifier==='vm')report('no-execution','Production modules must never execute learner code.');
  }
  function visit(node:ts.Node):void{

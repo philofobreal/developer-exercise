@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://philofobreal.github.io/developer-exercise/language-ir-v1.schema.json",
+  "title": "Language IR v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["irVersion", "language", "source", "lines", "units", "containers", "bindingScopes", "boundaries", "edges", "profiles", "indentPolicy", "analysis"],
+  "properties": {
+    "irVersion": {"const": 1},
+    "language": {"$ref": "#/$defs/id"},
+    "source": {"type": "string", "maxLength": 1048576, "not": {"pattern": "[\\r\\u2028\\u2029]"}},
+    "lines": {"type": "array", "minItems": 1, "maxItems": 500, "items": {"$ref": "#/$defs/line"}},
+    "units": {"type": "array", "minItems": 1, "maxItems": 500, "items": {"$ref": "#/$defs/unit"}},
+    "containers": {"type": "array", "maxItems": 250, "items": {"$ref": "#/$defs/container"}},
+    "bindingScopes": {"type": "array", "maxItems": 500, "items": {"$ref": "#/$defs/container"}},
+    "boundaries": {"type": "array", "maxItems": 500, "items": {"$ref": "#/$defs/boundary"}},
+    "edges": {"type": "array", "maxItems": 5000, "items": {"$ref": "#/$defs/edge"}},
+    "profiles": {"type": "array", "maxItems": 32, "items": {
+      "type": "object", "additionalProperties": false, "required": ["id", "edges"],
+      "properties": {"id": {"$ref": "#/$defs/id"}, "edges": {"type": "array", "maxItems": 5000, "items": {"$ref": "#/$defs/edge"}}}
+    }},
+    "indentPolicy": {
+      "type": "object", "additionalProperties": false, "required": ["mode", "tabWidth", "display"],
+      "properties": {"mode": {"enum": ["presentation", "semantic"]}, "tabWidth": {"type": "integer", "minimum": 1, "maximum": 16}, "display": {"enum": ["adapter", "preserve"]}},
+      "if": {"properties": {"mode": {"const": "semantic"}}}, "then": {"properties": {"display": {"const": "preserve"}}}
+    },
+    "analysis": {
+      "type": "object", "additionalProperties": false, "required": ["strategy", "sourceOrigin", "semanticEquivalenceProven"],
+      "properties": {"strategy": {"enum": ["legacy-v2-projection", "native"]}, "sourceOrigin": {"enum": ["original", "reconstructed-v2"]}, "semanticEquivalenceProven": {"const": false}, "legacyAuthoring": {"$ref": "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring"}}
+    }
+  },
+  "$defs": {
+    "id": {"type": "string", "minLength": 1, "maxLength": 200},
+    "nullableId": {"anyOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]},
+    "position": {
+      "type": "object", "additionalProperties": false, "required": ["offset", "line", "column"],
+      "properties": {"offset": {"type": "integer", "minimum": 0, "maximum": 2100000}, "line": {"type": "integer", "minimum": 1, "maximum": 1048577}, "column": {"type": "integer", "minimum": 0, "maximum": 2100000}}
+    },
+    "line": {
+      "type": "object", "additionalProperties": false, "required": ["id", "code", "sourceSpan", "normalization"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "code": {"type": "string", "maxLength": 2048, "not": {"pattern": "[\\r\\n\\u2028\\u2029]"}},
+        "normalization": {"enum": ["indent", "exact"]},
+        "sourceSpan": {"type": "object", "additionalProperties": false, "required": ["start", "end"], "properties": {"start": {"$ref": "#/$defs/position"}, "end": {"$ref": "#/$defs/position"}}}
+      }
+    },
+    "unit": {
+      "type": "object", "additionalProperties": false, "required": ["id", "lineIds", "containerId", "bindingScopeId", "dependencies", "fixed"],
+      "properties": {"id": {"$ref": "#/$defs/id"}, "lineIds": {"type": "array", "minItems": 1, "maxItems": 500, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 200}}, "containerId": {"$ref": "#/$defs/nullableId"}, "bindingScopeId": {"$ref": "#/$defs/nullableId"}, "dependencies": {"type": "array", "maxItems": 500, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 200}}, "fixed": {"type": "boolean"}}
+    },
+    "container": {
+      "type": "object", "additionalProperties": false, "required": ["id", "parentId", "kind"],
+      "properties": {"id": {"$ref": "#/$defs/id"}, "parentId": {"$ref": "#/$defs/nullableId"}, "kind": {"$ref": "#/$defs/id"}}
+    },
+    "boundary": {
+      "type": "object", "additionalProperties": false, "required": ["containerId", "unitId", "phase", "action", "virtual"],
+      "properties": {"containerId": {"$ref": "#/$defs/id"}, "unitId": {"$ref": "#/$defs/id"}, "phase": {"enum": ["before", "after"]}, "action": {"enum": ["open", "close"]}, "virtual": {"type": "boolean"}}
+    },
+    "edge": {
+      "type": "object", "additionalProperties": false, "required": ["before", "after"],
+      "properties": {"before": {"$ref": "#/$defs/id"}, "after": {"$ref": "#/$defs/id"}}
+    }
+  }
+}

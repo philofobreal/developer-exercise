@@ -13,6 +13,8 @@ const names=(await readdir(path.join(root,'examples'))).filter(n=>n.endsWith('.j
 await writeFile(path.join(out,'examples','manifest.json'),JSON.stringify(names,null,2)+'\n');
 await writeFile(path.join(out,'.nojekyll'),'');
 await copyFile(path.join(root,'docs/schema.json'),path.join(out,'schema.json'));
+await copyFile(path.join(root,'docs/language-ir.schema.json'),path.join(out,'language-ir-v1.schema.json'));
+await copyFile(path.join(root,'docs/codeline-v3.schema.json'),path.join(out,'codeline-v3.schema.json'));
 await copyFile(path.join(root,'src/core/LICENSE-ajv.txt'),path.join(out,'vendor/LICENSE-ajv.txt'));
 const tsSource=require.resolve('typescript/lib/typescript.js');
 await mkdir(path.join(out,'vendor'),{recursive:true});
