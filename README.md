@@ -7,6 +7,7 @@ Keretrendszer nélküli feladatkészítő és kódsorrendező, strict TypeScript
 - [Üzleti és technikai szerződés: modell, validáció, Tab, behúzás, beszúrás és fixed](docs/business-technical-contract.md)
 - [Auditjelentés és taskstátuszok](docs/audit-report.md), [változások](CHANGELOG.md)
 - [Language IR v1 / CodeLine v3: migrációs terv és Python-handoff](docs/language-engine-migration.md), [szerződések és használat](docs/language-engine-contract.md). Az alap opt-in könyvtári API; Python parser/adapter és v3 UI/persistence még nincs implementálva.
+- [Python-adapter részletes megvalósítási terve](docs/python-adapter-plan.md): parser/platform, IR-leképezés, termékintegráció, taskfüggőségek és tesztkapuk; kizárólag terv.
 
 ## Helyi használat
 

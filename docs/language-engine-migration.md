@@ -42,3 +42,5 @@ A CI az új teszteket a meglévő check/all-browser kapukban futtatja; külön `
 ## Átadás
 
 T01–T07 kész. A [szerződés és használati példa](language-engine-contract.md) az adapter implementálásának belépője. P01–P03 nyitott, Python parser/adapter nincs a kész elemek közé sorolva. Az új API opt-in; a régi UI és session v2 formátuma szándékosan megmarad. A szerkezetileg elfogadott programok szemantikai ekvivalenciája továbbra is szerzői felelősség, nem a modell automatikus állítása.
+
+P01–P03 részletes folytatása: [Python-adapter és termékintegráció terve](python-adapter-plan.md), PY-01–PY-11 taskokkal, platform-/parser-döntéssel és kiadási kapukkal. Ez terv, nem kész Python-implementáció.
