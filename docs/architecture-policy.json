@@ -1,0 +1,37 @@
+{
+  "legacyJavaScript": [
+    "public/app/api.js",
+    "public/app/attempt.js",
+    "public/app/author-session.js",
+    "public/app/clipboard.js",
+    "public/app/drag-insert.js",
+    "public/app/pages-api.js",
+    "public/app/persistence.js",
+    "public/fields.js",
+    "public/formatter.js",
+    "public/formatting/legacy-beautifier.js",
+    "public/formatting/lexical-indenter.js",
+    "public/ui.js",
+    "server.mjs",
+    "src/author/audit.mjs",
+    "src/author/dependency-analysis.mjs",
+    "src/author/errors.mjs",
+    "src/author/generator.mjs",
+    "src/author/languages.mjs",
+    "src/author/statement-ordering.mjs",
+    "src/author/ts-format.mjs",
+    "src/server/catalog.mjs",
+    "src/server/http.mjs",
+    "src/server/listen.mjs"
+  ],
+  "generated": {
+    "src/workbench/continuity.ts": "public/app/continuity.js",
+    "src/workbench/contracts.ts": "public/app/contracts.js",
+    "src/workbench/dependency-view.ts": "public/app/dependency-view.js",
+    "src/workbench/fields.ts": "public/app/fields.js",
+    "src/workbench/icons.ts": "public/app/icons.js",
+    "src/workbench/interactions.ts": "public/app/interactions.js",
+    "src/workbench/ui-utilities.ts": "public/app/ui-utilities.js",
+    "src/workbench/view.ts": "public/app/view.js"
+  }
+}

@@ -1,7 +1,19 @@
-# Third-party dependencies
+# Harmadik fél csomagjai és licencek
 
-The vendored PrismJS runtime and CSS were reused from the user's previous ngDynamic vanilla JavaScript prototype (PrismJS 1.25.0, MIT license). Official project: https://prismjs.com/ . Preserve the upstream MIT license notices when distributing these assets.
+| Összetevő | Rögzített verzió | Licenc és kiadási hely |
+| --- | --- | --- |
+| PrismJS | A korábbi projektből átvett 1.25.0 assetek | MIT; `public/vendor/LICENSE-prism.txt` és az eredeti forrásfejlécek |
+| JS Beautify | 1.13.13 | MIT; `public/vendor/LICENSE-js-beautify.txt`; a build a pontos npm-csomagból másolja a helyi böngésző-runtime-ot |
+| TypeScript | 5.8.3 | **Apache-2.0**; `public/vendor/LICENSE-typescript.txt`; a Pages-build a compiler eredeti licencét is másolja |
+| Acorn | 8.19.0 | MIT; `src/author/vendor/LICENSE-acorn.txt` és `public/vendor/LICENSE-acorn.txt` |
+| Ajv | 8.20.0 | MIT; build/test függőség; standalone ellenőrzőt generál, saját licencét a generált forráshoz mellékeljük |
+| @types/node | 22.20.5 | MIT; kizárólag fejlesztési típusdefiníció a governance buildhez, `node_modules/@types/node/LICENSE`; nem böngészős runtime |
+| Playwright (Python) | 1.64.1 | Apache-2.0; tesztinfrastruktúra, nem kerül az alkalmazásba |
 
-The original js-beautify **1.13.13** formatter is loaded separately from cdnjs in this prototype; it is NOT bundled in the ZIP. No other runtime framework dependency exists. In production, pin a vetted version, vendor it locally via your dependency build, apply SRI / CSP, and check its license and provenance. The frontend reports unavailable formatter explicitly.
+A Prism licencszövege a hivatalos [v1.25.0 tagből](https://github.com/PrismJS/prism/blob/v1.25.0/LICENSE) származik, blob SHA: `528949f42d9e142f1fd4b1c0e7dba074bba91ba2`. A korábbi dokumentáció tévesen MIT-nek nevezte a TypeScript licencét; a telepített compiler tényleges licence Apache-2.0.
 
-The TypeScript compiler (pinned 5.8.3) is used by the GitHub Pages **authoring demo** and bundled into its generated `_site/vendor/typescript.js`; the MIT license is copied to `_site/vendor/LICENSE-typescript.txt`. The pure runtime validator does not need it. The secure Node backend remains a separate deployment target.
+Az npm közvetett függőségeit a `package-lock.json` integritáshash-ekkel és verziókkal rögzíti. Telepítés: `npm ci`. A JS Beautify régi verziója az eredeti működés összehasonlíthatósága miatt maradt meg; a formázó csak megjelenítési tanácsot ad, nem írhat tanulói tokentartalmat.
+
+A helyi audit során az Ajv korábbi 8.17.1 verziójára jelzett [ReDoS advisory](https://github.com/advisories/GHSA-2g4f-4pwh-qvx6) miatt 8.20.0-ra frissítettük. A végleges `npm audit` eredményét az auditjelentés tartalmazza. Az audit pillanatnyi ismert csomagjelzéseket ellenőriz, nem teljes biztonsági bizonyítás.
+
+Projektlicenc: nincs önkényesen választva; lásd a gyökérszintű `LICENSE-STATUS.md` fájlt. A harmadik felek licencei ettől függetlenül megmaradnak.

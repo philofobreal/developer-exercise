@@ -5,10 +5,10 @@
   "type": "module",
   "description": "Framework-free programming line-order exercise engine with verified constraints",
   "scripts": {
-    "build": "node scripts/sync-vendor.mjs && node scripts/sync-schema.mjs && tsc -p tsconfig.json && tsc -p tsconfig.workbench.json",
+    "build": "node scripts/sync-vendor.mjs && node scripts/sync-schema.mjs && tsc -p tsconfig.json && tsc -p tsconfig.workbench.json && tsc -p tsconfig.governance.json",
     "test": "npm run build:pages && node --test tests/*.test.mjs",
     "start": "npm run build && node server.mjs",
-    "check": "npm run test && node scripts/verify-models.mjs",
+    "check": "npm run test && node dist-tools/verify-architecture.js && node scripts/verify-models.mjs && node scripts/verify-docs.mjs",
     "verify:models": "npm run build && node scripts/verify-models.mjs",
     "test:browser": "python -X utf8 tests/browser-v7-offline.playwright.py",
     "test:browser:server": "python -X utf8 tests/browser-v7.playwright.py",
@@ -19,6 +19,7 @@
     "test:browser:matrix": "python -X utf8 tests/browser-matrix.playwright.py",
     "test:browser:all": "npm run test:browser && npm run test:browser:server && npm run test:browser:matrix && npm run test:browser:drag && npm run test:browser:workbench",
     "test:browser:drag": "python -X utf8 tests/browser-drag.playwright.py",
+    "verify:architecture": "npm run build && node dist-tools/verify-architecture.js",
     "test:browser:workbench": "python -X utf8 tests/browser-workbench.playwright.py"
   },
   "devDependencies": {
