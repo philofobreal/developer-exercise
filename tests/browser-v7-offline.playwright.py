@@ -5,13 +5,14 @@ are stubbed. Server/model tests separately cover the real API and validation.
 import base64, json, os, posixpath, re
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from browser_support import launch, ARTIFACTS
 PUBLIC=Path(__file__).resolve().parent.parent/'public'
 def import_map():
     items={}
     for p in sorted(PUBLIC.rglob('*.js')):
         if 'vendor' in p.parts:continue
         rel=p.relative_to(PUBLIC).as_posix()
-        content=p.read_text()
+        content=p.read_text(encoding='utf-8')
         def sub(m):
             key=posixpath.normpath(posixpath.join(posixpath.dirname(rel),m.group(2)))
             return m.group(1)+'app:/'+key+m.group(3)
@@ -24,14 +25,14 @@ small={'id':'small','title':'Small','description':'Preview','language':'javascri
 large={'id':'large','title':'Large scrolling exercise','description':'220 elements','language':'typescript','revision':1,
        'lines':[{'id':i,'code':f'const value{i}: number = {i};','fixed':False,'normalization':'indent'} for i in range(1,221)]}
 with sync_playwright() as p:
-    browser=p.chromium.launch(headless=True,executable_path=os.environ.get('CHROMIUM','/usr/bin/chromium'),args=['--no-sandbox','--disable-dev-shm-usage'])
+    browser=launch(p)
     page=browser.new_page(viewport={'width':1440,'height':900});errors=[]
     page.on('pageerror',lambda e:errors.append(str(e)))
     page.set_content('<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0"><div id="app"></div></body></html>')
-    page.add_style_tag(content=(PUBLIC/'vendor/prism.css').read_text())
-    page.add_style_tag(content=(PUBLIC/'style.css').read_text())
+    page.add_style_tag(content=(PUBLIC/'vendor/prism.css').read_text(encoding='utf-8'))
+    page.add_style_tag(content=(PUBLIC/'style.css').read_text(encoding='utf-8'))
     for script in ['prism-core.js','prism-clike.js','prism-javascript.js','prism-typescript.js']:
-        page.add_script_tag(content=(PUBLIC/'vendor'/script).read_text())
+        page.add_script_tag(content=(PUBLIC/'vendor'/script).read_text(encoding='utf-8'))
     page.add_script_tag(content='''window.fetch = async (url,options) => {
       if(url === '/api/exercises')return {ok:true,json:async()=>({exercises:window.__fixture})};
       throw Error('Only initial GET is mocked for this UI-only test: '+url);
@@ -78,5 +79,5 @@ with sync_playwright() as p:
     bg=page.locator('.solution-zone .token.operator').first.evaluate('(el)=>getComputedStyle(el).backgroundColor')
     assert bg in ('rgba(0, 0, 0, 0)','transparent'),bg
     print('PASS Chromium offline ES-module UI: full width, true insertion DnD, visible insertion caret, no swapping, 220-row scroll, operators, fullscreen, no JS errors')
-    page.screenshot(path=str(PUBLIC.parent/'docs/v7-browser-preview.png'),full_page=False)
+    page.screenshot(path=str(ARTIFACTS/'offline.png'),full_page=False)
     browser.close()

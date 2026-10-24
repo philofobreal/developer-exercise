@@ -5,17 +5,21 @@
   "type": "module",
   "description": "Framework-free programming line-order exercise engine with verified constraints",
   "scripts": {
-    "build": "node scripts/sync-vendor.mjs && node scripts/sync-schema.mjs && tsc -p tsconfig.json",
+    "build": "node scripts/sync-vendor.mjs && node scripts/sync-schema.mjs && tsc -p tsconfig.json && tsc -p tsconfig.workbench.json",
     "test": "npm run build:pages && node --test tests/*.test.mjs",
     "start": "npm run build && node server.mjs",
     "check": "npm run test && node scripts/verify-models.mjs",
     "verify:models": "npm run build && node scripts/verify-models.mjs",
-    "test:browser": "python tests/browser-v7-offline.playwright.py",
-    "test:browser:server": "python tests/browser-v7.playwright.py",
+    "test:browser": "python -X utf8 tests/browser-v7-offline.playwright.py",
+    "test:browser:server": "python -X utf8 tests/browser-v7.playwright.py",
     "test:ts-methods": "npm run build && node --test tests/ts-methods.test.mjs tests/http-flow.test.mjs",
     "build:pages": "npm run build && node scripts/build-pages.mjs",
     "verify:pages": "npm run build:pages && node --test tests/pages-build.test.mjs tests/pages-api.test.mjs",
-    "check:all": "npm run check"
+    "check:all": "npm run check",
+    "test:browser:matrix": "python -X utf8 tests/browser-matrix.playwright.py",
+    "test:browser:all": "npm run test:browser && npm run test:browser:server && npm run test:browser:matrix && npm run test:browser:drag && npm run test:browser:workbench",
+    "test:browser:drag": "python -X utf8 tests/browser-drag.playwright.py",
+    "test:browser:workbench": "python -X utf8 tests/browser-workbench.playwright.py"
   },
   "devDependencies": {
     "@types/node": "22.20.5",
