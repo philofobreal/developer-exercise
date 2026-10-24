@@ -29,3 +29,6 @@ Strict TS build, noEmitOnError, kézi any/ts-ignore tiltás, importirányok és 
 Az első lehetőség az eredeti négy egyenrangú eszköztab és globális műveletsor kozmetikai átalakítása lett volna. Ez megtartotta volna a source/model/próba keveredését és a még nem alkalmazott editor mellé tett, amúgy blokkolt kiértékelést. A választott változat két szerzői bemenetet kapcsol egy próbaállapothoz, majd elkülönített tanulói preview-t ad. A műveletek a saját objektumuknál vannak; az ismétlődő megoldásmásolás egy vezérlővé olvad össze.
 
 P0–P2 elkészült: strict TS view/fields/icons/contracts/interaction/continuity/editor-infrastruktúra/dependency-táblák, typed governance checker, forrásgazda-térkép és negatív kaputesztek. A public/ui.js változása szűk kompatibilitási bekötés: az új állapot-/interakciószabályokat a natív TS-modul hívja. P3–P5 továbbra is nyitott, rögzített migrációs munka, nem lezárt vállalás. UI-részletek: [munkafolyamatok](../ui-ux-workflows.md).
+
+
+Kiadási review-kivétel a legacy formatterben: két meglévő trimStart kifejezés a validátorral azonos, kizárólag ASCII szóköz/tab előtagot eltávolító kifejezésre javult. Ez tartalommegőrzési hibajavítás, nem új JavaScript modul vagy új politika; külön regresszió ellenőrzi a natív TypeScript mag normalizálásával. A teljes formatter-migráció továbbra is P5.

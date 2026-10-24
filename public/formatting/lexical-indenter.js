@@ -90,7 +90,7 @@ export function deriveIndentation(lines,{indentSize=INDENT_SIZE}={}){
   const source=typeof item==='string'?item:item?.code;
   if(typeof source!=='string'||/[\r\n\u2028\u2029]/.test(source))throw new TypeError('One physical line per row is required');
   const preserve=item?.normalization==='exact'||s.mode==='template'||s.mode==='string';
-  const text=source.trimStart(),preview=frames.slice();
+  const text=source.replace(/^[ \t]*/,''),preview=frames.slice();
   if(s.mode==='code'){
    for(const ch of text){if(/\s/.test(ch))continue;if(!Object.hasOwn(closes,ch))break;if(preview.at(-1)?.char===closes[ch])preview.pop();}
   }

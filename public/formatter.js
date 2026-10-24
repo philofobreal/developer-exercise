@@ -14,7 +14,7 @@ export function formatForIDE(rawLines,{language='javascript',beautify=beautifier
  if(!hints)return safe;
  // Independently verified Beautify row boundaries can correct lexical depth.
  // Only the prefix is reused; Beautify's rewritten source is never submitted.
- return safe.map((line,i)=>Number.isInteger(hints[i])&&hints[i]>=0&&hints[i]<=2500?' '.repeat(hints[i])+rows[i].code.trimStart():line);
+ return safe.map((line,i)=>Number.isInteger(hints[i])&&hints[i]>=0&&hints[i]<=2500?' '.repeat(hints[i])+rows[i].code.replace(/^[ \t]*/,''):line);
 }
 export function formatEditor(text){
  try{const fn=beautifier();return fn?fn(text,ORIGINAL_BEAUTIFY_OPTIONS):text;}catch{return text;}
