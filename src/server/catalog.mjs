@@ -9,6 +9,7 @@ import {generateCodeLineExercise,AuthoringError} from '../author/generator.mjs';
 import {getLanguageAdapter} from '../author/languages.mjs';
 import {auditReference} from '../author/audit.mjs';
 import {compileCodeLineExercise,validateSubmission} from '../../dist/index.js';
+import {refreshLegacyDependencies} from '../../dist/author/engine.js';
 export class ServiceError extends Error{constructor(code,message){super(message);this.statusCode=code;}}
 export class ExerciseCatalog{
   constructor(records){this.trusted=records;this.drafts=new Map();this.ts=null;}
@@ -34,11 +35,13 @@ export class ExerciseCatalog{
   prune(){const now=Date.now();for(const [key,value] of this.drafts)if(now-value.created>1_800_000)this.drafts.delete(key);}
   async createDraft(body){
     this.prune();if(this.drafts.size>=100)throw new ServiceError(429,'Too many active previews');
+    if(body?.refreshDependencies!==undefined&&typeof body.refreshDependencies!=='boolean'||body?.refreshDependencies&&!body.model)throw new ServiceError(400,'A függőségfrissítéshez teljes modell és logikai refreshDependencies jelző kell.');
     let model;
     if(body?.model){
       if(typeof body.model!=='object'||Array.isArray(body.model))throw new ServiceError(400,'Invalid author model');
       model={...structuredClone(body.model),id:'draft',revision:1};
     }else model=generateCodeLineExercise(body??{},await this.parser());
+    if(body?.refreshDependencies)try{const parser=await this.parser();model=await refreshLegacyDependencies(model,{generate:input=>generateCodeLineExercise(input,parser),audit:reference=>auditReference(reference,parser)});}catch(error){throw new ServiceError(422,error.message);}
     const draftId=randomUUID();model.id=`author-${draftId}`;
     const result=compileCodeLineExercise(model);
     if('status' in result)throw new ServiceError(422,result.message);

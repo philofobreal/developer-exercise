@@ -29,7 +29,7 @@ A tesztekben szereplő kézzel megadott, whitespace-érzékeny IR kizárólag a 
 
 ## Ellenőrzési bizonyíték
 
-Helyi ellenőrzés: 2026-10-24, Windows, Node 25.2.1, TypeScript 5.8.3, Python 3.13, rögzített Playwright 1.64.1 és headless Chromium/Chrome. A CI Node 22-t használ; annak távoli állapota külön GitHub-ellenőrzés.
+Az alapok lezárásakor végzett ellenőrzés: 2026-10-24, Windows, Node 25.2.1, TypeScript 5.8.3, Python 3.13, rögzített Playwright 1.64.1 és headless Chromium/Chrome. Az alábbi számok ennek az alapállapotnak a bizonyítékai; a későbbi Python-szeletet és a javításokat a [teljes review](review-language-engine-python.md) követi. A CI Node 22-t használ; annak távoli állapota külön GitHub-ellenőrzés.
 
 - `npm run check:all`: strict core/author/workbench/governance build, összes Node-regresszió, architektúrakapu, négy referenciafeladat author auditja és UTF-8/link ellenőrzés. A végső futás eredménye a PR-ben is rögzítve.
 - `npm run test:browser:all`: sikeres offline és valódi Node HTTP alkalmazás, 32 HTTP/Pages mátrixeset, 36 drag és 21 workbench eset. Az új `test:browser:engine` külön is sikeresen futott: v3 JS/TS bridge, natív IR virtuális suite, exact whitespace, standalone Schema és modulbetöltés valós Pages-alútvonalon.

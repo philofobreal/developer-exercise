@@ -7,7 +7,7 @@ Keretrendszer nélküli feladatkészítő és kódsorrendező, strict TypeScript
 - [Üzleti és technikai szerződés: modell, validáció, Tab, behúzás, beszúrás és fixed](docs/business-technical-contract.md)
 - [Auditjelentés és taskstátuszok](docs/audit-report.md), [változások](CHANGELOG.md)
 - [Language IR v1 / CodeLine v3: migrációs terv és Python-handoff](docs/language-engine-migration.md), [szerződések és használat](docs/language-engine-contract.md). Az alap opt-in könyvtári API; Python parser/adapter és v3 UI/persistence még nincs implementálva.
-- [Python-adapter részletes megvalósítási terve](docs/python-adapter-plan.md): parser/platform, IR-leképezés, termékintegráció, taskfüggőségek és tesztkapuk; kizárólag terv.
+- [Python-adapter részletes megvalósítási terve](docs/python-adapter-plan.md): parser/platform, IR-leképezés, termékintegráció, taskfüggőségek és tesztkapuk; az első parser-szelet elkészült, a natív adapter és a termékbekötés nyitott.
 
 ## Helyi használat
 
@@ -25,7 +25,7 @@ Alapértelmezett cím: `http://127.0.0.1:5173/`. Ha a port foglalt, az indítás
 
 ## Szerzői folyamat
 
-1. A **Forráskód** nézetben adj meg teljes, helyes JavaScript- vagy TypeScript-forrást. A külön Formázás gombot a nyelvi adapter és a TypeScript Language Service szolgálja ki; az Alkalmazás nem formázza át hallgatólagosan a forrást.
+1. A **Referenciaforrás** nézetben adj meg teljes, helyes JavaScript- vagy TypeScript-forrást. A külön Formázás gombot a nyelvi adapter és a TypeScript Language Service szolgálja ki; az Alkalmazás nem formázza át hallgatólagosan a forrást.
 2. Az **Alkalmazás → Rendezés** AST-alapú, kezdetben sorrendhű modellt készít. A teljes `CopyFieldUtilityService` a TS-minta gombbal betölthető.
 3. Az **Adatmodell** nézetben módosíthatók a `dependencies`, `edges`, `profiles` és más szerzői szabályok. A `dependencies` valamennyi kötelező előzményt jelenti, nem közvetlen szomszédot.
 4. A modell csak sémaellenőrzés, strukturális fordítás, JS/TS-szintaktikai audit és a referenciasorrend önellenőrzése után válik aktívvá. Hibánál a korábbi aktív állapot megmarad.
@@ -74,11 +74,13 @@ A böngészős kör valódi HTTP-alapú Node- és alútvonalon kiszolgált Pages
 
 ## Feladatkészítés, próba és preview
 
-A könyvtárban a meglévő minták és a saját előnézeted érhető el. A **Forráskód** nézetbe JS/TS fájlt tölthetsz be vagy kódot illeszthetsz; az **Adatmodell** nézetből közvetlen JSON-nal is indulhatsz. Alkalmazás után ugyanaz a rendező és kiértékelés teszteli a feladatot. A **Tanulói preview** a megoldói eszközöket mutatja, szerzői szabályok és mintakitöltés nélkül. A draftok nézetváltáskor megmaradnak. [Részletes UI/UX munkafolyamat](docs/ui-ux-workflows.md).
+A könyvtárban a meglévő minták és a saját előnézeted érhető el. A **Referenciaforrás** nézetbe JS/TS fájlt tölthetsz be vagy kódot illeszthetsz; az **Adatmodell** nézetből közvetlen JSON-nal is indulhatsz. Alkalmazás után ugyanaz a rendező és kiértékelés teszteli a feladatot. A **Tanulói preview** a megoldói eszközöket mutatja, szerzői szabályok és mintakitöltés nélkül. A draftok nézetváltáskor megmaradnak. [Részletes UI/UX munkafolyamat](docs/ui-ux-workflows.md).
 
 Az új felület és governance-ellenőrzés strict TypeScriptben készült. A régi JS/MJS modulok további migrációja külön, rögzített lépéssor: [AI governance](docs/ai-governance.md), [architekturális döntés és prioritások](docs/adr/001-typescript-workbench-and-boundaries.md). `npm run check:all` az architektúrakaput is futtatja; az új UI-kör külön: `npm run test:browser:workbench`.
 
 ## Függőségek és sorazonosság
+
+Régi, soros függőségekkel exportált JSON-hoz az **Adatmodell → Sorfüggőségek újraszámítása** explicit művelet használható. A normál import megőrzi az összes szabályt. A [képen szereplő evaluate-esethez](docs/evaluate-legacy-serial-case.md) külön magyarázat és importálható javított JSON készült. A teljes fejlesztés technikai és dokumentációs felülvizsgálata: [review és javítások](docs/review-language-engine-python.md).
 
 A `dependencies` az előzménysorok állandó ID-jait tartalmazza: mindegyiknek korábban kell állnia, tetszőleges távolságra. A generátor scope-onként alakítja gráffá a tiszta primitív deklarációkat, a külső konstanskötéseket is feloldva; a hatásoknál és vezérlésátadásnál konzervatívan megőrzi a sorrendet. A képi példa összes 5040 sorrendjéről, a beágyazásról és a hívási korlátról külön [soronkénti elemzés](docs/evaluate-ordering-analysis.md) készült. A saját modellben lenyitható ID/forrássor/kód/előzmény táblázat segíti a szerkesztést; sikeres ellenőrzés után külön táblázat mutatja a kiértékelő által talált soronkénti megfeleltetést. A `sourceLine` tájékoztató forráshely, nem azonosság. Részletek és korlátok: [validációs modell](docs/validacios-modell-es-formazas.md).
 

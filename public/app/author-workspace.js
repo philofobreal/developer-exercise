@@ -18,6 +18,12 @@ export function refreshAuthorStatus(root, state) {
     else if (!pending)
         tab?.querySelector('.dirty-dot')?.remove();
 }
+const nextRequest = (state) => state.authorRequestGeneration = (state.authorRequestGeneration ?? 0) + 1;
+/** Capture at user intent, before file/clipboard/network I/O; the latest reference action wins. */
+export function captureAuthorRequest(state) {
+    const generation = nextRequest(state), current = captureAuthorAdmission(state);
+    return () => generation === state.authorRequestGeneration && current();
+}
 export function createAuthorWorkspace(state) {
     const drafts = new Map();
     let current = null;
@@ -25,6 +31,7 @@ export function createAuthorWorkspace(state) {
     const save = () => { if (current)
         drafts.set(current, structuredClone({ author: state.author, baseline: state.authorBaseline ?? state.author, modelDraft: state.modelDraft, modelMessage: state.modelMessage, authorModel: state.authorModel })); };
     function select(exercise) {
+        nextRequest(state);
         save();
         current = key(exercise);
         let workspace = drafts.get(current);
@@ -42,6 +49,7 @@ export function createAuthorWorkspace(state) {
     }
     /** Call only after installPreview succeeds; save() must precede that atomic admission. */
     function admit(model, source) {
+        nextRequest(state);
         const author = { title: model.title, description: model.description, language: model.language, source: source ?? model.lines.map(l => l.code).join('\n'), message: '' };
         state.author = author;
         state.authorBaseline = { ...author };

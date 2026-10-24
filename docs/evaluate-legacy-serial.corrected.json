@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 2,
+  "id": "author-c9847e28-702c-42d6-94c3-a9cb29e82a90",
+  "revision": 2,
+  "language": "javascript",
+  "title": "Saját kódrendezős feladat",
+  "description": "Rendezd sorba a kódsorokat.",
+  "lines": [
+    {
+      "id": 1,
+      "code": "function evaluate() {",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "code": "     const a = 10;",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "code": "     const b = 20;",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 4,
+      "code": "     const c = a + b;",
+      "dependencies": [
+        2,
+        3
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 5,
+      "code": "     const note = 'ready';",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 6,
+      "code": "     return { c, note };",
+      "dependencies": [
+        4,
+        5
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 7,
+      "code": "}",
+      "dependencies": [
+        6
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "scope-1",
+      "kind": "function",
+      "parentScopeId": null,
+      "openLineId": 1,
+      "closeLineId": 7,
+      "functionBlock": 1
+    }
+  ],
+  "edges": [],
+  "profiles": [],
+  "authoring": {
+    "strategy": "ast-hierarchy",
+    "reason": "",
+    "omittedBlocks": 0,
+    "semanticEquivalenceProven": false,
+    "dependencyHints": [
+      {
+        "name": "a",
+        "declarationLine": 2,
+        "usageLine": 4
+      },
+      {
+        "name": "b",
+        "declarationLine": 3,
+        "usageLine": 4
+      }
+    ],
+    "dependencyPolicy": "scoped-primitive-dag-v2"
+  }
+}

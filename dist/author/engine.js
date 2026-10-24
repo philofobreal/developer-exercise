@@ -1,5 +1,6 @@
 /** Typed author-time entry point. ASTs and parser infrastructure stay inside adapters. */
-import { compileCodeLineExerciseV3, prepareRenderPlan, upgradeCodeLineExerciseV2 } from '../../dist/index.js';
+import { compileCodeLineExercise, compileCodeLineExerciseV3, prepareRenderPlan, upgradeCodeLineExerciseV2 } from '../../dist/index.js';
+import { reconcileDependencies } from './dependency-refresh.js';
 export class AdapterContractError extends Error {
     constructor(message) { super(message); this.name = 'AdapterContractError'; }
 }
@@ -54,6 +55,22 @@ export class LanguageEngine {
         await this.generate(language, { source: formatted.code });
         return { ...formatted };
     }
+}
+/** Explicit author reanalysis: preserve reference identity/content, fixed slots and manual edges/profiles. */
+export async function refreshLegacyDependencies(input, ports) {
+    const snapshot = structuredClone(input), initial = compileCodeLineExercise(snapshot);
+    if ('status' in initial)
+        throw new AdapterContractError(initial.message);
+    await ports.audit(snapshot);
+    const generated = await ports.generate({ source: snapshot.lines.map(line => line.code).join('\n'), language: snapshot.language, title: snapshot.title, description: snapshot.description });
+    const checked = compileCodeLineExercise(generated);
+    if ('status' in checked)
+        throw new AdapterContractError(checked.message);
+    await ports.audit(generated);
+    const refreshed = reconcileDependencies(snapshot, generated), result = compileCodeLineExercise(refreshed);
+    if ('status' in result)
+        throw new AdapterContractError(result.message);
+    return refreshed;
 }
 export function createLegacyJSTSBridge(language, ports) {
     if (!['javascript', 'typescript'].includes(language) || !ports || ['generate', 'audit', 'format'].some(method => typeof ports[method] !== 'function'))
