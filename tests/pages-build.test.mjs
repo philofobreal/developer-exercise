@@ -11,6 +11,11 @@ test('Pages artifact has relative entrypoints and local compiler',async()=>{
  assert.ok((await stat(file('vendor/typescript.js'))).size>1000000);
  assert.ok((await stat(file('dist/validator.js'))).size>1000);
  assert.ok((await stat(file('author/generator.mjs'))).size>1000);
+ assert.match(await readFile(file('author/generator.mjs'),'utf8'),/\.\.\/dist\/author\/type-member-ordering\.js/);
+ assert.ok((await stat(file('dist/author/type-member-ordering.js'))).size>1000);
+ const samples=JSON.parse(await readFile(file('samples/typescript/suite.json'),'utf8'));
+ assert.equal(samples.length,24);
+ for(const example of samples)await stat(file('samples/typescript/'+example.id+'.model.json'));
 });
 test('Python author-probe infrastructure and WASM are not published as a product feature',async()=>{
  for(const target of ['dist/python','vendor/python','node_modules']) await assert.rejects(access(file(target)),{code:'ENOENT'});
