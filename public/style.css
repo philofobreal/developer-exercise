@@ -1,0 +1,73 @@
+:root{color-scheme:dark;font:14px/1.45 ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0b111c;color:#dce6f1}
+*{box-sizing:border-box}body{margin:0}button{cursor:pointer;font:inherit}button:disabled{opacity:.55;cursor:wait}#app{width:100%;max-width:none;min-height:100vh;margin:0;border:0}.header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:20px 24px;background:linear-gradient(110deg,#182d3c,#132032);border-bottom:1px solid #36465a}.eyebrow{color:#69e3be;letter-spacing:1.8px;font-size:10px;font-weight:800}.header h1{font-size:24px;margin:4px 0;color:#f5f9ff}.header p{font-size:12px;color:#a6bad0;margin:0}.mode-badge{border:1px solid #327463;color:#97ebd0;background:#10362f;border-radius:999px;font-size:10px;font-weight:800;padding:7px 11px}.shell{display:grid;grid-template-columns:215px minmax(0,1fr);min-height:620px}aside{background:#121d2b;border-right:1px solid #283a50;padding:16px 12px}.side-title{font-size:10px;color:#7798b1;letter-spacing:1px;font-weight:800;margin:5px 6px 15px}.task{display:block;text-align:left;width:100%;border:1px solid transparent;background:none;color:#b5c6d8;border-radius:7px;padding:11px 10px;margin-bottom:6px}.task.selected{border-color:#366d72;background:#1a3a47;color:#b1f6dc}.task small{display:block;font-size:10px;color:#8199af;margin-top:5px}.sidebar-note{font-size:10px;line-height:1.7;color:#8498ac;padding:14px 6px;margin-top:25px;border-top:1px solid #2a3d52}main{padding:22px;min-width:0}.meta{display:inline-flex;gap:8px;color:#8eecc9;font-size:10px;letter-spacing:.5px;font-weight:800;background:#143d35;border:1px solid #225e4f;border-radius:5px;padding:5px 9px}.meta span{color:#b0cabf;font-weight:400}h2{font-size:22px;margin:12px 0 5px;color:#f5f9fe}.description{color:#9fb2c8;margin:0 0 17px;font-size:12px}.formatter-status{font:11px ui-monospace,Consolas,monospace;background:#11342c;color:#8feac4;border:1px solid #286b58;padding:9px 11px;border-radius:5px;margin-bottom:13px}.formatter-status.unavailable{background:#342923;border-color:#856244;color:#efc18c}.toolbar,.actions,.segment,.editor-actions{display:flex;align-items:center;gap:8px}.toolbar{flex-wrap:wrap;justify-content:space-between;margin:12px 0}.toolbar button,.editor-actions button{border:1px solid #3d536b;color:#c5d7e8;background:#21354a;border-radius:6px;font-size:11px;padding:7px 10px}.segment{padding:3px;border:1px solid #304459;border-radius:7px;background:#0b1421;gap:3px}.segment button{border:0;background:none;color:#9aacc0}.segment button.active{background:#304960;color:white}.panes{display:grid;grid-template-columns:minmax(0,40fr) minmax(0,60fr);gap:12px}.panel-title{font-weight:800;font-size:12px;margin-bottom:8px;display:flex;justify-content:space-between}.panel-title span{font-weight:400;color:#7997b0}.ide-pane{background:#0a1421;border:1px solid #2c4258;overflow:hidden;border-radius:7px;min-width:0}.file-tab{height:36px;display:flex;align-items:center;gap:9px;background:#1b2a3d;color:#cadbeb;border-bottom:1px solid #31455b;padding:0 11px;font:11px ui-monospace,monospace}.file-icon{font-size:9px;background:#d9c25b;color:#25251d;font-weight:900;padding:2px 3px;border-radius:2px}.tab-sub{color:#7895ad;font-size:9px;margin-left:auto}.drop-zone{min-height:320px;max-height:530px;overflow:auto;scrollbar-width:thin}.solution-zone{background:#0b1523}.source-zone{padding:6px;background:#101a29}.code-row{display:flex;align-items:stretch;min-width:0;position:relative}.source-row{background:#1b2d40;margin-bottom:6px;border-radius:4px;border:1px solid #35465a;min-height:30px}.solution-row{min-height:27px}.solution-row:nth-child(even){background:#0f1d2d}.code-row:hover{background:#233a50}.drag-handle{flex:0 0 17px;color:#7997b3;text-align:center;line-height:27px;cursor:grab;user-select:none}.gutter{display:flex;flex-direction:column;width:34px;flex:0 0 34px;align-items:flex-end;padding-right:7px;background:#142236;border-right:1px solid #2a4258;color:#7893ac;font:11px/27px ui-monospace,monospace;user-select:none}.gutter span{height:27px}.source-row .gutter{background:#1b2d40;width:27px;flex-basis:27px}.code-text{margin:0;flex:1;min-width:0;white-space:pre;overflow-x:auto;tab-size:5;padding:0 6px;color:#dce8f3;font:11px/27px ui-monospace,Consolas,monospace}.source-row .code-text{line-height:27px}.code-text code{white-space:pre}.row-actions{display:flex;gap:2px;padding:3px;align-items:flex-start}.row-actions button{width:22px;height:21px;border:1px solid #36556b;color:#c6e0ee;border-radius:4px;background:#27445b;padding:0;font-size:11px}.empty{text-align:center;color:#7c95aa;font-size:12px;padding:100px 12px;line-height:1.7}.drop-zone.over{outline:2px solid #42b998;outline-offset:-2px;background:#10352d}.ide-status{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#13243a;border-top:1px solid #2b4359;color:#829db4;padding:7px 11px;font:10px ui-monospace,monospace}.primary{background:#21b493;color:#042e23;font-weight:800;border:1px solid #45d4b2;border-radius:6px;padding:10px 13px}footer{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid #2e4157}.report{flex:1;font-size:12px;color:#95abc0;border:1px solid #304b60;border-radius:6px;padding:9px 11px;line-height:1.5}.report small{display:block;margin-top:3px}.report.accepted{background:#123d30;border-color:#3b8a6a;color:#b4f6db}.report.rejected,.report.invalid_reference{background:#3d2724;border-color:#98594e;color:#ffd4c6}.report.indeterminate{background:#473724;border-color:#a37c42;color:#f6dfa8}#code-editor{display:block;width:100%;min-height:340px;resize:vertical;border:0;outline:0;background:#0b1523;color:#e4eff9;padding:13px 18px;font:12px/1.75 ui-monospace,Consolas,monospace;tab-size:5;white-space:pre}.editor-actions{justify-content:flex-end;margin-top:11px}.editor-actions .primary{color:#052e24;background:#24b694}.loading{padding:40px;text-align:center}.token.keyword{color:#8fbbef}.token.string{color:#efc28b}.token.number,.token.boolean{color:#e4ae95}.token.function{color:#75dcc2}.token.operator{color:#b4afe9}
+@media(max-width:750px){.shell{grid-template-columns:1fr}aside{border-right:0;border-bottom:1px solid #273c51;display:flex;flex-wrap:wrap;align-items:center;gap:5px}.side-title{width:100%;margin:2px 0}.task{width:calc(33.333% - 4px);font-size:11px;padding:8px}.sidebar-note{display:none}main{padding:14px}.panes{grid-template-columns:1fr}.drop-zone{min-height:105px;max-height:340px}.empty{padding:35px 8px}}
+.fixed-row{background:#13322f!important;border-left:2px solid #47bc98}.fixed-row .drag-handle{cursor:not-allowed}.fixed-tag{font:9px/21px ui-monospace,monospace;color:#8bedd0;padding:0 4px}.blank-row{opacity:.56;min-height:27px;border-left:2px dotted #456079}.blank-row .code-text{color:#8396a9}.note{font:11px ui-monospace,monospace;color:#ecba86}.report:empty{display:none}
+/* v3 authoring workflow */
+.author{border:1px solid #344e64;border-radius:8px;background:#101d2c;padding:15px;margin:12px 0}.author-title{font-size:16px;font-weight:750;color:#e5f6ff}.author p{color:#abc1d5;font-size:12px;line-height:1.65}.author label{display:block;color:#a8c2d5;font-size:11px;margin:10px 0}.author input,.author select{width:100%;display:block;margin-top:4px;padding:9px;background:#0a1623;color:#e8f1fb;border:1px solid #3b536a;border-radius:5px;font:12px system-ui,sans-serif}.author .form-grid{display:grid;grid-template-columns:2fr 1fr;gap:12px}.author #author-editor{display:block;width:100%;height:340px;resize:vertical;border:0;outline:none;background:#0a1524;color:#edf5ff;padding:12px;white-space:pre;tab-size:5;font:12px/1.7 ui-monospace,Consolas,monospace}.author #model-editor{display:block;width:100%;height:410px;resize:vertical;border:0;outline:0;background:#0a1524;color:#e4f2ff;padding:12px;font:11px/1.55 ui-monospace,Consolas,monospace}.author .author-warning{font-size:11px;color:#e0c48e;border-left:2px solid #b58e42;padding-left:10px}.author .author-status{color:#97e9c9;font-size:11px;white-space:pre-wrap}.segment{flex-wrap:wrap}@media(max-width:600px){.author .form-grid{grid-template-columns:1fr}.toolbar{gap:8px}.author{padding:10px}}
+/* v4: VS Code-inspired editors, alternate physical lines and synchronized gutter */
+:root{--vsc-bg:#1e1e1e;--vsc-title:#252526;--vsc-rail:#333333;--vsc-selection:#264f78;--vsc-line:#232529;--vsc-accent:#007acc;--vsc-border:#393939}
+body{background:#17191d!important;color:#d4d4d4}
+.header{background:#22242a!important}.shell,main{background:#1e1e1e!important}
+.ide-pane{background:#1e1e1e!important;border-color:#3a3d41!important;border-radius:5px}
+.file-tab{background:#2d2d30!important;color:#c9d0d7!important;border-color:#404040!important}
+.ide-status{background:#007acc!important;color:#fff!important}
+.source-zone{background:#202329!important}.solution-zone{background:var(--vsc-bg)!important}
+.solution-row:nth-child(even){background:#26292f!important}.solution-row:nth-child(odd){background:#1e1e1e!important}
+.source-row:nth-child(even){background:#293342!important}
+.source-row:nth-child(odd){background:#25303d!important}
+.editor-frame{display:grid;grid-template-columns:48px minmax(0,1fr);background:var(--vsc-bg);border-top:1px solid #353535;min-height:310px;max-height:650px;overflow:hidden}
+.editor-gutter{overflow:hidden;color:#858585;background:repeating-linear-gradient(to bottom,#22252b 0px,#22252b 21px,#292b32 21px,#292b32 42px);user-select:none;padding:0 8px 0 0;text-align:right;font:12px/21px ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre;pointer-events:none}
+.editor-gutter span{display:block;height:21px}
+.editor-frame textarea,#code-editor,#author-editor,#model-editor{box-sizing:border-box;display:block;background:repeating-linear-gradient(to bottom,#1e1e1e 0px,#1e1e1e 21px,#24272d 21px,#24272d 42px)!important;color:#d4d4d4!important;border:0;outline:0;padding:0 13px!important;margin:0;min-height:310px;height:340px;max-height:650px;resize:vertical;white-space:pre;tab-size:5;font:12px/21px ui-monospace,SFMono-Regular,Consolas,monospace!important;overflow:auto}
+.editor-frame .editor-gutter{height:340px}
+.editor-frame:focus-within{outline:1px solid #007acc}
+.editor-frame[data-editor-kind="model"] textarea{height:440px;font-size:11px!important}
+.editor-frame[data-editor-kind="model"] .editor-gutter{height:440px}
+.editor-actions{flex-wrap:wrap}
+.copybtn{margin-left:auto!important;background:#354051!important;color:#cceaff!important;border:1px solid #4a6785!important;border-radius:5px!important;padding:5px 10px!important;font-size:11px!important}
+.ui-status{font:11px ui-monospace,monospace;color:#b5d9f4;margin:8px 0;min-height:16px}
+.fullscreen-toggle{background:#133e60!important;border:1px solid #1979b9!important;color:#f0f8ff!important;border-radius:6px!important;padding:8px 12px!important;cursor:pointer}
+#app:fullscreen,#app.ng-fullscreen{position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;max-width:none!important;margin:0!important;border:0!important;background:#1e1e1e!important;z-index:2147483647!important;overflow:auto!important;display:block!important}
+#app:fullscreen .shell,#app.ng-fullscreen .shell{min-height:calc(100dvh - 95px)!important}
+@media(max-width:680px){.editor-frame{grid-template-columns:38px minmax(0,1fr)}.editor-frame textarea{font-size:10px!important}.editor-gutter{font-size:10px}}
+
+/* v5: Full-width workbench; no artificial 1200px cap. */
+html,body,#app{width:100%;max-width:none;min-width:0;margin:0}
+body{overflow-x:hidden}
+#app{border:0;}
+/* Prism's default light theme gives .token.operator/.token.entity an opaque
+   gray rectangle. The VS Code dark theme must NEVER inherit token backgrounds. */
+#app .code-text .token,
+#app .code-text .token.operator,
+#app .code-text .token.entity,
+#app .code-text .token.url,
+#app .code-text .token.punctuation,
+#app .code-text .language-css .token.string {background:transparent!important;box-shadow:none!important;text-shadow:none!important;border:0!important;padding:0!important;border-radius:0!important}
+#app .code-text .token.operator{color:#d4d4d4}
+#app .code-text .token.punctuation{color:#d4d4d4}
+#app .code-text .token.entity{color:#4ec9b0}
+/* Keep every source token on ONE physical IDE row. Horizontal code overflow is
+   handled inside <pre>, not as an extra line in the draggable item. */
+#app .code-row{min-height:27px;max-height:27px;align-items:stretch;overflow:hidden}
+#app .code-text{white-space:pre!important;overflow-x:auto!important;overflow-y:hidden!important;overflow-wrap:normal!important;word-break:normal!important;line-height:27px!important;height:27px!important;min-height:27px!important;max-height:27px!important}
+#app .code-text code{white-space:pre!important;display:inline!important;overflow-wrap:normal!important;word-break:normal!important;background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;text-shadow:none!important}
+#app .gutter{height:27px!important;min-height:27px!important;max-height:27px!important;overflow:hidden}
+#app .source-row{min-height:30px;max-height:30px}
+#app .source-row .code-text{height:27px}
+#app .drop-zone{overscroll-behavior:contain;overflow-anchor:none}
+@media (min-width:1200px){#app .shell{grid-template-columns:225px minmax(0,1fr)}#app .panes{grid-template-columns:minmax(0,40fr) minmax(0,60fr)}}
+/* v7: midpoint drop insertion, not row swapping. Live space is a visual hint
+   only; the immutable tokens are reordered on drop by the attempt module. */
+#app .drop-zone{position:relative;contain:layout paint;}
+#app .code-row{transition:transform 85ms ease-out;}
+#app .code-row.drop-shift{transform:translateY(8px);}
+#app .code-row.drop-prev{transform:translateY(-8px);}
+#app .drop-zone .insert-caret{position:absolute;left:15px;right:9px;height:3px;
+  pointer-events:none;background:#4db7ff;box-shadow:0 0 0 1px #08273c,0 0 9px #1987d2;
+  border-radius:4px;z-index:12;}
+#app .drop-zone .insert-caret:before{content:'';position:absolute;width:9px;height:9px;
+  left:0;top:-3px;border-radius:50%;background:#4db7ff;}
+#app .code-row[draggable=true] .drag-handle{cursor:grab}
+#app .code-row[draggable=true]:active .drag-handle{cursor:grabbing}
+#app .solution-row:hover{background:#294059!important}
+#app .code-row[draggable=false] .drag-handle{cursor:not-allowed}

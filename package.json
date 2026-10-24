@@ -1,0 +1,26 @@
+{
+  "name": "ngdynamic-codeline-engine-v7",
+  "version": "7.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Framework-free programming line-order exercise engine with verified constraints",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "start": "npm run build && node server.mjs",
+    "check": "npm run test && npm run verify:models",
+    "verify:models": "npm run build && node scripts/verify-models.mjs",
+    "test:browser": "python tests/browser-v7-offline.playwright.py",
+    "test:browser:server": "python tests/browser-v7.playwright.py",
+    "test:ts-methods": "npm run build && node --test tests/ts-methods.test.mjs tests/http-flow.test.mjs",
+    "build:pages": "npm run build && node scripts/build-pages.mjs",
+    "verify:pages": "npm run build:pages && node --test tests/pages-build.test.mjs tests/pages-api.test.mjs",
+    "check:all": "npm run check && npm run verify:pages"
+  },
+  "devDependencies": {
+    "typescript": "5.8.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

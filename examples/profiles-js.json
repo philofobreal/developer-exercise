@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 2,
+  "id": "profiles-js",
+  "revision": 1,
+  "title": "Alternatív sorrendprofilok",
+  "description": "Az első–középső–utolsó sorrend vagy a pontos fordítottja érvényes. A köztes négy permutáció nem.",
+  "language": "javascript",
+  "lines": [
+    {
+      "id": 1,
+      "code": "function sequence() {",
+      "dependencies": [],
+      "fixed": true,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "code": "first();",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "code": "middle();",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 4,
+      "code": "last();",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 5,
+      "code": "}",
+      "dependencies": [],
+      "fixed": true,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "fn",
+      "kind": "function",
+      "functionBlock": 1,
+      "parentScopeId": null,
+      "openLineId": 1,
+      "closeLineId": 5
+    }
+  ],
+  "profiles": [
+    {
+      "id": "forward",
+      "edges": [
+        {
+          "before": 2,
+          "after": 3
+        },
+        {
+          "before": 3,
+          "after": 4
+        }
+      ]
+    },
+    {
+      "id": "reverse",
+      "edges": [
+        {
+          "before": 4,
+          "after": 3
+        },
+        {
+          "before": 3,
+          "after": 2
+        }
+      ]
+    }
+  ]
+}

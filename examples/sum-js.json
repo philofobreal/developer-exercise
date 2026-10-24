@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 2,
+  "id": "sum-js",
+  "revision": 1,
+  "title": "Összegzés – azonos kapcsos zárójelek",
+  "description": "A két } azonos szövegű. Felcserélésük nem változtathatja meg a helyességet. A ciklus és a függvény határait a scope-verem ellenőrzi.",
+  "language": "javascript",
+  "lines": [
+    {
+      "id": 1,
+      "code": "function sumArrayElements(arr) {",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "code": "let sum = 0;",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "code": "for (let i = 0; i < arr.length; i++) {",
+      "dependencies": [
+        2
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 4,
+      "code": "sum += arr[i];",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "loop",
+      "normalization": "indent"
+    },
+    {
+      "id": 5,
+      "code": "}",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 6,
+      "code": "return sum;",
+      "dependencies": [
+        5
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 7,
+      "code": "}",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "fn",
+      "kind": "function",
+      "functionBlock": 1,
+      "parentScopeId": null,
+      "openLineId": 1,
+      "closeLineId": 7
+    },
+    {
+      "id": "loop",
+      "kind": "block",
+      "parentScopeId": "fn",
+      "openLineId": 3,
+      "closeLineId": 5
+    }
+  ]
+}

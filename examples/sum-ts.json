@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 2,
+  "id": "sum-ts",
+  "revision": 1,
+  "title": "TypeScript + blokkhierarchia",
+  "description": "Azonos } sorok, külön scope-ok, TypeScript típusannotációk. A referencia a validáláskor adat marad, a szerver nem futtat TypeScriptet.",
+  "language": "typescript",
+  "lines": [
+    {
+      "id": 1,
+      "code": "function sumTyped(items: number[]): number {",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "code": "let total: number = 0;",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "code": "for (const value of items) {",
+      "dependencies": [
+        2
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 4,
+      "code": "total += value;",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "loop",
+      "normalization": "indent"
+    },
+    {
+      "id": 5,
+      "code": "}",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 6,
+      "code": "return total;",
+      "dependencies": [
+        5
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 7,
+      "code": "}",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "fn",
+      "kind": "function",
+      "functionBlock": 1,
+      "parentScopeId": null,
+      "openLineId": 1,
+      "closeLineId": 7
+    },
+    {
+      "id": "loop",
+      "kind": "block",
+      "parentScopeId": "fn",
+      "openLineId": 3,
+      "closeLineId": 5
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 2,
+  "id": "dependencies-js",
+  "revision": 1,
+  "title": "Függőségek + rögzített sorok",
+  "description": "Az a és b változó felcserélhető; c csak mindkettő után jöhet. A note független, a return pedig c és note után áll. A függvényhatárok rögzítettek.",
+  "language": "javascript",
+  "lines": [
+    {
+      "id": 1,
+      "code": "function evaluate() {",
+      "dependencies": [],
+      "fixed": true,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "code": "const a = 10;",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "code": "const b = 20;",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 4,
+      "code": "const c = a + b;",
+      "dependencies": [
+        2,
+        3
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 5,
+      "code": "const note = 'ready';",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 6,
+      "code": "return { c, note };",
+      "dependencies": [
+        4,
+        5
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "fn",
+      "normalization": "indent"
+    },
+    {
+      "id": 7,
+      "code": "}",
+      "dependencies": [],
+      "fixed": true,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "fn",
+      "kind": "function",
+      "functionBlock": 1,
+      "parentScopeId": null,
+      "openLineId": 1,
+      "closeLineId": 7
+    }
+  ]
+}
