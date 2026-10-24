@@ -1,6 +1,7 @@
 import type { Submission, ValidationOptions, ValidationResult } from './types.js';
 import { normalizeLine } from './normalize.js';
 import { compileDefinition, isModelError, type CompiledRules } from './model.js';
+import { createUnitChecks } from './unit-structure.js';
 
 const result = (status: ValidationResult['status'], reason: ValidationResult['reason'], message: string, exploredStates: number, positions?:number[]):ValidationResult=>({status,accepted:status==='accepted',reason,message,exploredStates,...(positions?{positions}:{})});
 
@@ -47,8 +48,10 @@ export function validateSubmission(compiledOrRaw: CompiledRules | import('./type
   const maxStates=Math.max(1,Math.min(1_000_000,Math.floor(Number.isFinite(opts.maxStates)?opts.maxStates!:30_000)));
   let totalStates=0;
   let exceeded=false;
+  const unitChecks = def.structure ? createUnitChecks(def) : null;
 
   function scopesValid(assignment:Int32Array,partial=false):boolean {
+    if (unitChecks) return unitChecks.scopesValid(assignment, partial);
     const stack:string[]=[];
     for(const idx of assignment){
       // The assigned prefix already determines lexical ownership. A later
@@ -86,6 +89,7 @@ export function validateSubmission(compiledOrRaw: CompiledRules | import('./type
       const position=visitOrder[depth]!;
       for(const idx of candidates[position]!){
         if(used[idx])continue;
+        if(unitChecks && !unitChecks.placementValid(idx,position,posByToken))continue;
         let valid=true;
         for(const [before,after] of related[idx]!){
           const other=before===idx?after:before;

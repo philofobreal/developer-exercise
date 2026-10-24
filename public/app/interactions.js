@@ -11,6 +11,7 @@ export function activateView(state, attempt, formatted, next) {
 export function markEditorDraft(attempt, text) { if (!attempt.editorDirty)
     attempt.editorGeneration = attempt.generation; attempt.draft = text; attempt.editorDirty = true; }
 export function markEditorApplied(attempt) { attempt.editorDirty = false; attempt.editorGeneration = attempt.generation; }
+export function reloadEditorFromArrangement(attempt, formatted) { attempt.draft = formatted.join('\n'); markEditorApplied(attempt); }
 /** A late formatter response must still belong to the same untouched draft. */
 export function captureEditorRequest(editor, state, attempt, getAttempt, language) {
     const text = editor.value, active = state.active, view = state.view, generation = attempt.generation, originalLanguage = language();
@@ -131,14 +132,14 @@ export function installAuthoringFlows(root, state, render) {
         const file = input.files?.[0];
         if (!file)
             return;
-        const ticket = ++fileRequest, before = state.author.source;
+        const ticket = ++fileRequest, before = state.author.source, active = state.active, author = state.author;
         try {
             if (file.size > 200000)
                 throw Error('A forrásfájl legfeljebb 200 KB lehet.');
             const source = (await file.text()).replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
             if (source.length > 50000)
                 throw Error('Legfeljebb 50000 karakteres forrás tölthető be.');
-            if (ticket !== fileRequest)
+            if (ticket !== fileRequest || state.active !== active || state.author !== author)
                 return;
             if (state.author.source !== before)
                 throw Error('A forrás időközben módosult. Válaszd ki újra a fájlt.');
@@ -150,6 +151,8 @@ export function installAuthoringFlows(root, state, render) {
             state.author.message = `${file.name} betöltve. A forrás még nincs alkalmazva.`;
         }
         catch (error) {
+            if (state.active !== active || state.author !== author)
+                return;
             state.author.message = error instanceof Error ? error.message : 'A forrásfájl nem olvasható.';
         }
         if (!state.learnerPreview && state.view === 'author')

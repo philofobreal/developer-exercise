@@ -66,6 +66,60 @@ def continuity(page):
     page.locator('.workspace-help summary').click();page.locator('[data-copy-solution]').click();expect(page.locator('.workspace-help')).to_have_attribute('open','');expect(page.locator('[data-copy-solution]')).to_be_focused()
     assert page.locator('[data-copy-solution]').count()==1 and page.locator('[data-copy-arrangement]').count()==1
     page.locator('[data-view="model"]').click();page.locator('[data-dependency-table] summary').click();page.screenshot(path=str(ARTIFACTS/'ux-model.png'),full_page=True)
+
+def reference_continuity(page):
+    tasks=page.locator('[data-task]');first=tasks.nth(0).get_attribute('data-task');second=tasks.nth(1).get_attribute('data-task')
+    examples={m['id']:m for m in [json.loads(f.read_text(encoding='utf-8')) for f in (ROOT/'examples').glob('*.json')]}
+    page.locator('[data-view="author"]').click();expect(page.locator('#author-editor')).to_have_value('\n'.join(l['code'] for l in examples[first]['lines']))
+    expect(page.locator('h1')).to_contain_text(examples[first]['title'])
+    draft='function changedDraft() {\n     return 21;\n}'
+    page.locator('#author-editor').fill(draft);expect(page.locator('[data-author-status]')).to_contain_text('Nem alkalmazott referencia')
+    page.locator('[data-view="sort"]').click();expect(page.locator('[data-view="author"] .dirty-dot')).to_have_count(1)
+    page.locator('[data-view="author"]').click();expect(page.locator('#author-editor')).to_have_value(draft)
+    page.locator('[data-view="model"]').click();page.locator('#model-editor').fill('{unfinished JSON')
+    page.locator(f'[data-task="{second}"]').click();page.locator('[data-view="author"]').click();expect(page.locator('#author-editor')).to_have_value('\n'.join(l['code'] for l in examples[second]['lines']))
+    page.locator('#author-editor').fill('second unfinished draft')
+    page.locator(f'[data-task="{first}"]').click();page.locator('[data-view="author"]').click();expect(page.locator('#author-editor')).to_have_value(draft)
+    page.locator('[data-view="model"]').click();expect(page.locator('#model-editor')).to_have_value('{unfinished JSON')
+    page.locator('[data-view="author"]').click();page.locator('[data-author-apply]').click();expect(page.locator('.solution-zone .code-row')).to_have_count(3)
+    page.locator('[data-all]').click();page.locator('[data-view="edit"]').click();page.locator('#code-editor').fill('incorrect answer draft')
+    page.locator('[data-view="author"]').click();expect(page.locator('#author-editor')).to_have_value(draft)
+    page.locator('[data-view="edit"]').click();expect(page.locator('#code-editor')).to_have_value('incorrect answer draft')
+    page.locator('[data-editor-reload]').click();assert 'changedDraft' in page.locator('#code-editor').input_value();expect(page.locator('[data-editor-status]')).to_contain_text('rendező aktuális')
+    page.locator('[data-apply]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
+    page.locator('[data-view="author"]').click();expect(page.locator('#author-editor')).to_have_value(draft)
+    page.screenshot(path=str(ARTIFACTS/'ux-reference-workspace.png'),full_page=True)
+
+def stale_author_admission(page):
+    page.locator('[data-view="author"]').click();pending=[]
+    def intercept(route):pending.append(route)
+    page.route('**/api/author/compile',intercept)
+    try:
+        for edit_kind in ['source','model']:
+            active=page.locator('.task.selected').get_attribute('data-task')
+            page.locator('#author-editor').fill('const submitted = 1;');page.locator('[data-author-apply]').click();expect(page.locator('[data-author-apply]')).to_be_disabled()
+            newer='const newer = 2;'
+            if edit_kind=='source':page.locator('#author-editor').fill(newer)
+            else:page.locator('[data-view="model"]').click();page.locator('#model-editor').fill('{new unfinished JSON')
+            route=pending.pop();route.fulfill(response=route.fetch())
+            if edit_kind=='source':expect(page.locator('[data-author-apply]')).to_be_enabled();expect(page.locator('#author-editor')).to_have_value(newer)
+            else:
+                expect(page.locator('#model-editor')).to_have_value('{new unfinished JSON');assert page.locator('.task.selected').get_attribute('data-task')==active
+                page.locator('[data-view="author"]').click();expect(page.locator('#author-editor')).to_have_value('const submitted = 1;')
+            expect(page.locator('[data-author-status]')).to_contain_text('Nem alkalmazott referencia')
+    finally:page.unroute('**/api/author/compile',intercept)
+
+def stale_source_sample(page):
+    page.locator('[data-view="author"]').click();pending=[]
+    def intercept(route):pending.append(route)
+    page.route('**/samples/copy-field-utility.service.ts',intercept)
+    try:
+        page.locator('[data-author-sample]').click();expect(page.locator('[data-author-sample]')).to_be_disabled()
+        newer='const keepThisDraft = 2;';page.locator('#author-editor').fill(newer)
+        route=pending.pop();route.fulfill(body='const obsoleteSample: number = 1;')
+        expect(page.locator('[data-author-sample]')).to_be_enabled();expect(page.locator('#author-editor')).to_have_value(newer)
+        expect(page.locator('[data-author="language"]')).to_have_value('javascript')
+    finally:page.unroute('**/samples/copy-field-utility.service.ts',intercept)
 def busy(page):
     model_first(page);pending=[]
     def intercept(route):pending.append(route)
@@ -109,11 +163,13 @@ try:
         browser=launch(p);context=browser.new_context(viewport={'width':1500,'height':1000},permissions=['clipboard-read','clipboard-write']);context.tracing.start(screenshots=True,snapshots=True,sources=True);page=context.new_page();page.set_default_timeout(10000);errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
         try:
             for mode,url in [('node',BASE),('pages',f'http://127.0.0.1:{static.server_port}/developer-exercise/')]:
-                for name,action in [('model-first creation',model_first),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity)]:
+                for name,action in [('model-first creation',model_first),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('reference and solution draft continuity',reference_continuity)]:
                     reset(page,url);case(mode+' '+name,lambda:action(page))
                 reset(page,url);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-workspace.png')),full_page=True)
                 page.locator('[data-view="author"]').click();page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-author.png')),full_page=True)
             reset(page,BASE);case('node duplicate-check prevention and async feedback',lambda:busy(page))
+            reset(page,BASE);case('node admission preserves newer reference edits',lambda:stale_author_admission(page))
+            reset(page,BASE);case('node sample loading preserves newer reference edits',lambda:stale_source_sample(page))
             for name,action in [('author format preserves newer edits',lambda:stale_format(page,True)),('solution format preserves newer edits',lambda:stale_format(page,False)),('stale check failure cannot replace newer attempt',lambda:stale_check_failure(page))]:
                 reset(page,BASE);case('node '+name,action)
             for width in [320,390,768]:

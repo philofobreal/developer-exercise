@@ -51,6 +51,8 @@ export interface ExerciseDefinition {
   description: string;
   tokens: CodeToken[];
   blocks: LexicalBlock[];
+  /** Opt-in v3 unit/container events; mutually exclusive with legacy blocks. */
+  structure?: import('./language-ir.js').UnitStructure;
   /** Optional additional mandatory constraints. */
   edges?: OrderingEdge[];
   /** OR between profiles; AND within each profile. */

@@ -25,6 +25,7 @@
     "src/server/listen.mjs"
   ],
   "generated": {
+    "src/workbench/author-workspace.ts": "public/app/author-workspace.js",
     "src/workbench/continuity.ts": "public/app/continuity.js",
     "src/workbench/contracts.ts": "public/app/contracts.js",
     "src/workbench/dependency-view.ts": "public/app/dependency-view.js",

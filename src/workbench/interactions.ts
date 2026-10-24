@@ -8,6 +8,7 @@ export function activateView(state:WorkbenchState,attempt:AttemptSnapshot,format
 }
 export function markEditorDraft(attempt:AttemptSnapshot,text:string):void {if(!attempt.editorDirty)attempt.editorGeneration=attempt.generation;attempt.draft=text;attempt.editorDirty=true;}
 export function markEditorApplied(attempt:AttemptSnapshot):void {attempt.editorDirty=false;attempt.editorGeneration=attempt.generation;}
+export function reloadEditorFromArrangement(attempt:AttemptSnapshot,formatted:string[]):void {attempt.draft=formatted.join('\n');markEditorApplied(attempt);}
 /** A late formatter response must still belong to the same untouched draft. */
 export function captureEditorRequest(editor:HTMLTextAreaElement,state:WorkbenchState,attempt:AttemptSnapshot,getAttempt:()=>AttemptSnapshot,language:()=>string):()=>boolean {
  const text=editor.value,active=state.active,view=state.view,generation=attempt.generation,originalLanguage=language();
@@ -70,15 +71,15 @@ export function installAuthoringFlows(root:HTMLElement,state:WorkbenchState,rend
  });
  root.addEventListener('change',async event=>{
   const input=event.target;if(!(input instanceof HTMLInputElement)||!input.hasAttribute('data-source-file'))return;
-  const file=input.files?.[0];if(!file)return;const ticket=++fileRequest,before=state.author.source;
+  const file=input.files?.[0];if(!file)return;const ticket=++fileRequest,before=state.author.source,active=state.active,author=state.author;
   try{
    if(file.size>200000)throw Error('A forrásfájl legfeljebb 200 KB lehet.');
    const source=(await file.text()).replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n');
    if(source.length>50000)throw Error('Legfeljebb 50000 karakteres forrás tölthető be.');
-   if(ticket!==fileRequest)return;if(state.author.source!==before)throw Error('A forrás időközben módosult. Válaszd ki újra a fájlt.');
+   if(ticket!==fileRequest||state.active!==active||state.author!==author)return;if(state.author.source!==before)throw Error('A forrás időközben módosult. Válaszd ki újra a fájlt.');
    state.author.source=source;if(/\.ts$/i.test(file.name))state.author.language='typescript';else if(/\.(mjs|js)$/i.test(file.name))state.author.language='javascript';
    state.author.message=`${file.name} betöltve. A forrás még nincs alkalmazva.`;
-  }catch(error){state.author.message=error instanceof Error?error.message:'A forrásfájl nem olvasható.';}
+  }catch(error){if(state.active!==active||state.author!==author)return;state.author.message=error instanceof Error?error.message:'A forrásfájl nem olvasható.';}
   if(!state.learnerPreview&&state.view==='author')render();
  });
  root.addEventListener('click',event=>{if(event.target instanceof Element&&event.target.closest('[data-import-source]'))root.querySelector<HTMLInputElement>('[data-source-file]')?.click();});

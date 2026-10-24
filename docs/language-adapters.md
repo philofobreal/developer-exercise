@@ -1,5 +1,7 @@
 # Nyelvi adapterek
 
+Az alábbi API a meglévő v2 JS/TS folyamat kompatibilitási határa. Az új, opt-in Language IR v1 / CodeLine v3 author engine typed regisztere és bridge-je: [implementációs szerződés](language-engine-contract.md), [ADR-003](adr/003-language-ir-and-codeline-v3.md). Pythonhoz ezt a natív IR portot kell implementálni; a v2 nyelvlistát nem kell emiatt hallgatólagosan bővíteni. A meglévő UI/API/persistence v2 marad.
+
 A `registerLanguageAdapter(id, adapter)` és `getLanguageAdapter(id)` a szerzői nyelvkezelés nyilvános API-ja. A regisztráció ellenőrzi a szükséges metódusokat és tiltja a névütközést. JavaScript és TypeScript működő adapterrel rendelkezik; új nyelvek nem kész implementációk.
 
 | Metódus | Feladat |
