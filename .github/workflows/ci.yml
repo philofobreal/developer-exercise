@@ -25,9 +25,11 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: python -m pip install -r tests/requirements-browser.txt
       - run: python -m playwright install --with-deps chromium
-      - name: Build, all Node regressions, reference publication audit
+      - name: Build, all regressions, v2/v3/IR and Python parser contracts, pinned runtime hashes and publication audit
         run: npm run check:all
-      - name: Real HTTP, Pages and supplementary offline Chromium suites
+      - name: Generated contracts and browser outputs match their sources
+        run: git diff --exit-code -- dist public/app public/samples/typescript src/core/schema-check.ts
+      - name: Real HTTP, Pages, Python Node/worker parity and supplementary offline Chromium suites
         run: npm run test:browser:all
       - name: Retain browser diagnostics
         if: always()

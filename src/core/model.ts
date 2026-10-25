@@ -1,5 +1,6 @@
 import type { ExerciseDefinition, OrderingEdge, ValidationResult } from './types.js';
 import { isSingleLine } from './normalize.js';
+import { auditUnitStructure } from './unit-structure.js';
 
 export interface CompiledRules {
   definition: ExerciseDefinition;
@@ -59,17 +60,19 @@ export function compileDefinition(def: ExerciseDefinition): CompiledRules | Vali
     const visited = new Set<string>();let parent=b.parent;
     while(parent!==null) {if(visited.has(parent))return failed('Körkörös blokk-hierarchia.');visited.add(parent);parent=blocks.get(parent)!.parent;}
   }
-  for (const t of def.tokens) {
+  const unitEdges = def.structure === undefined ? [] : auditUnitStructure(def, def.structure);
+  if (typeof unitEdges === 'string') return failed(unitEdges);
+  if (def.structure === undefined) for (const t of def.tokens) {
     if (t.scope !== null && !blocks.has(t.scope)) return failed(`Ismeretlen scope: ${t.id}`);
   }
   const byId = new Map(def.tokens.map(t => [t.id, t]));
   for (const [id, b] of blocks) {
     if (byId.get(b.open)!.scope !== b.parent || byId.get(b.close)!.scope !== b.parent) return failed(`Hibás blokk-határ scope: ${id}`);
   }
-  const base: OrderingEdge[] = [];
+  const base: OrderingEdge[] = [...unitEdges];
   for (const t of def.tokens) {
     for (const p of t.after ?? []) base.push({before:p, after:t.id});
-    if (t.scope !== null) {
+    if (t.scope !== null && def.structure === undefined) {
       const b = blocks.get(t.scope)!;
       base.push({before:b.open, after:t.id}, {before:t.id, after:b.close});
     }

@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 2,
+  "id": "ts-sample-19-literal-whitespace",
+  "revision": 1,
+  "language": "typescript",
+  "title": "Multiline literal exact whitespace",
+  "description": "A template literal payloadja, üres sora és záró sora exact; a szöveg belső sorai nem cserélhetők.",
+  "lines": [
+    {
+      "id": 1,
+      "sourceLine": 1,
+      "code": "const value = `first",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "sourceLine": 2,
+      "code": "  second",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "exact"
+    },
+    {
+      "id": 3,
+      "sourceLine": 3,
+      "code": "",
+      "dependencies": [
+        2
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "exact"
+    },
+    {
+      "id": 4,
+      "sourceLine": 4,
+      "code": "  fourth`;",
+      "dependencies": [
+        3
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "exact"
+    },
+    {
+      "id": 5,
+      "sourceLine": 5,
+      "code": "const result = value;",
+      "dependencies": [
+        1,
+        4
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [],
+  "edges": [],
+  "profiles": [],
+  "authoring": {
+    "strategy": "ast-hierarchy",
+    "reason": "",
+    "omittedBlocks": 0,
+    "semanticEquivalenceProven": false,
+    "dependencyPolicy": "scoped-primitive-dag-v2",
+    "dependencyHints": [
+      {
+        "name": "value",
+        "declarationLine": 1,
+        "usageLine": 5
+      }
+    ]
+  }
+}

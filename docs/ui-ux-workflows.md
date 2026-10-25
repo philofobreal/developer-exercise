@@ -6,16 +6,24 @@ A műhely programozási sorrendező feladatok készítését és kipróbálásá
 
 A munkafolyamat két szerzői belépési pontja ugyanahhoz az alkalmazott feladathoz vezet:
 
-- **Forráskód:** JS/MJS/TS/TXT fájl helyi betöltése vagy vágólap → szerkesztés/formázás → Alkalmazás → generált modell és rendezési próba. A fájlbetöltés önmagában nem aktivál új feladatot. Legfeljebb 200 KB fájl és 50000 karakter forrás támogatott; a szerver méretkorlátjai továbbra is érvényesek.
+- **Referenciaforrás:** JS/MJS/TS/TXT fájl helyi betöltése vagy vágólap → szerkesztés/formázás → Alkalmazás → generált modell és rendezési próba. A fájlbetöltés önmagában nem aktivál új feladatot. Legfeljebb 200 KB fájl és 50000 karakter forrás támogatott; a szerver méretkorlátjai továbbra is érvényesek.
 - **Adatmodell:** teljes CodeLine JSON szerkesztése/beillesztése vagy JSON-fájl betöltése → meglévő Schema/strukturális/szintaktikai admission → ugyanaz a próba. Ez kezdő feladat nélkül is elérhető. A meglévő fájlimport sikeres ellenőrzés után közvetlenül aktivál; a JSON-szerkesztőben végzett módosítás külön alkalmazandó.
 
 JSON alkalmazásakor a referenciaforrás kitöltődik a modell soraiból. Forrás alkalmazásakor a generált teljes JSON szerkeszthető. A forrás újraalkalmazása új modellt generál, nem egyesíti automatikusan a régi kézi JSON-szabályokat; ezek exportálhatók. A forrássorszám metaadat, nem megoldáspozíció.
+
+Az Adatmodell külön **Sorfüggőségek újraszámítása** művelete az aktuális JSON sorfüggőségeit frissíti a jelenlegi JS/TS elemzővel, azonos sor-/blokkstruktúra mellett. Kód, sor-ID, fixed, kézi élek és profilok megmaradnak; kompatibilis kitöltés újraértékelődik. A normál import nem hívja. Régi generált modellnél a felület elmagyarázza, hogy a `dependencyHints` nem validátorszabály. [Példa és javított JSON](evaluate-legacy-serial-case.md).
+
+A fájl-/vágólap-/hálózati olvasás előtt rögzített közös szerzői kérésgeneráció védi a referenciát: újabb szerzői művelet, szövegmódosítás vagy feladatváltás után a késői eredmény nem aktiválhat modellt. A JSON- és session-fájlok olvasás előtti védelme is ugyanide tartozik; a védelem memóriabeli, nem sessionmező. [ADR-006](adr/006-explicit-dependency-refresh-and-review-guards.md).
 
 ## Próba és tanulói preview
 
 A **Próba** a rendezőt és a megoldás kódszerkesztőjét kínálja. A szerző mintát tölthet ki, újrakezdhet, másolhat, beilleszthet és ugyanazzal a kiértékelési mechanizmussal vizsgálhatja a megengedett/tiltott elrendezéseket. A rendező az egyetlen aktív próbálkozásállapot.
 
 A kódszerkesztő külön, még nem alkalmazott munkaváltozat. Más nézetre váltás nem dobja el. Ha közben a rendező módosul, visszatéréskor jelzés figyelmeztet a két változatra. Az alkalmazás az eredeti domainmodulon keresztül történik. Ebben a nézetben nincs félrevezető, az alkalmazás előtt amúgy sem működő Ellenőrzés gomb: a fő művelet az Alkalmazás. Utána a rendezőben lehet értékelni.
+
+Az **01 · Referencia és szabályok** és **02 · Megoldás és próba** ugyanahhoz a kiválasztott feladathoz tartozik. A Referenciaforrás a helyes program és a feladat alapja; a Megoldáskód a rendezőben összeállított próbáé. A próba módosítása nem írja át a referenciát. A „Rendezőből újratöltés” explicit módon elveti a megoldásszerkesztő draftját, és a jelenlegi rendezőből tölti vissza.
+
+A referencia kézi gépelése is azonnal menti a memóriabeli draftot, és „Nem alkalmazott referencia” jelzést kap. A szerzői source/JSON munkaváltozatok feladatonként megmaradnak nézet- és könyvtárváltáskor; első alkalommal a kiválasztott feladat publikus forrásából indulnak. A gyakorlófeladat szerzői alkalmazása új saját preview-t hoz létre, a szerver trusted szabályait nem módosítja. Alkalmazás csak az aktuális, változatlan munkaváltozatot aktiválhatja; késői válasz nem ír felül újabb szöveget. Ezek memóriabeli draftok, nem új vagy automatikusan mentett session formátum. Döntés: [ADR-004](adr/004-reference-and-attempt-workspaces.md).
 
 A **Tanulói preview** elrejti a könyvtárat, forrás-/JSON-szerzői tabokat, mintakitöltést, mentés-/fájlkezelést és belső tokenmegfeleltetési/keresési részleteket. A feladatleírás, rendező/kódszerkesztő, másolás/beillesztés, újrakezdés és kiértékelési visszajelzés marad. A szerző visszalépési gombja a preview-host navigációja; a visszalépés nem törli a próbálkozást vagy a szerzői munkaváltozatokat. Ez prezentációs elkülönítés, nem bejelentkezés/jogosultságkezelés vagy új hiteles vizsgacsatorna. A Local Demo / Preview / Trusted Server validációs jelölések változatlan jelentésűek.
 
@@ -36,6 +44,6 @@ Elsődleges irányelvek: [WAI-ARIA tabs](https://www.w3.org/WAI/ARIA/apg/pattern
 
 A megjelenítési implementáció a src/workbench natív strict TypeScript-forrása. A public/app megfelelő JS-moduljai buildtermékek; a régi importútvonalak megmaradnak. Az architektúrakapu a forrás/emit egyezést is ellenőrzi. Az eredeti üzleti JS-portok átmeneti állapotát az [ADR-001](adr/001-typescript-workbench-and-boundaries.md) nevezi meg; ettől az egész repository még nem vált TypeScriptté.
 
-A `npm run test:browser:workbench` 21 folyamatot vizsgál Node/Pages módban: modellből indítás, source file pending/apply és JSON-fájl, forrás/JSON összekapcsolás, learner preview izoláció/visszatérés, tabs/draft, fókusz/details/contextual copy, ismételt async check elkerülése, késői formázási/értékelési válaszok védelme, fixed körüli keresztezés és három mobilméret. A meglévő offline/HTTP/32 esetű mátrix/36 drag kör is megmaradt. A scrolltesztek látható sort választanak a tényleges sormagasságból, így a pixelméret megváltoztatása nem keveredik a scroll megőrzésével.
+A `npm run test:browser:workbench` 29 folyamatot vizsgál Node/Pages módban: modellből indítás, source file pending/apply és JSON-fájl, forrás/JSON összekapcsolás, referencia gépelése és feladatváltáskori draft-megőrzés, megoldás/reference szétválasztás, explicit rendezőből újratöltés, learner preview izoláció/visszatérés, tabs/draft, fókusz/details/contextual copy, ismételt async check elkerülése, késői admission-/mintabetöltési/formázási/értékelési válaszok védelme, fixed körüli keresztezés és három mobilméret. A meglévő offline/HTTP/32 esetű mátrix/36 drag kör is megmaradt. A scrolltesztek látható sort választanak a tényleges sormagasságból, így a pixelméret megváltoztatása nem keveredik a scroll megőrzésével.
 
 A mezők, Tab/behúzás, beszúrás és fixed részletes üzleti jelentése: [működési szerződés](business-technical-contract.md).

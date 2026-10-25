@@ -4,3 +4,6 @@ export * from './validator.js';
 export * from './normalize.js';
 export * from './fixtures.js';
 export * from './code-line.js';
+export * from './language-ir.js';
+export * from './code-line-v3.js';
+export * from './render-plan.js';

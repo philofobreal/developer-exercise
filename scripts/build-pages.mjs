@@ -6,13 +6,22 @@ const require=createRequire(import.meta.url);
 const root=process.cwd(),out=path.join(root,'_site');
 await rm(out,{recursive:true,force:true});
 await cp(path.join(root,'public'),out,{recursive:true});
-await cp(path.join(root,'dist'),path.join(out,'dist'),{recursive:true});
+const distRoot=path.join(root,'dist');
+// The isolated Python parser is a test/library slice until product integration (ADR-005).
+await cp(distRoot,path.join(out,'dist'),{recursive:true,filter:source=>path.relative(distRoot,source).split(path.sep)[0]!=='python'});
 await cp(path.join(root,'src/author'),path.join(out,'author'),{recursive:true});
+// Source generator is two directories below the root; the static author folder is one.
+const generatorPath=path.join(out,'author/generator.mjs');
+const generator=await readFile(generatorPath,'utf8');
+if(!generator.includes('../../dist/author/type-member-ordering.js'))throw Error('Typed member projection packaging path changed.');
+await writeFile(generatorPath,generator.replace('../../dist/author/type-member-ordering.js','../dist/author/type-member-ordering.js'));
 await cp(path.join(root,'examples'),path.join(out,'examples'),{recursive:true});
 const names=(await readdir(path.join(root,'examples'))).filter(n=>n.endsWith('.json')).sort();
 await writeFile(path.join(out,'examples','manifest.json'),JSON.stringify(names,null,2)+'\n');
 await writeFile(path.join(out,'.nojekyll'),'');
 await copyFile(path.join(root,'docs/schema.json'),path.join(out,'schema.json'));
+await copyFile(path.join(root,'docs/language-ir.schema.json'),path.join(out,'language-ir-v1.schema.json'));
+await copyFile(path.join(root,'docs/codeline-v3.schema.json'),path.join(out,'codeline-v3.schema.json'));
 await copyFile(path.join(root,'src/core/LICENSE-ajv.txt'),path.join(out,'vendor/LICENSE-ajv.txt'));
 const tsSource=require.resolve('typescript/lib/typescript.js');
 await mkdir(path.join(out,'vendor'),{recursive:true});

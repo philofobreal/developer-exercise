@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 2,
+  "id": "ts-sample-20-shared-boundaries",
+  "revision": 1,
+  "language": "typescript",
+  "title": "Közös else sorhatár",
+  "description": "A v2-ben nem külön mozgatható close/open eseményeket eredeti sorrendű élek védik.",
+  "lines": [
+    {
+      "id": 1,
+      "sourceLine": 1,
+      "code": "function choose(flag: boolean): number {",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "sourceLine": 2,
+      "code": "  if (flag) {",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "sourceLine": 3,
+      "code": "    const a = 1;",
+      "dependencies": [
+        2
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 4,
+      "sourceLine": 4,
+      "code": "    const b = 2;",
+      "dependencies": [
+        2
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 5,
+      "sourceLine": 5,
+      "code": "    return a + b;",
+      "dependencies": [
+        3,
+        4
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 6,
+      "sourceLine": 6,
+      "code": "  } else {",
+      "dependencies": [
+        5
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 7,
+      "sourceLine": 7,
+      "code": "    return 0;",
+      "dependencies": [
+        6
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 8,
+      "sourceLine": 8,
+      "code": "  }",
+      "dependencies": [
+        7
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 9,
+      "sourceLine": 9,
+      "code": "}",
+      "dependencies": [
+        8
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "scope-1",
+      "kind": "function",
+      "parentScopeId": null,
+      "openLineId": 1,
+      "closeLineId": 9,
+      "functionBlock": 1
+    }
+  ],
+  "edges": [
+    {
+      "before": 2,
+      "after": 3
+    },
+    {
+      "before": 3,
+      "after": 4
+    },
+    {
+      "before": 4,
+      "after": 5
+    },
+    {
+      "before": 5,
+      "after": 6
+    },
+    {
+      "before": 6,
+      "after": 7
+    },
+    {
+      "before": 7,
+      "after": 8
+    }
+  ],
+  "profiles": [],
+  "authoring": {
+    "strategy": "ast-hierarchy",
+    "reason": "shared-physical-boundaries",
+    "omittedBlocks": 2,
+    "semanticEquivalenceProven": false,
+    "dependencyPolicy": "scoped-primitive-dag-v2",
+    "dependencyHints": [
+      {
+        "name": "flag",
+        "declarationLine": 1,
+        "usageLine": 2
+      },
+      {
+        "name": "a",
+        "declarationLine": 3,
+        "usageLine": 5
+      },
+      {
+        "name": "b",
+        "declarationLine": 4,
+        "usageLine": 5
+      }
+    ]
+  }
+}

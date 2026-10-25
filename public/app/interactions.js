@@ -1,3 +1,4 @@
+import { captureAuthorRequest } from './author-workspace.js';
 const views = ['sort', 'edit', 'author', 'model'];
 export function activateView(state, attempt, formatted, next) {
     if (!views.includes(next))
@@ -11,6 +12,7 @@ export function activateView(state, attempt, formatted, next) {
 export function markEditorDraft(attempt, text) { if (!attempt.editorDirty)
     attempt.editorGeneration = attempt.generation; attempt.draft = text; attempt.editorDirty = true; }
 export function markEditorApplied(attempt) { attempt.editorDirty = false; attempt.editorGeneration = attempt.generation; }
+export function reloadEditorFromArrangement(attempt, formatted) { attempt.draft = formatted.join('\n'); markEditorApplied(attempt); }
 /** A late formatter response must still belong to the same untouched draft. */
 export function captureEditorRequest(editor, state, attempt, getAttempt, language) {
     const text = editor.value, active = state.active, view = state.view, generation = attempt.generation, originalLanguage = language();
@@ -46,7 +48,7 @@ export async function dispatchWorkbenchAction(event, handler, onError) {
     const button = event.target instanceof Element ? event.target.closest('button') : null;
     if (!button || running.has(button))
         return;
-    const busy = button.matches('[data-check],[data-author-apply],[data-model-apply],[data-format],[data-author-format],[data-author-sample]');
+    const busy = button.matches('[data-check],[data-author-apply],[data-model-apply],[data-model-refresh],[data-format],[data-author-format],[data-author-sample]');
     const original = button.innerHTML, disabled = button.disabled, hadFocus = document.activeElement === button, owner = button.closest('#app');
     const context = owner ? { exercise: owner.dataset.renderedExercise, view: owner.dataset.renderedView } : undefined;
     const action = button.getAttributeNames().find(name => name.startsWith('data-'));
@@ -80,7 +82,7 @@ export async function dispatchWorkbenchAction(event, handler, onError) {
 }
 /** Two author inputs converge on the same compiled preview; learner mode is UI isolation, not authorization. */
 export function installAuthoringFlows(root, state, render) {
-    let returnView = 'sort', fileRequest = 0;
+    let returnView = 'sort';
     root.addEventListener('input', event => {
         const editor = event.target;
         if (!(editor instanceof HTMLTextAreaElement))
@@ -131,25 +133,25 @@ export function installAuthoringFlows(root, state, render) {
         const file = input.files?.[0];
         if (!file)
             return;
-        const ticket = ++fileRequest, before = state.author.source;
+        const current = captureAuthorRequest(state);
         try {
             if (file.size > 200000)
                 throw Error('A forrásfájl legfeljebb 200 KB lehet.');
             const source = (await file.text()).replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
             if (source.length > 50000)
                 throw Error('Legfeljebb 50000 karakteres forrás tölthető be.');
-            if (ticket !== fileRequest)
+            if (!current())
                 return;
-            if (state.author.source !== before)
-                throw Error('A forrás időközben módosult. Válaszd ki újra a fájlt.');
             state.author.source = source;
             if (/\.ts$/i.test(file.name))
                 state.author.language = 'typescript';
             else if (/\.(mjs|js)$/i.test(file.name))
                 state.author.language = 'javascript';
-            state.author.message = `${file.name} betöltve. A forrás még nincs alkalmazva.`;
+            state.author.message = `${file.name} betöltve. A forrás még nincs alkalmazva. A cím és leírás nem változik automatikusan; ellenőrizd őket.`;
         }
         catch (error) {
+            if (!current())
+                return;
             state.author.message = error instanceof Error ? error.message : 'A forrásfájl nem olvasható.';
         }
         if (!state.learnerPreview && state.view === 'author')

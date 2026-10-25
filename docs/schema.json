@@ -147,7 +147,8 @@
           "type": "string",
           "enum": [
             "primitive-const-islands-v1",
-            "scoped-primitive-dag-v2"
+            "scoped-primitive-dag-v2",
+            "scoped-type-members-v3"
           ]
         }
       }

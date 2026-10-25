@@ -1,5 +1,6 @@
 import { normalizeLine } from './normalize.js';
 import { compileDefinition, isModelError } from './model.js';
+import { createUnitChecks } from './unit-structure.js';
 const result = (status, reason, message, exploredStates, positions) => ({ status, accepted: status === 'accepted', reason, message, exploredStates, ...(positions ? { positions } : {}) });
 /**
  * Witness-based exact validation:
@@ -58,7 +59,10 @@ export function validateSubmission(compiledOrRaw, submission, opts = {}) {
     const maxStates = Math.max(1, Math.min(1_000_000, Math.floor(Number.isFinite(opts.maxStates) ? opts.maxStates : 30_000)));
     let totalStates = 0;
     let exceeded = false;
+    const unitChecks = def.structure ? createUnitChecks(def) : null;
     function scopesValid(assignment, partial = false) {
+        if (unitChecks)
+            return unitChecks.scopesValid(assignment, partial);
         const stack = [];
         for (const idx of assignment) {
             // The assigned prefix already determines lexical ownership. A later
@@ -107,6 +111,8 @@ export function validateSubmission(compiledOrRaw, submission, opts = {}) {
             const position = visitOrder[depth];
             for (const idx of candidates[position]) {
                 if (used[idx])
+                    continue;
+                if (unitChecks && !unitChecks.placementValid(idx, position, posByToken))
                     continue;
                 let valid = true;
                 for (const [before, after] of related[idx]) {

@@ -4,6 +4,7 @@ import {compileCodeLineExercise,validateSubmission} from '../dist/index.js';
 import {generateCodeLineExercise} from '../author/generator.mjs';
 import {getLanguageAdapter} from '../author/languages.mjs';
 import {auditReference} from '../author/audit.mjs';
+import {refreshLegacyDependencies} from '../dist/author/engine.js';
 
 export const validationMode='local-demo';
 const records = new Map();
@@ -39,11 +40,13 @@ export async function getExercises(){
   }));
 }
 export async function compileDraft(body){
+  if(body?.refreshDependencies!==undefined&&typeof body.refreshDependencies!=='boolean'||body?.refreshDependencies&&!body.model)throw Error('A függőségfrissítéshez teljes modell és logikai refreshDependencies jelző kell.');
   let model;
   if(body?.model){
     if(typeof body.model!=='object'||Array.isArray(body.model))throw Error('A szerzői modell nem objektum.');
     model={...structuredClone(body.model),id:'draft',revision:1};
   }else model=generateCodeLineExercise(body??{},getTypeScript());
+  if(body?.refreshDependencies)model=await refreshLegacyDependencies(model,{generate:input=>generateCodeLineExercise(input,getTypeScript()),audit:reference=>auditReference(reference,getTypeScript())});
   if(!model.lines?.length||model.lines.length>MODEL_LIMIT)throw Error('Túl sok kódsor.');
   const draftId='pages-'+nextDraft++;
   model={...model,id:'author-'+draftId,revision:1};

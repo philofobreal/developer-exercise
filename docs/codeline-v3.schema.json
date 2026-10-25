@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://philofobreal.github.io/developer-exercise/codeline-v3.schema.json",
+  "title": "CodeLine Exercise v3",
+  "type": "object", "additionalProperties": false,
+  "required": ["schemaVersion", "id", "revision", "title", "description", "ir"],
+  "properties": {
+    "schemaVersion": {"const": 3},
+    "id": {"type": "string", "minLength": 1, "maxLength": 200},
+    "revision": {"type": "integer", "minimum": 1, "maximum": 9007199254740991},
+    "title": {"type": "string", "maxLength": 140},
+    "description": {"type": "string", "maxLength": 500},
+    "ir": {"$ref": "https://philofobreal.github.io/developer-exercise/language-ir-v1.schema.json"}
+  }
+}

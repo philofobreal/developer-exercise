@@ -1,0 +1,496 @@
+[
+  {
+    "id": "01-user-account",
+    "title": "UserAccount – a beküldött példa",
+    "description": "Az interface adatmezői felcserélhetők. A normál class mezők és this-értékadások sorrendje megmarad, mert a kulcssorrend is megfigyelhető.",
+    "acceptedSwaps": [
+      [
+        2,
+        3
+      ]
+    ],
+    "rejectedSwaps": [
+      [
+        6,
+        7
+      ],
+      [
+        9,
+        10
+      ],
+      [
+        5,
+        13
+      ]
+    ],
+    "permutableIds": [
+      2,
+      3
+    ],
+    "probe": "JSON.stringify({name:user.name,id:user.id,keys:Object.keys(user)})"
+  },
+  {
+    "id": "02-interface",
+    "title": "Három külön nevű típusmező",
+    "description": "A readonly és opcionális adatmezők is típusinformációk; mind a hat belső sorrend megengedett.",
+    "acceptedSwaps": [
+      [
+        2,
+        4
+      ]
+    ],
+    "rejectedSwaps": [
+      [
+        1,
+        2
+      ],
+      [
+        4,
+        5
+      ]
+    ],
+    "permutableIds": [
+      2,
+      3,
+      4
+    ]
+  },
+  {
+    "id": "03-type-literal",
+    "title": "Type alias adatmezőkkel",
+    "description": "A type literal saját blokkja megmarad, a külön nevű egysoros mezők felcserélhetők.",
+    "acceptedSwaps": [
+      [
+        2,
+        3
+      ]
+    ],
+    "rejectedSwaps": [
+      [
+        1,
+        2
+      ],
+      [
+        3,
+        4
+      ]
+    ],
+    "permutableIds": [
+      2,
+      3
+    ]
+  },
+  {
+    "id": "04-declare-fields",
+    "title": "Kifejezetten törölt declare mezők",
+    "description": "A declare mezők nem hoznak létre futásidejű property-t. Az értékadó constructor viszont sorrendtartó.",
+    "acceptedSwaps": [
+      [
+        2,
+        3
+      ]
+    ],
+    "rejectedSwaps": [
+      [
+        5,
+        6
+      ],
+      [
+        4,
+        8
+      ]
+    ],
+    "permutableIds": [
+      2,
+      3
+    ],
+    "probe": "JSON.stringify({name:value.name,id:value.id,keys:Object.keys(value)})"
+  },
+  {
+    "id": "05-field-initializers",
+    "title": "Inicializálás és this-olvasás",
+    "description": "A második initializer az első mezőt olvassa; a felcserélés értéket és kulcssorrendet is változtathat.",
+    "acceptedSwaps": [],
+    "rejectedSwaps": [
+      [
+        2,
+        3
+      ]
+    ],
+    "permutableIds": [],
+    "probe": "JSON.stringify({first:value.first,second:value.second,keys:Object.keys(value)})"
+  },
+  {
+    "id": "06-constructor-read",
+    "title": "Constructor read/write veszély",
+    "description": "A második this-értékadás olvassa az első által írt mezőt. A declare sorok ettől függetlenek.",
+    "acceptedSwaps": [
+      [
+        2,
+        3
+      ]
+    ],
+    "rejectedSwaps": [
+      [
+        5,
+        6
+      ]
+    ],
+    "permutableIds": [],
+    "probe": "JSON.stringify({first:value.first,second:value.second,keys:Object.keys(value)})"
+  },
+  {
+    "id": "07-repeat-write",
+    "title": "Két írás ugyanarra a mezőre",
+    "description": "Az utolsó írás nyer: azonos property-név nem jelent független műveletet.",
+    "acceptedSwaps": [],
+    "rejectedSwaps": [
+      [
+        4,
+        5
+      ]
+    ],
+    "permutableIds": [],
+    "probe": "JSON.stringify(value)"
+  },
+  {
+    "id": "08-setter",
+    "title": "Setter mellékhatása",
+    "description": "Két külön nevű this-értékadás is hívhat settert; a trace megőrzi a hívási sorrendet.",
+    "acceptedSwaps": [],
+    "rejectedSwaps": [
+      [
+        6,
+        7
+      ]
+    ],
+    "permutableIds": [],
+    "probe": "JSON.stringify(trace)"
+  },
+  {
+    "id": "09-inheritance",
+    "title": "Öröklés és super",
+    "description": "A super a this-használat előtt kötelező; a leszármazott initializer a base constructor után fut.",
+    "acceptedSwaps": [],
+    "rejectedSwaps": [
+      [
+        7,
+        8
+      ],
+      [
+        4,
+        11
+      ]
+    ],
+    "permutableIds": [],
+    "probe": "JSON.stringify(value)"
+  },
+  {
+    "id": "10-computed-fields",
+    "title": "Computed mezőnév",
+    "description": "A computed tagok és mellékhatásos initializereik sorrendtartók. A két külön primitív kulcskonstans felcserélhető.",
+    "acceptedSwaps": [
+      [
+        2,
+        3
+      ]
+    ],
+    "rejectedSwaps": [
+      [
+        5,
+        6
+      ]
+    ],
+    "permutableIds": [],
+    "probe": "JSON.stringify({trace,keys:Object.keys(value)})"
+  },
+  {
+    "id": "11-static",
+    "title": "Static inicializálás és blokk",
+    "description": "A static tagok és static blokk kiértékelési sorrendje megfigyelhető.",
+    "acceptedSwaps": [],
+    "rejectedSwaps": [
+      [
+        3,
+        5
+      ],
+      [
+        3,
+        4
+      ]
+    ],
+    "permutableIds": [],
+    "probe": "JSON.stringify(trace)"
+  },
+  {
+    "id": "12-overloads",
+    "title": "Overload-sorrend",
+    "description": "Az overloadok és metódusszignatúrák sorrendje megmarad; a külön adatmezők külön futamot alkotnak.",
+    "acceptedSwaps": [
+      [
+        4,
+        5
+      ]
+    ],
+    "rejectedSwaps": [
+      [
+        2,
+        3
+      ],
+      [
+        3,
+        4
+      ]
+    ],
+    "permutableIds": [
+      4,
+      5
+    ]
+  },
+  {
+    "id": "13-duplicate-names",
+    "title": "Típushibás negatív példa: duplikált deklaráció",
+    "description": "Szándékos TS2300 típushiba: a syntax audit nem teljes típusellenőrzés. A modell nem lazítja a duplikált tagok sorrendjét.",
+    "acceptedSwaps": [],
+    "rejectedSwaps": [
+      [
+        2,
+        4
+      ],
+      [
+        3,
+        4
+      ]
+    ],
+    "permutableIds": [],
+    "semanticErrors": [
+      2300
+    ]
+  },
+  {
+    "id": "14-comments",
+    "title": "Komment és JSDoc kötése",
+    "description": "A kommentált mező kötött marad; a kommenthez nem tartozó következő két mező szabad.",
+    "acceptedSwaps": [
+      [
+        4,
+        5
+      ]
+    ],
+    "rejectedSwaps": [
+      [
+        2,
+        3
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        5,
+        6
+      ]
+    ],
+    "permutableIds": [
+      4,
+      5
+    ]
+  },
+  {
+    "id": "15-nested-type",
+    "title": "Többsoros és beágyazott típus",
+    "description": "A többsoros külső tag egyben marad; belső adatmezői a saját típusblokkjukon belül cserélhetők.",
+    "acceptedSwaps": [
+      [
+        3,
+        4
+      ]
+    ],
+    "rejectedSwaps": [
+      [
+        3,
+        6
+      ],
+      [
+        2,
+        6
+      ]
+    ],
+    "permutableIds": [
+      3,
+      4
+    ]
+  },
+  {
+    "id": "16-enum",
+    "title": "Enum automatikus értékekkel",
+    "description": "Az enumtagok sorrendje az automatikus numerikus értékeket is meghatározza.",
+    "acceptedSwaps": [],
+    "rejectedSwaps": [
+      [
+        2,
+        3
+      ]
+    ],
+    "permutableIds": [],
+    "probe": "JSON.stringify({First:Mode.First,Second:Mode.Second})"
+  },
+  {
+    "id": "17-namespace",
+    "title": "Namespace és generikus interface",
+    "description": "A namespace runtime határa és a scope megmarad, a belső interface adatmezői függetlenek.",
+    "acceptedSwaps": [
+      [
+        3,
+        4
+      ]
+    ],
+    "rejectedSwaps": [
+      [
+        3,
+        6
+      ],
+      [
+        1,
+        2
+      ]
+    ],
+    "permutableIds": [
+      3,
+      4
+    ]
+  },
+  {
+    "id": "18-primitive-dag",
+    "title": "Típusos primitív DAG",
+    "description": "A meglévő kötésalapú szabály marad: a és b cserélhető; c mindkettőt igényli, a return nem lehet korai.",
+    "acceptedSwaps": [
+      [
+        2,
+        3
+      ]
+    ],
+    "rejectedSwaps": [
+      [
+        3,
+        4
+      ],
+      [
+        4,
+        5
+      ]
+    ],
+    "permutableIds": [],
+    "probe": "JSON.stringify(evaluate())"
+  },
+  {
+    "id": "19-literal-whitespace",
+    "title": "Multiline literal exact whitespace",
+    "description": "A template literal payloadja, üres sora és záró sora exact; a szöveg belső sorai nem cserélhetők.",
+    "acceptedSwaps": [],
+    "rejectedSwaps": [
+      [
+        2,
+        4
+      ],
+      [
+        1,
+        5
+      ]
+    ],
+    "permutableIds": [],
+    "probe": "JSON.stringify(result)"
+  },
+  {
+    "id": "20-shared-boundaries",
+    "title": "Közös else sorhatár",
+    "description": "A v2-ben nem külön mozgatható close/open eseményeket eredeti sorrendű élek védik.",
+    "acceptedSwaps": [],
+    "rejectedSwaps": [
+      [
+        3,
+        4
+      ],
+      [
+        5,
+        7
+      ]
+    ],
+    "permutableIds": [],
+    "probe": "JSON.stringify([choose(true),choose(false)])"
+  },
+  {
+    "id": "21-fixed-profiles",
+    "title": "Kézzel rögzített hely és OR profilok",
+    "description": "A középső sor fixed; az első és harmadik sorrendjére két alternatív profil van. Ez explicit szerzői JSON-beállítás.",
+    "acceptedSwaps": [
+      [
+        1,
+        3
+      ]
+    ],
+    "rejectedSwaps": [
+      [
+        1,
+        2
+      ],
+      [
+        2,
+        3
+      ]
+    ],
+    "permutableIds": [],
+    "probe": "JSON.stringify([a,b,c])",
+    "authored": true
+  },
+  {
+    "id": "22-private-fields",
+    "title": "Privát mezők és inicializálás",
+    "description": "A # privát nevek és az egymást olvasó initializerek konzervatívak maradnak.",
+    "acceptedSwaps": [],
+    "rejectedSwaps": [
+      [
+        2,
+        3
+      ]
+    ],
+    "permutableIds": [],
+    "probe": "JSON.stringify(value.read())"
+  },
+  {
+    "id": "23-parameter-property",
+    "title": "Constructor paraméterproperty",
+    "description": "A paraméterproperty és a constructor body nem puszta típusdeklaráció.",
+    "acceptedSwaps": [],
+    "rejectedSwaps": [
+      [
+        4,
+        5
+      ]
+    ],
+    "permutableIds": [],
+    "probe": "JSON.stringify(value)"
+  },
+  {
+    "id": "24-unicode-names",
+    "title": "Unicode és idézett mezőnevek",
+    "description": "Egyszerű, külön nevű Unicode/idézett típusmezők is felcserélhetők.",
+    "acceptedSwaps": [
+      [
+        2,
+        4
+      ]
+    ],
+    "rejectedSwaps": [
+      [
+        1,
+        2
+      ]
+    ],
+    "permutableIds": [
+      2,
+      3,
+      4
+    ]
+  }
+]

@@ -2,6 +2,7 @@
 import {reduceGeneratedDependencies} from './statement-ordering.mjs';
 import {AuthoringError} from './errors.mjs';
 import {getLanguageAdapter} from './languages.mjs';
+import {typeMemberOrdering} from '../../dist/author/type-member-ordering.js';
 export {AuthoringError} from './errors.mjs';
 export function generateCodeLineExercise({source,language='javascript',title='Saját feladat',description='Rendezd sorba a programkódot.'},ts){
  const adapter=getLanguageAdapter(language);
@@ -34,11 +35,13 @@ export function generateCodeLineExercise({source,language='javascript',title='Sa
  if(ordering){
   for(const entry of ordering.entries){const id=byPhysical.get(entry.row);if(id!==undefined)lines[id-1].dependencies=entry.after.map(row=>byPhysical.get(row)).filter(id=>id!==undefined);}
   for(const [row,inputs] of ordering.protectedInputs){const id=byPhysical.get(row);if(id!==undefined)protectedById.set(id,new Set([...inputs].map(row=>byPhysical.get(row)).filter(id=>id!==undefined)));}
-  reduceGeneratedDependencies(lines,protectedById);
  }
+ const members=language==='typescript'?typeMemberOrdering(ast,ts):{entries:[],note:''};
+ for(const entry of members.entries){const id=byPhysical.get(entry.row);if(id!==undefined)lines[id-1].dependencies=entry.after.map(row=>byPhysical.get(row)).filter(id=>id!==undefined);}
+ reduceGeneratedDependencies(lines,protectedById);
  // A single row can close and open scopes (} else {). Preserve all unambiguous
  // ancestors/children and lock only each unrepresentable interval to source order.
  const edgeMap=new Map();
  for(const b of omitted){const ids=rows.flatMap((x,i)=>x.line>=b.start&&x.line<=b.end?[i+1]:[]);for(let i=1;i<ids.length;i++)edgeMap.set(ids[i-1]+':'+ids[i],{before:ids[i-1],after:ids[i]});}
- return {schemaVersion:2,id:'draft',revision:1,language,title:String(title).slice(0,140)||'Saját feladat',description:String(description).slice(0,500),lines,blocks,edges:[...edgeMap.values()],profiles:[],authoring:{strategy:'ast-hierarchy',reason:omitted.length?'shared-physical-boundaries':'',omittedBlocks:omitted.length,semanticEquivalenceProven:false,dependencyPolicy:'scoped-primitive-dag-v2',dependencyHints:adapter.analyzeDependencies?.(ast,ts)??[]}};
+ return {schemaVersion:2,id:'draft',revision:1,language,title:String(title).slice(0,140)||'Saját feladat',description:String(description).slice(0,500),lines,blocks,edges:[...edgeMap.values()],profiles:[],authoring:{strategy:'ast-hierarchy',reason:omitted.length?'shared-physical-boundaries':'',omittedBlocks:omitted.length,semanticEquivalenceProven:false,dependencyPolicy:members.entries.length?'scoped-type-members-v3':'scoped-primitive-dag-v2',...(members.note?{note:members.note}:{}),dependencyHints:adapter.analyzeDependencies?.(ast,ts)??[]}};
 }
