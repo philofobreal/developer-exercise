@@ -27,7 +27,7 @@ A referencia kézi gépelése is azonnal menti a memóriabeli draftot, és „Ne
 
 A **Tanulói preview** elrejti a könyvtárat, forrás-/JSON-szerzői tabokat, mintakitöltést, mentés-/fájlkezelést és belső tokenmegfeleltetési/keresési részleteket. A feladatleírás, rendező/kódszerkesztő, másolás/beillesztés, újrakezdés és kiértékelési visszajelzés marad. A szerző visszalépési gombja a preview-host navigációja; a visszalépés nem törli a próbálkozást vagy a szerzői munkaváltozatokat. Ez prezentációs elkülönítés, nem bejelentkezés/jogosultságkezelés vagy új hiteles vizsgacsatorna. A Local Demo / Preview / Trusted Server validációs jelölések változatlan jelentésűek.
 
-A meglévő négy referenciafeladat a könyvtárban marad. A saját alkalmazott előnézet külön csoportot kap. A clipboard közvetlenül az érintett szerkesztőnél/panelnél található; a megoldás Másolás gombja a korábbi két azonos műveletet egyetlen vezérlőre vonja össze. A mentés az oldalsó munkamenet-csoportban van, nem versenyez az elsődleges ellenőrzéssel.
+A könyvtárban öt referenciafeladat van: négy összetett algoritmus-/osztálypélda és az alternatív profilok példája. A saját alkalmazott előnézet külön csoportot kap. A clipboard közvetlenül az érintett szerkesztőnél/panelnél található; a megoldás Másolás gombja a korábbi két azonos műveletet egyetlen vezérlőre vonja össze. A mentés az oldalsó munkamenet-csoportban van, nem versenyez az elsődleges ellenőrzéssel.
 
 ## Interakció és hozzáférhetőség
 

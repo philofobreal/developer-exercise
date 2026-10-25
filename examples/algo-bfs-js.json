@@ -1,0 +1,315 @@
+{
+  "schemaVersion": 2,
+  "id": "algo-bfs-js",
+  "revision": 1,
+  "title": "Legrövidebb út rácson (BFS)",
+  "description": "Szélességi keresés sorral és bejárt halmazzal. Az öt kezdeti deklaráció tetszőleges sorrendben állhat; a szomszédszámításban nextRow/nextCol, key/inside, valamint a visited.add/queue.push páros felcserélhető. A sorok a saját scope-jukban maradnak; a függvény első és utolsó sora rögzített.",
+  "language": "javascript",
+  "lines": [
+    {
+      "id": 1,
+      "code": "function shortestPath(grid, start, goal) {",
+      "dependencies": [],
+      "fixed": true,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "code": "const rows = grid.length;",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "code": "const cols = grid[0].length;",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 4,
+      "code": "const directions = [[1, 0], [-1, 0], [0, 1], [0, -1]];",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 5,
+      "code": "const visited = new Set([start.join(',')]);",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 6,
+      "code": "const queue = [[start[0], start[1], 0]];",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 7,
+      "code": "while (queue.length > 0) {",
+      "dependencies": [
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 8,
+      "code": "const [row, col, distance] = queue.shift();",
+      "dependencies": [
+        7
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 9,
+      "code": "if (row === goal[0] && col === goal[1]) {",
+      "dependencies": [
+        8
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 10,
+      "code": "return distance;",
+      "dependencies": [
+        9
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-3",
+      "normalization": "indent"
+    },
+    {
+      "id": 11,
+      "code": "}",
+      "dependencies": [
+        10
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 12,
+      "code": "for (const [dr, dc] of directions) {",
+      "dependencies": [
+        11
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 13,
+      "code": "const nextRow = row + dr;",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-4",
+      "normalization": "indent"
+    },
+    {
+      "id": 14,
+      "code": "const nextCol = col + dc;",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-4",
+      "normalization": "indent"
+    },
+    {
+      "id": 15,
+      "code": "const key = nextRow + ',' + nextCol;",
+      "dependencies": [
+        13,
+        14
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-4",
+      "normalization": "indent"
+    },
+    {
+      "id": 16,
+      "code": "const inside = nextRow >= 0 && nextRow < rows && nextCol >= 0 && nextCol < cols;",
+      "dependencies": [
+        13,
+        14
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-4",
+      "normalization": "indent"
+    },
+    {
+      "id": 17,
+      "code": "if (!inside || grid[nextRow][nextCol] === 1 || visited.has(key)) {",
+      "dependencies": [
+        15,
+        16
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-4",
+      "normalization": "indent"
+    },
+    {
+      "id": 18,
+      "code": "continue;",
+      "dependencies": [
+        17
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-5",
+      "normalization": "indent"
+    },
+    {
+      "id": 19,
+      "code": "}",
+      "dependencies": [
+        18
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-4",
+      "normalization": "indent"
+    },
+    {
+      "id": 20,
+      "code": "visited.add(key);",
+      "dependencies": [
+        19
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-4",
+      "normalization": "indent"
+    },
+    {
+      "id": 21,
+      "code": "queue.push([nextRow, nextCol, distance + 1]);",
+      "dependencies": [
+        19
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-4",
+      "normalization": "indent"
+    },
+    {
+      "id": 22,
+      "code": "}",
+      "dependencies": [
+        20,
+        21
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 23,
+      "code": "}",
+      "dependencies": [
+        22
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 24,
+      "code": "return -1;",
+      "dependencies": [
+        23
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 25,
+      "code": "}",
+      "dependencies": [
+        24
+      ],
+      "fixed": true,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "scope-1",
+      "kind": "function",
+      "parentScopeId": null,
+      "openLineId": 1,
+      "closeLineId": 25,
+      "functionBlock": 1
+    },
+    {
+      "id": "scope-2",
+      "kind": "block",
+      "parentScopeId": "scope-1",
+      "openLineId": 7,
+      "closeLineId": 23
+    },
+    {
+      "id": "scope-3",
+      "kind": "block",
+      "parentScopeId": "scope-2",
+      "openLineId": 9,
+      "closeLineId": 11
+    },
+    {
+      "id": "scope-4",
+      "kind": "block",
+      "parentScopeId": "scope-2",
+      "openLineId": 12,
+      "closeLineId": 22
+    },
+    {
+      "id": "scope-5",
+      "kind": "block",
+      "parentScopeId": "scope-4",
+      "openLineId": 17,
+      "closeLineId": 19
+    }
+  ]
+}

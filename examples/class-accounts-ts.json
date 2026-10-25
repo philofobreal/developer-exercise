@@ -1,0 +1,388 @@
+{
+  "schemaVersion": 2,
+  "id": "class-accounts-ts",
+  "revision": 1,
+  "title": "Számlák – absztrakt osztály és öröklés",
+  "description": "Absztrakt ősosztály, védett mezők, paraméterproperty, super-hívás és felüldefiniált metódus. A metódusok egymás közti sorrendje és a független állapotfrissítések felcserélhetők; a mezőinicializálás sorrendje és a leszármazott osztály az ős után kötött.",
+  "language": "typescript",
+  "lines": [
+    {
+      "id": 1,
+      "code": "abstract class Account {",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "code": "protected balance = 0;",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "code": "private readonly history: string[] = [];",
+      "dependencies": [
+        2
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 4,
+      "code": "constructor(readonly owner: string) {}",
+      "dependencies": [
+        3
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 5,
+      "code": "deposit(amount: number): void {",
+      "dependencies": [
+        4
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 6,
+      "code": "this.balance += amount;",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 7,
+      "code": "this.history.push('+' + amount);",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 8,
+      "code": "}",
+      "dependencies": [
+        6,
+        7
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 9,
+      "code": "withdraw(amount: number): boolean {",
+      "dependencies": [
+        4
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 10,
+      "code": "if (amount > this.balance + this.limit()) {",
+      "dependencies": [
+        9
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-3",
+      "normalization": "indent"
+    },
+    {
+      "id": 11,
+      "code": "return false;",
+      "dependencies": [
+        10
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-4",
+      "normalization": "indent"
+    },
+    {
+      "id": 12,
+      "code": "}",
+      "dependencies": [
+        11
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-3",
+      "normalization": "indent"
+    },
+    {
+      "id": 13,
+      "code": "this.balance -= amount;",
+      "dependencies": [
+        12
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-3",
+      "normalization": "indent"
+    },
+    {
+      "id": 14,
+      "code": "this.history.push('-' + amount);",
+      "dependencies": [
+        12
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-3",
+      "normalization": "indent"
+    },
+    {
+      "id": 15,
+      "code": "return true;",
+      "dependencies": [
+        13,
+        14
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-3",
+      "normalization": "indent"
+    },
+    {
+      "id": 16,
+      "code": "}",
+      "dependencies": [
+        15
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 17,
+      "code": "statement(): string {",
+      "dependencies": [
+        4
+      ],
+      "fixed": false,
+      "functionBlock": 3,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 18,
+      "code": "return this.owner + ': ' + this.balance + ' [' + this.history.join(' ') + ']';",
+      "dependencies": [
+        17
+      ],
+      "fixed": false,
+      "functionBlock": 3,
+      "scopeId": "scope-5",
+      "normalization": "indent"
+    },
+    {
+      "id": 19,
+      "code": "}",
+      "dependencies": [
+        18
+      ],
+      "fixed": false,
+      "functionBlock": 3,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 20,
+      "code": "protected abstract limit(): number;",
+      "dependencies": [
+        4
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 21,
+      "code": "}",
+      "dependencies": [
+        8,
+        16,
+        19,
+        20
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 22,
+      "code": "class CreditAccount extends Account {",
+      "dependencies": [
+        21
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 23,
+      "code": "constructor(owner: string, private readonly credit: number) {",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 4,
+      "scopeId": "scope-6",
+      "normalization": "indent"
+    },
+    {
+      "id": 24,
+      "code": "super(owner);",
+      "dependencies": [
+        23
+      ],
+      "fixed": false,
+      "functionBlock": 4,
+      "scopeId": "scope-7",
+      "normalization": "indent"
+    },
+    {
+      "id": 25,
+      "code": "}",
+      "dependencies": [
+        24
+      ],
+      "fixed": false,
+      "functionBlock": 4,
+      "scopeId": "scope-6",
+      "normalization": "indent"
+    },
+    {
+      "id": 26,
+      "code": "protected limit(): number {",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 5,
+      "scopeId": "scope-6",
+      "normalization": "indent"
+    },
+    {
+      "id": 27,
+      "code": "return this.credit;",
+      "dependencies": [
+        26
+      ],
+      "fixed": false,
+      "functionBlock": 5,
+      "scopeId": "scope-8",
+      "normalization": "indent"
+    },
+    {
+      "id": 28,
+      "code": "}",
+      "dependencies": [
+        27
+      ],
+      "fixed": false,
+      "functionBlock": 5,
+      "scopeId": "scope-6",
+      "normalization": "indent"
+    },
+    {
+      "id": 29,
+      "code": "}",
+      "dependencies": [
+        25,
+        28
+      ],
+      "fixed": false,
+      "functionBlock": 0,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "scope-1",
+      "kind": "block",
+      "parentScopeId": null,
+      "openLineId": 1,
+      "closeLineId": 21
+    },
+    {
+      "id": "scope-2",
+      "kind": "function",
+      "parentScopeId": "scope-1",
+      "openLineId": 5,
+      "closeLineId": 8,
+      "functionBlock": 1
+    },
+    {
+      "id": "scope-3",
+      "kind": "function",
+      "parentScopeId": "scope-1",
+      "openLineId": 9,
+      "closeLineId": 16,
+      "functionBlock": 2
+    },
+    {
+      "id": "scope-4",
+      "kind": "block",
+      "parentScopeId": "scope-3",
+      "openLineId": 10,
+      "closeLineId": 12
+    },
+    {
+      "id": "scope-5",
+      "kind": "function",
+      "parentScopeId": "scope-1",
+      "openLineId": 17,
+      "closeLineId": 19,
+      "functionBlock": 3
+    },
+    {
+      "id": "scope-6",
+      "kind": "block",
+      "parentScopeId": null,
+      "openLineId": 22,
+      "closeLineId": 29
+    },
+    {
+      "id": "scope-7",
+      "kind": "function",
+      "parentScopeId": "scope-6",
+      "openLineId": 23,
+      "closeLineId": 25,
+      "functionBlock": 4
+    },
+    {
+      "id": "scope-8",
+      "kind": "function",
+      "parentScopeId": "scope-6",
+      "openLineId": 26,
+      "closeLineId": 28,
+      "functionBlock": 5
+    }
+  ]
+}

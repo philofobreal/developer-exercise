@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {ExerciseCatalog} from '../src/server/catalog.mjs';
 import {createApplication} from '../src/server/http.mjs';
 import {compileCodeLineExercise} from '../dist/index.js';
-const model=JSON.parse(await readFile(new URL('../examples/sum-js.json',import.meta.url),'utf8'));
+const model=JSON.parse(await readFile(new URL('./fixtures/legacy-examples/sum-js.json',import.meta.url),'utf8'));
 test('learner HTTP evaluation never parses code or accepts client grading rules',async t=>{
  const compiled=compileCodeLineExercise(model),catalog=new ExerciseCatalog(new Map([[model.id,{model,compiled:compiled.compiled}]]));
  catalog.parser=()=>{throw Error('Learner parsing forbidden');};

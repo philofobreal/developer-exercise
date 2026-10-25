@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile,stat} from 'node:fs/promises';
+import {readFile,stat,readdir} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {execFileSync} from 'node:child_process';
 import {join} from 'node:path';
@@ -22,7 +22,8 @@ test('Pages demo: exercises → local validation → author → edited model →
    await stat(new URL('../_site/app/pages-api.js',import.meta.url));
    const api=await import('../_site/app/pages-api.js');
    const available=await api.getExercises();
-   assert.equal(available.length,4);
+   const shipped=(await readdir(new URL('../examples/',import.meta.url))).filter(name=>name.endsWith('.json'));
+   assert.deepEqual(available.map(e=>e.id+'.json').sort(),shipped.sort());
    for(const e of available){
      const solution=e.lines.map(l=>l.code);
      assert.equal((await api.evaluate({exerciseId:e.id,revision:e.revision,lines:solution})).status,'accepted');

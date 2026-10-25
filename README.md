@@ -55,7 +55,7 @@ A forráskód-, megoldás- és JSON-szerkesztőben másolás és beillesztés go
 ## Ellenőrzések
 
 ```sh
-npm run check:all           # build, minden Node-teszt, négy referenciaaudit
+npm run check:all           # build, minden Node-teszt, öt referenciaaudit
 npm run verify:pages        # külön, célzott Pages-build és artifacttesztek
 python -m venv .venv
 ```
@@ -70,7 +70,7 @@ npm run test:browser:all
 
 Windows PowerShell alatt az aktiválás: `.\.venv\Scripts\Activate.ps1`; POSIX shellben: `. .venv/bin/activate`. Windows alatt a meglévő Chrome/Edge is használható. A `CHROMIUM` változóval konkrét böngészőútvonal adható meg. Linux CI-ban a workflow `playwright install --with-deps chromium` parancsot futtat.
 
-A böngészős kör valódi HTTP-alapú Node- és alútvonalon kiszolgált Pages-teszteket, valamint kiegészítő offline DOM-tesztet tartalmaz. A `npm run test:browser:drag` külön is futtatja a négy beépített példa valódi kódszöveg- és fogantyúhúzásait, továbbá a pointermegszakítás regresszióit (36 eset). Ez a kör a `test:browser:all` része is. Képernyőképek és Playwright trace: `test-results/`. A tesztek pontos értelmezése: [TypeScript- és tesztlefedettség](docs/ts-method-regression.md).
+A böngészős kör valódi HTTP-alapú Node- és alútvonalon kiszolgált Pages-teszteket, valamint kiegészítő offline DOM-tesztet tartalmaz. A `npm run test:browser:drag` külön is futtatja az öt beépített példa valódi kódszöveg- és fogantyúhúzásait, továbbá a pointermegszakítás regresszióit (44 eset). Ez a kör a `test:browser:all` része is. Képernyőképek és Playwright trace: `test-results/`. A tesztek pontos értelmezése: [TypeScript- és tesztlefedettség](docs/ts-method-regression.md).
 
 ## Feladatkészítés, próba és preview
 

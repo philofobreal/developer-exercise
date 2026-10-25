@@ -120,7 +120,7 @@ test('common unit dependencies apply to every alternate profile, with one shared
 
 test('v2 projection preserves all existing example rules, profiles and fixed semantics', async () => {
   for (const name of ['sum-js', 'sum-ts', 'profiles-js', 'dependencies-js']) {
-    const m = JSON.parse(await readFile(new URL('../examples/' + name + '.json', import.meta.url), 'utf8'));
+    const m = JSON.parse(await readFile(new URL((name === 'profiles-js' ? '../examples/' : './fixtures/legacy-examples/') + name + '.json', import.meta.url), 'utf8'));
     const snapshot = structuredClone(m), v3 = upgradeCodeLineExerciseV2(m);
     assert.equal(v3.schemaVersion, 3, v3.message); assert.deepEqual(m, snapshot);
     const v2c = compileCodeLineExercise(m).compiled, v3c = compile(v3), codes = m.lines.map(l => l.code);

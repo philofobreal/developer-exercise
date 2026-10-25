@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile,stat,access} from 'node:fs/promises';
+import {readFile,stat,access,readdir} from 'node:fs/promises';
 import {compileCodeLineExercise,validateSubmission} from '../dist/index.js';
 const file=p=>new URL('../_site/'+p,import.meta.url);
 test('Pages artifact has relative entrypoints and local compiler',async()=>{
@@ -27,7 +27,7 @@ test('Browser uses static API and original business modules',async()=>{
  assert.match(pagesApi,/validateSubmission/);
  assert.doesNotMatch(pagesApi,/\/api\/evaluate|\/api\/author/);
  const names=JSON.parse(await readFile(file('examples/manifest.json'),'utf8'));
- assert.equal(names.length,4);
+ assert.deepEqual(names,(await readdir(new URL('../examples/',import.meta.url))).filter(name=>name.endsWith('.json')).sort());
  for(const n of names){
    const model=JSON.parse(await readFile(file('examples/'+n),'utf8'));
    const compiled=compileCodeLineExercise(model);

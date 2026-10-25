@@ -1,0 +1,381 @@
+{
+  "schemaVersion": 2,
+  "id": "algo-sort-search-js",
+  "revision": 1,
+  "title": "Beszúrásos rendezés + bináris keresés",
+  "description": "Két felső szintű függvény, egymásba ágyazott for/while ciklusok és megosztott } else { határ. A két függvénydeklaráció sorrendje szabad; a current/j és a low/high kezdőértékek felcserélhetők. Az else-ág és a ciklusmag sorai kötöttek.",
+  "language": "javascript",
+  "lines": [
+    {
+      "id": 1,
+      "code": "function insertionSort(input) {",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "code": "const values = [...input];",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "code": "for (let i = 1; i < values.length; i++) {",
+      "dependencies": [
+        2
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 4,
+      "code": "const current = values[i];",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 5,
+      "code": "let j = i - 1;",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 6,
+      "code": "while (j >= 0 && values[j] > current) {",
+      "dependencies": [
+        4,
+        5
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 7,
+      "code": "values[j + 1] = values[j];",
+      "dependencies": [
+        6
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-3",
+      "normalization": "indent"
+    },
+    {
+      "id": 8,
+      "code": "j--;",
+      "dependencies": [
+        7
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-3",
+      "normalization": "indent"
+    },
+    {
+      "id": 9,
+      "code": "}",
+      "dependencies": [
+        8
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 10,
+      "code": "values[j + 1] = current;",
+      "dependencies": [
+        9
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 11,
+      "code": "}",
+      "dependencies": [
+        10
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 12,
+      "code": "return values;",
+      "dependencies": [
+        11
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 13,
+      "code": "}",
+      "dependencies": [
+        12
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 14,
+      "code": "function binarySearch(sorted, target) {",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 15,
+      "code": "let low = 0;",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-4",
+      "normalization": "indent"
+    },
+    {
+      "id": 16,
+      "code": "let high = sorted.length - 1;",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-4",
+      "normalization": "indent"
+    },
+    {
+      "id": 17,
+      "code": "while (low <= high) {",
+      "dependencies": [
+        15,
+        16
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-4",
+      "normalization": "indent"
+    },
+    {
+      "id": 18,
+      "code": "const mid = Math.floor((low + high) / 2);",
+      "dependencies": [
+        17
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-5",
+      "normalization": "indent"
+    },
+    {
+      "id": 19,
+      "code": "if (sorted[mid] === target) {",
+      "dependencies": [
+        18
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-5",
+      "normalization": "indent"
+    },
+    {
+      "id": 20,
+      "code": "return mid;",
+      "dependencies": [
+        19
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-6",
+      "normalization": "indent"
+    },
+    {
+      "id": 21,
+      "code": "}",
+      "dependencies": [
+        20
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-5",
+      "normalization": "indent"
+    },
+    {
+      "id": 22,
+      "code": "if (sorted[mid] < target) {",
+      "dependencies": [
+        21
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-5",
+      "normalization": "indent"
+    },
+    {
+      "id": 23,
+      "code": "low = mid + 1;",
+      "dependencies": [
+        22
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-5",
+      "normalization": "indent"
+    },
+    {
+      "id": 24,
+      "code": "} else {",
+      "dependencies": [
+        23
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-5",
+      "normalization": "indent"
+    },
+    {
+      "id": 25,
+      "code": "high = mid - 1;",
+      "dependencies": [
+        24
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-5",
+      "normalization": "indent"
+    },
+    {
+      "id": 26,
+      "code": "}",
+      "dependencies": [
+        25
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-5",
+      "normalization": "indent"
+    },
+    {
+      "id": 27,
+      "code": "}",
+      "dependencies": [
+        26
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-4",
+      "normalization": "indent"
+    },
+    {
+      "id": 28,
+      "code": "return -1;",
+      "dependencies": [
+        27
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": "scope-4",
+      "normalization": "indent"
+    },
+    {
+      "id": 29,
+      "code": "}",
+      "dependencies": [
+        28
+      ],
+      "fixed": false,
+      "functionBlock": 2,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "scope-1",
+      "kind": "function",
+      "parentScopeId": null,
+      "openLineId": 1,
+      "closeLineId": 13,
+      "functionBlock": 1
+    },
+    {
+      "id": "scope-2",
+      "kind": "block",
+      "parentScopeId": "scope-1",
+      "openLineId": 3,
+      "closeLineId": 11
+    },
+    {
+      "id": "scope-3",
+      "kind": "block",
+      "parentScopeId": "scope-2",
+      "openLineId": 6,
+      "closeLineId": 9
+    },
+    {
+      "id": "scope-4",
+      "kind": "function",
+      "parentScopeId": null,
+      "openLineId": 14,
+      "closeLineId": 29,
+      "functionBlock": 2
+    },
+    {
+      "id": "scope-5",
+      "kind": "block",
+      "parentScopeId": "scope-4",
+      "openLineId": 17,
+      "closeLineId": 27
+    },
+    {
+      "id": "scope-6",
+      "kind": "block",
+      "parentScopeId": "scope-5",
+      "openLineId": 19,
+      "closeLineId": 21
+    }
+  ],
+  "edges": [
+    {
+      "before": 22,
+      "after": 23
+    },
+    {
+      "before": 23,
+      "after": 24
+    },
+    {
+      "before": 24,
+      "after": 25
+    },
+    {
+      "before": 25,
+      "after": 26
+    }
+  ]
+}

@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import Ajv from 'ajv/dist/2020.js';
-import {readFile} from 'node:fs/promises';
+import {readFile,readdir} from 'node:fs/promises';
 import {compileCodeLineExercise,compileDefinition,validateSubmission} from '../dist/index.js';
 import shape from '../dist/schema-check.js';
 const schema=JSON.parse(await readFile(new URL('../docs/schema.json',import.meta.url),'utf8'));
 const ajv=new Ajv({strict:true}).compile(schema);
-const base=JSON.parse(await readFile(new URL('../examples/sum-js.json',import.meta.url),'utf8'));
+const base=JSON.parse(await readFile(new URL('./fixtures/legacy-examples/sum-js.json',import.meta.url),'utf8'));
 for(const [name,change] of Object.entries({
  duplicateDependency:m=>m.lines[1].dependencies=[1,1],
  extraProperty:m=>m.lines[0].surprise=true,
@@ -22,7 +22,8 @@ for(const [name,change] of Object.entries({
  const m=structuredClone(base);change(m);assert.equal(ajv(m),false);assert.equal(shape(m),false);assert.equal(compileCodeLineExercise(m).status,'invalid_reference');
 });
 test('generated checker matches Ajv for every example and Unicode boundaries',async()=>{
- for(const name of ['sum-js','sum-ts','dependencies-js','profiles-js']){const m=JSON.parse(await readFile(new URL('../examples/'+name+'.json',import.meta.url),'utf8'));assert.equal(ajv(m),true);assert.equal(shape(m),true);}
+ const files=[...['sum-js','sum-ts','dependencies-js'].map(name=>new URL('./fixtures/legacy-examples/'+name+'.json',import.meta.url)),...(await readdir(new URL('../examples/',import.meta.url))).filter(name=>name.endsWith('.json')).map(name=>new URL('../examples/'+name,import.meta.url))];
+ for(const file of files){const m=JSON.parse(await readFile(file,'utf8'));assert.equal(ajv(m),true,file.pathname);assert.equal(shape(m),true,file.pathname);}
  for(let n=2047;n<=2049;n++){const m=structuredClone(base);m.lines[0].code='😀'.repeat(n);assert.equal(shape(m),ajv(m));assert.equal(compileCodeLineExercise(m).status==='invalid_reference',n>2048);}
 });
 test('reference integrity rejects dangling IDs, duplicate IDs, cycles and unknown scopes',()=>{

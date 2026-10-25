@@ -30,11 +30,22 @@ def select(page,url,exercise,fill=False):
     page.locator('[data-task="'+exercise['id']+'"]').click()
     if fill:page.locator('[data-all]').click()
     page.evaluate("window.__drag=[];for(const type of ['dragstart','pointercancel','dragover','drop','dragend'])document.addEventListener(type,e=>window.__drag.push({type,prevented:e.defaultPrevented,caret:!!document.querySelector('.insert-caret')}));")
-def rotated(exercise,before):
-    indices=[i for i,line in enumerate(exercise['lines']) if not line['fixed']]
+def rotated(exercise,before,upto=None):
+    indices=[i for i,line in enumerate(exercise['lines']) if not line['fixed'] and (upto is None or i<=upto)]
     movable=[before[i] for i in indices];expected=before[:]
     for i,value in zip(indices,movable[1:]+movable[:1]):expected[i]=value
     return expected
+
+def last_visible(page,rows):
+    """Farthest draggable row visible together with the first one; long tasks
+    would otherwise need edge auto-scroll, which a single drag_to cannot do."""
+    page.locator('.solution-zone').evaluate('(zone)=>{zone.scrollTop=0}')
+    # Stay clear of the 27 px edge band where the drag adapter auto-scrolls.
+    zone=page.locator('.solution-zone').bounding_box();bottom=min(zone['y']+zone['height'],page.viewport_size['height'])-40
+    for i in range(rows.count()-1,-1,-1):
+        box=rows.nth(i).bounding_box()
+        if box and box['y']+box['height']<=bottom:return rows.nth(i),int(rows.nth(i).get_attribute('data-index'))
+    raise AssertionError('No visible draggable row')
 
 def pointer_drag(page,source,target,unrelated_cancel=False,fraction=.85):
     source.scroll_into_view_if_needed();start=source.bounding_box();end=target.bounding_box()
@@ -65,7 +76,7 @@ try:
                             before=identities(page);pool=identities(page,'source')
                             if origin=='answer':
                                 rows=page.locator('.solution-zone .code-row[draggable="true"]')
-                                source_row=rows.first;target_row=rows.last;expected=rotated(exercise,before)
+                                source_row=rows.first;target_row,upto=last_visible(page,rows);expected=rotated(exercise,before,upto)
                             else:
                                 source_row=page.locator('.source-zone .code-row').first
                                 target_row=page.locator('.solution-zone .blank-row').first
@@ -87,13 +98,14 @@ try:
                 exercise=exercises[0]
                 select(page,url,exercise,fill=True);before=identities(page)
                 rows=page.locator('.solution-zone .code-row[draggable="true"]')
-                pointer_drag(page,rows.first.locator('.drag-handle'),rows.last.locator('.gutter'),unrelated_cancel=True)
-                assert identities(page)==rotated(exercise,before)
+                target_row,upto=last_visible(page,rows)
+                pointer_drag(page,rows.first.locator('.drag-handle'),target_row.locator('.gutter'),unrelated_cancel=True)
+                assert identities(page)==rotated(exercise,before,upto)
                 count+=1;print(f'PASS drag: {mode} unrelated pointercancel preserves owned mouse drag',flush=True)
                 touch_context=browser.new_context(viewport={'width':1500,'height':1000},has_touch=True)
                 try:
                     touch_page=touch_context.new_page();select(touch_page,url,exercise,fill=True);before=identities(touch_page)
-                    rows=touch_page.locator('.solution-zone .code-row[draggable="true"]');start=rows.first.locator('.drag-handle').bounding_box();end=rows.last.locator('.gutter').bounding_box()
+                    rows=touch_page.locator('.solution-zone .code-row[draggable="true"]');target_row,upto=last_visible(touch_page,rows);start=rows.first.locator('.drag-handle').bounding_box();end=target_row.locator('.gutter').bounding_box()
                     cdp=touch_context.new_cdp_session(touch_page);x=start['x']+start['width']/2;y=start['y']+start['height']/2
                     cdp.send('Input.dispatchTouchEvent',{'type':'touchStart','touchPoints':[{'x':x,'y':y,'id':1}]})
                     cdp.send('Input.dispatchTouchEvent',{'type':'touchMove','touchPoints':[{'x':end['x']+5,'y':end['y']+end['height']*.85,'id':1}]})
@@ -101,8 +113,9 @@ try:
                     cdp.send('Input.dispatchTouchEvent',{'type':'touchCancel','touchPoints':[]});cdp.detach()
                     expect(touch_page.locator('.insert-caret')).to_have_count(0);assert identities(touch_page)==before
                     rows=touch_page.locator('.solution-zone .code-row[draggable="true"]')
-                    rows.first.locator('.code-text').drag_to(rows.last.locator('.gutter'),target_position={'x':5,'y':23})
-                    assert identities(touch_page)==rotated(exercise,before)
+                    target_row,upto=last_visible(touch_page,rows)
+                    rows.first.locator('.code-text').drag_to(target_row.locator('.gutter'),target_position={'x':5,'y':23})
+                    assert identities(touch_page)==rotated(exercise,before,upto)
                 finally:touch_context.close()
                 count+=1;print(f'PASS drag: {mode} actual touchcancel cancels only its own gesture; native dragging still works',flush=True)
             assert not errors,errors
