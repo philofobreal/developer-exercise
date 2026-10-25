@@ -11,10 +11,12 @@ const distRoot=path.join(root,'dist');
 await cp(distRoot,path.join(out,'dist'),{recursive:true,filter:source=>path.relative(distRoot,source).split(path.sep)[0]!=='python'});
 await cp(path.join(root,'src/author'),path.join(out,'author'),{recursive:true});
 // Source generator is two directories below the root; the static author folder is one.
-const generatorPath=path.join(out,'author/generator.mjs');
-const generator=await readFile(generatorPath,'utf8');
-if(!generator.includes('../../dist/author/type-member-ordering.js'))throw Error('Typed member projection packaging path changed.');
-await writeFile(generatorPath,generator.replace('../../dist/author/type-member-ordering.js','../dist/author/type-member-ordering.js'));
+// Only the explicit typed-author wiring (ADR-007/ADR-008) is re-rooted.
+for(const [file,modules] of [['generator.mjs',['type-member-ordering.js','statement-ordering.js']],['languages.mjs',['statement-ordering.js']]]){
+ const target=path.join(out,'author',file);let text=await readFile(target,'utf8');
+ for(const module of modules){if(!text.includes('../../dist/author/'+module))throw Error(`Typed author packaging path changed: ${file} -> ${module}`);text=text.replace('../../dist/author/'+module,'../dist/author/'+module);}
+ await writeFile(target,text);
+}
 await cp(path.join(root,'examples'),path.join(out,'examples'),{recursive:true});
 const names=(await readdir(path.join(root,'examples'))).filter(n=>n.endsWith('.json')).sort();
 await writeFile(path.join(out,'examples','manifest.json'),JSON.stringify(names,null,2)+'\n');

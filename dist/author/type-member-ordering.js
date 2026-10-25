@@ -7,7 +7,18 @@ export function typeMemberOrdering(file, compiler) {
         if (!('name' in node))
             return undefined;
         const key = node.name;
-        return key && (compiler.isIdentifier(key) || compiler.isStringLiteral(key)) ? key.text : undefined;
+        return key && (compiler.isIdentifier(key) || compiler.isStringLiteral(key)) ? key.text : compiler.isConstructorDeclaration(node) ? 'constructor' : undefined;
+    };
+    const definitionModifiers = new Set([compiler.SyntaxKind.PublicKeyword, compiler.SyntaxKind.ProtectedKeyword, compiler.SyntaxKind.PrivateKeyword, compiler.SyntaxKind.StaticKeyword, compiler.SyntaxKind.OverrideKeyword, compiler.SyntaxKind.AbstractKeyword, compiler.SyntaxKind.AsyncKeyword]);
+    /** A whole method/accessor/constructor that owns its rows: one row, or `{` on the first and `}` on the last row. */
+    const definitionRows = (member) => {
+        const body = member.body, row = first(member), end = last(member);
+        if (row === end)
+            return physical[row]?.trim() === member.getText(file).trim();
+        if (!body)
+            return false;
+        const children = body.getChildren(file), open = children.find(child => child.kind === compiler.SyntaxKind.OpenBraceToken), close = children.filter(child => child.kind === compiler.SyntaxKind.CloseBraceToken).at(-1);
+        return !!open && !!close && first(open) === row && first(close) === end && physical[row]?.trim() === file.text.slice(member.getStart(file), open.end).trim() && physical[end]?.trim() === file.text.slice(close.getStart(file), member.end).trim();
     };
     function visit(node) {
         if (compiler.isInterfaceDeclaration(node) || compiler.isTypeLiteralNode(node) || compiler.isClassLike(node)) {
@@ -31,22 +42,29 @@ export function typeMemberOrdering(file, compiler) {
                 // Trivia on the previous member's physical row belongs to that member.
                 const triviaStart = fullRow < row ? file.getPositionOfLineAndCharacter(fullRow + 1, 0) : fullStart;
                 const leadingComment = !!file.text.slice(triviaStart, member.getStart(file)).trim();
-                return { first: row, last: end, pure: erased && simpleModifiers && !decorated && !leadingComment && key !== undefined && counts.get(key) === 1 && row === end && physical[row]?.trim() === member.getText(file).trim() };
+                const distinct = !decorated && !leadingComment && key !== undefined && counts.get(key) === 1;
+                const definition = isClass && (compiler.isMethodDeclaration(member) || compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member) || compiler.isConstructorDeclaration(member)) && (!!member.body || !!modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.AbstractKeyword)) && (modifiers ?? []).every(modifier => definitionModifiers.has(modifier.kind)) && distinct && definitionRows(member);
+                return { first: row, last: end, pure: erased && simpleModifiers && distinct && row === end && physical[row]?.trim() === member.getText(file).trim(), free: definition };
             });
             // No edits on shared physical boundaries. Comments remain opaque barriers.
             if (open && close && members.every((member, i) => member.first > first(open) && member.last < first(close) && (!i || members[i - 1].last < member.first))) {
-                const units = [];
+                const units = [], free = [];
                 let cursor = first(open) + 1;
                 for (const member of members) {
                     for (; cursor < member.first; cursor++)
                         if (physical[cursor]?.trim())
                             units.push({ first: cursor, last: cursor, pure: false });
-                    units.push(member);
+                    (member.free ? free : units).push(member);
                     cursor = member.last + 1;
                 }
                 for (; cursor < first(close); cursor++)
                     if (physical[cursor]?.trim())
                         units.push({ first: cursor, last: cursor, pure: false });
+                // Definitions only need the class open; the remaining units keep their own order,
+                // wired explicitly so that no barrier inherits a definition's row as predecessor.
+                const wired = new Set();
+                for (const member of free)
+                    entries.push({ row: member.first, after: [first(open)] });
                 for (let start = 0; start < units.length;) {
                     if (!units[start].pure) {
                         start++;
@@ -57,17 +75,23 @@ export function typeMemberOrdering(file, compiler) {
                         end++;
                     if (end - start > 1) {
                         const previous = start ? units[start - 1].last : first(open), run = units.slice(start, end);
-                        for (const member of run)
+                        for (const member of run) {
                             entries.push({ row: member.first, after: [previous] });
+                            wired.add(member.first);
+                        }
                         entries.push({ row: units[end]?.first ?? first(close), after: run.map(member => member.last) });
+                        wired.add(units[end]?.first ?? first(close));
                     }
                     start = end;
                 }
+                if (free.length)
+                    units.forEach((unit, i) => { if (!wired.has(unit.first))
+                        entries.push({ row: unit.first, after: [i ? units[i - 1].last : first(open)] }); });
             }
         }
         compiler.forEachChild(node, visit);
     }
     visit(file);
-    return { entries, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők és declare osztálymezők felcserélhetők. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : '' };
+    return { entries, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők és declare osztálymezők felcserélhetők. Az egyedi nevű metódusok, accessorok és a constructor definíciók, így az osztálytörzsön belül bárhol állhatnak. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : '' };
 }
 //# sourceMappingURL=type-member-ordering.js.map

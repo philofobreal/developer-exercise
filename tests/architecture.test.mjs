@@ -37,3 +37,11 @@ test('only the legacy generator may wire the typed type-member projection',()=>{
  assert.ok(inspectModule('src/author/another.mjs',source).some(error=>error.rule==='author-boundary'));
  assert.deepEqual(inspectModule('src/author/type-member-ordering.ts',"import type ts from 'typescript';"),[]);
 });
+
+test('only the generator and the language registry may wire the typed statement-ordering analysis',()=>{
+ const source="import {statementOrdering} from '../../dist/author/statement-ordering.js';";
+ for(const file of ['src/author/generator.mjs','src/author/languages.mjs'])assert.deepEqual(inspectModule(file,source),[]);
+ for(const file of ['src/author/audit.mjs','src/author/dependency-analysis.mjs','src/author/another.mjs'])assert.ok(inspectModule(file,source).length,file);
+ assert.ok(inspectModule('src/author/languages.mjs',"import {typeMemberOrdering} from '../../dist/author/type-member-ordering.js';").some(error=>error.rule==='author-boundary'));
+ assert.deepEqual(inspectModule('src/author/statement-ordering.ts',"import type ts from 'typescript';"),[]);
+});

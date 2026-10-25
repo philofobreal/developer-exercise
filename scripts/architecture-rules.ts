@@ -2,6 +2,7 @@
 import ts from 'typescript';
 import path from 'node:path';
 export interface Violation {file:string;rule:string;message:string;}
+const typedAuthorWiring=new Set(['src/author/generator.mjs -> dist/author/type-member-ordering.js','src/author/generator.mjs -> dist/author/statement-ordering.js','src/author/languages.mjs -> dist/author/statement-ordering.js']);
 export function inspectModule(file:string,source:string):Violation[]{
  const out:Violation[]=[],normalized=file.replaceAll('\\','/'),generatedSchema=normalized==='src/core/schema-check.ts';
  const core=normalized.startsWith('src/core/'),ui=normalized.startsWith('src/workbench/'),author=normalized.startsWith('src/author/'),python=normalized.startsWith('src/python/');
@@ -13,7 +14,8 @@ export function inspectModule(file:string,source:string):Violation[]{
   if(core&&!resolved.startsWith('src/core/'))report('core-boundary','Core must remain independent of browser, author, transport and Node libraries: '+specifier);
   if(ui&&!(resolved.startsWith('src/workbench/')||specifier==='../formatter.js'||typeOnly&&resolved.startsWith('dist/')))report('presentation-boundary','Presentation may use only its own modules, explicit formatter port and domain types: '+specifier);
   const authorEngine=normalized==='src/author/engine.ts'&&resolved==='dist/index.js';
-  const typedMemberProjection=normalized==='src/author/generator.mjs'&&resolved==='dist/author/type-member-ordering.js';
+  // Explicit ADR-007/ADR-008 migration wiring: legacy author MJS → compiled typed author modules.
+  const typedMemberProjection=typedAuthorWiring.has(normalized+' -> '+resolved);
   if(author&&!(resolved.startsWith('src/author/')||authorEngine||typedMemberProjection||typeOnly&&(resolved.startsWith('src/core/')||resolved.startsWith('dist/')||specifier==='typescript')))report('author-boundary','Author algorithms must remain browser-safe and infrastructure independent: '+specifier);
   if(!python&&(resolved.startsWith('src/python/')||resolved.startsWith('dist/python/')||specifier==='pyodide'))report('python-isolation','Python runtime is currently author-probe infrastructure only; product and learner paths must not import it.');
   const nodePython=['src/python/node-parser.ts','src/python/node-worker.ts'].includes(normalized);

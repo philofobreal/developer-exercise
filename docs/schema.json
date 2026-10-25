@@ -148,7 +148,8 @@
           "enum": [
             "primitive-const-islands-v1",
             "scoped-primitive-dag-v2",
-            "scoped-type-members-v3"
+            "scoped-type-members-v3",
+            "scoped-effect-analysis-v4"
           ]
         }
       }

@@ -156,7 +156,7 @@
     "reason": "shared-physical-boundaries",
     "omittedBlocks": 2,
     "semanticEquivalenceProven": false,
-    "dependencyPolicy": "scoped-primitive-dag-v2",
+    "dependencyPolicy": "scoped-effect-analysis-v4",
     "dependencyHints": [
       {
         "name": "flag",

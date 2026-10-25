@@ -20,9 +20,7 @@
       "id": 2,
       "sourceLine": 2,
       "code": "class Setters {",
-      "dependencies": [
-        1
-      ],
+      "dependencies": [],
       "fixed": false,
       "functionBlock": 0,
       "scopeId": null,
@@ -45,7 +43,7 @@
       "sourceLine": 4,
       "code": "  set second(value: number) { trace.push(\"second:\" + value); }",
       "dependencies": [
-        3
+        2
       ],
       "fixed": false,
       "functionBlock": 0,
@@ -57,7 +55,7 @@
       "sourceLine": 5,
       "code": "  constructor() {",
       "dependencies": [
-        4
+        2
       ],
       "fixed": false,
       "functionBlock": 1,
@@ -117,6 +115,7 @@
       "sourceLine": 10,
       "code": "const value = new Setters();",
       "dependencies": [
+        1,
         9
       ],
       "fixed": false,
@@ -149,8 +148,8 @@
     "reason": "",
     "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
-    "dependencyPolicy": "scoped-primitive-dag-v2",
-    "note": "A külön nevű, egysoros interface-/típusadatmezők és declare osztálymezők felcserélhetők. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.",
+    "dependencyPolicy": "scoped-effect-analysis-v4",
+    "note": "A külön nevű, egysoros interface-/típusadatmezők és declare osztálymezők felcserélhetők. Az egyedi nevű metódusok, accessorok és a constructor definíciók, így az osztálytörzsön belül bárhol állhatnak. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.",
     "dependencyHints": [
       {
         "name": "trace",

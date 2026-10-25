@@ -5,7 +5,7 @@
 import {parse as parseJavaScript} from './vendor/acorn.mjs';
 import {AuthoringError} from './errors.mjs';
 import {bindingChecker,declarationGroups} from './dependency-analysis.mjs';
-import {statementOrdering} from './statement-ordering.mjs';
+import {statementOrdering} from '../../dist/author/statement-ordering.js';
 import {formatTypedSource} from './ts-format.mjs';
 const registry=new Map();
 export function registerLanguageAdapter(id,adapter){

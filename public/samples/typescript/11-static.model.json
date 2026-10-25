@@ -93,8 +93,8 @@
     "reason": "",
     "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
-    "dependencyPolicy": "scoped-primitive-dag-v2",
-    "note": "A külön nevű, egysoros interface-/típusadatmezők és declare osztálymezők felcserélhetők. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.",
+    "dependencyPolicy": "scoped-effect-analysis-v4",
+    "note": "A külön nevű, egysoros interface-/típusadatmezők és declare osztálymezők felcserélhetők. Az egyedi nevű metódusok, accessorok és a constructor definíciók, így az osztálytörzsön belül bárhol állhatnak. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.",
     "dependencyHints": [
       {
         "name": "trace",

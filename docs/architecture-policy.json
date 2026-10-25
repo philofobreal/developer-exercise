@@ -18,7 +18,6 @@
     "src/author/errors.mjs",
     "src/author/generator.mjs",
     "src/author/languages.mjs",
-    "src/author/statement-ordering.mjs",
     "src/author/ts-format.mjs",
     "src/server/catalog.mjs",
     "src/server/http.mjs",

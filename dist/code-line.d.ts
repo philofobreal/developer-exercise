@@ -55,7 +55,7 @@ export interface CodeLineExercise {
         note?: string;
         omittedBlocks?: number;
         semanticEquivalenceProven?: false;
-        dependencyPolicy?: 'primitive-const-islands-v1' | 'scoped-primitive-dag-v2' | 'scoped-type-members-v3';
+        dependencyPolicy?: 'primitive-const-islands-v1' | 'scoped-primitive-dag-v2' | 'scoped-type-members-v3' | 'scoped-effect-analysis-v4';
         dependencyHints?: {
             name: string;
             declarationLine: number;

@@ -11,7 +11,8 @@ const make=(code,language='javascript')=>generateCodeLineExercise({source:code,l
 const check=(model,lines)=>{const compiled=compileCodeLineExercise(model);assert.equal('status' in compiled,false,compiled.message);return validateSubmission(compiled.compiled,{exerciseId:model.id,revision:model.revision,lines});};
 test('user authored JS source creates serial dependencies, function and nested block',()=>{
 const m=make(`function sum(arr) {\n  let total = 0;\n  for (const x of arr) {\n    total += x;\n  }\n  return total;\n}`);
-assert.equal(m.lines.length,7);assert.deepEqual(m.lines.map(x=>x.dependencies),[[],[1],[2],[3],[4],[5],[6]]);
+// The serial order is unchanged; return additionally lists its value input `let total` (ADR-008 retained read edge).
+assert.equal(m.lines.length,7);assert.deepEqual(m.lines.map(x=>x.dependencies),[[],[1],[2],[3],[4],[2,5],[6]]);
 assert.equal(m.blocks.length,2);assert.deepEqual(m.blocks.map(b=>b.kind),['function','block']);assert.equal(m.lines[3].scopeId,m.blocks[1].id);
 assert.equal(check(m,m.lines.map(x=>x.code)).status,'accepted');
 const swapped=m.lines.map(x=>x.code);[swapped[4],swapped[6]]=[swapped[6],swapped[4]];

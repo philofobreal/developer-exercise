@@ -11,6 +11,7 @@ import ts from 'typescript';
 import {generateCodeLineExercise} from '../src/author/generator.mjs';
 import {auditReference} from '../src/author/audit.mjs';
 import {compileCodeLineExercise,validateSubmission} from '../dist/index.js';
+import {corpus} from './fixtures/ordering-corpus.mjs';
 
 const permutations=items=>items.length<2?[items]:items.flatMap((value,i)=>permutations(items.filter((_,j)=>i!==j)).map(rest=>[value,...rest]));
 const range=(from,to)=>Array.from({length:to-from+1},(_,i)=>from+i);
@@ -24,8 +25,10 @@ const codes=(model,order)=>order.map(id=>model.lines.find(line=>line.id===id).co
 
 // Runtime probe. TypeScript is transpiled with both class-field semantics.
 function outcome(code,language,probe){
- const run=js=>{try{return new Script('"use strict";\nfunction record(...args) { trace.push(args); }\n'+js+'\n;JSON.stringify('+probe+');',{filename:'fixed-fixture.js'}).runInContext(createContext({trace:[]}),{timeout:100});}
+ // A timeout is confirmed with a longer budget so machine load cannot fake one.
+ const attempt=(js,timeout)=>{try{return new Script('"use strict";\nfunction record(...args) { trace.push(args); }\n'+js+'\n;JSON.stringify('+probe+');',{filename:'fixed-fixture.js'}).runInContext(createContext({trace:[]}),{timeout});}
   catch(error){return 'throws:'+(error?.code==='ERR_SCRIPT_EXECUTION_TIMEOUT'?'timeout':error?.name);}};
+ const run=js=>{const first=attempt(js,250);return first==='throws:timeout'?attempt(js,2000):first;};
  if(language!=='typescript')return run(code);
  return [false,true].map(define=>{
   const output=ts.transpileModule(code,{reportDiagnostics:true,compilerOptions:{target:ts.ScriptTarget.ES2022,useDefineForClassFields:define}});
@@ -45,8 +48,7 @@ function oracle(model,probe){
  * ------------------------------------------------------------------------- */
 const record='({value: evaluate(), trace})';
 const scenarios=[
- {name:'külső konstans és ciklusmag',language:'javascript',source:[
-  'function evaluate() {','  const limit = 3;','  const step = 2;','  let total = 0;','  for (let i = 0; i < limit; i++) {','    const scaled = i * step;','    total += scaled;','  }','  return total;','}'],
+ {name:'külső konstans és ciklusmag',language:'javascript',source:corpus.get('scope-outer-const-loop').source,
   variants:[
    ...permutations([2,3,4]).slice(1).map(p=>({name:'kezdeti deklarációk sorrendje '+p.join(','),order:o=>place(o,[2,3,4],p),status:'accepted',equivalent:true})),
    {name:'külső konstans (step) eggyel beljebb, a ciklusmagba a használat elé',order:o=>moveBefore(o,3,6),status:'rejected',equivalent:true},
@@ -56,8 +58,7 @@ const scenarios=[
    {name:'step a ciklus után (TDZ)',order:o=>moveAfter(o,3,8),status:'rejected',equivalent:false},
    {name:'használat a deklaráció előtt ugyanabban a scope-ban',order:o=>swap(o,6,7),status:'rejected',equivalent:false},
    {name:'return a ciklusmagba',order:o=>moveBefore(o,9,8),status:'rejected',equivalent:false}]},
- {name:'háromszintű blokkok és árnyékolás',language:'javascript',source:[
-  'function evaluate() {','  const base = 10;',"  const label = 'outer';",'  {',"    const label = 'inner';",'    const offset = base + 1;','    {','      const scaled = offset * 2;','      const shifted = offset + 2;','      record(label, scaled, shifted);','    }','  }','  return label;','}'],probe:record,
+ {name:'háromszintű blokkok és árnyékolás',language:'javascript',source:corpus.get('scope-three-levels-shadowing').source,probe:record,
   variants:[
    {name:'külső deklarációk cseréje',order:o=>swap(o,2,3),status:'accepted',equivalent:true},
    {name:'középső szint: árnyékoló label és offset cseréje',order:o=>swap(o,5,6),status:'accepted',equivalent:true},
@@ -69,88 +70,75 @@ const scenarios=[
    {name:'base a legbelső blokkba',order:o=>moveBefore(o,2,8),status:'rejected',equivalent:false},
    {name:'árnyékoló label a külső scope-ba (duplikált deklaráció)',order:o=>moveBefore(o,5,4),status:'rejected',equivalent:false},
    {name:'record a deklarációk elé',order:o=>moveBefore(o,10,8),status:'rejected',equivalent:false}]},
- {name:'var és függvény-hoisting',language:'javascript',source:[
-  'function evaluate() {','  var count = 0;','  for (var i = 0; i < 3; i++) {','    count += helper(i);','  }','  function helper(value) {','    return value * 10;','  }','  return count + i;','}'],
+ {name:'var és függvény-hoisting',language:'javascript',source:corpus.get('hoisting-var-function').source,
   variants:[
-   {name:'belső függvénydeklaráció a használat elé',order:o=>moveBefore(o,range(6,8),2),status:'rejected',equivalent:true},
-   {name:'return a hoistolt függvénydeklaráció elé',order:o=>moveBefore(o,9,6),status:'rejected',equivalent:true},
+   {name:'belső függvénydeklaráció a használat elé',order:o=>moveBefore(o,range(6,8),2),status:'accepted',equivalent:true},
+   {name:'return a hoistolt függvénydeklaráció elé',order:o=>moveBefore(o,9,6),status:'accepted',equivalent:true},
    {name:'var count a ciklus után',order:o=>moveBefore(o,2,9),status:'rejected',equivalent:false},
    {name:'var count a ciklusmagba',order:o=>moveBefore(o,2,4),status:'rejected',equivalent:false}]},
- {name:'felső szintű függvények',language:'javascript',source:[
-  'function double(value) {','  return value * 2;','}','function evaluate() {','  return double(21);','}'],
+ {name:'felső szintű függvények',language:'javascript',source:corpus.get('top-level-functions').source,
   variants:[
-   {name:'a két függvénydeklaráció cseréje',order:o=>moveBefore(o,range(4,6),1),status:'rejected',equivalent:true},
+   {name:'a két függvénydeklaráció cseréje',order:o=>moveBefore(o,range(4,6),1),status:'accepted',equivalent:true},
    {name:'a két függvénytörzs cseréje',order:o=>swap(o,2,5),status:'rejected',equivalent:false}]},
- {name:'closure és késleltetett olvasás',language:'javascript',source:[
-  'function makeCounter(step) {','  let count = 0;','  const increment = () => {','    count += step;','    return count;','  };','  return increment;','}','function evaluate() {','  const counter = makeCounter(5);','  counter();','  return counter();','}'],
+ {name:'closure és késleltetett olvasás',language:'javascript',source:corpus.get('closure-deferred-read').source,
   variants:[
-   {name:'let count a closure definíciója után',order:o=>moveBefore(o,2,7),status:'rejected',equivalent:true},
+   {name:'let count a closure definíciója után',order:o=>moveBefore(o,2,7),status:'accepted',equivalent:true},
    {name:'let count a closure törzsébe',order:o=>moveBefore(o,2,4),status:'rejected',equivalent:false},
    {name:'let count a return után',order:o=>moveAfter(o,2,7),status:'rejected',equivalent:false},
    {name:'hívás és return cseréje',order:o=>swap(o,11,12),status:'rejected',equivalent:false}]},
- {name:'else if lánc megosztott } else { határokkal',language:'javascript',source:[
-  'function classify(n) {','  const big = 10;','  const huge = 100;','  let label;','  if (n > huge) {',"    label = 'huge';",'  } else if (n > big) {',"    label = 'big';",'  } else {',"    label = 'small';",'  }','  return label;','}','function evaluate() {','  return [5, 50, 500].map(classify);','}'],
+ {name:'else if lánc megosztott } else { határokkal',language:'javascript',source:corpus.get('else-if-shared-boundaries').source,
   variants:[
    {name:'konstansok cseréje',order:o=>swap(o,2,3),status:'accepted',equivalent:true},
-   {name:'let label a konstansok elé',order:o=>moveBefore(o,4,2),status:'rejected',equivalent:true},
+   {name:'let label a konstansok elé',order:o=>moveBefore(o,4,2),status:'accepted',equivalent:true},
    {name:'két ág törzsének cseréje',order:o=>swap(o,6,8),status:'rejected',equivalent:false},
    {name:'big az else-if ágba',order:o=>moveBefore(o,2,8),status:'rejected',equivalent:false},
    {name:'let label az első ágba',order:o=>moveBefore(o,4,6),status:'rejected',equivalent:false}]},
- {name:'címkézett ciklusok, continue és break',language:'javascript',source:[
-  'function evaluate() {','  const found = [];','  outer: for (let i = 0; i < 4; i++) {','    for (let j = 0; j < 4; j++) {','      if (j > i) {','        continue outer;','      }','      if (i + j === 5) {','        break outer;','      }','      found.push(i * 10 + j);','    }','  }','  return found;','}'],
+ {name:'címkézett ciklusok, continue és break',language:'javascript',source:corpus.get('labelled-loops').source,
   variants:[
    {name:'a continue és break feltétel cseréje',order:o=>moveBefore(o,range(8,10),5),status:'rejected',equivalent:false},
    {name:'push a feltételek elé',order:o=>moveBefore(o,11,5),status:'rejected',equivalent:false},
    {name:'found a külső ciklusba',order:o=>moveBefore(o,2,4),status:'rejected',equivalent:false}]},
- {name:'try/catch/finally és switch',language:'javascript',source:[
-  'function evaluate() {','  const log = [];',"  for (const value of [1, 'x', 3]) {",'    try {',"      if (typeof value !== 'number') {","        throw new TypeError('bad ' + value);",'      }','      log.push(value * 2);','    } catch (error) {','      log.push(error.message);','    } finally {',"      log.push('done');",'    }','    switch (value) {','      case 1:',"        log.push('one');",'        break;','      default:',"        log.push('other');",'    }','  }','  return log;','}'],
+ {name:'try/catch/finally és switch',language:'javascript',source:corpus.get('try-finally-switch').source,
   variants:[
    {name:'catch és finally törzsének cseréje',order:o=>swap(o,10,12),status:'rejected',equivalent:false},
    {name:'push a típusellenőrzés elé',order:o=>moveBefore(o,8,5),status:'rejected',equivalent:false},
    {name:'break a case törzse elé',order:o=>swap(o,16,17),status:'rejected',equivalent:false},
    {name:'switch blokk a try elé',order:o=>moveBefore(o,range(14,20),4),status:'rejected',equivalent:false}]},
- {name:'destrukturálás, objektum és template literál',language:'javascript',source:[
-  'function evaluate() {','  const point = { x: 3, y: 4 };','  const scale = 2;','  const { x, y } = point;','  const label = `${x}:${y}`;','  return [label, x * scale, y * scale];','}'],
+ {name:'destrukturálás, objektum és template literál',language:'javascript',source:corpus.get('destructuring-object-template').source,
   variants:[
-   {name:'objektumliterál és primitív konstans cseréje',order:o=>swap(o,2,3),status:'rejected',equivalent:true},
+   {name:'objektumliterál és primitív konstans cseréje',order:o=>swap(o,2,3),status:'accepted',equivalent:true},
    {name:'primitív konstans és destrukturálás cseréje',order:o=>swap(o,3,4),status:'rejected',equivalent:true},
    {name:'template a destrukturálás elé',order:o=>swap(o,4,5),status:'rejected',equivalent:false},
    {name:'scale a return után',order:o=>moveAfter(o,3,6),status:'rejected',equivalent:false}]},
- {name:'JavaScript osztály: mezők és metódusok',language:'javascript',source:[
-  'class Counter {','  count = 0;','  step = this.count + 1;','  increment() {','    this.count += this.step;','    return this.count;','  }','  reset() {','    this.count = 0;','  }','}','function evaluate() {','  const counter = new Counter();','  counter.increment();','  const second = counter.increment();','  counter.reset();','  return [second, counter.count, Object.keys(counter)];','}'],
+ {name:'JavaScript osztály: mezők és metódusok',language:'javascript',source:corpus.get('js-class-fields-methods').source,
   variants:[
    {name:'egymásra hivatkozó mezőinicializálók cseréje',order:o=>swap(o,2,3),status:'rejected',equivalent:false},
-   {name:'metódusok cseréje',order:o=>moveBefore(o,range(8,10),4),status:'rejected',equivalent:true},
-   {name:'osztálydeklaráció a később hívott függvény után',order:o=>moveAfter(o,range(1,11),18),status:'rejected',equivalent:true},
+   {name:'metódusok cseréje',order:o=>moveBefore(o,range(8,10),4),status:'accepted',equivalent:true},
+   {name:'osztálydeklaráció a később hívott függvény után',order:o=>moveAfter(o,range(1,11),18),status:'accepted',equivalent:true},
    {name:'reset a második increment elé',order:o=>swap(o,15,16),status:'rejected',equivalent:false}]},
- {name:'TypeScript interface és típusliterál',language:'typescript',source:[
-  'interface Point {','  x: number;','  y: number;','  label?: string;','}','type Pair = {','  left: Point;','  right: Point;','};','function evaluate(): string {','  const a: Point = { x: 1, y: 2 };',"  const pair: Pair = { left: a, right: { x: 3, y: 4, label: 'b' } };",'  return JSON.stringify(pair);','}'],
+ {name:'TypeScript interface és típusliterál',language:'typescript',source:corpus.get('ts-interface-type-literal').source,
   variants:[
    ...permutations([2,3,4]).slice(1).map(p=>({name:'interface-tagok sorrendje '+p.join(','),order:o=>place(o,[2,3,4],p),status:'accepted',equivalent:true})),
    {name:'típusliterál tagjainak cseréje',order:o=>swap(o,7,8),status:'accepted',equivalent:true},
-   {name:'interface és type alias cseréje',order:o=>moveBefore(o,range(6,9),1),status:'rejected',equivalent:true},
-   {name:'függvény a típusdeklarációk elé',order:o=>moveBefore(o,range(10,14),1),status:'rejected',equivalent:true},
+   {name:'interface és type alias cseréje',order:o=>moveBefore(o,range(6,9),1),status:'accepted',equivalent:true},
+   {name:'függvény a típusdeklarációk elé',order:o=>moveBefore(o,range(10,14),1),status:'accepted',equivalent:true},
    {name:'tag áthelyezése a másik típusba',order:o=>moveBefore(o,3,8),status:'rejected',equivalent:true},
    {name:'egymásra hivatkozó konstansok cseréje',order:o=>swap(o,11,12),status:'rejected',equivalent:false}]},
- {name:'TypeScript enum',language:'typescript',source:[
-  'enum Level {','  Low,','  Medium,','  High,','}','function evaluate(): number[] {','  return [Level.Low, Level.Medium, Level.High];','}'],
+ {name:'TypeScript enum',language:'typescript',source:corpus.get('ts-enum').source,
   variants:[
    {name:'automatikus értékű enum-tagok cseréje',order:o=>swap(o,2,3),status:'rejected',equivalent:false},
-   {name:'függvény az enum elé',order:o=>moveBefore(o,range(6,8),1),status:'rejected',equivalent:true}]},
- {name:'TypeScript mezők, declare, paraméterproperty',language:'typescript',source:[
-  'class Config {','  readonly base: number = 2;','  readonly doubled: number = this.base * 2;','  declare readonly tag?: string;','  constructor(readonly name: string) {}','  describe(): string {',"    return this.name + '=' + this.doubled;",'  }','}','function evaluate(): string[] {',"  const config = new Config('cfg');","  return [config.describe(), Object.keys(config).join(',')];",'}'],
+   {name:'függvény az enum elé',order:o=>moveBefore(o,range(6,8),1),status:'accepted',equivalent:true}]},
+ {name:'TypeScript mezők, declare, paraméterproperty',language:'typescript',source:corpus.get('ts-fields-declare-parameter-property').source,
   variants:[
    {name:'egymásra hivatkozó mezők cseréje',order:o=>swap(o,2,3),status:'rejected',equivalent:false},
    {name:'declare mező a futásidejű mezők elé',order:o=>moveBefore(o,4,2),status:'rejected',equivalent:true},
-   {name:'metódus a konstruktor elé',order:o=>moveBefore(o,range(6,8),5),status:'rejected',equivalent:true}]},
- {name:'TypeScript öröklés',language:'typescript',source:[
-  'class Shape {','  constructor(readonly name: string) {}','  area(): number {','    return 0;','  }','}','class Square extends Shape {','  constructor(private readonly side: number) {',"    super('square');",'  }','  area(): number {','    return this.side * this.side;','  }','}','function evaluate(): string {','  const shape: Shape = new Square(3);',"  return shape.name + ':' + shape.area();",'}'],
+   {name:'metódus a konstruktor elé',order:o=>moveBefore(o,range(6,8),5),status:'accepted',equivalent:true}]},
+ {name:'TypeScript öröklés',language:'typescript',source:corpus.get('ts-inheritance').source,
   variants:[
    {name:'leszármazott osztály az ős elé',order:o=>moveBefore(o,range(7,14),1),status:'rejected',equivalent:false},
-   {name:'felüldefiniált metódus a konstruktor elé',order:o=>moveBefore(o,range(11,13),8),status:'rejected',equivalent:true},
+   {name:'felüldefiniált metódus a konstruktor elé',order:o=>moveBefore(o,range(11,13),8),status:'accepted',equivalent:true},
    {name:'ős metódusának törzse a leszármazottba',order:o=>swap(o,4,12),status:'rejected',equivalent:false}]},
- {name:'TypeScript metódus: külső deklaráció és ciklus',language:'typescript',source:[
-  'class Stats {','  mean(values: number[]): number {','    const scale: number = 2;','    let sum = 0;','    for (const value of values) {','      sum += value * scale;','    }','    return values.length === 0 ? 0 : sum / values.length;','  }','}','function evaluate(): number[] {','  const stats = new Stats();','  return [stats.mean([1, 2, 3, 4]), stats.mean([])];','}'],
+ {name:'TypeScript metódus: külső deklaráció és ciklus',language:'typescript',source:corpus.get('ts-method-outer-declaration').source,
   variants:[
    {name:'típusannotált konstans és let cseréje',order:o=>swap(o,3,4),status:'accepted',equivalent:true},
    {name:'külső konstans eggyel beljebb, a ciklusmagba',order:o=>moveBefore(o,3,6),status:'rejected',equivalent:true},

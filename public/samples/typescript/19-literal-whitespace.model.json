@@ -74,7 +74,7 @@
     "reason": "",
     "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
-    "dependencyPolicy": "scoped-primitive-dag-v2",
+    "dependencyPolicy": "scoped-effect-analysis-v4",
     "dependencyHints": [
       {
         "name": "value",
