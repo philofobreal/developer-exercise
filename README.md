@@ -70,7 +70,7 @@ npm run test:browser:all
 
 Windows PowerShell alatt az aktiválás: `.\.venv\Scripts\Activate.ps1`; POSIX shellben: `. .venv/bin/activate`. Windows alatt a meglévő Chrome/Edge is használható. A `CHROMIUM` változóval konkrét böngészőútvonal adható meg. Linux CI-ban a workflow `playwright install --with-deps chromium` parancsot futtat.
 
-A böngészős kör valódi HTTP-alapú Node- és alútvonalon kiszolgált Pages-teszteket, valamint kiegészítő offline DOM-tesztet tartalmaz. A `npm run test:browser:drag` külön is futtatja az öt beépített példa valódi kódszöveg- és fogantyúhúzásait, továbbá a pointermegszakítás regresszióit (44 eset). Ez a kör a `test:browser:all` része is. Képernyőképek és Playwright trace: `test-results/`. A tesztek pontos értelmezése: [TypeScript- és tesztlefedettség](docs/ts-method-regression.md).
+A böngészős kör valódi HTTP-alapú Node- és alútvonalon kiszolgált Pages-teszteket, valamint kiegészítő offline DOM-tesztet tartalmaz. A `npm run test:browser:drag` külön is futtatja az öt beépített példa valódi kódszöveg- és fogantyúhúzásait, továbbá a pointermegszakítás regresszióit (44 eset). Ez a kör a `test:browser:all` része is. Képernyőképek és Playwright trace: `test-results/`. A tesztek pontos értelmezése: [TypeScript- és tesztlefedettség](docs/ts-method-regression.md). Az összetett algoritmusok, osztályok és scope-áthelyezések mátrixa: [JS/TS sorrend- és scope-mátrix](docs/complex-scope-ordering.md).
 
 ## Feladatkészítés, próba és preview
 
