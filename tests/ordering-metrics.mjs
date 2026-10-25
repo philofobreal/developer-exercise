@@ -1,13 +1,14 @@
 /** Manual runner: node tests/ordering-metrics.mjs [output.json]
  *                node tests/ordering-metrics.mjs --baseline
- * Measures the CURRENT generator on the fixed corpus and prints a Markdown table.
+ * Measures the CURRENT generator on the fixed corpus and prints Markdown tables:
+ * per fixture, totals for the whole corpus and for the WP6 reproduction subset,
+ * and the synthetic large references (generation and reference validation).
  * --baseline rewrites tests/fixtures/ordering-baseline.json, the pinned
  * completeness numbers of semantic-corpus.test.mjs; do it only deliberately
  * and review the diff (a lower gap count is an improvement, a higher one a regression). */
 import {writeFile} from 'node:fs/promises';
-import {performance} from 'node:perf_hooks';
 import {corpus} from './fixtures/ordering-corpus.mjs';
-import {measureFixture,generate,CORPUS_CAPS,pinned} from './support/ordering-metrics.mjs';
+import {measureFixture,CORPUS_CAPS,pinned,largeReferences,measureLarge} from './support/ordering-metrics.mjs';
 
 if(process.argv[2]==='--baseline'){
  const baseline=Object.fromEntries([...corpus.values()].map(fixture=>[fixture.id,pinned(measureFixture(fixture,CORPUS_CAPS))]));
@@ -15,13 +16,17 @@ if(process.argv[2]==='--baseline'){
  console.log('baseline written for',Object.keys(baseline).length,'fixtures');process.exit(0);
 }
 const rows=[...corpus.values()].map(fixture=>measureFixture(fixture));
-const big={id:'large-500',language:'javascript',source:['function large() {',...Array.from({length:498},(_,i)=>`  const value${i} = ${i};`),'}']};
-const started=performance.now();generate(big);const largeMs=+(performance.now()-started).toFixed(1);
-const sum=key=>rows.reduce((total,row)=>total+row[key],0);
-const totals={fixtures:rows.length,orders:sum('orders'),unsound:sum('unsound'),undecidedAccepted:sum('undecidedAccepted'),neighbours:sum('neighbours'),accepted:sum('accepted'),completenessGaps:sum('completenessGaps'),justifiedRejections:sum('justifiedRejections'),undecided:sum('undecided'),indeterminate:sum('indeterminate'),edges:sum('edges'),redundant:sum('redundant'),states:sum('states'),generationMs:+sum('generationMs').toFixed(1),largeMs};
+const large=Object.entries(largeReferences()).map(([name,source])=>measureLarge(name,source));
+const sum=(set,key)=>set.reduce((total,row)=>total+row[key],0);
+const summarise=set=>({fixtures:set.length,orders:sum(set,'orders'),unsound:sum(set,'unsound'),undecidedAccepted:sum(set,'undecidedAccepted'),neighbours:sum(set,'neighbours'),accepted:sum(set,'accepted'),completenessGaps:sum(set,'completenessGaps'),justifiedRejections:sum(set,'justifiedRejections'),undecided:sum(set,'undecided'),indeterminate:sum(set,'indeterminate'),
+ unsupportedFixtures:set.filter(row=>row.unsupported).length,unsupportedGaps:sum(set.filter(row=>row.unsupported),'completenessGaps'),edges:sum(set,'edges'),redundant:sum(set,'redundant'),redundantRatio:+(sum(set,'redundant')/sum(set,'edges')).toFixed(4),states:sum(set,'states'),generationMs:+sum(set,'generationMs').toFixed(1)});
+const totals={all:summarise(rows),core:summarise(rows.filter(row=>row.origin!=='wp6')),wp6:summarise(rows.filter(row=>row.origin==='wp6'))};
 console.log('| fixture | rows | edges | A(M) orders | unsound | neighbour accepted | gaps | justified |');
 console.log('| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |');
 for(const row of rows)console.log(`| ${row.id} | ${row.rows} | ${row.edges} | ${row.orders}${row.ordersExhaustive?'':' (sample)'} | ${row.unsound} | ${row.accepted} | ${row.completenessGaps} | ${row.justifiedRejections} |`);
 console.log(JSON.stringify(totals,null,1));
+console.log('| large shape | rows | edges | redundant | generation ms | reference states | validation ms |');
+console.log('| --- | ---: | ---: | ---: | ---: | ---: | ---: |');
+for(const row of large)console.log(`| ${row.shape} | ${row.rows} | ${row.edges} | ${row.redundant} | ${row.generationMs} | ${row.referenceStates} | ${row.validationMs} |`);
 for(const row of rows)if(row.unsound)console.log('UNSOUND',row.id,JSON.stringify(row.counterexamples));
-if(process.argv[2])await writeFile(process.argv[2],JSON.stringify({totals,rows},null,1)+'\n');
+if(process.argv[2])await writeFile(process.argv[2],JSON.stringify({totals,large,rows},null,1)+'\n');
