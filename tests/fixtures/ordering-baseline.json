@@ -1,0 +1,272 @@
+{
+ "scope-outer-const-loop": {
+  "neighbours": 117,
+  "accepted": 6,
+  "completenessGaps": 0,
+  "justifiedRejections": 111
+ },
+ "scope-three-levels-shadowing": {
+  "neighbours": 247,
+  "accepted": 7,
+  "completenessGaps": 0,
+  "justifiedRejections": 240
+ },
+ "hoisting-var-function": {
+  "neighbours": 115,
+  "accepted": 4,
+  "completenessGaps": 0,
+  "justifiedRejections": 111
+ },
+ "top-level-functions": {
+  "neighbours": 33,
+  "accepted": 1,
+  "completenessGaps": 0,
+  "justifiedRejections": 32
+ },
+ "closure-deferred-read": {
+  "neighbours": 208,
+  "accepted": 2,
+  "completenessGaps": 0,
+  "justifiedRejections": 206
+ },
+ "else-if-shared-boundaries": {
+  "neighbours": 328,
+  "accepted": 8,
+  "completenessGaps": 0,
+  "justifiedRejections": 320
+ },
+ "labelled-loops": {
+  "neighbours": 285,
+  "accepted": 10,
+  "completenessGaps": 0,
+  "justifiedRejections": 275
+ },
+ "try-finally-switch": {
+  "neighbours": 713,
+  "accepted": 10,
+  "completenessGaps": 0,
+  "justifiedRejections": 703
+ },
+ "destructuring-object-template": {
+  "neighbours": 51,
+  "accepted": 1,
+  "completenessGaps": 0,
+  "justifiedRejections": 50
+ },
+ "js-class-fields-methods": {
+  "neighbours": 420,
+  "accepted": 7,
+  "completenessGaps": 0,
+  "justifiedRejections": 413
+ },
+ "ts-interface-type-literal": {
+  "neighbours": 245,
+  "accepted": 7,
+  "completenessGaps": 0,
+  "justifiedRejections": 238
+ },
+ "ts-enum": {
+  "neighbours": 68,
+  "accepted": 1,
+  "completenessGaps": 0,
+  "justifiedRejections": 67
+ },
+ "ts-fields-declare-parameter-property": {
+  "neighbours": 208,
+  "accepted": 4,
+  "completenessGaps": 9,
+  "justifiedRejections": 195
+ },
+ "ts-inheritance": {
+  "neighbours": 405,
+  "accepted": 11,
+  "completenessGaps": 0,
+  "justifiedRejections": 394
+ },
+ "ts-method-outer-declaration": {
+  "neighbours": 245,
+  "accepted": 7,
+  "completenessGaps": 0,
+  "justifiedRejections": 238
+ },
+ "ch-independent-declarations": {
+  "neighbours": 35,
+  "accepted": 1,
+  "completenessGaps": 0,
+  "justifiedRejections": 34
+ },
+ "ch-unknown-calls": {
+  "neighbours": 22,
+  "accepted": 0,
+  "completenessGaps": 0,
+  "justifiedRejections": 22
+ },
+ "ch-shadowing-top-level": {
+  "neighbours": 35,
+  "accepted": 0,
+  "completenessGaps": 0,
+  "justifiedRejections": 35
+ },
+ "ch-write-then-read": {
+  "neighbours": 22,
+  "accepted": 0,
+  "completenessGaps": 0,
+  "justifiedRejections": 22
+ },
+ "ch-unknown-call-then-read": {
+  "neighbours": 35,
+  "accepted": 1,
+  "completenessGaps": 0,
+  "justifiedRejections": 34
+ },
+ "ch-aliasing": {
+  "neighbours": 70,
+  "accepted": 2,
+  "completenessGaps": 0,
+  "justifiedRejections": 68
+ },
+ "ch-getter": {
+  "neighbours": 176,
+  "accepted": 1,
+  "completenessGaps": 0,
+  "justifiedRejections": 175
+ },
+ "ch-async-await": {
+  "neighbours": 51,
+  "accepted": 0,
+  "completenessGaps": 0,
+  "justifiedRejections": 51
+ },
+ "ch-generator": {
+  "neighbours": 90,
+  "accepted": 1,
+  "completenessGaps": 0,
+  "justifiedRejections": 89
+ },
+ "ch-direct-eval": {
+  "neighbours": 35,
+  "accepted": 0,
+  "completenessGaps": 1,
+  "justifiedRejections": 34
+ },
+ "ch-loop-and-catch-bindings": {
+  "neighbours": 328,
+  "accepted": 4,
+  "completenessGaps": 1,
+  "justifiedRejections": 323
+ },
+ "ch-parameter-reads": {
+  "neighbours": 90,
+  "accepted": 6,
+  "completenessGaps": 0,
+  "justifiedRejections": 84
+ },
+ "ch-fresh-allocations": {
+  "neighbours": 70,
+  "accepted": 14,
+  "completenessGaps": 0,
+  "justifiedRejections": 56
+ },
+ "ch-multiline-closure": {
+  "neighbours": 117,
+  "accepted": 5,
+  "completenessGaps": 0,
+  "justifiedRejections": 112
+ },
+ "ch-hoisted-helpers": {
+  "neighbours": 245,
+  "accepted": 8,
+  "completenessGaps": 0,
+  "justifiedRejections": 237
+ },
+ "ch-let-without-initializer": {
+  "neighbours": 208,
+  "accepted": 4,
+  "completenessGaps": 0,
+  "justifiedRejections": 204
+ },
+ "ch-typeof-strict-equality": {
+  "neighbours": 51,
+  "accepted": 2,
+  "completenessGaps": 1,
+  "justifiedRejections": 48
+ },
+ "ch-var-operand": {
+  "neighbours": 35,
+  "accepted": 0,
+  "completenessGaps": 2,
+  "justifiedRejections": 33
+ },
+ "ch-multiline-object": {
+  "neighbours": 92,
+  "accepted": 2,
+  "completenessGaps": 0,
+  "justifiedRejections": 90
+ },
+ "ch-template-coercion": {
+  "neighbours": 176,
+  "accepted": 1,
+  "completenessGaps": 1,
+  "justifiedRejections": 174
+ },
+ "ch-block-function-declaration": {
+  "neighbours": 145,
+  "accepted": 4,
+  "completenessGaps": 0,
+  "justifiedRejections": 141
+ },
+ "ch-ts-hoisted-types": {
+  "neighbours": 202,
+  "accepted": 9,
+  "completenessGaps": 0,
+  "justifiedRejections": 193
+ },
+ "ch-ts-class-declarations": {
+  "neighbours": 236,
+  "accepted": 10,
+  "completenessGaps": 0,
+  "justifiedRejections": 226
+ },
+ "ch-ts-static-initializer": {
+  "neighbours": 68,
+  "accepted": 2,
+  "completenessGaps": 0,
+  "justifiedRejections": 66
+ },
+ "ch-ts-overloads": {
+  "neighbours": 90,
+  "accepted": 2,
+  "completenessGaps": 2,
+  "justifiedRejections": 86
+ },
+ "evaluate-ordering": {
+  "neighbours": 51,
+  "accepted": 6,
+  "completenessGaps": 0,
+  "justifiedRejections": 45
+ },
+ "algo-bfs-js": {
+  "neighbours": 803,
+  "accepted": 1,
+  "completenessGaps": 2,
+  "justifiedRejections": 800
+ },
+ "algo-sort-search-js": {
+  "neighbours": 1078,
+  "accepted": 1,
+  "completenessGaps": 0,
+  "justifiedRejections": 1077
+ },
+ "class-inventory-ts": {
+  "neighbours": 1458,
+  "accepted": 16,
+  "completenessGaps": 4,
+  "justifiedRejections": 1438
+ },
+ "class-accounts-ts": {
+  "neighbours": 1059,
+  "accepted": 12,
+  "completenessGaps": 7,
+  "justifiedRejections": 1040
+ }
+}

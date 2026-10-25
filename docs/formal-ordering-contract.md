@@ -110,9 +110,26 @@ A normál `check:all` része:
 - a [scope-mátrix](complex-scope-ordering.md);
 - az orákulummal igazolt pozitív deklarációs esetek és az új negatív barrier-esetek: [dependency-bindings.test.mjs](../tests/dependency-bindings.test.mjs);
 - az eredeti 5040 permutációs és beágyazási regressziók;
-- a 24 elemű TypeScript-mátrix.
+- a 24 elemű TypeScript-mátrix;
+- a WP5 tesztjei (lásd alább).
 
-A teljes korpuszmérés (kb. 4 perc) külön futtatható; állandó, rögzített elvárású tesztté alakítása nyitott (WP5).
+### WP5: kimerítő, property-alapú és metamorf ellenőrzés
+
+Mindkét fájl a `check:all` része. A kategóriák külön számolódnak: soundness-sértés (hibás elfogadás), completeness-rés, orákulum által eldöntetlen eset, validátor `indeterminate` és szintaktikai/reprezentációs hiba. Az `indeterminate` sosem számít elfogadásnak vagy elutasításnak.
+
+- **[semantic-corpus.test.mjs](../tests/semantic-corpus.test.mjs):**
+  - Mind a 45 fixture-re a teljes szomszédság (10 861 elrendezés) és fixture-enként legfeljebb 200 elfogadott sorrend (fölötte 100, rögzített maggal mintázva) ellenőrzött.
+  - A soundness feltétlen. A completeness fixture-enként rögzített: [ordering-baseline.json](../tests/fixtures/ordering-baseline.json). Mind a romlást, mind a javulást csak tudatos, felülvizsgált frissítés (`node tests/ordering-metrics.mjs --baseline`) engedi át.
+  - Három negatív kontroll (szándékosan éltelenített modell) igazolja, hogy a teszt minimális ellenpéldával jelez.
+- **[ordering-properties.test.mjs](../tests/ordering-properties.test.mjs):**
+  - **Kimerítő Π(T):** a 12 legfeljebb 7 soros fixture minden permutációja, összesen 24 360 különböző elrendezés. Minden elfogadott sorrendnél a validátortól független tanúellenőrzés fut: bijekció, tartalom, fixed, függőség, él, profil, blokkverem.
+  - **Property-alapú:** 30 rögzített magú, véletlen, mindig termináló program (felső szintű és beágyazott blokkok, `if`, closure, literálok, írások, hívások, hoistolt függvények). Mintavett lineáris kiterjesztések és a teljes szomszédság: 12 803 elrendezés, 666 elfogadott, mind helyes.
+  - **Metamorf relációk:** 55 fixture-ön 760 azonosító konzisztens átnevezése és kétféle újrabehúzás után a generált sorrendi szerkezet azonos. Bijektív ID-csere mellett minden ítélet azonos, és a tanú leképeződik.
+  - **Keretkonzisztencia:** 25 állapotos keretnél az eredmény vagy `indeterminate`, vagy azonos a teljes keretével (184 döntött, 62 `indeterminate`).
+
+Eredmény: egyetlen soundness-sértés sincs. A kis fixture-ök teljes permutációs terében 4 completeness-rés maradt (`ch-direct-eval`, `ch-typeof-strict-equality`, `ch-var-operand`), a véletlen programokban 3. Futásidő ezen a gépen: kb. 85 s és 75 s, párhuzamosan.
+
+A teljes, korlát nélküli mérés (`node tests/ordering-metrics.mjs`, kb. 4 perc) kézi eszköz marad.
 
 ## Ismert korlátok
 

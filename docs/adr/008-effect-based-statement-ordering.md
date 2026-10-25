@@ -42,4 +42,5 @@ A szigorúbb, explicit `E_pol` politika marad érvényben: a lexikai tulajdonlá
   - egy redundáns bemenet-él;
   - tizenhárom forgatókönyv-változat `rejected` → `accepted` (mindegyiket az orákulum ekvivalensnek igazolja);
   - három, korábban barrierként rögzített deklaráció (`[a]`, `{ a }`, `var c = 3`) orákulummal igazolt pozitív tesztbe került, a helyükre hét új negatív eset lépett.
-- Nyitott: a teljes korpuszmérés rögzített elvárású tesztként a `check:all`-ba (WP5), property-alapú és metamorf (átnevezés, ID-csere) tesztek, valamint írási halmazok.
+- WP5: a korpusz rögzített completeness-alapvonallal, a kimerítő, property-alapú és metamorf tesztek, valamint a negatív kontrollok a `check:all` részei ([részletek](../formal-ordering-contract.md#wp5-kimerítő-property-alapú-és-metamorf-ellenőrzés)).
+- Nyitott: írási halmazok a lokális értékadásokra, a property-olvasás biztonságos részhalmaza és a scope-áthelyezés (új séma nélkül nem reprezentálható).
