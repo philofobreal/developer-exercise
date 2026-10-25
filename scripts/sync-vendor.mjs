@@ -1,7 +1,10 @@
-import {copyFile} from 'node:fs/promises';
+import {readFile,writeFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import path from 'node:path';
 const require=createRequire(import.meta.url);
+// Text is copied verbatim except for line endings: the repository is LF-only
+// (.gitattributes), while some upstream packages ship CRLF notices.
+const copyFile=async(from,to)=>writeFile(to,(await readFile(from,'utf8')).replace(/\r\n?/g,'\n'));
 const root=path.dirname(require.resolve('js-beautify/package.json'));
 await copyFile(path.join(root,'js/lib/beautify.js'),'public/vendor/beautify.js');
 await copyFile(path.join(root,'LICENSE'),'public/vendor/LICENSE-js-beautify.txt');
