@@ -4,7 +4,7 @@ The application has explicit authoring, compilation, evaluation and presentation
 
 | Boundary | Public contract | Hidden responsibility |
 | --- | --- | --- |
-| Language adapters | parse, format, tokenize, structure, whitespace, optional analyzeDependencies/statementOrdering | JS grammar, TS AST, binding identity and literal safety |
+| Language adapters | parse, format, tokenize, structure, whitespace, optional analyzeDependencies/statementOrdering (typed effect summaries, [ADR-008](adr/008-effect-based-statement-ordering.md)) | JS grammar, TS AST, binding identity and literal safety |
 | Generator | source → CodeLineExercise | physical-row mapping, AST intervals, representable hierarchy, limited fallback, scope-compositional primitive statement dependencies |
 | Reference audit | auditReference(model, parser) | author syntax and exact-whitespace requirements |
 | Model compilation | compileCodeLineExercise | generated JSON Schema check, referential integrity, DAG, scopes, ownership, fixed positions |

@@ -23,4 +23,4 @@ Python esetén minden szintaktikailag jelentős behúzást `exact` módban kell 
 
 Az adapterregisztráció és a metódusszerződés külön tesztet kap; a JS/TS adapterek tényleges formázási/generálási/értékelési integráción is átesnek. Az importált külső adapter kódja megbízható alkalmazáskód, nem a tanuló által feltölthető plugin.
 
-A közös `dependency-analysis.mjs` böngészőben is működő compiler hosttal oldja fel a kötéseket. A statement-ordering.mjs kompozicionális elemzése csak a szerzői generáláskor fut. A tanulói értékelő továbbra is a megbízható modell DAG-ját és a tartalmi bijekciót vizsgálja; nem futtat vagy parse-ol tanulói kódot.
+A közös `dependency-analysis.mjs` böngészőben is működő compiler hosttal oldja fel a kötéseket. A strict TypeScript [statement-ordering](../src/author/statement-ordering.ts) hatásösszegzésen alapuló, kompozicionális elemzése csak a szerzői generáláskor fut ([ADR-008](adr/008-effect-based-statement-ordering.md), [formális szerződés](formal-ordering-contract.md)). A tanulói értékelő továbbra is a megbízható modell DAG-ját és a tartalmi bijekciót vizsgálja; nem futtat vagy parse-ol tanulói kódot.

@@ -70,7 +70,7 @@ A referenciasorok normalizált kulcsok szerint előindexeltek. A keresés tartal
 
 Az automatikus modell csak az elemzés által támogatott tiszta részekben oldja fel a forrássorrendet. Az AST megtartja a reprezentálható hierarchiát. Közös fizikai soron összefutó blokkhatároknál csak az érintett intervallumok kapnak kötelező sorrendéleket; ezt az `authoring` metaadat és a felület jelzi.
 
-A deklaráció/használat-jelzések nem veszik figyelembe teljeskörűen a mellékhatásokat, kivételeket, aliasokat, inicializálási sorrendet vagy időfüggést. A dependencyHints önmagában nem engedélyez automatikus szemantikai szabadságot; a külön statementOrdering végzi a dokumentált, korlátozott lazítást. Kézi dependency-/profilváltoztatás és alternatív megoldás tesztelése lehetséges; a szemantikai helyesség hitelesítése a szerző feladata.
+A deklaráció/használat-jelzések nem veszik figyelembe teljeskörűen a mellékhatásokat, kivételeket, aliasokat, inicializálási sorrendet vagy időfüggést. A dependencyHints önmagában nem engedélyez automatikus szemantikai szabadságot; a külön statementOrdering végzi a dokumentált, korlátozott lazítást. A generált szabályok jelentése, a támogatott résznyelv, a soundness/completeness pontos értelme és a mérési eredmények: [formális sorrendi szerződés](formal-ordering-contract.md). Kézi dependency-/profilváltoztatás és alternatív megoldás tesztelése lehetséges; a szemantikai helyesség hitelesítése a szerző feladata.
 
 Részletek: [formázás](modularitas-es-elobehuzas.md), [adapterek](language-adapters.md), [architektúra](architecture.md), [tesztállítások](ts-method-regression.md).
 

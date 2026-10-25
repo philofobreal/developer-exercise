@@ -51,11 +51,11 @@ A könyvtári modellek a generátor kimenetéből készültek, majd szerzői fin
 
 ## Eredmény és ismert korlátok
 
-Az eredmény: 16 elfogadott ekvivalens változat, 36 indokolt elutasítás, 21 ismert konzervatív korlát, és **nulla hibás elfogadás**. A generált modellek söprése minden elfogadott elrendezést ekvivalensnek talált.
+Az eredmény az [ADR-008](adr/008-effect-based-statement-ordering.md) hatáselemzése után: 29 elfogadott ekvivalens változat, 36 indokolt elutasítás, 8 ismert konzervatív korlát, és **nulla hibás elfogadás**. (A régi generátorral 16/36/21 volt; a 13 felszabadult változat mindegyikét a futási próba ekvivalensnek igazolja.) A generált modellek söprése minden elfogadott elrendezést ekvivalensnek talált.
 
 A konzervatív korlátok két okra vezethetők vissza:
 
 1. **Scope-tulajdonlás.** A validátor minden sort pontosan a referencia lexikai scope-jához köt (`docs/architecture.md`, nem alku tárgya). Ezért egy deklaráció *eggyel beljebb vagy kijjebb* helyezése akkor is elutasított, ha a program ugyanazt csinálja (pl. `const step = 2;` a ciklusmagba a használat elé, `offset` kiemelése a külső blokkba). Ezt csak a modell bővítésével lehetne feloldani: soronként engedélyezett scope-halmaz és ehhez tartozó szerzői analízis kellene, ADR-rel.
-2. **Konzervatív generátor.** A szerzői analízis csak egysoros primitív `const`/`let` deklarációkat és tiszta blokkokat cserél fel. Hívás, tulajdonságolvasás, objektum-/tömbliterál, destrukturálás, template literál, függvény- és osztálydeklaráció, closure, metódus sorrendváltozást gátol. Ezért a generált BFS-modell szomszédságában csak 1 elrendezés elfogadott; a könyvtári változatban a szerző kézzel engedte meg a 960 sorrendet.
+2. **Konzervatív generátor.** Az ADR-008 óta a tiszta deklarációk (friss literál, closure, kötésolvasás, `let x;`), a hoistolt függvény- és típusdeklarációk, valamint az osztálymetódusok is szabadon mozognak a saját listájukban. Hívás, tulajdonságolvasás, destrukturálás, nem primitív operandus, ciklus és minden írás továbbra is barrier. Ezért a generált BFS-modell szomszédságában még mindig csak 1 elrendezés elfogadott (`grid.length`, `new Set`, `queue.shift()`); a könyvtári változatban a szerző kézzel engedte meg a 960 sorrendet. A szabályok: [formális sorrendi szerződés](formal-ordering-contract.md).
 
 Futtatás: `node --test tests/complex-scope-ordering.test.mjs` (a `npm run check:all` része). A diagnosztikai sorok forgatókönyvenként kiírják a szomszédos elrendezések, elfogadások és konzervatív elutasítások számát.
