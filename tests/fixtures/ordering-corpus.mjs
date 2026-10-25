@@ -1,0 +1,107 @@
+/** Fixed, bounded ordering fixtures shared by the semantic-oracle tests and the
+ * metrics runner. Every fixture is author-trusted test data; probes call only
+ * the fixture itself and record(). Nothing here comes from learners. */
+import {readFile} from 'node:fs/promises';
+
+const library={
+ 'algo-bfs-js':'(() => { const grid = [[0, 0, 0, 0], [1, 1, 0, 1], [0, 0, 0, 0], [0, 1, 1, 0]]; return [shortestPath(grid, [0, 0], [3, 3]), shortestPath(grid, [0, 0], [2, 0]), shortestPath(grid, [3, 0], [0, 3]), shortestPath([[0, 1], [1, 0]], [0, 0], [1, 1]), shortestPath(grid, [2, 2], [2, 2]), shortestPath([[0, 0], [0, 0]], [0, 0], [5, 5])]; })()',
+ 'algo-sort-search-js':'(() => { const input = [5, 2, 9, 1, 5, 6, -3]; const sorted = insertionSort(input); return [sorted, input, [-3, 1, 5, 6, 9, 4, 10].map((target) => binarySearch(sorted, target))]; })()',
+ 'class-inventory-ts':"(() => { const inventory = new Inventory(3); inventory.add({ sku: 'a', name: 'alma', quantity: 2, price: 100 }); inventory.add({ sku: 'b', name: 'barack', quantity: 5, price: 40 }); inventory.add({ sku: 'a', name: 'alma', quantity: 4, price: 100 }); inventory.add({ sku: 'c', name: 'citrom', quantity: 1, price: 70 }); return [inventory.totalValue(), inventory.lowStock(), Object.keys(inventory)]; })()",
+ 'class-accounts-ts':"(() => { const account = new CreditAccount('Ana', 50); account.deposit(100); const results = [account.withdraw(120), account.withdraw(40), account.withdraw(5)]; account.deposit(7); return [results, account.statement(), Object.keys(account), account instanceof Account]; })()",
+};
+
+const fixtures=[
+ // Scope and ordering scenarios (also used by complex-scope-ordering.test.mjs).
+ {id:'scope-outer-const-loop',origin:'scenario',language:'javascript',source:[
+  'function evaluate() {','  const limit = 3;','  const step = 2;','  let total = 0;','  for (let i = 0; i < limit; i++) {','    const scaled = i * step;','    total += scaled;','  }','  return total;','}']},
+ {id:'scope-three-levels-shadowing',origin:'scenario',language:'javascript',source:[
+  'function evaluate() {','  const base = 10;',"  const label = 'outer';",'  {',"    const label = 'inner';",'    const offset = base + 1;','    {','      const scaled = offset * 2;','      const shifted = offset + 2;','      record(label, scaled, shifted);','    }','  }','  return label;','}']},
+ {id:'hoisting-var-function',origin:'scenario',language:'javascript',source:[
+  'function evaluate() {','  var count = 0;','  for (var i = 0; i < 3; i++) {','    count += helper(i);','  }','  function helper(value) {','    return value * 10;','  }','  return count + i;','}']},
+ {id:'top-level-functions',origin:'scenario',language:'javascript',source:[
+  'function double(value) {','  return value * 2;','}','function evaluate() {','  return double(21);','}']},
+ {id:'closure-deferred-read',origin:'scenario',language:'javascript',source:[
+  'function makeCounter(step) {','  let count = 0;','  const increment = () => {','    count += step;','    return count;','  };','  return increment;','}','function evaluate() {','  const counter = makeCounter(5);','  counter();','  return counter();','}']},
+ {id:'else-if-shared-boundaries',origin:'scenario',language:'javascript',source:[
+  'function classify(n) {','  const big = 10;','  const huge = 100;','  let label;','  if (n > huge) {',"    label = 'huge';",'  } else if (n > big) {',"    label = 'big';",'  } else {',"    label = 'small';",'  }','  return label;','}','function evaluate() {','  return [5, 50, 500].map(classify);','}']},
+ {id:'labelled-loops',origin:'scenario',language:'javascript',source:[
+  'function evaluate() {','  const found = [];','  outer: for (let i = 0; i < 4; i++) {','    for (let j = 0; j < 4; j++) {','      if (j > i) {','        continue outer;','      }','      if (i + j === 5) {','        break outer;','      }','      found.push(i * 10 + j);','    }','  }','  return found;','}']},
+ {id:'try-finally-switch',origin:'scenario',language:'javascript',source:[
+  'function evaluate() {','  const log = [];',"  for (const value of [1, 'x', 3]) {",'    try {',"      if (typeof value !== 'number') {","        throw new TypeError('bad ' + value);",'      }','      log.push(value * 2);','    } catch (error) {','      log.push(error.message);','    } finally {',"      log.push('done');",'    }','    switch (value) {','      case 1:',"        log.push('one');",'        break;','      default:',"        log.push('other');",'    }','  }','  return log;','}']},
+ {id:'destructuring-object-template',origin:'scenario',language:'javascript',source:[
+  'function evaluate() {','  const point = { x: 3, y: 4 };','  const scale = 2;','  const { x, y } = point;','  const label = `${x}:${y}`;','  return [label, x * scale, y * scale];','}']},
+ {id:'js-class-fields-methods',origin:'scenario',language:'javascript',source:[
+  'class Counter {','  count = 0;','  step = this.count + 1;','  increment() {','    this.count += this.step;','    return this.count;','  }','  reset() {','    this.count = 0;','  }','}','function evaluate() {','  const counter = new Counter();','  counter.increment();','  const second = counter.increment();','  counter.reset();','  return [second, counter.count, Object.keys(counter)];','}']},
+ {id:'ts-interface-type-literal',origin:'scenario',language:'typescript',source:[
+  'interface Point {','  x: number;','  y: number;','  label?: string;','}','type Pair = {','  left: Point;','  right: Point;','};','function evaluate(): string {','  const a: Point = { x: 1, y: 2 };',"  const pair: Pair = { left: a, right: { x: 3, y: 4, label: 'b' } };",'  return JSON.stringify(pair);','}']},
+ {id:'ts-enum',origin:'scenario',language:'typescript',source:[
+  'enum Level {','  Low,','  Medium,','  High,','}','function evaluate(): number[] {','  return [Level.Low, Level.Medium, Level.High];','}']},
+ {id:'ts-fields-declare-parameter-property',origin:'scenario',language:'typescript',source:[
+  'class Config {','  readonly base: number = 2;','  readonly doubled: number = this.base * 2;','  declare readonly tag?: string;','  constructor(readonly name: string) {}','  describe(): string {',"    return this.name + '=' + this.doubled;",'  }','}','function evaluate(): string[] {',"  const config = new Config('cfg');","  return [config.describe(), Object.keys(config).join(',')];",'}']},
+ {id:'ts-inheritance',origin:'scenario',language:'typescript',source:[
+  'class Shape {','  constructor(readonly name: string) {}','  area(): number {','    return 0;','  }','}','class Square extends Shape {','  constructor(private readonly side: number) {',"    super('square');",'  }','  area(): number {','    return this.side * this.side;','  }','}','function evaluate(): string {','  const shape: Shape = new Square(3);',"  return shape.name + ':' + shape.area();",'}']},
+ {id:'ts-method-outer-declaration',origin:'scenario',language:'typescript',source:[
+  'class Stats {','  mean(values: number[]): number {','    const scale: number = 2;','    let sum = 0;','    for (const value of values) {','      sum += value * scale;','    }','    return values.length === 0 ? 0 : sum / values.length;','  }','}','function evaluate(): number[] {','  const stats = new Stats();','  return [stats.mean([1, 2, 3, 4]), stats.mean([])];','}']},
+
+ // Prompt examples A–E and harder WP1 constructs.
+ {id:'ch-independent-declarations',origin:'challenge',language:'javascript',probe:'calculate()',source:[
+  'function calculate() {','  const a = 10;','  const b = 20;','  const c = a + b;','  return c;','}']},
+ {id:'ch-unknown-calls',origin:'challenge',language:'javascript',source:[
+  'function evaluate() {',"  record('log', 'first');","  record('save', 'second');",'  return 0;','}']},
+ {id:'ch-shadowing-top-level',origin:'challenge',language:'javascript',probe:'outer',source:[
+  'const value = 10;','{','  const value = 20;','  record(value);','}','const outer = value;']},
+ {id:'ch-write-then-read',origin:'challenge',language:'javascript',source:[
+  'function evaluate() {','  let total = 10;','  total += 5;','  return total;','}']},
+ {id:'ch-unknown-call-then-read',origin:'challenge',language:'javascript',probe:'result',source:[
+  'let counter = 0;','changeCounter();','const result = counter;','function changeCounter() {','  counter += 1;','}']},
+ {id:'ch-aliasing',origin:'challenge',language:'javascript',source:[
+  'function evaluate() {','  const box = { count: 1 };','  const alias = box;',"  const label = 'box';",'  alias.count = 5;','  const seen = box.count;','  return [label, seen];','}']},
+ {id:'ch-getter',origin:'challenge',language:'javascript',source:[
+  'function evaluate() {','  const source = {','    get value() {',"      record('get');",'      return 1;','    },','  };',"  const before = 'start';",'  const read = source.value;','  record(before);','  return read;','}']},
+ {id:'ch-async-await',origin:'challenge',language:'javascript',asynchronous:true,source:[
+  'async function evaluate() {','  const first = 1;','  const second = await Promise.resolve(2);','  const third = 3;','  record(first, third);','  return first + second + third;','}']},
+ {id:'ch-generator',origin:'challenge',language:'javascript',source:[
+  'function* steps() {','  const start = 1;','  yield start;','  const next = 2;','  yield next;','}','function evaluate() {','  return [...steps()];','}']},
+ {id:'ch-direct-eval',origin:'challenge',language:'javascript',strict:false,source:[
+  'function evaluate() {','  const a = 1;','  const b = 2;',"  eval('var c = a + b');",'  return c;','}']},
+ {id:'ch-loop-and-catch-bindings',origin:'challenge',language:'javascript',source:[
+  'function evaluate() {','  const out = [];',"  for (const item of ['a', 'b']) {",'    const copy = item;',"    const tag = 'item';","    out.push(tag + ':' + copy);",'  }','  try {',"    throw new Error('boom');",'  } catch (error) {','    const caught = error;',"    const kind = 'error';","    out.push(kind + ':' + caught.message);",'  }','  return out;','}']},
+ {id:'ch-parameter-reads',origin:'challenge',language:'javascript',source:[
+  'function describe(person, greeting) {','  const name = person;','  const prefix = greeting;',"  const fallback = 'n/a';",'  return [prefix, name, fallback];','}','function evaluate() {',"  return describe('Ada', 'Hello');",'}']},
+ {id:'ch-fresh-allocations',origin:'challenge',language:'javascript',source:[
+  'function evaluate() {','  const limit = 3;',"  const settings = { limit, mode: 'fast' };",'  const steps = [1, 2, limit];','  const describe = () => settings.mode + steps.length;','  const empty = [];','  return [settings, steps, describe(), empty];','}']},
+ {id:'ch-multiline-closure',origin:'challenge',language:'javascript',source:[
+  'function evaluate() {','  let count = 0;','  const increment = () => {','    count += 1;','    return count;','  };',"  const label = 'counter';",'  increment();','  return [label, increment()];','}']},
+ {id:'ch-hoisted-helpers',origin:'challenge',language:'javascript',source:[
+  'function evaluate() {','  const total = sum([1, 2, 3]);','  return total * factor();','  function sum(values) {','    let acc = 0;','    for (const value of values) {','      acc += value;','    }','    return acc;','  }','  function factor() {','    return 2;','  }','}']},
+ {id:'ch-let-without-initializer',origin:'challenge',language:'javascript',source:[
+  'function classify(n) {','  const limit = 10;','  let label;','  if (n > limit) {',"    label = 'big';",'  } else {',"    label = 'small';",'  }','  return label;','}','function evaluate() {','  return [classify(3), classify(30)];','}']},
+ {id:'ch-typeof-strict-equality',origin:'challenge',language:'javascript',source:[
+  'function evaluate() {',"  const user = { name: 'Ada' };","  const fallback = 'guest';","  const present = user !== null && typeof user === 'object';",'  const chosen = present ? user : fallback;','  return [present, chosen];','}']},
+ {id:'ch-var-operand',origin:'challenge',language:'javascript',source:[
+  'function evaluate() {','  var base = 2;','  const doubled = base * 2;',"  var label = 'x';",'  return [doubled, label];','}']},
+ {id:'ch-multiline-object',origin:'challenge',language:'javascript',source:[
+  'function evaluate() {','  const origin = 0;','  const config = {','    start: origin,','    end: 10,','  };',"  const name = 'range';",'  return [config, name];','}']},
+ {id:'ch-template-coercion',origin:'challenge',language:'javascript',source:[
+  'function evaluate() {','  const item = {','    toString() {',"      record('toString');","      return 'item';",'    },','  };',"  const marker = 'm';",'  const text = `${item}`;','  record(marker);','  return text;','}']},
+ {id:'ch-block-function-declaration',origin:'challenge',language:'javascript',strict:false,source:[
+  'function evaluate() {','  const seen = [];','  {','    seen.push(typeof inner);','    function inner() {','      return 1;','    }','  }','  seen.push(typeof inner);','  return seen;','}']},
+ {id:'ch-ts-hoisted-types',origin:'challenge',language:'typescript',probe:'[evaluate(), unit]',source:[
+  'function evaluate(): number {','  return length({ x: 3, y: 4 });','}','function length(point: Point): number {','  const squared: number = point.x * point.x + point.y * point.y;','  return Math.sqrt(squared);','}','interface Point {','  x: number;','  y: number;','}',"type Unit = 'px' | 'em';","const unit: Unit = 'px';"]},
+ {id:'ch-ts-class-declarations',origin:'challenge',language:'typescript',source:[
+  'class Base {','  greet(): string {',"    return 'base';",'  }','}','class Derived extends Base {','  override greet(): string {',"    return 'derived:' + super.greet();",'  }','}',"const label: string = 'x';",'function evaluate(): string[] {','  return [new Derived().greet(), label];','}']},
+ {id:'ch-ts-static-initializer',origin:'challenge',language:'typescript',source:[
+  'let created = 0;','class Registry {','  static readonly id = ++created;','}','const after = created;','function evaluate(): number[] {','  return [Registry.id, after];','}']},
+ {id:'ch-ts-overloads',origin:'challenge',language:'typescript',source:[
+  'function pick(value: string): string;','function pick(value: number): number;','function pick(value: string | number): string | number {','  return value;','}',"const fixed: string = 'k';",'function evaluate(): Array<string | number> {','  return [pick(fixed), pick(2)];','}']},
+];
+
+const evaluateSource=(await readFile(new URL('./evaluate-ordering.js',import.meta.url),'utf8')).replace(/\r\n?/g,'\n').trimEnd().split('\n');
+fixtures.push({id:'evaluate-ordering',origin:'regression',language:'javascript',source:evaluateSource});
+for(const [id,probe] of Object.entries(library)){
+ const model=JSON.parse(await readFile(new URL(`../../examples/${id}.json`,import.meta.url),'utf8'));
+ fixtures.push({id,origin:'library',language:model.language,probe,source:model.lines.map(line=>line.code)});
+}
+
+/** id → {id, origin, language, source: string[], probe = 'evaluate()', strict = true, asynchronous = false} */
+export const corpus=new Map(fixtures.map(fixture=>[fixture.id,{probe:'evaluate()',...fixture}]));
