@@ -51,7 +51,7 @@ A könyvtári modellek a generátor kimenetéből készültek, majd szerzői fin
 
 ## Eredmény és ismert korlátok
 
-Az eredmény az [ADR-008](adr/008-effect-based-statement-ordering.md) hatáselemzése után: 29 elfogadott ekvivalens változat, 36 indokolt elutasítás, 8 ismert konzervatív korlát, és **nulla hibás elfogadás**. (A régi generátorral 16/36/21 volt; a 13 felszabadult változat mindegyikét a futási próba ekvivalensnek igazolja.) A generált modellek söprése minden elfogadott elrendezést ekvivalensnek talált.
+Az eredmény az [ADR-008](adr/008-effect-based-statement-ordering.md) hatáselemzése és az [ADR-009](adr/009-sealed-units-and-throw-free-reads.md) javításai után: 30 elfogadott ekvivalens változat, 36 indokolt elutasítás, 7 ismert konzervatív korlát, és **nulla hibás elfogadás**. (A régi generátorral 16/36/21, az ADR-008 után 29/36/8 volt; minden felszabadult változatot a futási próba ekvivalensnek igazol, a WP6-ban a `declare` mező a futásidejű mezők elé kerülhet.) A generált modellek söprése minden elfogadott elrendezést ekvivalensnek talált.
 
 A konzervatív korlátok két okra vezethetők vissza:
 

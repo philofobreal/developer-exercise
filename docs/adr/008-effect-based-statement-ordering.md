@@ -43,4 +43,5 @@ A szigorúbb, explicit `E_pol` politika marad érvényben: a lexikai tulajdonlá
   - tizenhárom forgatókönyv-változat `rejected` → `accepted` (mindegyiket az orákulum ekvivalensnek igazolja);
   - három, korábban barrierként rögzített deklaráció (`[a]`, `{ a }`, `var c = 3`) orákulummal igazolt pozitív tesztbe került, a helyükre hét új negatív eset lépett.
 - WP5: a korpusz rögzített completeness-alapvonallal, a kimerítő, property-alapú és metamorf tesztek, valamint a negatív kontrollok a `check:all` részei ([részletek](../formal-ordering-contract.md#wp5-kimerítő-property-alapú-és-metamorf-ellenőrzés)).
-- Nyitott: írási halmazok a lokális értékadásokra, a property-olvasás biztonságos részhalmaza és a scope-áthelyezés (új séma nélkül nem reprezentálható).
+- WP6 ([ADR-009](009-sealed-units-and-throw-free-reads.md)): a pozíciófüggetlen egységek egy lyukas többsoros egység belsejébe is kerülhettek, és egyes „tiszta” olvasások dobhattak; mindkettő javítva, a policy-címke `scoped-effect-analysis-v5`.
+- Nyitott (az írási halmazok az olvasásokra az ADR-009-ben elkészültek): írási halmazok a lokális értékadásokra, a property-olvasás biztonságos részhalmaza és a scope-áthelyezés (új séma nélkül nem reprezentálható).

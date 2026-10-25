@@ -1,6 +1,6 @@
 # Formális sorrendi szerződés és hatáselemzés
 
-Ez a dokumentum a generált sorrendszabályok jelentését, a támogatott résznyelvet és a bizonyossági szinteket rögzíti. A döntés: [ADR-008](adr/008-effect-based-statement-ordering.md). A strukturális elfogadási feltétel változatlan: [validációs modell](validacios-modell-es-formazas.md).
+Ez a dokumentum a generált sorrendszabályok jelentését, a támogatott résznyelvet és a bizonyossági szinteket rögzíti. A döntések: [ADR-008](adr/008-effect-based-statement-ordering.md) és a WP6-javítások: [ADR-009](adr/009-sealed-units-and-throw-free-reads.md). A strukturális elfogadási feltétel változatlan: [validációs modell](validacios-modell-es-formazas.md).
 
 ## Fogalmak
 
@@ -35,18 +35,22 @@ Az [elemző](../src/author/statement-ordering.ts) minden SourceFile/Block/Module
 | pure | blokk vagy `if`, amelynek minden része tiszta | `pure-block`, `pure-branch` |
 | position-free | egyedi nevű, törzzsel rendelkező függvénydeklaráció szkript-, modul- vagy függvénytörzs-szinten | `hoisted-function-declaration` |
 | position-free | egyedi `interface`, `type`, `declare` utasítás | `erased-type-declaration` |
-| barrier | minden más (hívás, írás, ciklus, vezérlésátadás, overload, Annex B blokkfüggvény, többsoros folytatás) | a SyntaxKind vagy az ok neve |
+| barrier | TS overload-csoport (szignatúrák és implementáció együtt, egyetlen egység) | `overload-group` |
+| barrier | minden más (hívás, írás, ciklus, vezérlésátadás, Annex B blokkfüggvény, többsoros folytatás) | a SyntaxKind vagy az ok neve |
 | opaque | komment és egyéb nem-utasítás sor | `non-statement-row` |
 
-**Tiszta kifejezés** (`pure`): nem futtat felhasználói kódot, és bemenetei inicializáltsága után nem dob. Ide tartozik:
+**Tiszta kifejezés** (`pure`): nem futtat felhasználói kódot és nem dob. Minden olvasott kötés inicializált, amikor a kifejezés fut. Ide tartozik:
 
-- feloldott kötés olvasása (`const`/`let`/`var` utasítás, paraméter, ciklus- és `catch`-változó, hoistolt függvény, korábbi osztály);
+- feloldott kötés olvasása:
+  - azonos függvénykontextusú `const`/`let`/osztály, ha az olvasás a teljes deklaráció után áll, és a deklaráció nem `case`-ágban van (a védett él biztosítja az inicializálást);
+  - `var` (TDZ nélkül), paraméter, ciklus- és `catch`-változó, hoistolt függvény;
+  - **nem** tiszta: más függvénykontextusból olvasott `let`/`const`/osztály (a belső függvény a deklaráció előtt is meghívható), az önhivatkozó inicializáló (`const a = a`), valamint egy másik `case`-ágban deklarált kötés;
 - friss objektum- vagy tömbliterál tiszta elemekkel (spread, számított kulcs és `__proto__` nélkül; a metódus- és accessor-definíció megengedett);
 - függvény- és arrow-kifejezés (a törzse nem fut);
 - `!`, `typeof`, `void`, `===`/`!==`, `&&`/`||`/`??`, feltételes kifejezés;
 - primitív értékek felett a koerciós operátorok.
 
-**Primitív érték:** szám-, string- és template-literál primitív helyettesítésekkel, `true`/`false`/`null`, illetve primitív inicializálójú `const` olvasása. Csak primitív érték lehet koerciós operátor (`+`, `<`, `${}` stb.) operandusa, mert objektumnál a `valueOf`/`toString` felhasználói kódot futtathat. A BigInt literál kizárt, mert a vegyes műveletek dobnak.
+**Primitív érték:** szám-, string- és template-literál primitív helyettesítésekkel, `true`/`false`/`null`, illetve primitív inicializálójú `const` olvasása. **Írási halmaz:** a fájl összes értékadás-, `++/--`-, destrukturáló és `for-in/of` célpontja. Az írási halmazon kívüli (soha újra nem írt) `let`/`var` függvénykontextusban `const`-ként kezelődik. Szkriptszinten nem, mert ott a globális scope-on át (`globalThis`, indirekt `eval`, `Function`) szintaktikai hivatkozás nélkül is írható. Csak primitív érték lehet koerciós operátor (`+`, `<`, `${}` stb.) operandusa, mert objektumnál a `valueOf`/`toString` felhasználói kódot futtathat. A BigInt literál kizárt, mert a vegyes műveletek dobnak.
 
 **Élek** egy listán belül, `i < j` egységekre:
 
@@ -58,7 +62,17 @@ Ezen felül minden kiértékelési idejű olvasás védett élt kap a kötést i
 
 `with` vagy közvetlen `eval` esetén az egész fájl elemzetlen marad, minden sor soros.
 
-**Osztálytagok** ([type-member-ordering](../src/author/type-member-ordering.ts), JS és TS): az egyedi nevű metódus, accessor és constructor definíció pozíciófüggetlen az osztálytörzsben. A futásidejű mezők, a static kód és a duplikált nevek sorrendje kötött. Az ADR-007 törölt típustag-futamai változatlanok.
+**Lezárás (projekció, ADR-009).** A validátor egy sort ott fogad el, ahol a nyitott scope megegyezik a sor `scopeId`-jével. Egy többsoros egység belsejében ez csak két helyen fordulhat elő: a folytatósoroknál (például `record(` … `);`) és az elhagyott, megosztott határú blokkoknál (`} else {`, `} catch (e) {`). Ha egy egység belsejében van ilyen „lyuk”, minden azonos scope-ú testvéregység a forrásbeli oldalán marad:
+
+```
+lyuk(U) ⇔ ∃ r ∈ [U.first, U.last): nyitottScopeUtána(r) = scope(U.first)
+lyuk(U) ∧ scope(X.first) = scope(U.first) ∧ X.last < U.first  ⇒  X.last → U.first
+lyuk(U) ∧ scope(X.first) = scope(U.first) ∧ X.first > U.last  ⇒  U.last → X.first
+```
+
+A precedencia csak „előtte” vagy „utána” relációt fejez ki, a „nem a belsejében” feltételt nem. Ezért a lezárás a forrásbeli oldalt rögzíti: helyes, de egy pozíciófüggetlen sor ilyen egységen nem léphet át.
+
+**Osztálytagok** ([type-member-ordering](../src/author/type-member-ordering.ts), JS és TS): az egyedi nevű metódus, accessor és constructor definíció, illetve a `declare` mező pozíciófüggetlen az osztálytörzsben. A paramétertulajdonságot a TypeScript mindkét osztálymező-módban a konstrukció elején állítja be, a constructor helyétől függetlenül. Egy overload-csoport (szignatúrák és implementáció) egyetlen kötött egység. A futásidejű mezők, a static kód és a duplikált nevek sorrendje kötött. Az ADR-007 törölt típustag-futamai változatlanok. A többsoros tagokra ugyanaz a lezárás vonatkozik.
 
 ## Helyességi érvelés a támogatott résznyelven
 
@@ -69,13 +83,13 @@ Feltevések:
 - **A1:** a TypeScript parser és checker kötésfeloldása helyes a referencián.
 - **A2:** nincsenek egzotikus hoszt-objektumok a primitív műveletekben.
 - **A3:** nincs `with`/`eval` (kizárt).
-- **A4:** a megosztott fizikai határú intervallumok sorosak (a generátor biztosítja).
+- **A4:** a megosztott fizikai határú intervallumok sorosak, és minden lyukas többsoros egység le van zárva (a generátor biztosítja).
 
 Vázlat:
 
-1. **Lokalitás.** A validátor `Scope` feltétele miatt minden sor a saját listájában marad, így a listák függetlenül vizsgálhatók; P1 teljesül.
+1. **Lokalitás.** A validátor `Scope` feltétele egy sort csak a saját reprezentált scope-jába enged. Ezen belül a lezárás miatt egyetlen testvér sem kerülhet egy másik egység belsejébe (WP6: ez korábban hiányzott, lásd ADR-009). Így minden egység összefüggő marad és a saját listájában áll, a listák függetlenül vizsgálhatók, és P0/P1 teljesül.
 2. **Barrier-stabilitás.** Bármely két barrier közötti szakaszban a pure egységek által olvasható állapot állandó, mert csak barrier ír, hív vagy ad át vezérlést, és a barrier relatív helye minden rendezett testvérhez képest rögzített.
-3. **Pure kommutáció.** Két pure egység nem futtat kódot és nem dob. Csak a saját, egyedi kötését inicializálja, és a másik kötését csak védett éllel olvashatja. Felcserélésük ezért egyetlen kötés értékét, kivételt vagy hatásnaplót sem változtat meg.
+3. **Pure kommutáció.** Két pure egység nem futtat kódot és nem dob, mert minden bemenete garantáltan inicializált (WP6: a más kontextusú TDZ-olvasás és az önhivatkozás kizárva; egy dobó „tiszta” sor helye closure-on és `catch`-en át megfigyelhető volt). Csak a saját, egyedi kötését inicializálja, és a másik kötését csak védett éllel olvashatja. Felcserélésük ezért egyetlen kötés értékét, kivételt vagy hatásnaplót sem változtat meg.
 4. **Pozíciófüggetlenség.** Függvénydeklarációt a FunctionDeclarationInstantiation vagy a GlobalDeclarationInstantiation a lista belépésekor hoz létre; törölt TS-deklarációnak nincs emitje. Egy metódust a ClassDefinitionEvaluation minden mezőinicializáló és static kód előtt telepít.
 5. **Késleltetett olvasás.** Closure-törzs csak hívásra fut, a hívás pedig barrier.
 6. **Kompozíció.** A blokk összegzése a gyerekek összegzéséből áll, a kifelé mutató olvasások élként továbbadódnak, így az állítás indukcióval terjed a beágyazásra.
@@ -90,7 +104,7 @@ Ez emberi bizonyításvázlat, nem gépi verifikáció. A modelltől független 
 
 ## Empirikus bizonyíték
 
-A [független orákulum](../tests/support/semantic-oracle.mjs) más kódútvonalat használ, mint a generátor: JavaScriptre Acornt, TypeScriptre saját AST-bejárást, és P0–P3-at ellenőrzi. A [45 fixture-ös korpuszon](../tests/fixtures/ordering-corpus.mjs) minden egysoros áthelyezés és páros csere (10 861 elrendezés) vizsgálva van, és minden elfogadható sorrend legfeljebb 5000-ig teljesen, fölötte rögzített maggal mintázva. Futtatás: `node tests/ordering-metrics.mjs`.
+A [független orákulum](../tests/support/semantic-oracle.mjs) más kódútvonalat használ, mint a generátor: JavaScriptre Acornt, TypeScriptre saját AST-bejárást, és P0–P3-at ellenőrzi. Az ADR-008-mérés idején a [korpusz](../tests/fixtures/ordering-corpus.mjs) 45 fixture-ből állt. Minden egysoros áthelyezés és páros csere (10 861 elrendezés) vizsgálva volt, és minden elfogadható sorrend legfeljebb 5000-ig teljesen, fölötte rögzített maggal mintázva (a WP6 óta a küszöb 10 000). Futtatás: `node tests/ordering-metrics.mjs`.
 
 | Mérőszám (45 fixture) | ADR-008 előtt | után |
 | --- | ---: | ---: |
@@ -131,20 +145,81 @@ Eredmény: egyetlen soundness-sértés sincs. A kis fixture-ök teljes permutác
 
 A teljes, korlát nélküli mérés (`node tests/ordering-metrics.mjs`, kb. 4 perc) kézi eszköz marad.
 
+## WP6: javítás, mérés és regresszióvédelem
+
+A WP6 hat hibásan elfogadó hibát talált és javított ([ADR-009](adr/009-sealed-units-and-throw-free-reads.md)):
+
+- többsoros egység belsejébe kerülő pozíciófüggetlen sor (folytatósor, `} else {`/`} catch {` határ, többsoros mező);
+- szétválasztott TS overload-csoport;
+- dobó „tiszta” olvasás (önhivatkozás, más kontextusú TDZ-olvasás, `case`-ág).
+
+Mindegyikhez előbb reprodukáló fixture készült (`origin: 'wp6'`, 9 darab), a régi generátor mindegyiken hibás sorrendet fogadott el. A javítások általános szabályok; fixture- vagy változónévre nincs hardcode.
+
+**Tesztkészlet és tartomány.** A mérést mindkét oldalon ugyanaz a mérőeszköz, korpusz és orákulum végezte:
+
+- **előtte:** a HEAD `4d3a1be` kódja, külön munkakönyvtárban;
+- **utána:** a WP6 kódja;
+- **K45:** az eredeti 45 fixture; **W9:** a 9 WP6-reprodukció;
+- **Szomszédság:** minden egysoros áthelyezés és páros csere (K45: 10 861, W9: 1 870 különböző elrendezés);
+- **A(M):** a modell összes lineáris kiterjesztése, fixture-enként 10 000-ig teljes felsorolással. Mindkét mérésben minden fixture teljesen fel lett sorolva;
+- **Orákulum:** P0 a TS overload-szomszédossággal pontosítva. Ettől lett a régi `ch-ts-overloads` 2 rése valójában 2 hibás elfogadás.
+
+| Mérőszám | Készlet / tartomány | Előtte | Utána |
+| --- | --- | ---: | ---: |
+| hibásan elfogadott elrendezés | K45 / W9, szomszédság + A(M) | 2 / 79 | **0 / 0** |
+| indokolatlanul elutasított (completeness-rés) | K45 / W9, szomszédság | 28 / 6 | **6 / 8** |
+| elfogadott szomszédos elrendezés | K45 / W9 | 201 / 58 | 223 / 39 |
+| elfogadott teljes sorrend, mind orákulummal ellenőrizve | K45 / W9, A(M) | 5 100 / 125 | **11 449 / 61** |
+| orákulum által eldöntetlen / validátor `indeterminate` | mind | 0 / 0 | 0 / 0 |
+| nem támogatott (elemzés kikapcsolva: `eval`/`with`) | fixture / rés | 1 / 1 | 1 / 1 |
+| generált élek | K45 / W9 | 546 / 113 | 547 / 113 |
+| redundáns (megtartott olvasási) élek aránya | K45 / W9 | 5,13 % / 6,19 % | 4,94 % / 4,42 % |
+| validátor-állapotok az összes elfogadott sorrenden | K45 | 158 582 | 361 706 |
+| generálás, fixture-enkénti átlag összege | K45 | 68,2 ms | 64,4 ms |
+
+- A W9 előtti számok a hibás elfogadásokat is tartalmazzák; az elfogadások csökkenése ott maga a javítás.
+- Az állapotszám a több elfogadott sorrend miatt nő: a `class-inventory-ts` 2 880 helyett 5 760, a `class-accounts-ts` 1 680 helyett 5 040 sorrendet enged. Ennek oka a constructor és a `declare` mező szabaddá válása.
+- A maradék 6 K45-rés:
+  - `ch-direct-eval`: nem támogatott;
+  - `ch-loop-and-catch-bindings`: `} catch {` határ;
+  - `ch-typeof-strict-equality` és a két `algo-bfs-js` rés: csak a rögzített bemenetre ekvivalens, általánosan nem (rövidzár és ismeretlen értékű `+`);
+  - `ch-template-coercion`: tiszta deklaráció barrieren át, az ADR-009-ben halasztva.
+- A 8 W9-rés a lezárás szándékos ára: a precedencia nem tudja kifejezni, hogy egy sor „ne kerüljön a belsejébe”.
+
+**Nagy referenciák** (szintetikus, legfeljebb 500 soros; generálás 5 futás mediánja, majd a referenciasorrend validálása):
+
+| Alak | Sorok | Élek (redundáns) | Generálás előtte → utána | Referencia-állapotok | Validálás |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `flat-pure` | 500 | 499 (0) | 11,0 → 9,7 ms | 501 | < 5 ms |
+| `blocks-and-helpers` | 497 | 496 (0) | 26,3 → 29,8 ms | 498 | < 5 ms |
+| `class-members` | 500 | 499 (0) | 12,8 → 12,5 ms | 501 | < 5 ms |
+| `continued-calls` | 498 | 497 (0) | 15,6 → 52,6 ms | 499 | < 5 ms |
+
+A lezárás lyukas egységenként végigmegy a testvéreken. A `continued-calls` alakban ez négyzetes, de 500 soron belül 60 ms alatt marad. Egyetlen Windows-gépen mértem; az időértékek tájékoztatók.
+
+**Regresszióvédelem a `check:all`-ban:**
+
+- a korpuszteszt mind az 54 fixture-re, rögzített alapvonallal;
+- [wp6-regressions.test.mjs](../tests/wp6-regressions.test.mjs): minden hibára a konkrét ellenpélda elutasítva, a megengedett sorrend elfogadva, mindkettő orákulummal egyeztetve;
+- kiterjesztett véletlen programok (többsoros hívás, `} else {`, 12 mag): a régi generátor ezek közül 5-ben hibás sorrendet fogadott el;
+- [ordering-scale.test.mjs](../tests/ordering-scale.test.mjs): determinisztikus élszám- és állapotkorlátok az 500 soros referenciákra.
+
 ## Ismert korlátok
 
 - **Scope-áthelyezés:** a v2 `scopeId` soronként egyetlen scope-ot enged, ezért egy deklaráció beljebb vagy kijjebb helyezése elutasított (P1 szerint ez szándékos).
 - **Property-olvasás, getter, destrukturálás:** barrier.
-- **`let`/`var` és nem primitív koerciós operandus:** barrier (`var base = 2; base * 2`).
-- **Lokális írások:** konfliktuselemzés nélkül barrierek.
+- **Újraírt `let`/`var` és nem primitív koerciós operandus:** barrier. A soha újra nem írt `let`/`var` függvénykontextusban `const`-ként kezelődik.
+- **Lokális írások:** maguk az írások barrierek; az írási halmaz csak az olvasások stabilitását dönti el.
+- **Lyukas többsoros egység:** egy pozíciófüggetlen sor nem léphet át rajta (lezárás).
+- **Más függvénykontextusból olvasott `let`/`const`/osztály:** barrier, mert a belső függvény a deklaráció előtt is futhat.
 - **Ciklus, `try`, `switch`:** barrier; a `case`-listák sorosak.
-- **TS-overloadok, duplikált nevek, dekorátorok, kommentek, többsoros folytatások:** konzervatívak.
-- **Futásidejű osztálymezők és `declare` mező:** a sorrend a futásidejű mezőkhöz képest kötött.
+- **TS-overload-csoportok, duplikált nevek, dekorátorok, kommentek, többsoros folytatások:** konzervatívak.
+- **Futásidejű osztálymezők:** a sorrend kötött (a `declare` mező és a constructor szabad).
 - **Async:** az `await` előtti és utáni tiszta sorok nem lépnek át rajta.
 
 ## Kompatibilitás és nyelvi határ
 
 - **Régi modellek:** az importált modellek függőségei nem változnak. Újragenerálás csak explicit „Sorfüggőségek újraszámítása” műveletre történik.
-- **Policy-címke:** új generáláskor `scoped-effect-analysis-v4`; a régi enumértékek érvényesek maradnak (additív sémabővítés).
+- **Policy-címke:** új generáláskor `scoped-effect-analysis-v5` (ADR-009); a régi enumértékek, köztük a v4, érvényesek maradnak (additív sémabővítés).
 - **Belső szerződés:** a `StatementOrdering {entries, protectedInputs, units}` 0-alapú fizikai sorokon dolgozik, nyelvfüggetlen. A projekciót a generátor végzi, a validátor nem változik.
 - **Python-adapterhez:** egy hasonló, saját kötés- és hatásmodellt adó elemző kell. A fő különbségek: függvényszintű scope, nincs TDZ, a `global`/`nonlocal` kezelése, a dekorátorok azonnali futása, az osztálytörzs végrehajtható kód, a behúzás pedig `exact` (lásd [Python-terv](python-adapter-plan.md)).

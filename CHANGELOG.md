@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased – 2026-10-25 WP6 sorrendi hibák javítása és mérés (ADR-009)
+
+- Hat hibásan elfogadó hiba javítva, mindegyikre előbb reprodukáló fixture készült (`origin: 'wp6'`):
+  - **Lezárás:** pozíciófüggetlen sor nem kerülhet többsoros utasítás, `} else {`/`} catch {` határú blokk vagy többsoros mező belsejébe ([generator.mjs](src/author/generator.mjs)).
+  - **Overload-csoport:** a TS overload-csoport egyetlen egység.
+  - **Tisztaság:** nem tiszta az önhivatkozó inicializáló, a más függvénykontextusból olvasott `let`/`const`/osztály és a `case`-ágbeli kötés olvasása.
+- Teljességi javítások:
+  - a constructor ténylegesen szabad (névfeloldási hiba), a paramétertulajdonságokkal együtt;
+  - a `declare` mező szabad;
+  - a soha újra nem írt `let`/`var` függvénykontextusban `const`-ként primitív operandus (írási halmazok).
+- Új, additív policy-címke: `scoped-effect-analysis-v5`. A `TypeMemberOrdering.spans` a generátornak adja az egységhatárokat. Az orákulum P0-ja ellenőrzi a TS overload-szomszédosságot.
+- **Mérés:** a HEAD kódjával összevetve, ugyanazon az 54 fixture-ös készleten.
+  - Hibás elfogadás: 81 → 0.
+  - Completeness-rés az eredeti 45 fixture-ön: 28 → 6.
+  - Elfogadott teljes sorrend: 5 100 → 11 449, mind orákulummal ellenőrizve.
+  - Részletek és a nagy referenciák: [formális szerződés](docs/formal-ordering-contract.md#wp6-javítás-mérés-és-regresszióvédelem).
+- **Új tesztek:**
+  - `tests/wp6-regressions.test.mjs`;
+  - `tests/ordering-scale.test.mjs`;
+  - kiterjesztett véletlen programok;
+  - a mérőeszköz új mérőszámai: nem támogatott esetek, redundáns élarány, nagy referenciák.
+- **Frissített elvárások, gyengítés nélkül:**
+  - a policy-címke 4 helyen;
+  - a scope-mátrix `declare` változata most `accepted` (orákulum szerint ekvivalens);
+  - a UserAccount-teszt megengedett halmaza a constructor mögé kerülő mezővel bővült (mindkét mezőmódban futásidőben ellenőrizve);
+  - a rögzített completeness-alapvonal.
+
 ## Unreleased – 2026-10-25 WP5 szemantikai regressziók és sorvégkezelés
 
 - `tests/semantic-corpus.test.mjs`: a 45 fixture-ös korpusz feltétlen soundness-ellenőrzése, fixture-enként rögzített completeness-alapvonallal (`tests/fixtures/ordering-baseline.json`) és negatív kontrollokkal. `tests/ordering-properties.test.mjs`: 24 360 elrendezéses kimerítő Π(T) független tanúellenőrzéssel, 30 seeded véletlen program, átnevezési/újrabehúzási/ID-csere metamorf relációk és keretkonzisztencia. Hibás elfogadás: 0.
