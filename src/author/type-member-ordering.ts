@@ -1,22 +1,29 @@
 /** Erased, distinct TS data members may commute; runtime class fields/writes never do.
  * Uniquely named class methods, accessors and constructors are definitions: the
  * class installs them before any field initialiser or static code runs, so
- * their position in the class body is unobservable (ADR-008). Runs for JS too. */
+ * their position in the class body is unobservable (ADR-008). TypeScript emits
+ * parameter properties at the start of construction in both class-field modes,
+ * whatever the constructor's position, and erases declare fields (ADR-009).
+ * Runs for JS too. */
 import type ts from 'typescript';
 type Compiler = typeof ts;
 interface Entry {row: number; after: number[];}
 interface Unit {first: number; last: number; pure: boolean; free?: boolean;}
-export interface TypeMemberOrdering {entries: Entry[]; note: string;}
+/** `spans` lists every ordered member/comment unit (0-based physical rows) so the
+ * generator can keep same-scope siblings out of a multi-row unit's interior. */
+export interface TypeMemberOrdering {entries: Entry[]; spans: {first: number; last: number}[]; note: string;}
 
 export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler): TypeMemberOrdering {
- const physical = file.text.split('\n'), entries: Entry[] = [];
+ const physical = file.text.split('\n'), entries: Entry[] = [], spans: {first: number; last: number}[] = [];
  let hasClass = false, hasTypes = false;
  const first = (node: ts.Node): number => file.getLineAndCharacterOfPosition(node.getStart(file)).line;
  const last = (node: ts.Node): number => file.getLineAndCharacterOfPosition(node.end - 1).line;
  const name = (node: ts.Node): string | undefined => {
+  // Constructor nodes carry no name property: test them first.
+  if (compiler.isConstructorDeclaration(node)) return 'constructor';
   if (!('name' in node)) return undefined;
   const key = node.name as ts.Node | undefined;
-  return key && (compiler.isIdentifier(key) || compiler.isStringLiteral(key)) ? key.text : compiler.isConstructorDeclaration(node) ? 'constructor' : undefined;
+  return key && (compiler.isIdentifier(key) || compiler.isStringLiteral(key)) ? key.text : undefined;
  };
  const definitionModifiers = new Set<ts.SyntaxKind>([compiler.SyntaxKind.PublicKeyword, compiler.SyntaxKind.ProtectedKeyword, compiler.SyntaxKind.PrivateKeyword, compiler.SyntaxKind.StaticKeyword, compiler.SyntaxKind.OverrideKeyword, compiler.SyntaxKind.AbstractKeyword, compiler.SyntaxKind.AsyncKeyword]);
  /** A whole method/accessor/constructor that owns its rows: one row, or `{` on the first and `}` on the last row. */
@@ -46,12 +53,23 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler): Typ
     const leadingComment = !!file.text.slice(triviaStart, member.getStart(file)).trim();
     const distinct = !decorated && !leadingComment && key !== undefined && counts.get(key) === 1;
     const definition = isClass && (compiler.isMethodDeclaration(member) || compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member) || compiler.isConstructorDeclaration(member)) && (!!member.body || !!modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.AbstractKeyword)) && (modifiers ?? []).every(modifier => definitionModifiers.has(modifier.kind)) && distinct && definitionRows(member);
-    return {first: row, last: end, pure: erased && simpleModifiers && distinct && row === end && physical[row]?.trim() === member.getText(file).trim(), free: definition};
+    const pure = erased && simpleModifiers && distinct && row === end && physical[row]?.trim() === member.getText(file).trim();
+    // A declare field emits nothing in either class-field mode: it is position-free in a class body.
+    return {first: row, last: end, pure, free: definition || isClass && pure};
+   });
+   // An overload signature must directly precede the next signature or the
+   // implementation (TS2389/TS2391): the whole group is one ordered unit.
+   const signature = (member: ts.Node): boolean => (compiler.isMethodDeclaration(member) || compiler.isConstructorDeclaration(member)) && !member.body && !compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.AbstractKeyword);
+   const grouped: Unit[] = [];
+   members.forEach((member, i) => {
+    const previous = node.members[i - 1];
+    if (isClass && previous && signature(previous) && name(previous) === name(node.members[i]!)) grouped.push({first: grouped.pop()!.first, last: member.last, pure: false});
+    else grouped.push(member);
    });
    // No edits on shared physical boundaries. Comments remain opaque barriers.
-   if (open && close && members.every((member, i) => member.first > first(open) && member.last < first(close) && (!i || members[i - 1]!.last < member.first))) {
+   if (open && close && grouped.every((member, i) => member.first > first(open) && member.last < first(close) && (!i || grouped[i - 1]!.last < member.first))) {
     const units: Unit[] = [], free: Unit[] = []; let cursor = first(open) + 1;
-    for (const member of members) {
+    for (const member of grouped) {
      for (; cursor < member.first; cursor++) if (physical[cursor]?.trim()) units.push({first: cursor, last: cursor, pure: false});
      (member.free ? free : units).push(member); cursor = member.last + 1;
     }
@@ -60,6 +78,7 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler): Typ
     // wired explicitly so that no barrier inherits a definition's row as predecessor.
     const wired = new Set<number>();
     for (const member of free) entries.push({row: member.first, after: [first(open)]});
+    for (const unit of [...units, ...free]) spans.push({first: unit.first, last: unit.last});
     for (let start = 0; start < units.length;) {
      if (!units[start]!.pure) {start++; continue;}
      let end = start + 1; while (end < units.length && units[end]!.pure) end++;
@@ -76,5 +95,5 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler): Typ
   compiler.forEachChild(node, visit);
  }
  visit(file);
- return {entries, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők és declare osztálymezők felcserélhetők. Az egyedi nevű metódusok, accessorok és a constructor definíciók, így az osztálytörzsön belül bárhol állhatnak. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : ''};
+ return {entries, spans, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. Az egyedi nevű metódusok, accessorok, a constructor (paramétertulajdonságokkal együtt) és a declare osztálymezők az osztálytörzsön belül bárhol állhatnak. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : ''};
 }

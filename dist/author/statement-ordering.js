@@ -51,12 +51,41 @@ export function statementOrdering(file, compiler) {
         const children = node.getChildren(file), open = children.find(child => child.kind === S.OpenBraceToken), close = children.filter(child => child.kind === S.CloseBraceToken).at(-1);
         return open && close ? [open, close] : [];
     };
-    /** Resolves an evaluation-time identifier read to a binding with known initialisation. */
+    /** Local write sets: bindings that are assignment, update, destructuring or for-in/of targets anywhere. */
+    const written = new Set();
+    const writeTarget = (node) => {
+        let current = node;
+        for (let parent = current.parent; parent; current = parent, parent = parent.parent) {
+            // Climb through wrappers and destructuring patterns to the outermost target expression.
+            if (!(compiler.isParenthesizedExpression(parent) || compiler.isNonNullExpression(parent) || compiler.isAsExpression(parent) || compiler.isSatisfiesExpression(parent) || compiler.isTypeAssertionExpression(parent) || compiler.isArrayLiteralExpression(parent) || compiler.isObjectLiteralExpression(parent) || compiler.isSpreadElement(parent) || compiler.isSpreadAssignment(parent) || compiler.isShorthandPropertyAssignment(parent) || compiler.isPropertyAssignment(parent) && parent.initializer === current))
+                break;
+        }
+        const parent = current.parent;
+        if (!parent)
+            return false;
+        if (compiler.isBinaryExpression(parent))
+            return parent.left === current && parent.operatorToken.kind >= S.FirstAssignment && parent.operatorToken.kind <= S.LastAssignment;
+        if (compiler.isForInStatement(parent) || compiler.isForOfStatement(parent))
+            return parent.initializer === current;
+        return (compiler.isPrefixUnaryExpression(parent) || compiler.isPostfixUnaryExpression(parent)) && (parent.operator === S.PlusPlusToken || parent.operator === S.MinusMinusToken);
+    };
+    const collectWrites = (node) => {
+        if (compiler.isIdentifier(node) && writeTarget(node)) {
+            const symbol = compiler.isShorthandPropertyAssignment(node.parent) && node.parent.name === node ? checker.getShorthandAssignmentValueSymbol(node.parent) : checker.getSymbolAtLocation(node);
+            if (symbol)
+                written.add(symbol);
+        }
+        compiler.forEachChild(node, collectWrites);
+    };
+    collectWrites(file);
+    /** Resolves an evaluation-time identifier read to a binding that is initialised whenever the read runs. */
     function binding(identifier, symbol) {
         const declaration = unique(symbol);
         if (!declaration)
             return null;
         const sameContext = (statement) => context(statement) === context(identifier) ? line(statement) : null;
+        // A switch shares one scope between clauses: a jump can skip the declaration.
+        const caseClause = (statement) => compiler.isCaseClause(statement.parent) || compiler.isDefaultClause(statement.parent);
         if (compiler.isVariableDeclaration(declaration) && compiler.isIdentifier(declaration.name)) {
             const list = declaration.parent;
             if (compiler.isCatchClause(list))
@@ -66,10 +95,16 @@ export function statementOrdering(file, compiler) {
             const owner = list.parent;
             if ((compiler.isForStatement(owner) || compiler.isForOfStatement(owner) || compiler.isForInStatement(owner)) && owner.initializer === list)
                 return within(owner.statement, identifier) ? { row: null, primitiveInitializer: null } : null;
-            if (!compiler.isVariableStatement(owner) || modifiers(owner).length || list.declarations.length !== 1 || declaration.getStart(file) >= identifier.getStart(file))
+            // The read must follow the whole declaration: `const a = a` throws.
+            if (!compiler.isVariableStatement(owner) || modifiers(owner).length || list.declarations.length !== 1 || declaration.end > identifier.getStart(file) || caseClause(owner))
                 return null;
-            const constant = (list.flags & compiler.NodeFlags.BlockScoped) === compiler.NodeFlags.Const;
-            return { row: sameContext(owner), primitiveInitializer: constant && declaration.initializer ? declaration.initializer : null };
+            const lexical = (list.flags & compiler.NodeFlags.BlockScoped) !== 0, row = sameContext(owner);
+            // From another function context a let/const may still be in its TDZ when the read runs.
+            if (lexical && row === null)
+                return null;
+            // Never-written let/var behave like const; script-level ones stay writable through the global scope.
+            const constant = (list.flags & compiler.NodeFlags.BlockScoped) === compiler.NodeFlags.Const || !!symbol && !written.has(symbol) && context(owner) !== file;
+            return { row, primitiveInitializer: constant && declaration.initializer ? declaration.initializer : null };
         }
         if (compiler.isParameter(declaration) && compiler.isIdentifier(declaration.name)) {
             const body = declaration.parent.body;
@@ -77,8 +112,10 @@ export function statementOrdering(file, compiler) {
         }
         if (compiler.isFunctionDeclaration(declaration) && declaration.body && hoistingList(declaration.parent))
             return { row: null, primitiveInitializer: null };
-        if (compiler.isClassDeclaration(declaration) && declaration.getStart(file) < identifier.getStart(file))
-            return { row: sameContext(declaration), primitiveInitializer: null };
+        if (compiler.isClassDeclaration(declaration) && declaration.end <= identifier.getStart(file) && !caseClause(declaration)) {
+            const row = sameContext(declaration);
+            return row === null ? null : { row, primitiveInitializer: null };
+        }
         return null;
     }
     const primitiveCache = new Map();
@@ -233,14 +270,26 @@ export function statementOrdering(file, compiler) {
             // A physical row containing multiple statements/boundaries is indivisible.
             const separate = summaries.every((unit, i) => !i || summaries[i - 1].last < unit.first) && (!summaries.length || sourceFile || summaries[0].first > line(node) && summaries.at(-1).last < end(node));
             if (separate) {
+                // A TS overload signature must directly precede the next signature or the
+                // implementation (TS2389/TS2391): the whole group is one barrier unit.
+                const grouped = [];
+                summaries.forEach((unit, i) => {
+                    const previous = node.statements[i - 1], current = node.statements[i];
+                    if (previous && compiler.isFunctionDeclaration(previous) && !previous.body && compiler.isFunctionDeclaration(current) && !!previous.name && previous.name.text === current.name?.text) {
+                        const head = grouped.pop();
+                        grouped.push({ ...unit, first: head.first, start: head.start, kind: 'barrier', reason: 'overload-group' });
+                    }
+                    else
+                        grouped.push(unit);
+                });
                 // Preserve comments and other non-statement rows as opaque units.
                 const complete = [];
-                for (let i = 0; i < summaries.length; i++) {
+                for (let i = 0; i < grouped.length; i++) {
                     if (i)
-                        for (let row = summaries[i - 1].last + 1; row < summaries[i].first; row++)
+                        for (let row = grouped[i - 1].last + 1; row < grouped[i].first; row++)
                             if (physical[row]?.trim())
                                 complete.push({ first: row, last: row, start: -1, kind: 'opaque', reason: 'non-statement-row', reads: new Set() });
-                    complete.push(summaries[i]);
+                    complete.push(grouped[i]);
                 }
                 for (const unit of complete) {
                     units.push({ first: unit.first, last: unit.last, kind: unit.kind, reason: unit.reason });

@@ -73,8 +73,8 @@
  },
  "ts-fields-declare-parameter-property": {
   "neighbours": 208,
-  "accepted": 4,
-  "completenessGaps": 9,
+  "accepted": 13,
+  "completenessGaps": 0,
   "justifiedRejections": 195
  },
  "ts-inheritance": {
@@ -193,8 +193,8 @@
  },
  "ch-var-operand": {
   "neighbours": 35,
-  "accepted": 0,
-  "completenessGaps": 2,
+  "accepted": 2,
+  "completenessGaps": 0,
   "justifiedRejections": 33
  },
  "ch-multiline-object": {
@@ -236,8 +236,62 @@
  "ch-ts-overloads": {
   "neighbours": 90,
   "accepted": 2,
+  "completenessGaps": 0,
+  "justifiedRejections": 88
+ },
+ "wp6-hoisted-into-continued-call": {
+  "neighbours": 70,
+  "accepted": 2,
+  "completenessGaps": 1,
+  "justifiedRejections": 67
+ },
+ "wp6-hoisted-into-shared-boundaries": {
+  "neighbours": 285,
+  "accepted": 4,
+  "completenessGaps": 3,
+  "justifiedRejections": 278
+ },
+ "wp6-member-into-continued-field": {
+  "neighbours": 143,
+  "accepted": 2,
   "completenessGaps": 2,
-  "justifiedRejections": 86
+  "justifiedRejections": 139
+ },
+ "wp6-overload-groups": {
+  "neighbours": 322,
+  "accepted": 4,
+  "completenessGaps": 2,
+  "justifiedRejections": 316
+ },
+ "wp6-self-referential-initializer": {
+  "neighbours": 176,
+  "accepted": 5,
+  "completenessGaps": 0,
+  "justifiedRejections": 171
+ },
+ "wp6-outer-binding-before-initialization": {
+  "neighbours": 210,
+  "accepted": 3,
+  "completenessGaps": 0,
+  "justifiedRejections": 207
+ },
+ "wp6-case-clause-binding": {
+  "neighbours": 477,
+  "accepted": 12,
+  "completenessGaps": 0,
+  "justifiedRejections": 465
+ },
+ "wp6-unwritten-let-var": {
+  "neighbours": 70,
+  "accepted": 5,
+  "completenessGaps": 0,
+  "justifiedRejections": 65
+ },
+ "wp6-written-let-coercion": {
+  "neighbours": 117,
+  "accepted": 2,
+  "completenessGaps": 0,
+  "justifiedRejections": 115
  },
  "evaluate-ordering": {
   "neighbours": 51,
@@ -259,14 +313,14 @@
  },
  "class-inventory-ts": {
   "neighbours": 1458,
-  "accepted": 16,
-  "completenessGaps": 4,
+  "accepted": 20,
+  "completenessGaps": 0,
   "justifiedRejections": 1438
  },
  "class-accounts-ts": {
   "neighbours": 1059,
-  "accepted": 12,
-  "completenessGaps": 7,
+  "accepted": 19,
+  "completenessGaps": 0,
   "justifiedRejections": 1040
  }
 }

@@ -1,13 +1,16 @@
 export function typeMemberOrdering(file, compiler) {
-    const physical = file.text.split('\n'), entries = [];
+    const physical = file.text.split('\n'), entries = [], spans = [];
     let hasClass = false, hasTypes = false;
     const first = (node) => file.getLineAndCharacterOfPosition(node.getStart(file)).line;
     const last = (node) => file.getLineAndCharacterOfPosition(node.end - 1).line;
     const name = (node) => {
+        // Constructor nodes carry no name property: test them first.
+        if (compiler.isConstructorDeclaration(node))
+            return 'constructor';
         if (!('name' in node))
             return undefined;
         const key = node.name;
-        return key && (compiler.isIdentifier(key) || compiler.isStringLiteral(key)) ? key.text : compiler.isConstructorDeclaration(node) ? 'constructor' : undefined;
+        return key && (compiler.isIdentifier(key) || compiler.isStringLiteral(key)) ? key.text : undefined;
     };
     const definitionModifiers = new Set([compiler.SyntaxKind.PublicKeyword, compiler.SyntaxKind.ProtectedKeyword, compiler.SyntaxKind.PrivateKeyword, compiler.SyntaxKind.StaticKeyword, compiler.SyntaxKind.OverrideKeyword, compiler.SyntaxKind.AbstractKeyword, compiler.SyntaxKind.AsyncKeyword]);
     /** A whole method/accessor/constructor that owns its rows: one row, or `{` on the first and `}` on the last row. */
@@ -44,13 +47,26 @@ export function typeMemberOrdering(file, compiler) {
                 const leadingComment = !!file.text.slice(triviaStart, member.getStart(file)).trim();
                 const distinct = !decorated && !leadingComment && key !== undefined && counts.get(key) === 1;
                 const definition = isClass && (compiler.isMethodDeclaration(member) || compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member) || compiler.isConstructorDeclaration(member)) && (!!member.body || !!modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.AbstractKeyword)) && (modifiers ?? []).every(modifier => definitionModifiers.has(modifier.kind)) && distinct && definitionRows(member);
-                return { first: row, last: end, pure: erased && simpleModifiers && distinct && row === end && physical[row]?.trim() === member.getText(file).trim(), free: definition };
+                const pure = erased && simpleModifiers && distinct && row === end && physical[row]?.trim() === member.getText(file).trim();
+                // A declare field emits nothing in either class-field mode: it is position-free in a class body.
+                return { first: row, last: end, pure, free: definition || isClass && pure };
+            });
+            // An overload signature must directly precede the next signature or the
+            // implementation (TS2389/TS2391): the whole group is one ordered unit.
+            const signature = (member) => (compiler.isMethodDeclaration(member) || compiler.isConstructorDeclaration(member)) && !member.body && !compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.AbstractKeyword);
+            const grouped = [];
+            members.forEach((member, i) => {
+                const previous = node.members[i - 1];
+                if (isClass && previous && signature(previous) && name(previous) === name(node.members[i]))
+                    grouped.push({ first: grouped.pop().first, last: member.last, pure: false });
+                else
+                    grouped.push(member);
             });
             // No edits on shared physical boundaries. Comments remain opaque barriers.
-            if (open && close && members.every((member, i) => member.first > first(open) && member.last < first(close) && (!i || members[i - 1].last < member.first))) {
+            if (open && close && grouped.every((member, i) => member.first > first(open) && member.last < first(close) && (!i || grouped[i - 1].last < member.first))) {
                 const units = [], free = [];
                 let cursor = first(open) + 1;
-                for (const member of members) {
+                for (const member of grouped) {
                     for (; cursor < member.first; cursor++)
                         if (physical[cursor]?.trim())
                             units.push({ first: cursor, last: cursor, pure: false });
@@ -65,6 +81,8 @@ export function typeMemberOrdering(file, compiler) {
                 const wired = new Set();
                 for (const member of free)
                     entries.push({ row: member.first, after: [first(open)] });
+                for (const unit of [...units, ...free])
+                    spans.push({ first: unit.first, last: unit.last });
                 for (let start = 0; start < units.length;) {
                     if (!units[start].pure) {
                         start++;
@@ -92,6 +110,6 @@ export function typeMemberOrdering(file, compiler) {
         compiler.forEachChild(node, visit);
     }
     visit(file);
-    return { entries, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők és declare osztálymezők felcserélhetők. Az egyedi nevű metódusok, accessorok és a constructor definíciók, így az osztálytörzsön belül bárhol állhatnak. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : '' };
+    return { entries, spans, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. Az egyedi nevű metódusok, accessorok, a constructor (paramétertulajdonságokkal együtt) és a declare osztálymezők az osztálytörzsön belül bárhol állhatnak. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : '' };
 }
 //# sourceMappingURL=type-member-ordering.js.map

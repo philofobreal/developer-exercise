@@ -81,7 +81,7 @@
     "reason": "",
     "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
-    "dependencyPolicy": "scoped-effect-analysis-v4",
+    "dependencyPolicy": "scoped-effect-analysis-v5",
     "dependencyHints": [
       {
         "name": "Mode",

@@ -131,7 +131,7 @@ const scenarios=[
  {name:'TypeScript mezők, declare, paraméterproperty',language:'typescript',source:corpus.get('ts-fields-declare-parameter-property').source,
   variants:[
    {name:'egymásra hivatkozó mezők cseréje',order:o=>swap(o,2,3),status:'rejected',equivalent:false},
-   {name:'declare mező a futásidejű mezők elé',order:o=>moveBefore(o,4,2),status:'rejected',equivalent:true},
+   {name:'declare mező a futásidejű mezők elé',order:o=>moveBefore(o,4,2),status:'accepted',equivalent:true},
    {name:'metódus a konstruktor elé',order:o=>moveBefore(o,range(6,8),5),status:'accepted',equivalent:true}]},
  {name:'TypeScript öröklés',language:'typescript',source:corpus.get('ts-inheritance').source,
   variants:[

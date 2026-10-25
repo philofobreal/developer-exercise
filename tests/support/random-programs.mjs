@@ -1,10 +1,11 @@
 /** Seeded generator of small, always-terminating JavaScript fixtures for
  * property-based ordering tests. Every reference program runs without throwing:
  * reads only target bindings that are initialised and visible at that point,
- * helper functions only use their parameter, and every block is bounded. */
+ * helper functions only use their parameter, and every block is bounded.
+ * `extended` adds multi-row calls and shared `} else {` boundaries (WP6). */
 import {random} from './semantic-oracle.mjs';
 
-export function randomProgram(seed,{statements=7,depth=2}={}){
+export function randomProgram(seed,{statements=7,depth=2,extended=false}={}){
  const rng=random(seed),pick=items=>items[Math.floor(rng()*items.length)],lines=['function evaluate() {'];
  let counter=0;const fresh=prefix=>`${prefix}${counter++}`;
  const scopes=[[]];
@@ -24,7 +25,14 @@ export function randomProgram(seed,{statements=7,depth=2}={}){
   }
  }
  function statement(level,indent){
-  const pad='  '.repeat(indent),choice=Math.floor(rng()*(level<depth?10:8));
+  const pad='  '.repeat(indent),choice=Math.floor(rng()*((level<depth?10:8)+(extended?2:0)));
+  if(extended&&choice>=(level<depth?10:8)){
+   if(choice===(level<depth?10:8)){lines.push(`${pad}record(`,`${pad}  ${anyRead()},`,`${pad});`);return;}
+   if(level>=depth){lines.push(`${pad}record('flat');`);return;}
+   lines.push(`${pad}if (${anyRead()} === ${anyRead()}) {`);
+   for(const [i,close] of [[0,'} else {'],[1,'}']]){scopes.push([]);statement(level+1,indent+1);scopes.pop();lines.push(pad+close);}
+   return;
+  }
   if(choice<=2){const name=fresh('c'),value=expression();lines.push(`${pad}const ${name} = ${value.code};`);scopes.at(-1).push({name,kind:value.kind,constant:true,readable:true});return;}
   if(choice===3){const name=fresh('l');lines.push(`${pad}let ${name};`);scopes.at(-1).push({name,kind:'undefined',constant:false,readable:true,writable:true});return;}
   if(choice===4){const target=visible(b=>b.writable);if(target.length){const name=pick(target).name;lines.push(`${pad}${name} = ${numberRead()};`);return;}lines.push(`${pad}record('noop');`);return;}
@@ -39,5 +47,5 @@ export function randomProgram(seed,{statements=7,depth=2}={}){
  for(let i=0;i<statements;i++)statement(0,1);
  const results=scopes[0].filter(b=>b.readable&&b.kind!=='function').map(b=>b.kind==='function'?`typeof ${b.name}`:b.name);
  lines.push(`  return [${results.join(', ')}];`,'}');
- return {id:'random-'+seed,origin:'random',language:'javascript',source:lines,probe:'evaluate()'};
+ return {id:(extended?'random-extended-':'random-')+seed,origin:'random',language:'javascript',source:lines,probe:'evaluate()'};
 }

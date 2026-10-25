@@ -94,6 +94,29 @@ const fixtures=[
   'let created = 0;','class Registry {','  static readonly id = ++created;','}','const after = created;','function evaluate(): number[] {','  return [Registry.id, after];','}']},
  {id:'ch-ts-overloads',origin:'challenge',language:'typescript',source:[
   'function pick(value: string): string;','function pick(value: number): number;','function pick(value: string | number): string | number {','  return value;','}',"const fixed: string = 'k';",'function evaluate(): Array<string | number> {','  return [pick(fixed), pick(2)];','}']},
+ // WP6 reproductions: each one made the ADR-008 generator accept a wrong order.
+ // Position-free rows entering a multi-row statement or a shared-boundary block:
+ {id:'wp6-hoisted-into-continued-call',origin:'wp6',language:'javascript',source:[
+  'function evaluate() {','  const out = record(','    1,','  );','  const size = 2;','  return [out, size, helper()];','  function helper() { return 2; }','}']},
+ {id:'wp6-hoisted-into-shared-boundaries',origin:'wp6',language:'javascript',source:[
+  'function evaluate() {','  const out = [];','  try {','    out.push(1);','  } catch (error) {','    out.push(2);','  }','  if (out.length > 1) {','    out.push(3);','  } else {','    out.push(4);','  }','  return helper(out);','  function helper(values) { return values.join(); }','}']},
+ {id:'wp6-member-into-continued-field',origin:'wp6',language:'typescript',source:[
+  'class Box {','  items: number[] = [','    1,','  ];','  size(): number { return this.items.length; }','  constructor(readonly label: string) {}','}','function evaluate(): Array<number | string> {',"  const box = new Box('b');",'  return [box.size(), box.label, Object.keys(box).join()];','}']},
+ // A position-free row between an overload signature and its implementation (TS2391).
+ {id:'wp6-overload-groups',origin:'wp6',language:'typescript',source:[
+  'class Format {','  show(value: string): string;','  show(value: number): string;','  show(value: string | number): string {','    return String(value);','  }','  twice(value: string): string { return value + value; }','}','function pick(value: string): string;','function pick(value: string | number): string | number {','  return value;','}','function evaluate(): string[] {','  const format = new Format();',"  return [format.show(1), format.twice(format.show('a')), pick('p')];",'}']},
+ // "Pure" rows that throw (uninitialised binding); a closure observes the order.
+ {id:'wp6-self-referential-initializer',origin:'wp6',language:'javascript',source:[
+  'function evaluate() {','  const log = [];',"  let probe = () => 'unset';",'  function run() {','    probe = () => typeof marker;',"    const marker = 'm';",'    const broken = broken;','  }','  try { run(); } catch (error) { log.push(error.name); }','  try { log.push(probe()); } catch (error) { log.push(error.name); }','  return log;','}']},
+ {id:'wp6-outer-binding-before-initialization',origin:'wp6',language:'javascript',source:[
+  'function evaluate() {','  const log = [];',"  let probe = () => 'unset';",'  try { run(); } catch (error) { log.push(error.name); }','  try { log.push(probe()); } catch (error) { log.push(error.name); }','  const config = 1;','  return log;','  function run() {','    probe = () => typeof marker;',"    const marker = 'm';",'    const early = config;','  }','}']},
+ {id:'wp6-case-clause-binding',origin:'wp6',language:'javascript',source:[
+  'function evaluate() {','  const log = [];',"  let probe = () => 'unset';",'  function run(step) {','    switch (step) {','      case 1:',"        const shared = 's';",'        break;','      case 2: {','        probe = () => typeof marker;',"        const marker = 'm';",'        const early = shared;','      }','    }','  }','  try { run(2); } catch (error) { log.push(error.name); }','  try { log.push(probe()); } catch (error) { log.push(error.name); }','  return log;','}']},
+ // Local write sets: never-reassigned let/var behave like const; written ones stay barriers.
+ {id:'wp6-unwritten-let-var',origin:'wp6',language:'javascript',source:[
+  'function evaluate() {','  let rate = 3;',"  var unit = 'cm';",'  const width = rate * 2;',"  const label = unit + ':' + width;",'  const height = rate + 1;','  return [label, height];','}']},
+ {id:'wp6-written-let-coercion',origin:'wp6',language:'javascript',source:[
+  'function evaluate() {','  let count = 0;','  let base = 2;','  if (count === 0) {','    base = { valueOf() { count += 1; return count; } };','  }','  const small = base * 2;','  const large = base * 10;','  return [small, large];','}']},
 ];
 
 const evaluateSource=(await readFile(new URL('./evaluate-ordering.js',import.meta.url),'utf8')).replace(/\r\n?/g,'\n').trimEnd().split('\n');

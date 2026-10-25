@@ -3,7 +3,7 @@
  * It never sees learner input and is deliberately implemented apart from the
  * author generator: JavaScript is parsed with Acorn, TypeScript with a separate
  * shape/effect walk over the compiler AST. Verdict for a candidate row order:
- *   P0 syntax     – the arrangement parses;
+ *   P0 syntax     – the arrangement parses (TS: overload signatures adjacent);
  *   P1 scope      – every statement/member stays in the same lexical list
  *                   (statement and member lists compared as multisets);
  *   P2 effects    – in each statement list, the relative order of every pair
@@ -90,6 +90,24 @@ function tsLists(file){
  visit(file);return lists;
 }
 const tsPositionFree=(statement,hoisting)=>erased(statement)||hoisting&&ts.isFunctionDeclaration(statement)&&!!statement.body;
+/** TS2389/TS2391: an overload signature must be directly followed by the next
+ * signature or the implementation of the same name. transpileModule does not
+ * report this checker error, so P0 tests it explicitly. */
+function tsOverloadsAdjacent(file){
+ let adjacent=true;
+ const name=node=>ts.isConstructorDeclaration(node)?'constructor':node.name?.getText(file);
+ const check=items=>items.forEach((item,i)=>{
+  const signature=(ts.isFunctionDeclaration(item)||ts.isMethodDeclaration(item)||ts.isConstructorDeclaration(item))&&!item.body&&!ts.getModifiers(item)?.some(m=>m.kind===ts.SyntaxKind.DeclareKeyword||m.kind===ts.SyntaxKind.AbstractKeyword);
+  const next=items[i+1];
+  if(signature&&(!next||next.kind!==item.kind||name(next)!==name(item)))adjacent=false;
+ });
+ const visit=node=>{
+  if(ts.isSourceFile(node)||ts.isBlock(node)||ts.isModuleBlock(node))check(node.statements);
+  if(ts.isClassLike(node)&&!ts.getModifiers(node)?.some(m=>m.kind===ts.SyntaxKind.DeclareKeyword))check(node.members);
+  ts.forEachChild(node,visit);
+ };
+ visit(file);return adjacent;
+}
 
 /* ------------------------------- shared policy ------------------------------- */
 function effectPairs(lists,key,hasEffect,positionFree){
@@ -104,7 +122,7 @@ function effectPairs(lists,key,hasEffect,positionFree){
 function analyse(code,language){
  if(language==='typescript'){
   const file=ts.createSourceFile('fixture.ts',code,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);
-  if(file.parseDiagnostics.length)return null;
+  if(file.parseDiagnostics.length||!tsOverloadsAdjacent(file))return null;
   return {shape:tsShape(file),effects:effectPairs(tsLists(file),tsShape,tsHasEffect,tsPositionFree)};
  }
  let tree;try{tree=parseScript(code,{ecmaVersion:'latest',sourceType:'script'});}catch{return null;}

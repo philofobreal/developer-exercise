@@ -67,6 +67,20 @@ test('property: 30 seeded random programs — sampled linear extensions and ever
  t.diagnostic(JSON.stringify(totals));
 });
 
+// WP6: multi-row calls and shared `} else {` boundaries next to hoisted helpers,
+// the shapes in which ADR-008 position-free rows could enter a unit's interior.
+test('property: 12 seeded extended programs (multi-row calls, shared else boundaries) are sound',t=>{
+ const totals={programs:0,orders:0,accepted:0,gaps:0};
+ for(let seed=1;seed<=12;seed++){
+  const fixture=randomProgram(seed,{extended:true}),model=generate(fixture),rng=random(seed*104729);
+  const sampled=Array.from({length:25},()=>extensions(model,{limit:1,rng})[0]);
+  const counts=classify(fixture,model,[...sampled,...neighbourhood(model.lines.map(line=>line.id))]);
+  assert.equal(counts.indeterminate,0,`seed ${seed}`);assert.equal(counts.undecided,0,`seed ${seed}`);
+  totals.programs++;totals.orders+=counts.orders;totals.accepted+=counts.accepted;totals.gaps+=counts.gaps;
+ }
+ t.diagnostic(JSON.stringify(totals));
+});
+
 /* ------------------------- metamorphic relations ------------------------- */
 const renamable=new Set([ts.SyntaxKind.VariableDeclaration,ts.SyntaxKind.Parameter,ts.SyntaxKind.FunctionDeclaration,ts.SyntaxKind.ClassDeclaration,ts.SyntaxKind.InterfaceDeclaration,ts.SyntaxKind.TypeAliasDeclaration,ts.SyntaxKind.EnumDeclaration,ts.SyntaxKind.BindingElement,ts.SyntaxKind.TypeParameter]);
 /** Consistent alpha-renaming of every locally declared binding (members and properties untouched). */

@@ -49,7 +49,7 @@ test('exact screenshot is syntactically valid but has a different observable pro
  const model=generateCodeLineExercise({source,language:'typescript'},ts),compiled=compile(model);
  const order=[1,2,3,4,5,7,6,8,10,9,11,12,13],changed=codes(model,order);
  assert.equal(grade(compiled,changed).status,'rejected');
- assert.equal(model.authoring.dependencyPolicy,'scoped-effect-analysis-v4');
+ assert.equal(model.authoring.dependencyPolicy,'scoped-effect-analysis-v5');
  assert.deepEqual(model.lines[1].dependencies,[1]);assert.deepEqual(model.lines[2].dependencies,[1]);assert.deepEqual(model.lines[3].dependencies,[2,3]);
  assert.ok(model.lines.every(line=>line.fixed===false));
  for(const define of [false,true]){
@@ -60,7 +60,11 @@ test('exact screenshot is syntactically valid but has a different observable pro
  // Content bijection ignores indentation on these rows and cannot distinguish
  // identical closing braces by client IDs. The oracle uses that same text contract.
  const key=lines=>JSON.stringify(lines.map(line=>line.replace(/^[ \t]+/,'')));
- const original=model.lines.map(line=>line.code),allowed=new Set([key(original),key(codes(model,swap(model.lines.map(line=>line.id),2,3)))]);
+ // ADR-009: the constructor is position-free, so the last field may follow it;
+ // the field (and key) order name, id is unchanged in both class-field modes.
+ const fieldAfterConstructor=codes(model,[1,2,3,4,5,6,8,9,10,11,7,12,13]);
+ for(const define of [false,true])assert.deepEqual(JSON.parse(run(fieldAfterConstructor.join('\n'),examples[0].probe,define)),JSON.parse(run(source,examples[0].probe,define)));
+ const original=model.lines.map(line=>line.code),allowed=new Set([key(original),key(codes(model,swap(model.lines.map(line=>line.id),2,3))),key(fieldAfterConstructor)]);
  for(let from=0;from<original.length;from++)for(let to=0;to<original.length;to++){
   const lines=[...original];lines.splice(to,0,lines.splice(from,1)[0]);
   assert.equal(grade(compiled,lines).accepted,allowed.has(key(lines)),JSON.stringify({from,to}));

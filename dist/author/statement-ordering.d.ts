@@ -2,8 +2,10 @@
  * summaries (ADR-008). It never runs for learner submissions.
  *
  * Each statement list (source file, block, module block) is split into units:
- *  - pure: evaluation has no observable effect and cannot throw once its
- *    inputs are initialised; it may read bindings and initialise its own one;
+ *  - pure: evaluation has no observable effect and cannot throw; every binding
+ *    it reads is initialised whenever it runs (same-context declaration with a
+ *    protected edge, parameter, catch/loop binding, hoisted function, or a var);
+ *    it may initialise its own binding;
  *  - position-free: no evaluation event at its position (hoisted function
  *    declaration in a function/script list, erased TypeScript declaration);
  *  - barrier: everything else (calls, property access, writes, loops, control
