@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased – 2026-10-26 osztálykiértékelési fázisok és accessorpárok (ADR-012)
+
+- **Lazítás, a soundness megtartásával:** a generatív kampány réseinek osztályozása alapján, a ClassDefinitionEvaluation lépéseire épülő érveléssel ([ADR-012](docs/adr/012-class-evaluation-phases-and-accessor-pairs.md)):
+  - **R1 – accessorpár:** az azonos nevű getter és setter egy tulajdonság. Egymással felcserélhetők, a mezőkhöz képest szabadok, a kulcsláncban egy csoportot alkotnak.
+  - **R2 – fázisok:** a static mezők és blokkok, illetve a példánymezők egymáshoz képest szabadok, csoportjukon belül kötöttek.
+  - **R3 – számított nevű metódus:** a mezőkhöz képest szabad, a kulcslánchoz és a többi számított kulcshoz képest kötött.
+- **Szándékosan nem lazítva:** a szkriptszintű `let`/`var` (szövegből futtatott kód is írhatja), a duplikált nevek és az overload-szignatúrák sorrendje.
+- **Policy-címke:** additív `scoped-effect-analysis-v8`; a szerzői magyarázat leírja az új szabályokat. A validátor és a séma jelentése változatlan.
+- **Mérés:**
+  - korpusz: 0 hibás elfogadás, az R7-rések száma 25 → 20, az R7 A(M) 2 042 → 3 706;
+  - generatív kampány, 550 program, azonos magok és mintavevő: 0 hibás elfogadás, az indokolatlan elutasítások száma 3 524 → 2 455 (az osztályokon −42%).
+
+  [Részletek](docs/formal-ordering-contract.md#adr-012-osztálykiértékelési-fázisok-és-accessorpárok).
+- **Tesztek:** új [tests/class-phase-ordering.test.mjs](tests/class-phase-ordering.test.mjs), amely mindhárom szabályt JS-ben és TS-ben, mindkét osztálymező-módban, blokkmozgatásos soundness-ellenőrzéssel teszteli. A `refl-ts-accessor-fields` rögzített alapvonala frissült (rés 17 → 12).
+- **Tesztsegéd:** az `extensions` mintavevő levágja a halott ágakat (blokk nyitása és zárása), mert a lazább modelleken néhány program exponenciális keresésbe futott. A teljes felsorolás eredménye változatlan.
+
 ## Unreleased – 2026-10-26 generatív lefedettség: osztályok, szkriptszint, TypeScript
 
 - **Új generátormódok** ([random-programs.mjs](tests/support/random-programs.mjs)): `randomClassProgram` (felső szintű, öröklő és beágyazott osztályok minden tagfajtával, TS-ben `declare`, paramétertulajdonság, overload, `accessor`), valamint `randomScriptProgram` (szkriptszintű deklarációk, TS-ben `enum`, `namespace`, `import =`). A korábbi generátor csak egy függvénytörzs JS-kódját állította elő.

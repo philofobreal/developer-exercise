@@ -7,17 +7,18 @@ Ez a dokumentum a generált sorrendszabályok jelentését, a támogatott részn
 - [ADR-008](adr/008-effect-based-statement-ordering.md): hatásösszegzés;
 - [ADR-009](adr/009-sealed-units-and-throw-free-reads.md): lezárás, dobásmentes olvasás, írási halmazok;
 - [ADR-010](adr/010-reflective-property-order.md): reflektálható tulajdonságsorrend, v7-kiegészítéssel (`accessor` mező, TS-kibocsátott globálisok);
-- [ADR-011](adr/011-language-independent-ordering-relations.md): nyelvfüggetlen sorrendi relációk.
+- [ADR-011](adr/011-language-independent-ordering-relations.md): nyelvfüggetlen sorrendi relációk;
+- [ADR-012](adr/012-class-evaluation-phases-and-accessor-pairs.md): osztálykiértékelési fázisok és accessorpárok.
 
 ## Végleges állapot (WP1–WP8)
 
-**Mérés:** a 61 fixture-ös korpuszon, reflektáló politikával (P0–P4), a v7-kiegészítés után, [mérés](#v7-kiegészítés-accessor-mezők-és-ts-kibocsátott-globálisok). Az ADR-011 viselkedésmegőrző volt: mind a 167 generált modell bájtra azonos maradt.
+**Mérés:** a 61 fixture-ös korpuszon, reflektáló politikával (P0–P4), az ADR-012 után, [mérés](#adr-012-osztálykiértékelési-fázisok-és-accessorpárok). Az ADR-011 viselkedésmegőrző volt: mind a 167 generált modell bájtra azonos maradt.
 
 | | K45 (eredeti) | W9 (WP6) | R7 (reflexió) |
 | --- | ---: | ---: | ---: |
 | hibásan elfogadott sorrend (A(M) + szomszédság) | 0 | 0 | 0 |
-| indokolatlanul elutasított szomszéd | 6 | 7 | 25 |
-| elfogadott teljes sorrend, A(M), mind orákulummal ellenőrizve | 2 297 | 61 | 2 042¹ |
+| indokolatlanul elutasított szomszéd | 6 | 7 | 20 |
+| elfogadott teljes sorrend, A(M), mind orákulummal ellenőrizve | 2 297 | 61 | 3 706¹ |
 | orákulum által eldöntetlen / validátor `indeterminate` | 0 / 0 | 0 / 0 | 0 / 0 |
 | nem támogatott (elemzés kikapcsolva) | 1 fixture | 0 | 0 |
 
@@ -121,10 +122,12 @@ A precedencia csak „előtte” vagy „utána” relációt fejez ki, a „nem
 
 - **Szabad, azaz pozíciófüggetlen** az osztálytörzsben az egyedi nevű metódus, accessor és constructor definíció, valamint a `declare` mező.
 - **Kulcslánc (ADR-010):** a string kulcsot létrehozó tagok azonos objektumon (prototípus, illetve `static` esetén a konstruktor) forrássorrendben maradnak. Ilyen a törzzsel rendelkező metódus és accessor, a számított, duplikált, accessorpár- és overload-implementáció is. A mezőkhöz képest szabadok maradnak.
+- **Accessorpár (ADR-012):** az azonos nevű, azonos elhelyezésű getter és setter egy tulajdonság. Mindkét fél definíció, a kulcsláncban pedig egy csoport: egymás közt felcserélhetők, de mindkettő követi az előző és megelőzi a következő kulcsot.
+- **Fázisok (ADR-012):** a futásidejű egységek fázisa `key` (számított nevű metódus vagy accessor), `static` (static mező, static blokk) vagy `instance` (példánymező). Egy egység minden korábbi, közös fázisú vagy fázis nélküli egységet követ; a különböző fázisú egységek egymáshoz képest szabadok.
 - **`accessor` mező (v7):** get/set párt hoz létre a metódusok között, ezért a kulcsláncban van, az inicializálója miatt pedig a mezők között is a helyén marad.
 - **Kívül marad a láncon:** a `constructor`, a tömbindex nevű, a privát `#` és a törölt tag.
 
- A paramétertulajdonságot a TypeScript mindkét osztálymező-módban a konstrukció elején állítja be, a constructor helyétől függetlenül. Egy overload-csoport (szignatúrák és implementáció) egyetlen kötött egység. A futásidejű mezők, a static kód és a duplikált nevek sorrendje kötött. Az ADR-007 törölt típustag-futamai változatlanok. A többsoros tagokra ugyanaz a lezárás vonatkozik.
+ A paramétertulajdonságot a TypeScript mindkét osztálymező-módban a konstrukció elején állítja be, a constructor helyétől függetlenül. Egy overload-csoport (szignatúrák és implementáció) egyetlen kötött egység. A futásidejű mezők és a static kód a saját fázisukon belül kötöttek; a duplikált nevek, a számított nevű mezők, a dekorált és a kommentelt tagok fázis nélküliek, tehát minden egységhez képest kötöttek. Az ADR-007 törölt típustag-futamai változatlanok. A többsoros tagokra ugyanaz a lezárás vonatkozik.
 
 ## Helyességi érvelés a támogatott résznyelven
 
@@ -160,7 +163,8 @@ Ha a feltételek nem teljesülnek, a generátor a forrássorrendet tartja meg. E
 | többsoros egység saját blokkhatárok nélkül, illetve elhagyott (`} else {`) blokk | barrier, illetve sorosított intervallum, valamint lezárás (ADR-009) |
 | más kontextusú `let`/`const`/osztály-olvasás, önhivatkozás, `case`-ágbeli kötés | nem tiszta, barrier |
 | újraírt `let`/`var` koerciós operandusként; szkriptszintű `let`/`var` | nem primitív, barrier |
-| számított, duplikált, dekorált, kommentelt osztálytag, accessorpár | kötött tag |
+| duplikált, dekorált, kommentelt osztálytag, számított nevű mező | fázis nélküli, kötött tag (ADR-012) |
+| számított nevű metódus | `key` fázis: a mezőkhöz képest szabad, a kulcslánchoz és a többi számított kulcshoz képest kötött |
 | a prototípuson vagy a konstruktoron kulcsot létrehozó tagok (az `accessor` mezőt is beleértve); szkriptszintű `function`/`var`, valamint a TS `enum`, példányosított `namespace` és `import =` alias | egymáshoz képest kötött kulcslánc (ADR-010, v7) |
 | 250-nél több megtartott blokk, 500 sor vagy 50 KB fölött | elhagyott blokk, illetve elutasított szerzői forrás |
 | kimerült validátorkeret | `indeterminate`, soha nem elfogadás |
@@ -373,13 +377,41 @@ Orákulum által eldöntetlen és validátor `indeterminate` eredmény nem volt.
 
 **Értelmezés:** a v7 utáni szabályokban a vizsgált alakkészleten nem került elő újabb hibás elfogadás. Ez korlátos empirikus bizonyíték, nem bizonyítás: a generátor csak a fent felsorolt alakokat állítja elő, és a futásidejű összevetés a rögzített probe-ra szól. A completeness-rések (például a mezőkhöz képest szabadon mozgatható, de egymáshoz kötött metódusok, valamint a típus-only namespace barrierje) a lazítási feladat bemenetei.
 
+### ADR-012: osztálykiértékelési fázisok és accessorpárok
+
+**Korpusz** (61 fixture, azonos orákulum; előtte a `2358cea` kódja külön munkakönyvtárban):
+
+| Mérőszám | K45 | W9 | R7 előtte → utána |
+| --- | ---: | ---: | ---: |
+| hibásan elfogadott (A(M) + szomszédság) | 0 → 0 | 0 → 0 | **0 → 0** |
+| indokolatlanul elutasított szomszéd | 6 → 6 | 7 → 7 | 25 → 20 |
+| elfogadott teljes sorrend, A(M) | 2 297 → 2 297 | 61 → 61 | 2 042 → 3 706 |
+| validátor-állapotok A(M)-en | változatlan | változatlan | 74 894 → 134 990 |
+
+A K45 és a W9 nem tartalmaz accessorpárt, vegyes static és példánymezőt vagy számított nevű metódust, ezért változatlan. Az R7-en a `refl-index-private-accessor-duplicate` (1 440 → 2 880, a getter és a setter felcserélhető) és a `refl-ts-accessor-fields` (112 → 336, a static és a példánymezők egymáshoz képest szabadok) változott. Az állapotszám az elfogadott sorrendek számával arányosan nőtt.
+
+**Generatív kampány** (ugyanazok a magok, ugyanaz a mintavevő mindkét oldalon):
+
+| Programfajta | Hibás elfogadás | Indokolatlan elutasítás előtte → utána | Elfogadott előtte → utána |
+| --- | ---: | ---: | ---: |
+| JS-osztály (140) | **0 → 0** | 1 769 → 1 047 | 7 425 → 8 615 |
+| TS-osztály (70) | **0 → 0** | 796 → 449 | 4 326 → 4 789 |
+| JS- és TS-szkript, JS-függvénytörzs (340) | **0 → 0** | 959 → 959 | 6 318 → 6 318 |
+| **Összesen** (550 program, kb. 411 000 sorrend) | **0** | 3 524 → 2 455 (−30%) | 18 069 → 19 722 |
+
+Az osztályprogramokon a rések száma 42%-kal csökkent. A szkript- és a függvényprogramok számai bájtra azonosak, mert a szabályok csak osztálytagokat érintenek.
+
+**Teljesítmény:** a validálás a nagy referenciákon is 16 ms alatt maradt. A generálás a 500 soros osztályon 10,7 ms helyett 16,6 ms, mert a fázisélek bekötése lineáris: fázisonként csak a legutóbbi egység kap élt. Egy négyzetes változat ugyanerre 79,6 ms volt, és bájtra azonos modelleket adott 425 programon.
+
+**Tesztsegéd-javítás:** az `extensions` mintavevő véletlen mélységi keresése a lazább modelleken néhány programon exponenciálisan sok zsákutcába futott (≥20 s magonként). Most nem nyit meg blokkot, amíg a blokk belső sorainak külső függőségei nincsenek a helyükön, és nem zár le blokkot, amíg az összes belső sora nincs lerakva. Ez csak a halott ágakat vágja le: a teljes felsorolás eredménye és sorrendje változatlan, a véletlen minták viszont mások, mint korábban. Ezért a fenti kampányt mindkét oldalon az új mintavevővel futtattam újra.
+
 **Szomszédsági vakfolt.** A szomszédság egysoros mozgatásokat és párcseréket vizsgál, ezért egy többsoros metódusblokk cseréjét nem látja. A hibát csak az A(M) és az új tagblokk-permutációs teszt mutatta ki: [reflection-ordering.test.mjs](../tests/reflection-ordering.test.mjs). Ez öt osztályra kimerítően vagy mintával felsorolja a tagblokkok sorrendjét, és az elfogadott ⊆ ekvivalens feltételt ellenőrzi; három esetben pontos egyezéssel.
 
 **Nagy referenciák** (reflective, előtte → utána): a generálás `flat-pure` 10,0 → 10,1 ms, `blocks-and-helpers` 29,4 → 30,6 ms, `class-members` 11,5 → 11,2 ms, `continued-calls` 45,6 → 46,3 ms. A referencia-állapotok (sorok száma + 1) változatlanok, a validálás minden alakra 4 ms alatt marad.
 
 ## Ismert korlátok
 
-- **Reflexió (ADR-010):** a különböző nevű metódusok és `accessor` mezők egymáshoz képesti, valamint a szkriptszintű `function`/`var`/`enum`/`namespace` deklarációk sorrendje kötött. Egy namespace csak akkor szabad, ha törzse kizárólag típus- vagy `declare` deklarációkat tartalmaz. Az accessorpár, a duplikált és a számított nevű tag konzervatív. A futásidejű pillanatkép csak a felső szintű osztályokat látja; a beágyazottakat a szintaktikus P4-szabály ellenőrzi. A forrásszöveg-reflexió kizárt.
+- **Reflexió (ADR-010):** a különböző nevű metódusok és `accessor` mezők egymáshoz képesti, valamint a szkriptszintű `function`/`var`/`enum`/`namespace` deklarációk sorrendje kötött. Egy namespace csak akkor szabad, ha törzse kizárólag típus- vagy `declare` deklarációkat tartalmaz. A duplikált nevű tag és a számított nevű mező konzervatív. Az accessorpár két fele nem állhat a következő kulcs két oldalán, akkor sem, ha a kulcs az első fél helyén keletkezik (precedenciával nem kifejezhető). A beágyazott osztályokat a probe utáni futásidejű pillanatkép és a szintaktikus P4-szabály ellenőrzi. A forrásszöveg-reflexió kizárt.
 
 - **Scope-áthelyezés:** a v2 `scopeId` soronként egyetlen scope-ot enged, ezért egy deklaráció beljebb vagy kijjebb helyezése elutasított (P1 szerint ez szándékos).
 - **Property-olvasás, getter, destrukturálás:** barrier.
@@ -389,12 +421,12 @@ Orákulum által eldöntetlen és validátor `indeterminate` eredmény nem volt.
 - **Más függvénykontextusból olvasott `let`/`const`/osztály:** barrier, mert a belső függvény a deklaráció előtt is futhat.
 - **Ciklus, `try`, `switch`:** barrier; a `case`-listák sorosak.
 - **TS-overload-csoportok, duplikált nevek, dekorátorok, kommentek, többsoros folytatások:** konzervatívak.
-- **Futásidejű osztálymezők:** a sorrend kötött (a `declare` mező és a constructor szabad).
+- **Futásidejű osztálymezők:** a sorrend a fázisukon belül kötött (ADR-012). Egy privát és egy publikus mező felcserélése tiszta inicializálóval is elutasított, mert ehhez mezőszintű olvasási elemzés kellene. A `declare` mező és a constructor szabad.
 - **Async:** az `await` előtti és utáni tiszta sorok nem lépnek át rajta.
 
 ## Kompatibilitás és nyelvi határ
 
 - **Régi modellek:** az importált modellek függőségei nem változnak. Újragenerálás csak explicit „Sorfüggőségek újraszámítása” műveletre történik.
-- **Policy-címke:** új generáláskor `scoped-effect-analysis-v7` (ADR-010 kiegészítés); a régi enumértékek, köztük a v4–v6, érvényesek maradnak (additív sémabővítés).
+- **Policy-címke:** új generáláskor `scoped-effect-analysis-v8` (ADR-012); a régi enumértékek, köztük a v4–v7, érvényesek maradnak (additív sémabővítés).
 - **Belső szerződés (ADR-011):** az adapter `orderingRelations` metódusa nyelvfüggetlen [`OrderingRelations`](../src/author/ordering-relations.ts) relációt ad: előzmények, védett bemenetek, egységhatárok, megjegyzés, 0-alapú fizikai sorokon. A projekciót a generátor végzi, a validátor nem változik.
 - **Python-adapterhez:** natív IR v3 út egységszintű relációkkal; a v2-projekció nem használható. A szerkezeti feladatok: [Python-terv](python-adapter-plan.md#illeszkedés-a-közös-sorrendi-szerződéshez-wp7-adr-011).

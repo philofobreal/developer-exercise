@@ -75,7 +75,7 @@ A [semantic-oracle.mjs](../../tests/support/semantic-oracle.mjs) változásai:
   - a különböző nevű metódusok egymáshoz képesti sorrendje;
   - a szkriptszintű függvények és `var`-ok sorrendje.
 - **Megmaradó korlátok:**
-  - az accessorpár, a duplikált és a számított név továbbra is kötött;
+  - a duplikált és a számított név továbbra is kötött; az accessorpárt és a számított nevű metódust később az [ADR-012](012-class-evaluation-phases-and-accessor-pairs.md) lazította;
   - a beágyazott, függvényen belüli osztályok P4-ét csak a szintaktikus szabály ellenőrzi futás közben, a pillanatkép nem;
   - a forrásszöveg-reflexió kizárt.
 
