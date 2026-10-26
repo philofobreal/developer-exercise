@@ -1,8 +1,9 @@
-/** Author-only AST structure with explicit physical-row representation limits. */
+/** Language-independent CodeLine v2 projection (ADR-011): the adapter supplies the
+ * AST-derived structure, whitespace and ordering relations; this module owns the
+ * block/scope hierarchy, the physical-row limits and the mapping to line IDs. */
 import {AuthoringError} from './errors.mjs';
 import {getLanguageAdapter} from './languages.mjs';
-import {typeMemberOrdering} from '../../dist/author/type-member-ordering.js';
-import {reduceGeneratedDependencies} from '../../dist/author/statement-ordering.js';
+import {reduceGeneratedDependencies,sealMultiRowUnits} from '../../dist/author/ordering-relations.js';
 export {AuthoringError} from './errors.mjs';
 export function generateCodeLineExercise({source,language='javascript',title='Saját feladat',description='Rendezd sorba a programkódot.'},ts){
  const adapter=getLanguageAdapter(language);
@@ -29,34 +30,18 @@ export function generateCodeLineExercise({source,language='javascript',title='Sa
   while(owner&&owner.kind!=='function')owner=owner.parent;
   return {id:i+1,sourceLine:line+1,code,dependencies:i?[i]:[],fixed:false,functionBlock:owner?.functionBlock??0,scopeId:scope?.id??null,normalization:exact.has(line)?'exact':'indent'};
  });
- // Compose per-statement data/control ordering in every lexical statement list.
- // Opaque effects preserve order; primitive reads resolve ancestor bindings too.
- const ordering=adapter.statementOrdering?.(ast,ts),protectedById=new Map();
+ // Project the adapter's language-independent ordering relations onto line IDs.
+ const ordering=adapter.orderingRelations?.(ast,ts),protectedById=new Map(),toIds=rows=>[...rows].map(row=>byPhysical.get(row)).filter(id=>id!==undefined);
  if(ordering){
-  for(const entry of ordering.entries){const id=byPhysical.get(entry.row);if(id!==undefined)lines[id-1].dependencies=entry.after.map(row=>byPhysical.get(row)).filter(id=>id!==undefined);}
-  for(const [row,inputs] of ordering.protectedInputs){const id=byPhysical.get(row);if(id!==undefined)protectedById.set(id,new Set([...inputs].map(row=>byPhysical.get(row)).filter(id=>id!==undefined)));}
- }
- const members=typeMemberOrdering(ast,ts);
- for(const entry of members.entries){const id=byPhysical.get(entry.row);if(id!==undefined)lines[id-1].dependencies=entry.after.map(row=>byPhysical.get(row)).filter(id=>id!==undefined);}
- // The validator admits a row wherever the open scope equals its scopeId. Inside a
- // multi-row unit that holds only at continuation rows and shared `} else {` style
- // boundaries (omitted blocks); there every same-scope sibling keeps its source side (ADR-009).
- const opener=new Map(retained.map(b=>[byPhysical.get(b.start),b.id]));
- const units=[...(ordering?.units??[]),...members.spans].map(unit=>({first:byPhysical.get(unit.first),last:byPhysical.get(unit.last)})).filter(unit=>unit.first!==undefined&&unit.last!==undefined);
- for(const unit of units.filter(unit=>unit.first<unit.last)){
-  const scope=lines[unit.first-1].scopeId;
-  let open=false;for(let id=unit.first;id<unit.last&&!open;id++)open=(opener.get(id)??lines[id-1].scopeId)===scope;
-  if(!open)continue;
-  for(const other of units){
-   if(lines[other.first-1].scopeId!==scope)continue;
-   const [before,after]=other.last<unit.first?[other.last,unit.first]:other.first>unit.last?[unit.last,other.first]:[];
-   if(before!==undefined&&!lines[after-1].dependencies.includes(before))lines[after-1].dependencies.push(before);
-  }
+  for(const entry of ordering.entries){const id=byPhysical.get(entry.row);if(id!==undefined)lines[id-1].dependencies=toIds(entry.after);}
+  for(const [row,inputs] of ordering.protectedInputs){const id=byPhysical.get(row);if(id!==undefined)protectedById.set(id,new Set(toIds(inputs)));}
+  const units=ordering.spans.map(unit=>({first:byPhysical.get(unit.first),last:byPhysical.get(unit.last)})).filter(unit=>unit.first!==undefined&&unit.last!==undefined);
+  sealMultiRowUnits(lines,units,new Map(retained.map(b=>[byPhysical.get(b.start),b.id])));
  }
  reduceGeneratedDependencies(lines,protectedById);
  // A single row can close and open scopes (} else {). Preserve all unambiguous
  // ancestors/children and lock only each unrepresentable interval to source order.
  const edgeMap=new Map();
  for(const b of omitted){const ids=rows.flatMap((x,i)=>x.line>=b.start&&x.line<=b.end?[i+1]:[]);for(let i=1;i<ids.length;i++)edgeMap.set(ids[i-1]+':'+ids[i],{before:ids[i-1],after:ids[i]});}
- return {schemaVersion:2,id:'draft',revision:1,language,title:String(title).slice(0,140)||'Saját feladat',description:String(description).slice(0,500),lines,blocks,edges:[...edgeMap.values()],profiles:[],authoring:{strategy:'ast-hierarchy',reason:omitted.length?'shared-physical-boundaries':'',omittedBlocks:omitted.length,semanticEquivalenceProven:false,dependencyPolicy:'scoped-effect-analysis-v6',...(members.note?{note:members.note}:{}),dependencyHints:adapter.analyzeDependencies?.(ast,ts)??[]}};
+ return {schemaVersion:2,id:'draft',revision:1,language,title:String(title).slice(0,140)||'Saját feladat',description:String(description).slice(0,500),lines,blocks,edges:[...edgeMap.values()],profiles:[],authoring:{strategy:'ast-hierarchy',reason:omitted.length?'shared-physical-boundaries':'',omittedBlocks:omitted.length,semanticEquivalenceProven:false,dependencyPolicy:'scoped-effect-analysis-v6',...(ordering?.note?{note:ordering.note}:{}),dependencyHints:adapter.analyzeDependencies?.(ast,ts)??[]}};
 }

@@ -11,8 +11,10 @@ test('Pages artifact has relative entrypoints and local compiler',async()=>{
  assert.ok((await stat(file('vendor/typescript.js'))).size>1000000);
  assert.ok((await stat(file('dist/validator.js'))).size>1000);
  assert.ok((await stat(file('author/generator.mjs'))).size>1000);
- assert.match(await readFile(file('author/generator.mjs'),'utf8'),/\.\.\/dist\/author\/type-member-ordering\.js/);
- assert.ok((await stat(file('dist/author/type-member-ordering.js'))).size>1000);
+ // ADR-011 wiring, re-rooted for the one-level-shallower static author folder.
+ assert.match(await readFile(file('author/generator.mjs'),'utf8'),/\.\.\/dist\/author\/ordering-relations\.js/);
+ assert.match(await readFile(file('author/languages.mjs'),'utf8'),/\.\.\/dist\/author\/js-ts-ordering\.js/);
+ for(const module of ['ordering-relations','js-ts-ordering','statement-ordering','type-member-ordering'])assert.ok((await stat(file(`dist/author/${module}.js`))).size>500,module);
  const samples=JSON.parse(await readFile(file('samples/typescript/suite.json'),'utf8'));
  assert.equal(samples.length,24);
  for(const example of samples)await stat(file('samples/typescript/'+example.id+'.model.json'));

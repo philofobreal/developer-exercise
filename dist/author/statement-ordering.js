@@ -347,21 +347,4 @@ export function statementOrdering(file, compiler) {
     visit(file);
     return { entries: [...entries].map(([row, after]) => ({ row, after: [...after] })), protectedInputs, units };
 }
-/** Remove only redundant synthetic edges, retaining actual value-read inputs. */
-export function reduceGeneratedDependencies(lines, protectedById = new Map()) {
-    const ancestors = new Map();
-    for (const item of lines) {
-        const all = new Set();
-        for (const dep of item.dependencies) {
-            all.add(dep);
-            for (const ancestor of ancestors.get(dep) ?? [])
-                all.add(ancestor);
-        }
-        ancestors.set(item.id, all);
-    }
-    for (const item of lines) {
-        const protectedIds = protectedById.get(item.id) ?? new Set();
-        item.dependencies = item.dependencies.filter(dep => protectedIds.has(dep) || !item.dependencies.some(other => other !== dep && ancestors.get(other)?.has(dep))).sort((a, b) => a - b);
-    }
-}
 //# sourceMappingURL=statement-ordering.js.map

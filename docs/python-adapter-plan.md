@@ -47,6 +47,22 @@ A binding scope IR-parent hierarchiája metaadat; nem tudja önmagában a Python
 
 A headerhez kötött nyitó esemény és a body-unitok containerId-ja már megőrzi a suite-tagságot; a clause-sorrend külön éleket igényel. Korlát viszont, hogy az EOF záró eseménye ma konkrét utolsó unithoz kötődik. Ha később éppen ezt a unitot is szabadon mozgatnánk a törzsön belül, a zárás vele mozdulna, és egyébként helyes sorrendek is elutasíthatók lennének. Az első kiadás serial politikája ezt elkerüli. A lazítás előtt explicit EOF/compound-end anchor vagy dokumentált végső unit szükséges, kompatibilitási ADR-rel és negatív/pozitív oracle-tesztekkel. Nem oldjuk meg mesterséges tanulói zárósorral.
 
+## Illeszkedés a közös sorrendi szerződéshez (WP7, ADR-011)
+
+A JS/TS adapter a nyelvfüggetlen [`OrderingRelations`](../src/author/ordering-relations.ts) relációt adja a v2-projekciónak. Ez Pythonra csak részben vihető át. A Python natív útja a Language IR v1 / CodeLine v3. Ott a többsoros egység (`MovableUnit.lineIds`) konstrukció szerint összefüggő, ezért az ADR-009 lezárására nincs szükség. A sorrendi reláció természetes alakja egységek közötti él, nem fizikai sorok közötti. A relációk jelentése megmarad: konjunktív előzmények, védett értékbemenetek, egységhatárok. A sorhivatkozás helyére egység-ID kerül, ezért a v2-projekció nem használható.
+
+**Szerkezeti problémák, amelyeket egy Python kötés- és hatáselemzőnek kezelnie kell, mielőtt bármely sorrend szabaddá válik:**
+
+- **Nincs záró sor:** a suite végét DEDENT/EOF jelzi, ezért virtuális határesemény kell (v3 `BlockBoundary.virtual`). A v2-ben ez nem reprezentálható.
+- **Függvényszintű scope:** az `if` suite nem névtér. A `global`/`nonlocal` más kontextus kötését írja, a comprehension saját scope.
+- **Olvasási hiba:** TDZ nincs, helyette `UnboundLocalError` és `NameError` léphet fel. Ezeket ugyanúgy dobásként kell kezelni, mint a JS-ben a más kontextusú TDZ-olvasást (ADR-009).
+- **Felülírható kötés:** minden értékadás újraköt, `const` nincs. A JS-hez hasonló „soha újra nem írt” írási halmaz szükséges, és figyelembe kell venni a `global`-on és a modulattribútumon át történő írást is.
+- **Futó definíciók:** a dekorátor, a default argumentum és az annotáció a definíciókor fut (az annotáció a verziótól és a `from __future__ import annotations`-tól függően).
+- **Végrehajtott osztálytörzs:** az osztálytörzs utasításlista. A metódusdefiníció sorrendje a `vars(C)` és a `C.__dict__` kulcssorrendjén át megfigyelhető (a `dir()` rendez, az nem), az ADR-010 P4-feltételének megfelelően. Ezért a metódusok egymáshoz képest nem pozíciófüggetlenek.
+- **Modulszint:** a modulnévtér (`globals()`) sorrendje is megfigyelhető, ez a szkriptszintű `function`/`var` lánc megfelelője.
+
+**Nem implementálandó:** Python → JavaScript transzpiláció, JS Beautify-alapú szintaxiswrapping és a v2 nyelvlistájának hallgatólagos bővítése. A közös validátor nyelvfüggetlen marad. Az első Python-kiadás a fenti tervnek megfelelően soros DAG-ot generál.
+
 ## Dependency- és behúzási politika
 
 Az első Python kiadás eredeti sorrendet követelő, konzervatív unit-DAG-ot generál. A scope- és binding-adatok már ekkor pontosak, de nem szolgálnak indokolatlan sorrendlazításra. Assignment nem JS `const`: egy név újraköthető, olvasása lehet UnboundLocalError, annotáció/dekorátor/default argument és osztálytörzs is járhat hatással. Hívás, import, attribútum/indexelés, mutáció, async/yield, kivételkezelés és ismeretlen művelet sorrendi korlát marad. A `global`/`nonlocal`, comprehension és match binding külön regressziót kap.

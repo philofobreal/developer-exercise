@@ -306,10 +306,3 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler): Stat
  visit(file);
  return {entries: [...entries].map(([row, after]) => ({row, after: [...after]})), protectedInputs, units};
 }
-
-/** Remove only redundant synthetic edges, retaining actual value-read inputs. */
-export function reduceGeneratedDependencies(lines: {id: number; dependencies: number[]}[], protectedById: Map<number, Set<number>> = new Map()): void {
- const ancestors = new Map<number, Set<number>>();
- for (const item of lines) {const all = new Set<number>(); for (const dep of item.dependencies) {all.add(dep); for (const ancestor of ancestors.get(dep) ?? []) all.add(ancestor);} ancestors.set(item.id, all);}
- for (const item of lines) {const protectedIds = protectedById.get(item.id) ?? new Set<number>(); item.dependencies = item.dependencies.filter(dep => protectedIds.has(dep) || !item.dependencies.some(other => other !== dep && ancestors.get(other)?.has(dep))).sort((a, b) => a - b);}
-}

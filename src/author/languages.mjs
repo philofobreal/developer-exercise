@@ -5,7 +5,7 @@
 import {parse as parseJavaScript} from './vendor/acorn.mjs';
 import {AuthoringError} from './errors.mjs';
 import {bindingChecker,declarationGroups} from './dependency-analysis.mjs';
-import {statementOrdering} from '../../dist/author/statement-ordering.js';
+import {jsTsOrderingRelations} from '../../dist/author/js-ts-ordering.js';
 import {formatTypedSource} from './ts-format.mjs';
 const registry=new Map();
 export function registerLanguageAdapter(id,adapter){
@@ -48,7 +48,7 @@ for(const language of ['javascript','typescript'])registerLanguageAdapter(langua
   return file;
  },
  format:(source,ts)=>{getLanguageAdapter(language).parse(source,ts);return formatTypedSource(source,language,ts);},
- structure,whitespace,declarationGroups,statementOrdering,
+ structure,whitespace,declarationGroups,orderingRelations:jsTsOrderingRelations,
  tokenize(file,ts){const out=[];const walk=n=>{const children=n.getChildren(file);if(!children.length&&n.kind!==ts.SyntaxKind.EndOfFileToken)out.push({kind:n.kind,text:n.getText(file)});else children.forEach(walk);};walk(file);return out;},
  analyzeDependencies(file,ts){
   // Binding identity, not equal identifier spelling, resolves shadowed locals.

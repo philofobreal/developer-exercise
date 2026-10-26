@@ -43,9 +43,4 @@ export interface StatementOrdering {
 /** Separate, browser-safe checker host: only the reference file is visible. */
 export declare function bindingChecker(file: ts.SourceFile, compiler: Compiler): ts.TypeChecker;
 export declare function statementOrdering(file: ts.SourceFile, compiler: Compiler): StatementOrdering;
-/** Remove only redundant synthetic edges, retaining actual value-read inputs. */
-export declare function reduceGeneratedDependencies(lines: {
-    id: number;
-    dependencies: number[];
-}[], protectedById?: Map<number, Set<number>>): void;
 export {};

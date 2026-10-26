@@ -12,8 +12,8 @@ A `registerLanguageAdapter(id, adapter)` és `getLanguageAdapter(id)` a szerzői
 | `structure(tree, infrastructure)` | Fizikai nyitó/záró sorok és blokkfajták |
 | `whitespace(tree, infrastructure)` | Olyan fizikai sorok halmaza, amelyek payloadja `exact` kezelést igényel |
 | `analyzeDependencies(tree, infrastructure)` | Opcionális deklaráció/használat-jelzések, szerzői támpontként |
-| `statementOrdering(tree, infrastructure)` | Opcionális scope-onkénti utasításgráf, külső kötések és konzervatív hatás-/vezérlési korlátok, 0-alapú fizikai forrássorokra |
-| `declarationGroups(tree, infrastructure)` | Korábbi, kompatibilitásból megtartott lokális támpont; a generátor már a statementOrdering eredményét használja |
+| `orderingRelations(tree, infrastructure)` | Opcionális, nyelvfüggetlen [`OrderingRelations`](../src/author/ordering-relations.ts) 0-alapú fizikai sorokra: kötelező előzmények, védett értékbemenetek, egységhatárok és szerzői megjegyzés ([ADR-011](adr/011-language-independent-ordering-relations.md)) |
+| `declarationGroups(tree, infrastructure)` | Korábbi, kompatibilitásból megtartott lokális támpont; a generátor már az `orderingRelations` eredményét használja |
 
 A beépített JS-adapter Acornt és TypeScript AST-t használ; a TS-adapter a TypeScript infrastruktúráját. A generátor és a szerver formázó végpontja a regiszteren át választ adaptert. A frontend részleges JS/TS behúzója önálló, toleráns megjelenítési réteg; ez nem teszi a TypeScript compilert kötelezővé tanulói szerverértékeléskor.
 
@@ -23,4 +23,16 @@ Python esetén minden szintaktikailag jelentős behúzást `exact` módban kell 
 
 Az adapterregisztráció és a metódusszerződés külön tesztet kap; a JS/TS adapterek tényleges formázási/generálási/értékelési integráción is átesnek. Az importált külső adapter kódja megbízható alkalmazáskód, nem a tanuló által feltölthető plugin.
 
-A közös `dependency-analysis.mjs` böngészőben is működő compiler hosttal oldja fel a kötéseket. A strict TypeScript [statement-ordering](../src/author/statement-ordering.ts) hatásösszegzésen alapuló, kompozicionális elemzése csak a szerzői generáláskor fut ([ADR-008](adr/008-effect-based-statement-ordering.md), [formális szerződés](formal-ordering-contract.md)). A tanulói értékelő továbbra is a megbízható modell DAG-ját és a tartalmi bijekciót vizsgálja; nem futtat vagy parse-ol tanulói kódot.
+A közös `dependency-analysis.mjs` böngészőben is működő compiler hosttal oldja fel a kötéseket. A strict TypeScript [statement-ordering](../src/author/statement-ordering.ts) hatásösszegzésen alapuló, kompozicionális elemzése csak a szerzői generáláskor fut ([ADR-008](adr/008-effect-based-statement-ordering.md), [formális szerződés](formal-ordering-contract.md)).
+
+**Rétegek** ([ADR-011](adr/011-language-independent-ordering-relations.md)):
+
+| Réteg | Hol | Mit rejt el |
+| --- | --- | --- |
+| Nyelvspecifikus AST | adapter `parse` (JS/TS: TypeScript compiler AST) | grammar, parserdiagnosztika |
+| Kötés- és hatáselemzés | [statement-ordering.ts](../src/author/statement-ordering.ts), [type-member-ordering.ts](../src/author/type-member-ordering.ts), összefogva: [js-ts-ordering.ts](../src/author/js-ts-ordering.ts) | szimbólumfeloldás, TDZ, írási halmaz, hatásosztályok, reflexiós kulcssorrend |
+| Közös sorrendi relációk | [ordering-relations.ts](../src/author/ordering-relations.ts) | konjunkció, lezárás (ADR-009), tranzitív redukció; nyelvi szabályt nem ismer |
+| Blokk- és scope-hierarchia | adapter `structure` → generátor | megtartott és elhagyott blokkok, `scopeId`, `functionBlock` |
+| CodeLine v2-projekció | [generator.mjs](../src/author/generator.mjs) | fizikai sor → sorazonosító, korlátok, policy-címke |
+
+A generátor csak a nyelvfüggetlen modult importálja, a JS/TS-elemzést pedig kizárólag a nyelvi regiszter köti be. Ezt az architektúrakapu gépileg ellenőrzi. A tanulói értékelő továbbra is a megbízható modell DAG-ját és a tartalmi bijekciót vizsgálja; nem futtat vagy parse-ol tanulói kódot.
