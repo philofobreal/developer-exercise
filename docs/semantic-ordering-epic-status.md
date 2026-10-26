@@ -49,7 +49,7 @@ Jelölés: ✅ kész és ellenőrzött · 🔄 folyamatban · ⏳ következik ·
 | A2 | Formális szerződés: verziózott policy-táblázat (P2 a v1–v8 és a v9 között), a megfigyelhető állapot definíciója, hatókörhöz kötött soundness és completeness, reprezentálhatóság | ✅ | a szerződés és az orákulum ugyanazt a megfigyelést nevezi meg; minden policycímkéhez tartozik szabályverzió |
 | C2 | Bizonyíték-életciklus és elemzési környezet: `authoring.evidence` (forrásdigest, elemző- és policyverzió, TypeScript-verzió, import-emit, script/modul, osztálymezőmód-feltevés). Eltérő forrásnál a proveniencia `stale`; a magyarázat és minden szerkesztési döntés ezt tiszteletben tartja | ✅ | a JSON-ban átírt kódsor után egyetlen ok sem számít érvényesnek; a refresh újraköti |
 | R1 | Referenciaaudit szintjei: szintaktikai; egyfájlos szemantikai (TypeScript `Program`-diagnosztika lib-bel, Node-on); „nem ellenőrizhető”, ha hiányzik a projektkontextus (feloldatlan import). Az eredmény az evidence része; a Pages explicit „nem ellenőrzött” | ✅ | típushibás referencia jelölése; a feloldatlan import nem „helyes”, hanem „nem ellenőrizhető” |
-| V1 | Model Verification Gate: befogadás, referencia-elfogadás, keretalkalmasság (a referencia és a szomszédság a produkciós kereten belül), a proveniencia lefedettsége és frissessége, a konzervatív és reprezentációs fallbackek helye, lazítások, audit, környezet. Ezekből minősítési státusz: elemzéssel igazolt / konzervatív / szerzői döntéssel módosított / nem igazolt. Kis modellnél a projekció kimerítő összevetése az adapter relációival | ⏳ | minősítési regressziók; a CopyField és a legacy modellek státusza indokolt |
+| V1 | Model Verification Gate: befogadás, referencia-elfogadás, keretalkalmasság (a referencia és a szomszédság a produkciós kereten belül), a proveniencia lefedettsége és frissessége, a konzervatív és reprezentációs fallbackek helye, lazítások, audit, környezet. Ezekből minősítési státusz: elemzéssel igazolt / konzervatív / szerzői döntéssel módosított / nem igazolt. Kis modellnél a projekció kimerítő összevetése az adapter relációival | ✅ | minősítési regressziók; a CopyField és a legacy modellek státusza indokolt |
 | D1 | EPIC-05: típusos szabályműveletek (félkész, a `stash@{0}`-ban): atomikus befogadás, profilok, fixed, megjegyzések, lazítás megerősítési szintekkel, hatásjelentés tanúsorrenddel. Minden szerkesztés után V1-újraminősítés. A refresh jelentve vezeti össze a szerzői szabályokat, a lazításokat és a megjegyzéseket | ⏸ felfüggesztve C2/R1/V1 miatt | szabályeditor-regressziók (09.3) |
 | D2 | EPIC-05: vizuális szabálypanel, `importEmit`-választó és a minősítés megjelenítése a szerzői felületen | ⏳ | Playwright-bizonyíték |
 | E1 | EPIC-06: core diagnosztikai modul (bizonyított konfliktusok, többértelműség, keret) | ⏳ | diagnosztikai regressziók (09.4), metamorf: a validátor döntése változatlan |
@@ -217,4 +217,44 @@ A [formális szerződés](formal-ordering-contract.md) három új része:
 - **Megjelenítés:** a D2 feladata.
 - **Minősítés:** a V1 feladata.
 
-**Következik:** V1, a Model Verification Gate.
+**Következik:** V1, a Model Verification Gate. → lezárva.
+
+## V1 – Model Verification Gate – lezárva
+
+**Döntés:** [ADR-017](adr/017-model-verification-gate.md).
+
+**Megvalósítás:**
+
+- **Projekciós veszteség:** generáláskor, `evidence.projectionLoss`.
+- **Újralevezetés:** a `verifyAuthorModel` összeveti a modellt az újragenerálással; a függőségeknek, a nem szerzői éleknek és okoknak pontosan egyezniük kell.
+- **Core gate:** `verifyModel`. Státusz (`analysis-verified` / `conservative` / `author-modified` / `unverified`), `publishable` jelző, valamint `checked` / `tested` / `not-established` / `refuted` állítások.
+- **Bekötés:** a szerver és a Pages minden draftnál futtatja, és a megbízható példáknál is rögzíti.
+
+**Bizonyíték:**
+
+- [model-verification.test.mjs](../tests/model-verification.test.mjs): `analysis-verified`, fallback, veszteség, CopyField, kézi módosítás, hamisított ok, legacy, `fixed` és profil, nyelvi hiba, keret, a csak core-ból futó gate és a szerver.
+- A Pages API-teszt is ellenőrzi.
+- `check:all` 629/629, `test:browser:all` 114 PASS, `git diff --check` tiszta.
+
+**Eloszlás:**
+
+| Készlet | Eredmény |
+| --- | --- |
+| `examples/` (5) | mind `unverified` (proveniencia nélküli, régi modellek), de publikálható |
+| TS-mintatár (26 modell) | 17 `analysis-verified`, 4 `conservative` (számított mező, overloadok, kommentek, beágyazott típus; projekciós veszteség 1–3 pár), 1 `author-modified` (`fixed` és profilok), 4 `unverified` |
+| CopyField | `conservative`, publikálható, nyelvileg `unverifiable`, projekciós veszteség 0 |
+
+A 4 `unverified` minta: a soros legacy modell, a kézi `values-only` szerződés és két mintán talált nyelvi hiba.
+
+**A gate által talált valódi hibák:**
+
+- **`13-duplicate-names`:** duplikált interfésztag, TS2300. Szándékos hibaeset.
+- **`23-parameter-property`:** szkriptfájlban a `class Parameters` ütközik a szabványos könyvtár globális `Parameters<T>` típusával (TS2300, TS2693). A minta szkriptként nem fordítható; a javítás külön döntés (átnevezés vagy modullá alakítás), mert a minta várt sorrendjeit is érinti.
+
+**Nyitott:**
+
+- A katalógus nem tilt `unverified` modellt; az éles publikálási politika az F2 része.
+- A gate megjelenítése a D2 része.
+- A lazítások bekötése a D1 folytatásakor történik.
+
+**Következik:** D1 folytatása (`git stash pop`), a gate-tel való újraminősítéssel; ADR-018.
