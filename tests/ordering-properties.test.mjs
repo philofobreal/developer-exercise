@@ -11,9 +11,9 @@ import {generateCodeLineExercise} from '../src/author/generator.mjs';
 import {bindingChecker} from '../dist/author/statement-ordering.js';
 import {compileCodeLineExercise,validateSubmission} from '../dist/index.js';
 import {corpus} from './fixtures/ordering-corpus.mjs';
-import {createOracle,codesOf,neighbourhood,extensions,random,shrink} from './support/semantic-oracle.mjs';
+import {createOracle,codesOf,neighbourhood,extensions,blockMoves,random,shrink} from './support/semantic-oracle.mjs';
 import {witnessViolation,relabel,structure} from './support/model-invariants.mjs';
-import {randomProgram} from './support/random-programs.mjs';
+import {randomProgram,randomClassProgram,randomScriptProgram} from './support/random-programs.mjs';
 
 const permutations=items=>items.length<2?[items]:items.flatMap((value,i)=>permutations(items.filter((_,j)=>i!==j)).map(rest=>[value,...rest]));
 const generate=fixture=>generateCodeLineExercise({source:fixture.source.join('\n'),language:fixture.language},ts);
@@ -79,6 +79,54 @@ test('property: 12 seeded extended programs (multi-row calls, shared else bounda
   totals.programs++;totals.orders+=counts.orders;totals.accepted+=counts.accepted;totals.gaps+=counts.gaps;
  }
  t.diagnostic(JSON.stringify(totals));
+});
+
+/* ---------- generative coverage: classes, script-level declarations, TypeScript ----------
+ * The function-body generator above never produces classes, script globals or
+ * TypeScript, where the reflective key-order rules (ADR-010) live. Each program
+ * is checked on sampled linear extensions, the single-row neighbourhood and every
+ * whole-unit block move (a multi-row member or statement moved as a whole). The
+ * long campaign over many more seeds is tests/ordering-campaign.mjs. */
+test('generative: every generated class and script reference runs, compiles and is accepted',()=>{
+ for(const make of [randomClassProgram,randomScriptProgram])for(const language of ['javascript','typescript'])for(let seed=1;seed<=40;seed++){
+  const fixture=make(seed,{language}),model=generate(fixture);
+  createOracle(fixture);
+  assert.equal(grade(compiled(model),model,model.lines.map(line=>line.code)).status,'accepted',fixture.id);
+ }
+});
+const generative=[
+ {name:'JavaScript class programs',make:seed=>randomClassProgram(seed,{language:'javascript'}),seeds:12},
+ {name:'TypeScript class programs',make:seed=>randomClassProgram(seed,{language:'typescript'}),seeds:4,thin:4},
+ {name:'JavaScript scripts',make:seed=>randomScriptProgram(seed,{language:'javascript'}),seeds:12},
+ {name:'TypeScript scripts',make:seed=>randomScriptProgram(seed,{language:'typescript'}),seeds:8}];
+for(const {name,make,seeds,thin=1} of generative)test(`generative: ${seeds} seeded ${name} — extensions, neighbours and block moves are sound`,t=>{
+ const totals={programs:0,orders:0,accepted:0,gaps:0,blockMoves:0};
+ for(let seed=1;seed<=seeds;seed++){
+  const fixture=make(seed),model=generate(fixture),rng=random(seed*15485863),moves=blockMoves(model);
+  const sampled=Array.from({length:25},()=>extensions(model,{limit:1,rng})[0]);
+  const rules=compiled(model);for(const order of sampled)assert.equal(grade(rules,model,codesOf(model,order)).status,'accepted',`${fixture.id} extension ${order}`);
+  // The TypeScript oracle transpiles every candidate twice: thin the single-row neighbourhood, never the block moves.
+  const counts=classify(fixture,model,[...sampled,...neighbourhood(model.lines.map(line=>line.id)).filter((_,i)=>i%thin===0),...moves]);
+  assert.equal(counts.indeterminate,0,fixture.id);assert.equal(counts.undecided,0,fixture.id);
+  totals.programs++;totals.orders+=counts.orders;totals.accepted+=counts.accepted;totals.gaps+=counts.gaps;totals.blockMoves+=moves.length;
+ }
+ t.diagnostic(JSON.stringify(totals));
+});
+test('block moves express the multi-row member move behind the ADR-010 v7 accessor fix',()=>{
+ const fixture=corpus.get('refl-ts-accessor-fields'),model=generate(fixture),orders=blockMoves(model).map(order=>order.join(','));
+ // read() (rows 2–4) moved below `accessor level` (row 6): rejected and not equivalent.
+ const methodAfterAccessor=[1,5,6,2,3,4,...Array.from({length:17},(_,i)=>7+i)];
+ assert.ok(orders.includes(methodAfterAccessor.join(',')));
+ assert.equal(grade(compiled(model),model,codesOf(model,methodAfterAccessor)).status,'rejected');
+ assert.equal(createOracle(fixture)(codesOf(model,methodAfterAccessor)).ok,false);
+});
+test('oracle: nested classes get a runtime key snapshot after the probe ran',()=>{
+ // Same key order, different descriptor: only the runtime snapshot of the nested class sees it.
+ const fixture={id:'nested-descriptor',language:'javascript',probe:'evaluate()',source:['function evaluate() {','  class Local {','    get x() { return 1; }','    x() { return 2; }','  }','  return typeof Local;','}']};
+ const judge=createOracle(fixture),swapped=[fixture.source[0],fixture.source[1],fixture.source[3],fixture.source[2],...fixture.source.slice(4)];
+ assert.deepEqual(judge(swapped),{ok:false,reason:'reflection'});
+ assert.deepEqual(createOracle(fixture,{policy:'call-only'})(swapped),{ok:true,reason:'equivalent'});
+ const model=generate(fixture);assert.equal(grade(compiled(model),model,swapped).status,'rejected');
 });
 
 /* ------------------------- metamorphic relations ------------------------- */

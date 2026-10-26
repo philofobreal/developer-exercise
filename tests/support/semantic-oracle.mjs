@@ -180,6 +180,31 @@ function tsReflection(file,globals){
  return {order:JSON.stringify([classes.sort(),firstOccurrences(globals)]),classNames:file.statements.flatMap(s=>ts.isClassDeclaration(s)&&s.name&&!has(s,ts.SyntaxKind.DeclareKeyword)?[s.name.text]:[]),globals:firstOccurrences(globals)};
 }
 
+/** Class declarations below the top level, keyed by their enclosing named
+ * declarations; the runtime snapshot reaches them through a registration
+ * statement inserted right after each declaration (`end`: source offset). */
+function nestedClasses(code,language){
+ const found=[];
+ if(language==='typescript'){
+  const file=ts.createSourceFile('fixture.ts',code,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);
+  const visit=(node,path)=>{
+   if(ts.isClassDeclaration(node)&&node.name&&!ts.isSourceFile(node.parent)&&!ts.getModifiers(node)?.some(m=>m.kind===ts.SyntaxKind.DeclareKeyword))found.push({key:[...path,node.name.text].join('/'),name:node.name.text,end:node.end});
+   const named=(tsFunction(node)||ts.isClassLike(node)||ts.isModuleDeclaration(node))&&node.name&&!ts.isComputedPropertyName(node.name)?node.name.getText(file):ts.isConstructorDeclaration(node)?'constructor':null;
+   ts.forEachChild(node,child=>visit(child,named?[...path,named]:path));
+  };
+  ts.forEachChild(file,child=>visit(child,[]));
+  return found;
+ }
+ const visit=(node,path,top)=>{
+  if(!node||typeof node!=='object')return;
+  if(Array.isArray(node)){node.forEach(item=>visit(item,path,top));return;}
+  if(node.type==='ClassDeclaration'&&!top)found.push({key:[...path,node.id.name].join('/'),name:node.id.name,end:node.end});
+  const named=(jsFunction.has(node.type)||node.type==='ClassDeclaration'||node.type==='ClassExpression')&&node.id?node.id.name:node.type==='MethodDefinition'&&!node.computed?(node.key.name??String(node.key.value)):null;
+  for(const [key,value] of Object.entries(node))if(value&&typeof value==='object'&&key!=='id')visit(value,named?[...path,named]:path,node.type==='Program'&&key==='body');
+ };
+ try{visit(parseScript(code,{ecmaVersion:'latest',sourceType:'script'}),[],false);}catch{return [];}
+ return found;
+}
 function analyse(code,language){
  if(language==='typescript'){
   const file=ts.createSourceFile('fixture.ts',code,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);
@@ -187,24 +212,30 @@ function analyse(code,language){
   // Global-object properties are what the emitted script declares; a module declares none.
   let globals=[];
   if(!ts.isExternalModule(file)){try{globals=jsReflection(parseScript(ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,{ecmaVersion:'latest',sourceType:'script'})).globals;}catch{return null;}}
-  return {shape:tsShape(file),effects:effectPairs(tsLists(file),tsShape,tsHasEffect,tsPositionFree),reflection:tsReflection(file,globals)};
+  return {shape:tsShape(file),effects:effectPairs(tsLists(file),tsShape,tsHasEffect,tsPositionFree),reflection:tsReflection(file,globals),nested:nestedClasses(code,language)};
  }
  let tree;try{tree=parseScript(code,{ecmaVersion:'latest',sourceType:'script'});}catch{return null;}
- return {shape:jsShape(tree),effects:effectPairs(jsLists(tree),node=>jsShape(node),jsHasEffect,jsPositionFree),reflection:jsReflection(tree)};
+ return {shape:jsShape(tree),effects:effectPairs(jsLists(tree),node=>jsShape(node),jsHasEffect,jsPositionFree),reflection:jsReflection(tree),nested:nestedClasses(code,language)};
 }
 /** Runs a fixed fixture. `call`: probe value, exception and record() trace.
  * `reflection`: own keys and descriptor kinds of the top-level classes'
  * prototypes and constructors, and the declared global-object properties
- * (names come from the reference analysis), read right after evaluation. */
-function execute(code,{language,probe,strict=true,asynchronous=false},{classNames=[],globals=[]}={}){
- const reflect=`;var __reflection=(()=>{try{const keys=o=>Reflect.ownKeys(o).map(k=>{const d=Object.getOwnPropertyDescriptor(o,k);return [String(k),'get' in d||'set' in d?'accessor':'value',d.enumerable,d.configurable,d.writable===undefined?null:d.writable];});`
+ * (names come from the reference analysis), read right after evaluation.
+ * `nested` (from this code's own analysis) registers the nested classes; their
+ * snapshots are sorted by key, as declaration order is not itself observable. */
+function execute(code,{language,probe,strict=true,asynchronous=false},{classNames=[],globals=[]}={},nested=[]){
+ for(const {key,name,end} of [...nested].sort((a,b)=>b.end-a.end))code=code.slice(0,end)+`;__classes.push([${JSON.stringify(key)}, ${name}]);`+code.slice(end);
+ const keys=`const keys=o=>Reflect.ownKeys(o).map(k=>{const d=Object.getOwnPropertyDescriptor(o,k);return [String(k),'get' in d||'set' in d?'accessor':'value',d.enumerable,d.configurable,d.writable===undefined?null:d.writable];});`;
+ const reflect=`;var __reflection=(()=>{try{${keys}`
   +`return JSON.stringify({classes:[${classNames.map(name=>`typeof ${name}==='function'?[keys(${name}.prototype),keys(${name})]:null`).join(',')}],globals:Object.getOwnPropertyNames(globalThis).filter(k=>${JSON.stringify(globals)}.includes(k))});}catch(error){return 'throws:'+(error&&error.name);}})();`;
+ // Nested classes exist only once the probe ran: snapshot them afterwards.
+ const nestedSnapshot=`(()=>{try{${keys}return JSON.stringify(__classes.map(([k,c])=>JSON.stringify([k,keys(c.prototype),keys(c)])).sort());}catch(error){return 'throws:'+(error&&error.name);}})()`;
  const attempt=(js,timeout)=>{
-  const context=createContext({trace:[]},asynchronous?{microtaskMode:'afterEvaluate'}:{});
+  const context=createContext({trace:[],__classes:[]},asynchronous?{microtaskMode:'afterEvaluate'}:{});
   const tail=asynchronous
-   ?`;var __result='pending';Promise.resolve(${probe}).then(value=>{__result=JSON.stringify({value,trace});},error=>{__result='throws:'+(error&&error.name)+':'+(error&&error.message);});`
-   :`;var __result=JSON.stringify({value:(${probe}),trace});`;
-  try{new Script((strict?'"use strict";\n':'')+'function record(...args) { trace.push(args); }\n'+js+'\n'+reflect+tail,{filename:'fixed-oracle-fixture.js'}).runInContext(context,{timeout});return {call:String(context.__result),reflection:String(context.__reflection)};}
+   ?`;var __result='pending',__nested='pending';Promise.resolve(${probe}).then(value=>{__result=JSON.stringify({value,trace});__nested=${nestedSnapshot};},error=>{__result='throws:'+(error&&error.name)+':'+(error&&error.message);});`
+   :`;var __result=JSON.stringify({value:(${probe}),trace});var __nested=${nestedSnapshot};`;
+  try{new Script((strict?'"use strict";\n':'')+'function record(...args) { trace.push(args); }\n'+js+'\n'+reflect+tail,{filename:'fixed-oracle-fixture.js'}).runInContext(context,{timeout});return {call:String(context.__result),reflection:String(context.__reflection)+' nested:'+String(context.__nested)};}
   catch(error){if(error?.code==='ERR_SCRIPT_EXECUTION_TIMEOUT')return {call:'timeout',reflection:''};return {call:'throws:'+error?.name+':'+error?.message,reflection:''};}
  };
  const run=js=>{let result={call:'timeout',reflection:''};for(const timeout of TIMEOUTS_MS){result=attempt(js,timeout);if(result.call!=='timeout')break;}return result;};
@@ -228,7 +259,7 @@ export function createOracle(fixture,{policy='reflective'}={}){
  const source=Array.isArray(fixture.source)?fixture.source.join('\n'):fixture.source;
  const reference=analyse(source,fixture.language);
  if(!reference)throw Error(`oracle fixture ${fixture.id} does not parse`);
- const baseline=execute(source,fixture,reference.reflection);
+ const baseline=execute(source,fixture,reference.reflection,reference.nested);
  if(/^throws:|timeout|syntax/.test(baseline.call))throw Error(`oracle fixture ${fixture.id} reference fails: ${baseline.call}`);
  const reflective=policy==='reflective',cache=new Map();
  return lines=>{
@@ -240,7 +271,7 @@ export function createOracle(fixture,{policy='reflective'}={}){
   else if(candidate.effects!==reference.effects)verdict={ok:false,reason:'effect-order'};
   else if(reflective&&candidate.reflection.order!==reference.reflection.order)verdict={ok:false,reason:'reflection'};
   else{
-   const observed=execute(code,fixture,reference.reflection);
+   const observed=execute(code,fixture,reference.reflection,candidate.nested);
    verdict=observed.call.includes('timeout')?{ok:null,reason:'timeout'}:observed.call!==baseline.call?{ok:false,reason:'runtime'}:reflective&&observed.reflection!==baseline.reflection?{ok:false,reason:'reflection'}:{ok:true,reason:'equivalent'};
   }
   cache.set(code,verdict);return verdict;
@@ -257,6 +288,32 @@ export function neighbourhood(reference){
  for(const id of reference)for(let at=0;at<reference.length;at++){const rest=reference.filter(x=>x!==id);add([...rest.slice(0,at),id,...rest.slice(at)]);}
  for(let i=0;i<reference.length;i++)for(let j=i+1;j<reference.length;j++)add(reference.map((id,k)=>k===i?reference[j]:k===j?reference[i]:id));
  orders.delete(reference.join(','));return [...orders.values()];
+}
+/** Every move of one whole unit (a statement or a class member, any number of
+ * rows) to another position in its own list. The units come from an AST walk of
+ * the model's code, independent of the generator; single-row neighbourhoods
+ * cannot express moving a multi-row method or block. Lists whose units share a
+ * row are skipped. */
+export function blockMoves(model){
+ const ids=model.lines.map(line=>line.id),code=model.lines.map(line=>line.code).join('\n');
+ const typescript=model.language==='typescript',file=ts.createSourceFile('moves.'+(typescript?'ts':'js'),code,ts.ScriptTarget.Latest,true,typescript?ts.ScriptKind.TS:ts.ScriptKind.JS);
+ const row=position=>file.getLineAndCharacterOfPosition(position).line,orders=new Map();
+ const visit=node=>{
+  const items=ts.isSourceFile(node)||ts.isBlock(node)||ts.isModuleBlock(node)?node.statements:ts.isClassLike(node)?node.members:null;
+  if(items&&items.length>1){
+   const spans=items.map(item=>[row(item.getStart(file)),row(item.end-1)]);
+   if(spans.every((span,i)=>!i||spans[i-1][1]<span[0]))spans.forEach(([first,last],i)=>{
+    const moved=ids.slice(first,last+1),rest=ids.filter((_,k)=>k<first||k>last);
+    for(let j=0;j<=spans.length;j++){
+     if(j===i||j===i+1)continue;
+     const at=j<spans.length?rest.indexOf(ids[spans[j][0]]):rest.indexOf(ids[spans.at(-1)[1]])+1;
+     const order=[...rest.slice(0,at),...moved,...rest.slice(at)];orders.set(order.join(','),order);
+    }
+   });
+  }
+  ts.forEachChild(node,visit);
+ };
+ visit(file);return [...orders.values()];
 }
 /** Topological orders of a CodeLine v2 model honouring dependencies, edges,
  * scope nesting and fixed slots. `rng` randomises; `limit` bounds the search. */
