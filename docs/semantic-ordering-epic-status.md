@@ -50,7 +50,7 @@ Jelölés: ✅ kész és ellenőrzött · 🔄 folyamatban · ⏳ következik ·
 | C2 | Bizonyíték-életciklus és elemzési környezet: `authoring.evidence` (forrásdigest, elemző- és policyverzió, TypeScript-verzió, import-emit, script/modul, osztálymezőmód-feltevés). Eltérő forrásnál a proveniencia `stale`; a magyarázat és minden szerkesztési döntés ezt tiszteletben tartja | ✅ | a JSON-ban átírt kódsor után egyetlen ok sem számít érvényesnek; a refresh újraköti |
 | R1 | Referenciaaudit szintjei: szintaktikai; egyfájlos szemantikai (TypeScript `Program`-diagnosztika lib-bel, Node-on); „nem ellenőrizhető”, ha hiányzik a projektkontextus (feloldatlan import). Az eredmény az evidence része; a Pages explicit „nem ellenőrzött” | ✅ | típushibás referencia jelölése; a feloldatlan import nem „helyes”, hanem „nem ellenőrizhető” |
 | V1 | Model Verification Gate: befogadás, referencia-elfogadás, keretalkalmasság (a referencia és a szomszédság a produkciós kereten belül), a proveniencia lefedettsége és frissessége, a konzervatív és reprezentációs fallbackek helye, lazítások, audit, környezet. Ezekből minősítési státusz: elemzéssel igazolt / konzervatív / szerzői döntéssel módosított / nem igazolt. Kis modellnél a projekció kimerítő összevetése az adapter relációival | ✅ | minősítési regressziók; a CopyField és a legacy modellek státusza indokolt |
-| D1 | EPIC-05: típusos szabályműveletek (félkész, a `stash@{0}`-ban): atomikus befogadás, profilok, fixed, megjegyzések, lazítás megerősítési szintekkel, hatásjelentés tanúsorrenddel. Minden szerkesztés után V1-újraminősítés. A refresh jelentve vezeti össze a szerzői szabályokat, a lazításokat és a megjegyzéseket | ✅ | szabályeditor-regressziók (09.3) |
+| D1 | EPIC-05: típusos szabályműveletek: atomikus befogadás, profilok, fixed, megjegyzések, lazítás megerősítési szintekkel, hatásjelentés tanúsorrenddel. Minden szerkesztés után V1-újraminősítés. A refresh jelentve vezeti össze a szerzői szabályokat, a lazításokat és a megjegyzéseket | ✅ | szabályeditor-regressziók (09.3) |
 | D2 | EPIC-05: vizuális szabálypanel, `importEmit`-választó és a minősítés megjelenítése a szerzői felületen | ⏳ | Playwright-bizonyíték |
 | E1 | EPIC-06: core diagnosztikai modul (bizonyított konfliktusok, többértelműség, keret) | ⏳ | diagnosztikai regressziók (09.4), metamorf: a validátor döntése változatlan |
 | F1 | EPIC-07: tanulói visszajelzés és soronkénti jelölés | ⏳ | böngészőteszt, hozzáférhetőség |
@@ -87,6 +87,8 @@ A felhasználó a MASTER EPIC-ről kritikai elemzést adott át. Az alábbi táb
 - `ruleNotes`, `relaxations` és `conformance` a sémában, a típusban és a magyarázatban.
 
 A C2 és a V1 után `git stash pop`, majd ütközésfeloldással folytatódik.
+
+**Feloldva (D1):** a stash tartalma a `7af9b20` commitba került, a bejegyzés törölve.
 
 ## Döntésnapló
 
@@ -291,4 +293,61 @@ A 4 `unverified` minta: a soros legacy modell, a kézi `values-only` szerződés
 - **F2:** szerveroldali szerzői jogosultság.
 - **G1:** a drag-and-drop flake kivizsgálása, valamint a `23-parameter-property` minta fordíthatósága.
 
-**Következik:** D2.
+**Következik:** D2 (lásd a lezárási pontot).
+
+## Lezárási pont (2026-10-26, D1 után)
+
+A felhasználó kérésére a munka itt lezárul: minden elkészült rész a `main` ágon van és pusholva. Nincs nyitott feature-ág (a régi `codex/audit-workbench-release` a `main`-be olvadt, a távoli ága már törölve volt, a helyi is törölve). Nincs stash, worktree vagy háttérmunkamenet. A working tree-ben csak a felhasználói `project-snapshot.md` marad, amely szándékosan nincs verziókezelve. Az epicet innen az alábbi hátralékkal lehet újraindítani.
+
+### Ami kész
+
+Az A2, B1–B3, C1, C2, R1, V1 és D1 a teljes **háttér-alap**:
+
+- a P2 verziózott pontosítása (v9);
+- lokális írások, klauzulaláncok, importok;
+- proveniencia, és annak forráshoz kötése;
+- referenciaaudit;
+- minősítési kapu;
+- típusos, újraminősített szabályszerkesztés.
+
+Utolsó ellenőrzés: `check:all` 641/641, `test:browser:all` 114/114, `git diff --check` tiszta.
+
+### Ami hátra van (az epic sorrendjében)
+
+| # | Tartalom | Mi múlik rajta |
+| --- | --- | --- |
+| D2 | vizuális szabálypanel az `applyRuleEdits` / `editAuthorModel` / `explainConstraints` fölött; `importEmit`-választó; az audit, a minősítés és a refresh-jelentés megjelenítése; escape-elt megjegyzésszöveg; Playwright-bizonyíték | Az API már visszaadja az `audit`, a `verification` és a `refresh` mezőt, de **a felület még semmit nem mutat belőlük**. A szerző ma csak a JSON-szerkesztőben szerkeszthet, ott nincs biztonsági és hatáskontroll. |
+| E1 | core diagnosztikai modul: bizonyított konfliktus, többértelműség, keretkimerülés, profilmagyarázat; a validátor ítéletét soha nem változtatja | A „magyarázható validáció” fele hiányzik. |
+| F1 | magyar tanulói visszajelzés, soronkénti jelölés, hozzáférhetőség, elavult diagnózis érvénytelenítése | A tanuló ma csak elfogad / elutasít / `indeterminate` választ kap. |
+| F2 | disclosure policy (szerző / Pages / trusted szerver); szerveroldali szerzői jogosultság, vagy dokumentált helyidemó-korlát; döntés arról, hogy a katalógus tiltson-e `unverified` modellt | lásd a kockázatokat |
+| G1 | teljes regresszió és kampány; forráshűségi round-trip; a szerzői elemzés idő- és memóriakerete; végső jelentés; a drag-and-drop flake; a `23-parameter-property` minta | — |
+
+Az epic címadó, látható része (vizuális szabályszerkesztő, magyarázható validáció) tehát **még nincs kész**; csak az alapja készült el.
+
+### Ismert problémák és kockázatok
+
+1. **Hitelesítés nélküli szerzői API.** A szerver szerzői végpontjai helyi eszközként, jogosultság nélkül futnak. Nyilvános hálózatra így nem tehetők ki (F2).
+2. **A minősítés csak tájékoztató.** A katalógus `unverified` modellt is kiszolgál. Mind az 5 `examples/` modell `unverified` (proveniencia nélküli, régi modellek), de publikálható. A szabályaik csendes átírása tilos, csak explicit refresh köti őket (F2).
+3. **Egyfájlos referenciaaudit.** Valódi projektfájl (pl. CopyField: 11 feloldatlan import) soha nem kap `ok`-t, csak `unverifiable`-t. Saját `tsconfig`, `node_modules` és path mapping nem adható meg. A Pages-ben az audit `not-run`.
+4. **`23-parameter-property` minta.** Szkriptként nem fordul: a `class Parameters` ütközik a lib `Parameters<T>` típusával (TS2300, TS2693). A javításhoz döntés kell (átnevezés vagy modullá alakítás), és ez a minta várt sorrendjeit is érinti.
+5. **Mátrix drag-and-drop flake.** A valódi egeres és érintéses beszúrás terhelés alatt időnként elbukik. Ez a D1 előtt is így volt (`e8e5694`: 5 futásból 4 hiba). A teszt nincs gyengítve, a hiba nincs kivizsgálva.
+6. **Proveniencia-plafon.** 10 000 oknál nagyobb modellnél a generátor nem ment provenienciát. Ilyenkor a magyarázat `absent`, a gate `unverified`-et ad, és minden generált szabály törlése policy-felülírást kér. Ez biztonságos irányú, de nincs jelezve a szerzőnek (D2).
+7. **Régi, evidence nélküli modellek.** A proveniencia `unbound`, ezért szerzői szabály eltávolításához is policy-felülírás kell, amíg egy refresh meg nem köti a modellt. Ez helyes, de a felületen még nincs megmagyarázva (D2).
+8. **A hatásjelentés korlátos.** A `maybe` őszinte eldöntetlenség: a tanúkeresés alternatívánként legfeljebb 17 célzott sorrendet próbál.
+9. **Orákulumkorlát (A2).** Kivétellel végződő futásnál a hatásnapló nincs összevetve. A soundness-állítás ennyivel gyengébb.
+10. **Projekciós veszteség.** A korpuszban 8 pár, 4 mintán 1–3 pár. Ezek `conservative` státuszt kapnak: a v2 reprezentáció itt szigorúbb, mint az elemzés.
+11. **Fordítási sorrendhez kötött bekötés.** A `code-line-projection.ts` a lefordított `dist/index.js`-ből importálja a digestet (explicit architektúra-szabály). A forrásfa csak `build` után konzisztens.
+
+### Ami szándékosan kimaradt vagy szünetel
+
+- **Python adapter:** PY-01/02 parser-szelet kész, PY-03+ szünetel. Az új reprezentáció nem akadályozza.
+- **A generátor teljes TS-migrációja (ADR-001 P4):** a projekció típusos modulba került, a `generator.mjs` továbbra is átmeneti JS.
+- **v3 natív út:** nem szükséges, a v2 klauzulalánc ugyanazt a nyelvet fogadja el.
+- **Futtatásalapú ellenőrzés tetszőleges forrásra:** szándékosan nincs. Production kiértékelés nem parse-ol és nem futtat tanulói kódot, és runtime AI sincs.
+
+### Helyi, nem verziókezelt maradványok
+
+- 68 db, `.gitignore` által kizárt `*.log` fájl a repó gyökerében (2026-10-24, korábbi auditfutások).
+- `_site/`, `dist-tools/`, `test-results/`, `.venv/`, `node_modules/`.
+
+Ezek nem ennek a munkának a termékei, ezért nem töröltem őket. A `*.log` fájlok nyugodtan törölhetők.
