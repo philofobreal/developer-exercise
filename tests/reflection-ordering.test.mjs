@@ -77,6 +77,40 @@ test('script globals: function and var order is reflected by Object.keys(globalT
  assert.equal(grade(constMoved),'accepted');
 });
 
+test('TS accessor field: its get/set pair is created among the methods, in both emit modes',()=>{
+ const fixture=corpus.get('refl-ts-accessor-fields'),model=generate(fixture),grade=grader(model),judge=createOracle(fixture);
+ const reference=range(1,23),methodAfterAccessor=[1,5,6,2,3,4,...range(7,23)],staticAccessorFirst=[...range(1,6),10,7,8,9,...range(11,23)],methodAfterField=[1,5,2,3,4,...range(6,23)];
+ const code=order=>codesOf(model,order).join('\n');
+ for(const order of [reference,methodAfterAccessor,staticAccessorFirst,methodAfterField])assert.deepEqual(typeCheck(code(order)),{parser:0,semantic:[]});
+ for(const define of [false,true]){
+  for(const order of [methodAfterAccessor,staticAccessorFirst,methodAfterField])assert.deepEqual(observe(code(order),'typescript','evaluate()',define),observe(code(reference),'typescript','evaluate()',define));
+  assert.deepEqual(observe(code(reference),'typescript','[Reflect.ownKeys(Gauge.prototype), Reflect.ownKeys(Gauge)]',define),[['constructor','read','level','bump','total'],['length','name','prototype','make','unit']]);
+  assert.deepEqual(observe(code(methodAfterAccessor),'typescript','Reflect.ownKeys(Gauge.prototype)',define),['constructor','level','read','bump','total']);
+  assert.deepEqual(observe(code(staticAccessorFirst),'typescript','Reflect.ownKeys(Gauge)',define),['length','name','prototype','unit','make']);
+ }
+ assert.equal(grade(reference),'accepted');
+ assert.equal(grade(methodAfterAccessor),'rejected');assert.equal(grade(staticAccessorFirst),'rejected');
+ assert.deepEqual(judge(codesOf(model,methodAfterAccessor)),{ok:false,reason:'reflection'});
+ // A method still moves freely across a plain field.
+ assert.equal(grade(methodAfterField),'accepted');assert.deepEqual(judge(codesOf(model,methodAfterField)),{ok:true,reason:'equivalent'});
+});
+
+test('TS script globals: enums, instantiated namespaces and import aliases are emitted as var, type-only namespaces are not',()=>{
+ const fixture=corpus.get('refl-ts-emitted-globals'),model=generate(fixture),grade=grader(model),judge=createOracle(fixture);
+ const keys="Object.keys(globalThis).filter(k => ['Shapes', 'alpha', 'Color', 'Tools', 'double', 'evaluate'].includes(k))";
+ const reference=range(1,20),functionAfterEnum=[...range(1,5),...range(9,12),6,7,8,...range(13,20)],functionBeforeTypes=[6,7,8,...range(1,5),...range(9,20)];
+ const code=order=>codesOf(model,order).join('\n');
+ for(const order of [reference,functionAfterEnum,functionBeforeTypes])assert.deepEqual(typeCheck(code(order)),{parser:0,semantic:[]});
+ assert.deepEqual(observe(code(reference),'typescript',keys),['alpha','Color','Tools','double','evaluate']);
+ assert.deepEqual(observe(code(functionAfterEnum),'typescript','evaluate()'),observe(code(reference),'typescript','evaluate()'));
+ assert.deepEqual(observe(code(functionAfterEnum),'typescript',keys),['Color','alpha','Tools','double','evaluate']);
+ assert.equal(grade(reference),'accepted');assert.equal(grade(functionAfterEnum),'rejected');
+ assert.deepEqual(judge(codesOf(model,functionAfterEnum)),{ok:false,reason:'reflection'});
+ // The type-only namespace emits nothing, so a function may move across it.
+ assert.deepEqual(observe(code(functionBeforeTypes),'typescript',keys),['alpha','Color','Tools','double','evaluate']);
+ assert.equal(grade(functionBeforeTypes),'accepted');assert.deepEqual(judge(codesOf(model,functionBeforeTypes)),{ok:true,reason:'equivalent'});
+});
+
 /** Member blocks of every class, from an AST walk independent of the generator (rows are 1-based IDs here). */
 function memberBlocks(fixture){
  const file=ts.createSourceFile('x.ts',fixture.source.join('\n'),ts.ScriptTarget.Latest,true,fixture.language==='typescript'?ts.ScriptKind.TS:ts.ScriptKind.JS),line=pos=>file.getLineAndCharacterOfPosition(pos).line+1,classes=[];
@@ -84,7 +118,7 @@ function memberBlocks(fixture){
  visit(file);return classes;
 }
 const permutations=items=>items.length<2?[items]:items.flatMap((value,i)=>permutations(items.filter((_,j)=>i!==j)).map(rest=>[value,...rest]));
-for(const [id,exact] of [['refl-prototype-and-static-methods',true],['refl-index-private-accessor-duplicate',false],['refl-ts-erased-and-overloads',true],['class-accounts-ts',false],['class-inventory-ts',true]])test('member-block permutations are sound under the reflective oracle: '+id,t=>{
+for(const [id,exact] of [['refl-prototype-and-static-methods',true],['refl-ts-accessor-fields',false],['refl-index-private-accessor-duplicate',false],['refl-ts-erased-and-overloads',true],['class-accounts-ts',false],['class-inventory-ts',true]])test('member-block permutations are sound under the reflective oracle: '+id,t=>{
  const fixture=corpus.get(id),model=generate(fixture),grade=grader(model),judge=createOracle(fixture),rng=random(id.length*7919);
  let accepted=0,equivalent=0,checked=0;
  for(const block of memberBlocks(fixture)){

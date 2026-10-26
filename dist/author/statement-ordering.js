@@ -273,14 +273,30 @@ export function statementOrdering(file, compiler) {
                 return false;
         return true;
     };
-    /** A function implementation, var names or Annex B block functions declared outside nested functions. */
+    /** A namespace that only declares types emits nothing; any other statement counts as instantiating it. */
+    const typeOnly = (declaration) => {
+        const body = declaration.body;
+        if (body && compiler.isModuleDeclaration(body))
+            return typeOnly(body);
+        return !body || compiler.isModuleBlock(body) && body.statements.every(statement => compiler.isInterfaceDeclaration(statement) || compiler.isTypeAliasDeclaration(statement) || modifiers(statement).includes(S.DeclareKeyword) || compiler.isModuleDeclaration(statement) && typeOnly(statement));
+    };
+    /** TypeScript emits an enum, an instantiated namespace and an import alias as a `var` binding. */
+    const emitsVar = (node) => (compiler.isEnumDeclaration(node) || compiler.isModuleDeclaration(node) && compiler.isIdentifier(node.name) && !typeOnly(node) || compiler.isImportEqualsDeclaration(node) && !node.isTypeOnly) && !modifiers(node).includes(S.DeclareKeyword);
+    /** A function implementation, var names, Annex B block functions or TypeScript
+     * `var`-emitting declarations outside nested functions. */
     const declaresGlobal = (statement) => {
         if (modifiers(statement).includes(S.DeclareKeyword))
             return false;
         if (compiler.isFunctionDeclaration(statement))
             return !!statement.body;
+        if (emitsVar(statement))
+            return true;
         let found = false;
         const scan = (node) => {
+            if (emitsVar(node)) {
+                found = true;
+                return;
+            }
             if (found || functionLike(node) || compiler.isClassLike(node) || compiler.isModuleDeclaration(node)) {
                 if (compiler.isFunctionDeclaration(node))
                     found = true;

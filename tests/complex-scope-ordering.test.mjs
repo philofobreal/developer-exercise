@@ -126,10 +126,11 @@ const scenarios=[
    {name:'függvény a típusdeklarációk elé',order:o=>moveBefore(o,range(10,14),1),status:'accepted',equivalent:true},
    {name:'tag áthelyezése a másik típusba',order:o=>moveBefore(o,3,8),status:'rejected',equivalent:true},
    {name:'egymásra hivatkozó konstansok cseréje',order:o=>swap(o,11,12),status:'rejected',equivalent:false}]},
- {name:'TypeScript enum',language:'typescript',source:corpus.get('ts-enum').source,
+ // The emitted `var Level` is a global-object property beside `evaluate` (ADR-010 review).
+ {name:'TypeScript enum',language:'typescript',source:corpus.get('ts-enum').source,probe:"[evaluate(), Object.keys(globalThis).filter(key => ['Level', 'evaluate'].includes(key))]",
   variants:[
    {name:'automatikus értékű enum-tagok cseréje',order:o=>swap(o,2,3),status:'rejected',equivalent:false},
-   {name:'függvény az enum elé',order:o=>moveBefore(o,range(6,8),1),status:'accepted',equivalent:true}]},
+   {name:'függvény az enum elé',order:o=>moveBefore(o,range(6,8),1),status:'rejected',equivalent:false}]},
  {name:'TypeScript mezők, declare, paraméterproperty',language:'typescript',source:corpus.get('ts-fields-declare-parameter-property').source,
   variants:[
    {name:'egymásra hivatkozó mezők cseréje',order:o=>swap(o,2,3),status:'rejected',equivalent:false},

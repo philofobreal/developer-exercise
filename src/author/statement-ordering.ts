@@ -13,8 +13,9 @@
  *  - opaque: comment and other non-statement rows.
  * For units i < j an edge i.last → j.first exists iff one is opaque, or neither
  * is position-free and at least one is a barrier, or (ADR-010) both create
- * global-object properties in a classic script: Object.keys(globalThis)
- * reflects their creation order. The specification creates function bindings
+ * global-object properties in a classic script (function and var declarations,
+ * and the TypeScript enums, namespaces and import aliases emitted as var):
+ * Object.keys(globalThis) reflects their creation order. The specification creates function bindings
  * before var bindings, V8 interleaves them in source order, so all such units
  * keep their mutual source order. Every evaluation-time read of
  * a binding whose initialisation has a TDZ/value position in the same function
@@ -251,12 +252,23 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler): Stat
   for (let current: ts.Node | undefined = list; current && !compiler.isSourceFile(current); current = current.parent) if (functionLike(current) || compiler.isModuleBlock(current) || compiler.isClassStaticBlockDeclaration(current) || compiler.isClassLike(current)) return false;
   return true;
  };
- /** A function implementation, var names or Annex B block functions declared outside nested functions. */
+ /** A namespace that only declares types emits nothing; any other statement counts as instantiating it. */
+ const typeOnly = (declaration: ts.ModuleDeclaration): boolean => {
+  const body = declaration.body;
+  if (body && compiler.isModuleDeclaration(body)) return typeOnly(body);
+  return !body || compiler.isModuleBlock(body) && body.statements.every(statement => compiler.isInterfaceDeclaration(statement) || compiler.isTypeAliasDeclaration(statement) || modifiers(statement).includes(S.DeclareKeyword) || compiler.isModuleDeclaration(statement) && typeOnly(statement));
+ };
+ /** TypeScript emits an enum, an instantiated namespace and an import alias as a `var` binding. */
+ const emitsVar = (node: ts.Node): boolean => (compiler.isEnumDeclaration(node) || compiler.isModuleDeclaration(node) && compiler.isIdentifier(node.name) && !typeOnly(node) || compiler.isImportEqualsDeclaration(node) && !node.isTypeOnly) && !modifiers(node).includes(S.DeclareKeyword);
+ /** A function implementation, var names, Annex B block functions or TypeScript
+  * `var`-emitting declarations outside nested functions. */
  const declaresGlobal = (statement: ts.Statement): boolean => {
   if (modifiers(statement).includes(S.DeclareKeyword)) return false;
   if (compiler.isFunctionDeclaration(statement)) return !!statement.body;
+  if (emitsVar(statement)) return true;
   let found = false;
   const scan = (node: ts.Node): void => {
+   if (emitsVar(node)) {found = true; return;}
    if (found || functionLike(node) || compiler.isClassLike(node) || compiler.isModuleDeclaration(node)) {if (compiler.isFunctionDeclaration(node)) found = true; return;}
    if (compiler.isVariableDeclarationList(node) && !(node.flags & compiler.NodeFlags.BlockScoped)) found = true;
    compiler.forEachChild(node, scan);

@@ -6,7 +6,8 @@
  * key on the prototype (or, if static, on the constructor) keeps its order
  * relative to the other such members. Free of that order are: the constructor
  * (`constructor` is created first), array-index keys (listed ascending),
- * private names (not reflected) and erased members. TypeScript emits parameter
+ * private names (not reflected) and erased members. An `accessor` field is in
+ * that key chain and keeps its field order too. TypeScript emits parameter
  * properties at the start of construction in both class-field modes, whatever
  * the constructor's position, and erases declare fields (ADR-009). Runs for JS too. */
 import type ts from 'typescript';
@@ -63,7 +64,9 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler): Typ
     const definition = isClass && (compiler.isMethodDeclaration(member) || compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member) || compiler.isConstructorDeclaration(member)) && (!!member.body || !!modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.AbstractKeyword)) && (modifiers ?? []).every(modifier => definitionModifiers.has(modifier.kind)) && distinct && definitionRows(member);
     const pure = erased && simpleModifiers && distinct && row === end && physical[row]?.trim() === member.getText(file).trim();
     // An emitted method/accessor creates a key unless it is private or an array index; a computed key is unknown, so ordered.
-    const emitted = isClass && (compiler.isMethodDeclaration(member) || compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member)) && !!member.body;
+    // An `accessor` field defines its get/set pair at class definition among the methods; it stays a field for its initialiser.
+    const autoAccessor = compiler.isPropertyDeclaration(member) && !!modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.AccessorKeyword) && !modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.AbstractKeyword || modifier.kind === compiler.SyntaxKind.DeclareKeyword);
+    const emitted = isClass && ((compiler.isMethodDeclaration(member) || compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member)) && !!member.body || autoAccessor);
     const reflected = emitted && !(member.name && compiler.isPrivateIdentifier(member.name)) && !(key !== undefined && arrayIndex(key));
     // A declare field emits nothing in either class-field mode: it is position-free in a class body.
     return {first: row, last: end, pure, free: definition || isClass && pure, ...(reflected ? {reflect: modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.StaticKeyword) ? 'static' as const : 'prototype' as const} : {})};
@@ -116,5 +119,5 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler): Typ
  // Several constraints on one row are a conjunction.
  const merged = new Map<number, Set<number>>();
  for (const entry of entries) {const after = merged.get(entry.row) ?? new Set<number>(); entry.after.forEach(row => after.add(row)); merged.set(entry.row, after);}
- return {entries: [...merged].map(([row, after]) => ({row, after: [...after]})), spans, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor (paramétertulajdonságokkal együtt), a declare mezők, a privát (#) és a tömbindex nevű metódusok az osztálytörzsön belül bárhol állhatnak. A többi metódus és accessor a mezőkhöz képest szabad, de egymáshoz képest megtartja a sorrendjét, mert a prototípus (static esetén a konstruktor) kulcssorrendje reflexióval megfigyelhető. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : ''};
+ return {entries: [...merged].map(([row, after]) => ({row, after: [...after]})), spans, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor (paramétertulajdonságokkal együtt), a declare mezők, a privát (#) és a tömbindex nevű metódusok az osztálytörzsön belül bárhol állhatnak. A többi metódus és accessor a mezőkhöz képest szabad, de egymáshoz képest megtartja a sorrendjét, mert a prototípus (static esetén a konstruktor) kulcssorrendje reflexióval megfigyelhető; az accessor mező ebben a láncban és a mezők között is a helyén marad. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : ''};
 }

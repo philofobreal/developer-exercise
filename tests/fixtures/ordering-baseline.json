@@ -293,6 +293,18 @@
   "completenessGaps": 0,
   "justifiedRejections": 162
  },
+ "refl-ts-accessor-fields": {
+  "neighbours": 695,
+  "accepted": 13,
+  "completenessGaps": 17,
+  "justifiedRejections": 665
+ },
+ "refl-ts-emitted-globals": {
+  "neighbours": 503,
+  "accepted": 6,
+  "completenessGaps": 0,
+  "justifiedRejections": 497
+ },
  "wp6-self-referential-initializer": {
   "neighbours": 176,
   "accepted": 5,

@@ -124,10 +124,13 @@ function effectPairs(lists,key,hasEffect,positionFree){
  * creation order. ClassDefinitionEvaluation creates `constructor` first, then
  * methods/accessors in source order on the prototype (static ones on the
  * constructor, before static fields); instance fields follow source order
- * (TS parameter properties first). A script's top-level function and var
- * names become global-object properties; the specification creates functions
- * first, V8 interleaves them in source order, so P4 compares the source order
- * of all of them. Private names are not reflected. */
+ * (TS parameter properties first); a TS `accessor` field defines its get/set
+ * pair among the methods. A script's top-level function and var names become
+ * global-object properties; the specification creates functions first, V8
+ * interleaves them in source order, so P4 compares the source order of all of
+ * them. For TypeScript they are read from the emitted script, so enums,
+ * namespaces and import aliases count exactly when they emit a var.
+ * Private names are not reflected. */
 const arrayIndex=key=>/^(0|[1-9]\d*)$/.test(key)&&Number(key)<4294967295;
 const firstOccurrences=keys=>[...new Set(keys)].filter(key=>!arrayIndex(key));
 function jsReflection(tree){
@@ -154,12 +157,11 @@ function jsReflection(tree){
  visit(tree,true);
  return {order:JSON.stringify([classes.sort(),firstOccurrences(globals)]),classNames:tree.body.filter(s=>s.type==='ClassDeclaration').map(s=>s.id.name),globals:firstOccurrences(globals)};
 }
-function tsReflection(file){
- const classes=[],globals=[];
+function tsReflection(file,globals){
+ const classes=[];
  const has=(node,kind)=>!!ts.canHaveModifiers(node)&&!!ts.getModifiers(node)?.some(m=>m.kind===kind);
  const keyOf=name=>!name||ts.isPrivateIdentifier(name)?null:ts.isComputedPropertyName(name)?'computed:'+tsShape(name.expression):ts.isNumericLiteral(name)?String(Number(name.text)):name.text;
- const bindingNames=(name,out)=>{if(ts.isIdentifier(name))out.push(name.text);else name.elements.forEach(e=>{if(!ts.isOmittedExpression(e))bindingNames(e.name,out);});};
- const visit=(node,global)=>{
+ const visit=node=>{
   if(ts.isClassLike(node)&&!has(node,ts.SyntaxKind.DeclareKeyword)){
    const proto=[],statics=[],staticFields=[],instance=[],parameters=[];
    for(const member of node.members){
@@ -167,18 +169,14 @@ function tsReflection(file){
     if(ts.isConstructorDeclaration(member)&&member.body)for(const p of member.parameters)if(ts.getModifiers(p)?.length&&ts.isIdentifier(p.name))parameters.push(p.name.text);
     const key=keyOf(member.name);if(key===null)continue;
     const isStatic=has(member,ts.SyntaxKind.StaticKeyword);
-    if((ts.isMethodDeclaration(member)||ts.isGetAccessorDeclaration(member)||ts.isSetAccessorDeclaration(member))&&member.body)(isStatic?statics:proto).push(key);
-    if(ts.isPropertyDeclaration(member))(isStatic?staticFields:instance).push(key);
+    if((ts.isMethodDeclaration(member)||ts.isGetAccessorDeclaration(member)||ts.isSetAccessorDeclaration(member))&&member.body||ts.isPropertyDeclaration(member)&&has(member,ts.SyntaxKind.AccessorKeyword))(isStatic?statics:proto).push(key);
+    else if(ts.isPropertyDeclaration(member))(isStatic?staticFields:instance).push(key);
    }
    classes.push(JSON.stringify([firstOccurrences(proto),firstOccurrences([...statics,...staticFields]),firstOccurrences([...parameters,...instance])]));
   }
-  const declared=has(node,ts.SyntaxKind.DeclareKeyword);
-  if(global&&!declared&&ts.isVariableDeclarationList(node)&&!(node.flags&ts.NodeFlags.BlockScoped))node.declarations.forEach(d=>bindingNames(d.name,globals));
-  if(global&&!declared&&ts.isFunctionDeclaration(node)&&node.body&&node.name)globals.push(node.name.text);
-  const inner=global&&!declared&&!tsFunction(node)&&!ts.isModuleDeclaration(node)&&!ts.isClassLike(node);
-  ts.forEachChild(node,child=>visit(child,inner));
+  ts.forEachChild(node,visit);
  };
- visit(file,true);
+ visit(file);
  return {order:JSON.stringify([classes.sort(),firstOccurrences(globals)]),classNames:file.statements.flatMap(s=>ts.isClassDeclaration(s)&&s.name&&!has(s,ts.SyntaxKind.DeclareKeyword)?[s.name.text]:[]),globals:firstOccurrences(globals)};
 }
 
@@ -186,7 +184,10 @@ function analyse(code,language){
  if(language==='typescript'){
   const file=ts.createSourceFile('fixture.ts',code,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);
   if(file.parseDiagnostics.length||!tsOverloadsAdjacent(file))return null;
-  return {shape:tsShape(file),effects:effectPairs(tsLists(file),tsShape,tsHasEffect,tsPositionFree),reflection:tsReflection(file)};
+  // Global-object properties are what the emitted script declares; a module declares none.
+  let globals=[];
+  if(!ts.isExternalModule(file)){try{globals=jsReflection(parseScript(ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,{ecmaVersion:'latest',sourceType:'script'})).globals;}catch{return null;}}
+  return {shape:tsShape(file),effects:effectPairs(tsLists(file),tsShape,tsHasEffect,tsPositionFree),reflection:tsReflection(file,globals)};
  }
  let tree;try{tree=parseScript(code,{ecmaVersion:'latest',sourceType:'script'});}catch{return null;}
  return {shape:jsShape(tree),effects:effectPairs(jsLists(tree),node=>jsShape(node),jsHasEffect,jsPositionFree),reflection:jsReflection(tree)};

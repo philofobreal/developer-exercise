@@ -49,7 +49,7 @@ test('exact screenshot is syntactically valid but has a different observable pro
  const model=generateCodeLineExercise({source,language:'typescript'},ts),compiled=compile(model);
  const order=[1,2,3,4,5,7,6,8,10,9,11,12,13],changed=codes(model,order);
  assert.equal(grade(compiled,changed).status,'rejected');
- assert.equal(model.authoring.dependencyPolicy,'scoped-effect-analysis-v6');
+ assert.equal(model.authoring.dependencyPolicy,'scoped-effect-analysis-v7');
  assert.deepEqual(model.lines[1].dependencies,[1]);assert.deepEqual(model.lines[2].dependencies,[1]);assert.deepEqual(model.lines[3].dependencies,[2,3]);
  assert.ok(model.lines.every(line=>line.fixed===false));
  for(const define of [false,true]){

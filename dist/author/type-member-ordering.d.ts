@@ -6,7 +6,8 @@
  * key on the prototype (or, if static, on the constructor) keeps its order
  * relative to the other such members. Free of that order are: the constructor
  * (`constructor` is created first), array-index keys (listed ascending),
- * private names (not reflected) and erased members. TypeScript emits parameter
+ * private names (not reflected) and erased members. An `accessor` field is in
+ * that key chain and keeps its field order too. TypeScript emits parameter
  * properties at the start of construction in both class-field modes, whatever
  * the constructor's position, and erases declare fields (ADR-009). Runs for JS too. */
 import type ts from 'typescript';

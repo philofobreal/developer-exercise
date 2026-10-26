@@ -13,8 +13,9 @@
  *  - opaque: comment and other non-statement rows.
  * For units i < j an edge i.last → j.first exists iff one is opaque, or neither
  * is position-free and at least one is a barrier, or (ADR-010) both create
- * global-object properties in a classic script: Object.keys(globalThis)
- * reflects their creation order. The specification creates function bindings
+ * global-object properties in a classic script (function and var declarations,
+ * and the TypeScript enums, namespaces and import aliases emitted as var):
+ * Object.keys(globalThis) reflects their creation order. The specification creates function bindings
  * before var bindings, V8 interleaves them in source order, so all such units
  * keep their mutual source order. Every evaluation-time read of
  * a binding whose initialisation has a TDZ/value position in the same function
