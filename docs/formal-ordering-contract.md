@@ -11,7 +11,8 @@ Ez a dokumentum a generált sorrendszabályok jelentését, a támogatott részn
 - [ADR-012](adr/012-class-evaluation-phases-and-accessor-pairs.md): osztálykiértékelési fázisok és accessorpárok;
 - [ADR-013](adr/013-local-writes-clause-chains-and-imports.md): lokális írások, klauzulaláncok és importok;
 - [ADR-014](adr/014-constraint-provenance.md): kényszer-proveniencia és szerkeszthetőségi osztályok;
-- [ADR-015](adr/015-evidence-binding-and-analysis-environment.md): a bizonyítékok kötése és az elemzési környezet.
+- [ADR-015](adr/015-evidence-binding-and-analysis-environment.md): a bizonyítékok kötése és az elemzési környezet;
+- [ADR-016](adr/016-reference-language-audit.md): a referencia nyelvi auditja.
 
 ## Végleges állapot (WP1–WP8)
 
@@ -210,7 +211,7 @@ A precedencia csak „előtte” vagy „utána” relációt fejez ki, a „nem
 
 Feltevések:
 
-- **A1:** a TypeScript parser és checker kötésfeloldása helyes a referencián.
+- **A1:** a TypeScript parser és checker kötésfeloldása helyes a referencián. A referencia nyelvi helyességét a nyelvi audit (ADR-016) jelzi; `unverifiable` és `not-run` esetén ez nincs ellenőrizve.
 - **A2:** nincsenek egzotikus hoszt-objektumok a primitív műveletekben.
 - **A3:** nincs `with`/`eval` (kizárt).
 - **A4:** a megosztott fizikai határú intervallumok sorosak, és minden lyukas többsoros egység le van zárva (a generátor biztosítja).

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-10-26 a referencia nyelvi auditja (ADR-016, epic R1)
+
+- **Új, típusos auditor:** [reference-audit.ts](src/author/reference-audit.ts). Egyfájlos TypeScript `Program`-ot épít a szabványos könyvtárral, porton át. Eredménye: `ok`, `errors` (sorral és kóddal), `unverifiable` (feloldatlan modul vagy deklarálatlan globális; a modulokat listázza) vagy `not-run` (nincs könyvtár). A rögzített konfigurációt `assumptions` lista írja le.
+- **Szerver:** minden befogadásnál futtatja, az `audit` mező a draftválasz része. A modellbe nem kerül, importból nem vehető át.
+- **Pages:** könyvtár nélkül fut, ezért `not-run`.
+- **CopyField:** `unverifiable`, 11 feloldatlan import.
+- **Tesztek:** [reference-audit.test.mjs](tests/reference-audit.test.mjs), és a Pages API-teszt is ellenőrzi.
+
 ## Unreleased – 2026-10-26 bizonyítékkötés és elemzési környezet (ADR-015, epic C2)
 
 - **Evidence:** új, additív `authoring.evidence` mező. Tartalma: a sorok `[id, code, scopeId]` digestje, a szabályverzió és az elemzési környezet (TypeScript-verzió, import-emit, script/modul, osztálymezőmód-függetlenség).
