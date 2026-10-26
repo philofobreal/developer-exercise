@@ -142,7 +142,7 @@ test('full TS fixture retains scoped dependency policy, omitted-block decisions 
   const m = generateCodeLineExercise({ source, language: 'typescript' }, ts), v3 = upgradeCodeLineExerciseV2(m, source);
   assert.equal(v3.schemaVersion, 3, v3.message);
   assert.deepEqual(v3.ir.analysis.legacyAuthoring, m.authoring);
-  assert.equal(v3.ir.analysis.legacyAuthoring.dependencyPolicy, 'scoped-effect-analysis-v7');
+  assert.equal(v3.ir.analysis.legacyAuthoring.dependencyPolicy, 'scoped-effect-analysis-v8');
   assert.deepEqual(v3.ir.lines.map(l => l.sourceSpan.start.line), m.lines.map(l => l.sourceLine));
   assert.equal(submit(compile(v3), m.lines.map(l => l.code)).status, 'accepted');
 });

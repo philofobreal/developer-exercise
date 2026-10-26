@@ -1,6 +1,11 @@
-/** Erased, distinct TS data members may commute; runtime class fields/writes never do.
+/** Erased, distinct TS data members may commute; runtime class fields keep their
+ * order within their evaluation phase (ADR-012).
  * Uniquely named class methods, accessors and constructors are definitions: the
- * class installs them before any field initialiser or static code runs (ADR-008).
+ * class installs them before any field initialiser or static code runs (ADR-008);
+ * so is each half of a getter/setter pair, which creates one property (ADR-012).
+ * Phases (ADR-012): computed method keys are evaluated while the class elements
+ * are defined, static initialisers and blocks run after that, instance
+ * initialisers at construction; units of different phases commute.
  * Their relative order is still reflectable (ADR-010): OrdinaryOwnPropertyKeys
  * lists string keys in creation order, so every member that creates a string
  * key on the prototype (or, if static, on the constructor) keeps its order

@@ -295,8 +295,8 @@
  },
  "refl-ts-accessor-fields": {
   "neighbours": 695,
-  "accepted": 13,
-  "completenessGaps": 17,
+  "accepted": 18,
+  "completenessGaps": 12,
   "justifiedRejections": 665
  },
  "refl-ts-emitted-globals": {

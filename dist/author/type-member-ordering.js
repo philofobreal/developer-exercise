@@ -41,6 +41,17 @@ export function typeMemberOrdering(file, compiler) {
                 if (key !== undefined)
                     counts.set(key, (counts.get(key) ?? 0) + 1);
             }
+            const isStatic = (member) => compiler.canHaveModifiers(member) && !!compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.StaticKeyword);
+            // ADR-012: exactly one getter and one setter with bodies, the same name and the same placement form one property.
+            const pairs = new Set();
+            if (isClass)
+                for (const [key, count] of counts) {
+                    if (count !== 2)
+                        continue;
+                    const both = node.members.filter(member => name(member) === key);
+                    if (both.some(member => compiler.isGetAccessorDeclaration(member) && !!member.body) && both.some(member => compiler.isSetAccessorDeclaration(member) && !!member.body) && isStatic(both[0]) === isStatic(both[1]))
+                        pairs.add(key);
+                }
             const members = node.members.map(member => {
                 const key = name(member), row = first(member), end = last(member);
                 const modifiers = compiler.canHaveModifiers(member) ? compiler.getModifiers(member) : undefined;
@@ -51,7 +62,8 @@ export function typeMemberOrdering(file, compiler) {
                 // Trivia on the previous member's physical row belongs to that member.
                 const triviaStart = fullRow < row ? file.getPositionOfLineAndCharacter(fullRow + 1, 0) : fullStart;
                 const leadingComment = !!file.text.slice(triviaStart, member.getStart(file)).trim();
-                const distinct = !decorated && !leadingComment && key !== undefined && counts.get(key) === 1;
+                const paired = key !== undefined && pairs.has(key);
+                const distinct = !decorated && !leadingComment && key !== undefined && (counts.get(key) === 1 || paired);
                 const definition = isClass && (compiler.isMethodDeclaration(member) || compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member) || compiler.isConstructorDeclaration(member)) && (!!member.body || !!modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.AbstractKeyword)) && (modifiers ?? []).every(modifier => definitionModifiers.has(modifier.kind)) && distinct && definitionRows(member);
                 const pure = erased && simpleModifiers && distinct && row === end && physical[row]?.trim() === member.getText(file).trim();
                 // An emitted method/accessor creates a key unless it is private or an array index; a computed key is unknown, so ordered.
@@ -59,8 +71,15 @@ export function typeMemberOrdering(file, compiler) {
                 const autoAccessor = compiler.isPropertyDeclaration(member) && !!modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.AccessorKeyword) && !modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.AbstractKeyword || modifier.kind === compiler.SyntaxKind.DeclareKeyword);
                 const emitted = isClass && ((compiler.isMethodDeclaration(member) || compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member)) && !!member.body || autoAccessor);
                 const reflected = emitted && !(member.name && compiler.isPrivateIdentifier(member.name)) && !(key !== undefined && arrayIndex(key));
+                // ADR-012 phases: a named field initialises in its placement's phase; a computed
+                // method/accessor key is evaluated at definition, before any initialiser runs.
+                const plainName = !!member.name && !compiler.isComputedPropertyName(member.name);
+                const phases = !isClass || decorated || leadingComment ? undefined
+                    : compiler.isPropertyDeclaration(member) && plainName && !erased ? [isStatic(member) ? 'static' : 'instance']
+                        : compiler.isClassStaticBlockDeclaration(member) ? ['static']
+                            : (compiler.isMethodDeclaration(member) || compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member)) && !!member.body && !plainName ? ['key'] : undefined;
                 // A declare field emits nothing in either class-field mode: it is position-free in a class body.
-                return { first: row, last: end, pure, free: definition || isClass && pure, ...(reflected ? { reflect: modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.StaticKeyword) ? 'static' : 'prototype' } : {}) };
+                return { first: row, last: end, pure, free: definition || isClass && pure, ...(reflected ? { reflect: isStatic(member) ? 'static' : 'prototype' } : {}), ...(phases ? { phases } : {}), ...(definition && paired ? { pair: key } : {}) };
             });
             // An overload signature must directly precede the next signature or the
             // implementation (TS2389/TS2391): the whole group is one ordered unit.
@@ -113,17 +132,34 @@ export function typeMemberOrdering(file, compiler) {
                     }
                     start = end;
                 }
-                if (free.length)
+                if (isClass) {
+                    // ADR-012: a runtime unit follows every earlier unit it shares a phase with, and every
+                    // phase-less unit. The latest unit of each phase and the latest phase-less unit imply the rest.
+                    const latest = new Map();
+                    for (const unit of units) {
+                        const before = unit.phases ? [latest.get('none'), ...unit.phases.map(phase => latest.get(phase))] : [...latest.values()];
+                        const rows = [...new Set(before.flatMap(other => other ? [other.last] : []))];
+                        entries.push({ row: unit.first, after: rows.length ? rows : [first(open)] });
+                        for (const key of unit.phases ?? ['none'])
+                            latest.set(key, unit);
+                    }
+                }
+                else if (free.length)
                     units.forEach((unit, i) => { if (!wired.has(unit.first))
                         entries.push({ row: unit.first, after: [i ? units[i - 1].last : first(open)] }); });
                 // Reflectable key order: consecutive key-creating members on the same object stay ordered.
-                const previous = new Map();
+                // The two halves of an accessor pair that are adjacent in that chain create one
+                // key at the earlier half and form one group: both follow the previous group and
+                // precede the next one, in either order between themselves (ADR-012).
+                const chains = new Map();
                 for (const member of grouped)
                     if (member.reflect) {
-                        const before = previous.get(member.reflect);
-                        if (before && (before.free || member.free))
-                            entries.push({ row: member.first, after: [before.last] });
-                        previous.set(member.reflect, member);
+                        const chain = chains.get(member.reflect) ?? { last: [], before: [] };
+                        const joins = !!member.pair && chain.last.length === 1 && chain.last[0].pair === member.pair;
+                        const predecessors = joins ? chain.before : chain.last;
+                        if (predecessors.length)
+                            entries.push({ row: member.first, after: predecessors.map(unit => unit.last) });
+                        chains.set(member.reflect, joins ? { last: [...chain.last, member], before: chain.before } : { last: [member], before: chain.last });
                     }
             }
         }
@@ -137,6 +173,6 @@ export function typeMemberOrdering(file, compiler) {
         entry.after.forEach(row => after.add(row));
         merged.set(entry.row, after);
     }
-    return { entries: [...merged].map(([row, after]) => ({ row, after: [...after] })), spans, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor (paramétertulajdonságokkal együtt), a declare mezők, a privát (#) és a tömbindex nevű metódusok az osztálytörzsön belül bárhol állhatnak. A többi metódus és accessor a mezőkhöz képest szabad, de egymáshoz képest megtartja a sorrendjét, mert a prototípus (static esetén a konstruktor) kulcssorrendje reflexióval megfigyelhető; az accessor mező ebben a láncban és a mezők között is a helyén marad. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : '' };
+    return { entries: [...merged].map(([row, after]) => ({ row, after: [...after] })), spans, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor, a declare mezők, a privát (#) és a tömbindex nevű metódusok bárhol állhatnak az osztálytörzsben. A többi metódus és accessor a mezőkhöz képest szabad, de egymáshoz képest megtartja a sorrendjét, mert a prototípus (static esetén a konstruktor) kulcssorrendje reflexióval megfigyelhető; az accessor mező ebben a láncban és a mezők között is a helyén marad. Egy azonos nevű getter és setter egy tulajdonság: egymással felcserélhetők. A példány- és a static mezők egymáshoz képest szabadok, mert más fázisban futnak, de csoportjukon belül megtartják a sorrendet; a számított nevű metódus a mezőkhöz képest szabad. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : '' };
 }
 //# sourceMappingURL=type-member-ordering.js.map
