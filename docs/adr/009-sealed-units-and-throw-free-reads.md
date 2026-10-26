@@ -42,7 +42,7 @@ Két teljességi (2. típusú) hiba is előkerült:
    - a `declare` mező szabad;
    - a TypeScript 5 emitje mindkét osztálymező-módban ellenőrizve: a paramétertulajdonság a constructor helyétől függetlenül a konstrukció elején jön létre.
 6. **Orákulum P0:** a TS overload-szignatúrák szomszédossága explicit ellenőrzés (TS2389/TS2391).
-7. **Új, additív policy-címke:** `scoped-effect-analysis-v5`. A régi modellek és címkék érvényesek; importkor nincs újraszámítás.
+7. **Új, additív policy-címke:** `scoped-effect-analysis-v5`. Ezt később az [ADR-010](010-reflective-property-order.md) `v6`-ra emelte. A régi modellek és címkék érvényesek; importkor nincs újraszámítás.
 
 ### Interfészbővítés
 

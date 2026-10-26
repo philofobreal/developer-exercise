@@ -17,7 +17,7 @@ Az ADR-001 P4 lépése a statement-ordering TypeScript-migrációját is előír
 
 1. Az elemzés strict TypeScriptbe kerül: [statement-ordering.ts](../../src/author/statement-ordering.ts). A régi `.mjs` megszűnik.
 2. Minden lista egységei pure / position-free / barrier / opaque osztályt kapnak, indokkal együtt (`units`). Él akkor keletkezik, ha bármelyik fél opaque, vagy ha egyik fél sem pozíciófüggetlen és legalább az egyik barrier. Ehhez jönnek a kötésolvasási védett élek, amelyeket csak az azonos függvénykontextusú inicializálás vált ki. A pontos szabályok és a helyességi vázlat: [formális szerződés](../formal-ordering-contract.md).
-3. A tagsorrend-modul JavaScriptre is fut. Az egyedi nevű metódus-, accessor- és constructor-definíció pozíciófüggetlen, a mezők és a static kód kötött.
+3. A tagsorrend-modul JavaScriptre is fut. Az egyedi nevű metódus-, accessor- és constructor-definíció pozíciófüggetlen, a mezők és a static kód kötött. (Az [ADR-010](010-reflective-property-order.md) pontosítja: a kulcsot létrehozó metódusok és accessorok egymáshoz képest kötöttek, mert a prototípus kulcssorrendje reflexióval megfigyelhető.)
 4. Új, additív `authoring.dependencyPolicy`: `scoped-effect-analysis-v4`. A régi értékek és modellek érvényesek; importkor nincs automatikus újraszámítás.
 5. A `with` mellett a közvetlen `eval` is kikapcsolja az elemzést. A `using`/`await using` deklaráció barrier.
 6. Explicit migrációs bekötés: a `generator.mjs` és a `languages.mjs` a lefordított `dist/author/statement-ordering.js`-t importálja. Az architektúrakapu csak ezt a két irányt engedi; a Pages-build ugyanezeket az útvonalakat vetíti át.

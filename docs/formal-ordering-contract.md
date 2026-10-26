@@ -1,6 +1,6 @@
 # Formális sorrendi szerződés és hatáselemzés
 
-Ez a dokumentum a generált sorrendszabályok jelentését, a támogatott résznyelvet és a bizonyossági szinteket rögzíti. A döntések: [ADR-008](adr/008-effect-based-statement-ordering.md) és a WP6-javítások: [ADR-009](adr/009-sealed-units-and-throw-free-reads.md). A strukturális elfogadási feltétel változatlan: [validációs modell](validacios-modell-es-formazas.md).
+Ez a dokumentum a generált sorrendszabályok jelentését, a támogatott résznyelvet és a bizonyossági szinteket rögzíti. A döntések: [ADR-008](adr/008-effect-based-statement-ordering.md), a WP6-javítások: [ADR-009](adr/009-sealed-units-and-throw-free-reads.md), a reflektálható tulajdonságsorrend: [ADR-010](adr/010-reflective-property-order.md). A strukturális elfogadási feltétel változatlan: [validációs modell](validacios-modell-es-formazas.md).
 
 ## Fogalmak
 
@@ -21,8 +21,16 @@ Egy S permutáció akkor egyenértékű P-vel, ha egyszerre teljesül:
 2. **P1 lexikai tulajdonlás:** minden utasítás és osztály-/típustag ugyanabban a listában marad (a listák multihalmazként egyeznek). Egy deklaráció másik scope-ba helyezése akkor sem engedett, ha a futás ugyanaz.
 3. **P2 hatássorrend:** minden utasításlistában minden olyan pár relatív sorrendje megmarad, amelynek legalább egyik tagja kiértékeléskor hatásos (hívás, `new`, értékadás, `++/--`, `delete`, `await`, `yield`, `throw`, `return`, `break`, `continue`, property-olvasás, spread, destrukturálás, ciklus, `in`/`instanceof`, `eval`). Kivétel a pozíciófüggetlen tag: hoistolt függvénydeklaráció függvény/szkript-szinten, illetve törölt TS-típusdeklaráció. A függvény- és osztálytörzsek nem kiértékelési idejű hatások.
 4. **P3 megfigyelhető viselkedés:** azonos visszatérési érték, kivétel és hatásnapló.
+5. **P4 reflektálható tulajdonságsorrend (ADR-010):** a következők saját kulcssorrendje és descriptor-fajtája azonos:
+   - az osztályok prototípusa és konstruktora;
+   - a példánymezők;
+   - a klasszikus szkript globális objektuma (`function`/`var`).
 
-P3-at csak rögzített bemenetekkel lehet ellenőrizni, ezért a teszteken empirikus bizonyíték. P0–P2 szintaktikai, tehát pontosan ellenőrizhető.
+   Ezt minden reflexiós API megfigyeli: `Object.getOwnPropertyNames`, `Reflect.ownKeys`, `Object.keys`, `Object.getOwnPropertyDescriptors`.
+
+**Kizárás:** a forrásszöveg-reflexió (`Function.prototype.toString`, `stack`, sor- és oszlopszám) nem része az E_pol-nak, mert minden átrendezést megkülönböztet.
+
+P3-at és a P4 futásidejű részét csak rögzített bemenetekkel lehet ellenőrizni, ezért ezek a teszteken empirikus bizonyítékok. P0–P2 és a P4 kulcssorrend-szabálya szintaktikai, tehát pontosan ellenőrizhető. Az ADR-010 előtti politika (P0–P3, „call-only”) a mérésekben összehasonlításként külön szerepel.
 
 ## Generálási szabályok
 
@@ -72,7 +80,13 @@ lyuk(U) ∧ scope(X.first) = scope(U.first) ∧ X.first > U.last  ⇒  U.last �
 
 A precedencia csak „előtte” vagy „utána” relációt fejez ki, a „nem a belsejében” feltételt nem. Ezért a lezárás a forrásbeli oldalt rögzíti: helyes, de egy pozíciófüggetlen sor ilyen egységen nem léphet át.
 
-**Osztálytagok** ([type-member-ordering](../src/author/type-member-ordering.ts), JS és TS): az egyedi nevű metódus, accessor és constructor definíció, illetve a `declare` mező pozíciófüggetlen az osztálytörzsben. A paramétertulajdonságot a TypeScript mindkét osztálymező-módban a konstrukció elején állítja be, a constructor helyétől függetlenül. Egy overload-csoport (szignatúrák és implementáció) egyetlen kötött egység. A futásidejű mezők, a static kód és a duplikált nevek sorrendje kötött. Az ADR-007 törölt típustag-futamai változatlanok. A többsoros tagokra ugyanaz a lezárás vonatkozik.
+**Osztálytagok** ([type-member-ordering](../src/author/type-member-ordering.ts), JS és TS):
+
+- **Szabad, azaz pozíciófüggetlen** az osztálytörzsben az egyedi nevű metódus, accessor és constructor definíció, valamint a `declare` mező.
+- **Kulcslánc (ADR-010):** a string kulcsot létrehozó tagok azonos objektumon (prototípus, illetve `static` esetén a konstruktor) forrássorrendben maradnak. Ilyen a törzzsel rendelkező metódus és accessor, a számított, duplikált, accessorpár- és overload-implementáció is. A mezőkhöz képest szabadok maradnak.
+- **Kívül marad a láncon:** a `constructor`, a tömbindex nevű, a privát `#` és a törölt tag.
+
+ A paramétertulajdonságot a TypeScript mindkét osztálymező-módban a konstrukció elején állítja be, a constructor helyétől függetlenül. Egy overload-csoport (szignatúrák és implementáció) egyetlen kötött egység. A futásidejű mezők, a static kód és a duplikált nevek sorrendje kötött. Az ADR-007 törölt típustag-futamai változatlanok. A többsoros tagokra ugyanaz a lezárás vonatkozik.
 
 ## Helyességi érvelés a támogatott résznyelven
 
@@ -90,7 +104,7 @@ Vázlat:
 1. **Lokalitás.** A validátor `Scope` feltétele egy sort csak a saját reprezentált scope-jába enged. Ezen belül a lezárás miatt egyetlen testvér sem kerülhet egy másik egység belsejébe (WP6: ez korábban hiányzott, lásd ADR-009). Így minden egység összefüggő marad és a saját listájában áll, a listák függetlenül vizsgálhatók, és P0/P1 teljesül.
 2. **Barrier-stabilitás.** Bármely két barrier közötti szakaszban a pure egységek által olvasható állapot állandó, mert csak barrier ír, hív vagy ad át vezérlést, és a barrier relatív helye minden rendezett testvérhez képest rögzített.
 3. **Pure kommutáció.** Két pure egység nem futtat kódot és nem dob, mert minden bemenete garantáltan inicializált (WP6: a más kontextusú TDZ-olvasás és az önhivatkozás kizárva; egy dobó „tiszta” sor helye closure-on és `catch`-en át megfigyelhető volt). Csak a saját, egyedi kötését inicializálja, és a másik kötését csak védett éllel olvashatja. Felcserélésük ezért egyetlen kötés értékét, kivételt vagy hatásnaplót sem változtat meg.
-4. **Pozíciófüggetlenség.** Függvénydeklarációt a FunctionDeclarationInstantiation vagy a GlobalDeclarationInstantiation a lista belépésekor hoz létre; törölt TS-deklarációnak nincs emitje. Egy metódust a ClassDefinitionEvaluation minden mezőinicializáló és static kód előtt telepít.
+4. **Pozíciófüggetlenség.** Függvénydeklarációt a FunctionDeclarationInstantiation vagy a GlobalDeclarationInstantiation a lista belépésekor hoz létre; törölt TS-deklarációnak nincs emitje. Egy metódust a ClassDefinitionEvaluation minden mezőinicializáló és static kód előtt telepít. A létrehozási sorrend csak a kulcssorrendben látszik (P4). Ezt a kulcslánc rögzíti: osztályonként és objektumonként, a szkript globális objektumán pedig a függvények és a `var`-ok együttes láncával. A `constructor` kulcs mindig elsőként jön létre, a tömbindex-kulcsok növekvő sorrendben listázódnak, a privát nevek nem reflektálódnak.
 5. **Késleltetett olvasás.** Closure-törzs csak hívásra fut, a hívás pedig barrier.
 6. **Kompozíció.** A blokk összegzése a gyerekek összegzéséből áll, a kifelé mutató olvasások élként továbbadódnak, így az állítás indukcióval terjed a beágyazásra.
 
@@ -204,7 +218,50 @@ A lezárás lyukas egységenként végigmegy a testvéreken. A `continued-calls`
 - kiterjesztett véletlen programok (többsoros hívás, `} else {`, 12 mag): a régi generátor ezek közül 5-ben hibás sorrendet fogadott el;
 - [ordering-scale.test.mjs](../tests/ordering-scale.test.mjs): determinisztikus élszám- és állapotkorlátok az 500 soros referenciákra.
 
+## ADR-010: reflexiós mérés
+
+**Tesztkészlet:**
+
+- **K45:** az eredeti 45 fixture;
+- **W9:** a WP6-reprodukciók;
+- **R5:** 5 új reflexiós fixture (`origin: 'reflection'`);
+- **Mérés:** a szomszédság (K45: 10 861, W9: 1 870, R5: 5 323 elrendezés), valamint az A(M), fixture-enként 10 000-ig teljes felsorolással (kivétel: az `refl-ts-erased-and-overloads` mindkét oldalon 300 rögzített magú mintával);
+- **Előtte:** a `2408988` HEAD kódja, külön munkakönyvtárban; **utána:** az ADR-010 kódja. A mérőeszköz, a korpusz és az orákulum mindkét oldalon azonos.
+
+**Két orákulumpolitika.** A két politika számai közvetlenül nem hasonlíthatók össze, ezért mindkettő külön oszlopban szerepel:
+
+- **`call-only`** (régi P0–P3): érték, kivétel és hatásnapló, reflexió csak akkor, ha a probe maga reflektál;
+- **`reflective`** (P0–P4): ehhez jön a kulcssorrend szintaktikai szabálya és a futásidejű pillanatkép.
+
+| Mérőszám | Készlet | call-only, előtte | reflective, előtte | reflective, **utána** | call-only, utána |
+| --- | --- | ---: | ---: | ---: | ---: |
+| hibásan elfogadott (A(M) + szomszédság) | K45 / W9 / R5 | 0 / 0 / 2 | **9 151** / 0 / **5 170** | **0 / 0 / 0** | 0 / 0 / 0 |
+| indokolatlanul elutasított szomszéd | K45 / W9 / R5 | 6 / 8 / 8 | 6 / 7 / 8 | 6 / 7 / 8 | 6 / 8 / 17 |
+| elfogadott teljes sorrend, A(M) | K45 / R5 | 11 449 / 5 524 | 11 449 / 5 524 | 2 298 / 1 928 | 2 298 / 1 928 |
+| generált élek | K45 / W9 / R5 | 547 / 113 / 118 | ← | 555 / 113 / 122 | ← |
+| validátor-állapotok A(M)-en | K45 | 361 706 | ← | 65 533 | ← |
+| generálás, fixture-átlagok összege | K45 | 60,6 ms | 60,2 ms | 65,2 ms | 64,6 ms |
+
+**Értelmezés:**
+
+- A régi politika a hibát csak ott látta, ahol maga a program reflektált (`refl-explicit-property-names`, 2 eset). A korpusz többi probe-ja nem reflektált, ezért a régi mérés 0-t mutatott.
+- A reflektáló politika szerint a régi generátor 11 eredeti fixture-ön fogadott el hibás sorrendet:
+  - `class-inventory-ts`: 4 800;
+  - `class-accounts-ts`: 4 200;
+  - `ch-ts-hoisted-types`: 120;
+  - `js-class-fields-methods`: 12;
+  - és még hét, osztály nélküli fixture-ön összesen 19, ahol felső szintű függvénydeklarációk cserélődtek.
+- Az új modell az eredeti 45 fixture-ön pontosan a régi elfogadott halmaz helyes részét fogadja el (11 449 − 9 151 = 2 298), és a szomszédsági rések száma nem változott.
+- Az R5-ön az elfogadás 354 helyes sorrendről 1 928-ra nőtt. Oka, hogy a privát, a tömbindex nevű és a constructor tag szabaddá vált.
+- A `call-only` szerinti 17 R5-rés az új, szigorúbb szemantika szándékos következménye: a régi politika ekvivalensnek tartott 9 olyan szomszédot, amely reflexióval megkülönböztethető.
+
+**Szomszédsági vakfolt.** A szomszédság egysoros mozgatásokat és párcseréket vizsgál, ezért egy többsoros metódusblokk cseréjét nem látja. A hibát csak az A(M) és az új tagblokk-permutációs teszt mutatta ki: [reflection-ordering.test.mjs](../tests/reflection-ordering.test.mjs). Ez öt osztályra kimerítően vagy mintával felsorolja a tagblokkok sorrendjét, és az elfogadott ⊆ ekvivalens feltételt ellenőrzi; három esetben pontos egyezéssel.
+
+**Nagy referenciák** (reflective, előtte → utána): a generálás `flat-pure` 10,0 → 10,1 ms, `blocks-and-helpers` 29,4 → 30,6 ms, `class-members` 11,5 → 11,2 ms, `continued-calls` 45,6 → 46,3 ms. A referencia-állapotok (sorok száma + 1) változatlanok, a validálás minden alakra 4 ms alatt marad.
+
 ## Ismert korlátok
+
+- **Reflexió (ADR-010):** a különböző nevű metódusok egymáshoz képesti, valamint a szkriptszintű `function`/`var` deklarációk sorrendje kötött. Az accessorpár, a duplikált és a számított nevű tag konzervatív. A futásidejű pillanatkép csak a felső szintű osztályokat látja; a beágyazottakat a szintaktikus P4-szabály ellenőrzi. A forrásszöveg-reflexió kizárt.
 
 - **Scope-áthelyezés:** a v2 `scopeId` soronként egyetlen scope-ot enged, ezért egy deklaráció beljebb vagy kijjebb helyezése elutasított (P1 szerint ez szándékos).
 - **Property-olvasás, getter, destrukturálás:** barrier.
@@ -220,6 +277,6 @@ A lezárás lyukas egységenként végigmegy a testvéreken. A `continued-calls`
 ## Kompatibilitás és nyelvi határ
 
 - **Régi modellek:** az importált modellek függőségei nem változnak. Újragenerálás csak explicit „Sorfüggőségek újraszámítása” műveletre történik.
-- **Policy-címke:** új generáláskor `scoped-effect-analysis-v5` (ADR-009); a régi enumértékek, köztük a v4, érvényesek maradnak (additív sémabővítés).
+- **Policy-címke:** új generáláskor `scoped-effect-analysis-v6` (ADR-010); a régi enumértékek, köztük a v4 és a v5, érvényesek maradnak (additív sémabővítés).
 - **Belső szerződés:** a `StatementOrdering {entries, protectedInputs, units}` 0-alapú fizikai sorokon dolgozik, nyelvfüggetlen. A projekciót a generátor végzi, a validátor nem változik.
 - **Python-adapterhez:** egy hasonló, saját kötés- és hatásmodellt adó elemző kell. A fő különbségek: függvényszintű scope, nincs TDZ, a `global`/`nonlocal` kezelése, a dekorátorok azonnali futása, az osztálytörzs végrehajtható kód, a behúzás pedig `exact` (lásd [Python-terv](python-adapter-plan.md)).

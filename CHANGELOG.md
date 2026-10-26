@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased – 2026-10-26 reflektálható tulajdonságsorrend (ADR-010)
+
+- **Probléma:** az ADR-008 óta két különböző nevű osztálymetódus, illetve két szkriptszintű `function`/`var` cseréje elfogadott volt. Minden hívás eredménye azonos maradt, de az `Object.getOwnPropertyNames(C.prototype)`, a `Reflect.ownKeys(C)` és az `Object.keys(globalThis)` sorrendje megváltozott.
+  - Ha maga a program reflektált, ez a régi politika szerint is hibás elfogadás volt.
+  - Reprodukció JS-re és TS-re: parser, teljes strict típusellenőrzés és mindkét emit-mód külön ([tests/reflection-ordering.test.mjs](tests/reflection-ordering.test.mjs)); a régi kódon 8-ból 7 teszt elbukik.
+- **Politika:** új P4-feltétel: a reflektálható kulcssorrend és a descriptor-fajta megőrzendő. A forrásszöveg-reflexió (`toString`, `stack`) explicit módon kizárt.
+- **Author-javítás:**
+  - **Kulcslánc a tagokra:** a kulcsot létrehozó metódusok és accessorok azonos objektumon (prototípus, illetve konstruktor) forrássorrendben maradnak.
+  - **Szabad marad:** a `constructor`, a privát `#`, a tömbindex nevű és a törölt tag.
+  - **Szkriptszint:** a szkriptszintű függvények és `var`-ok egy láncot alkotnak. Mérés szerint a V8 forrássorrendben hozza létre a globális tulajdonságokat.
+- **Policy-címke:** additív `scoped-effect-analysis-v6`. A validátor és a séma jelentése változatlan.
+- **Orákulum:** szintaktikus P4-szabály és futásidejű `Reflect.ownKeys`-pillanatkép, külön `reflection` okkal. A `policy: 'call-only'` a régi szemantikát adja vissza összehasonlításhoz; a mérőeszköz `--policy` kapcsolót kapott.
+- **Mérés:** azonos, 59 fixture-ös készleten.
+  - A reflexiós politika szerint a régi generátor 14 321 hibás elfogadása (a K45-ön 9 151) 0-ra csökkent.
+  - A K45-en az elfogadott teljes sorrendek száma 11 449-ről 2 298-ra csökkent; ez pontosan a régi halmaz helyes része.
+  - A szomszédsági rések száma változatlan.
+- **Frissített elvárások, gyengítés nélkül:**
+  - két forgatókönyv-probe a kulcssorrendet is kiolvassa, ezért két változat indokolt elutasítássá vált;
+  - új, elfogadott változat igazolja, hogy a metódus a mezőkhöz képest szabad;
+  - a policy-címke 4 helyen frissült;
+  - a completeness-alapvonal frissült.
+
 ## Unreleased – 2026-10-25 WP6 sorrendi hibák javítása és mérés (ADR-009)
 
 - Hat hibásan elfogadó hiba javítva, mindegyikre előbb reprodukáló fixture készült (`origin: 'wp6'`):
