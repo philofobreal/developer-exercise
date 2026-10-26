@@ -4,9 +4,9 @@ Native code-body drags exercise the
 browser's pointercancel transition before dragover/drop.
 """
 import json,os,socket,subprocess,threading,time,urllib.request
-from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
+from http.server import SimpleHTTPRequestHandler
 from playwright.sync_api import sync_playwright,expect
-from browser_support import ROOT,ARTIFACTS,launch
+from browser_support import ROOT,ARTIFACTS,launch,StaticServer
 
 with socket.socket() as sock:
     sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
@@ -19,7 +19,7 @@ class Pages(SimpleHTTPRequestHandler):
             self.send_error(404);return
         self.path=self.path[len('/developer-exercise'):];super().do_GET()
     def log_message(self,*args):pass
-static=ThreadingHTTPServer(('127.0.0.1',0),Pages)
+static=StaticServer(('127.0.0.1',0),Pages)
 threading.Thread(target=static.serve_forever,daemon=True).start()
 count=0
 

@@ -1,9 +1,9 @@
 # Real HTTP and subpath Pages matrix. Each case prints its own result.
 import functools, json, os, socket, subprocess, threading, time, urllib.request
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
-from browser_support import ROOT, ARTIFACTS, launch
+from browser_support import ROOT, ARTIFACTS, launch, StaticServer
 
 with socket.socket() as sock:
     sock.bind(('127.0.0.1',0)); port=sock.getsockname()[1]
@@ -16,7 +16,7 @@ class Pages(SimpleHTTPRequestHandler):
             self.send_error(404);return
         self.path=self.path[len('/developer-exercise'):];super().do_GET()
     def log_message(self,*args):pass
-static=ThreadingHTTPServer(('127.0.0.1',0),Pages)
+static=StaticServer(('127.0.0.1',0),Pages)
 thread=threading.Thread(target=static.serve_forever,daemon=True);thread.start()
 JS='function calc() {\n const a = 1;\n const b = 2;\n return a + b;\n}'
 TS='function calc<T extends number>(a:T): number {\n const result: number = a + 1;\n return result;\n}'

@@ -2,9 +2,9 @@
 This is test infrastructure, not a Python source parser or language adapter.
 """
 import threading
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from http.server import SimpleHTTPRequestHandler
 from playwright.sync_api import sync_playwright
-from browser_support import ROOT, launch
+from browser_support import ROOT, launch, StaticServer
 
 
 class Pages(SimpleHTTPRequestHandler):
@@ -23,7 +23,7 @@ class Pages(SimpleHTTPRequestHandler):
         pass
 
 
-server = ThreadingHTTPServer(('127.0.0.1', 0), Pages)
+server = StaticServer(('127.0.0.1', 0), Pages)
 threading.Thread(target=server.serve_forever, daemon=True).start()
 try:
     with sync_playwright() as p:

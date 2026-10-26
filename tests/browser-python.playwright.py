@@ -4,9 +4,9 @@ Uses the same bounded corpus in Node and two browser hosting policies.
 import json
 import subprocess
 import threading
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from http.server import SimpleHTTPRequestHandler
 from playwright.sync_api import sync_playwright
-from browser_support import ROOT, launch
+from browser_support import ROOT, launch, StaticServer
 
 BASE_CSP = "default-src 'self'; script-src 'self'; connect-src 'self'; worker-src 'self'; object-src 'none'"
 transient_loads = 0
@@ -45,7 +45,7 @@ class Probe(SimpleHTTPRequestHandler):
 
 node = json.loads(subprocess.check_output(['node', 'tests/python-parity.mjs'], cwd=ROOT, text=True, encoding='utf-8', timeout=40))
 corpus = json.loads((ROOT / 'tests/fixtures/python-parser-corpus.json').read_text(encoding='utf-8'))
-server = ThreadingHTTPServer(('127.0.0.1', 0), Probe)
+server = StaticServer(('127.0.0.1', 0), Probe)
 threading.Thread(target=server.serve_forever, daemon=True).start()
 metrics = {'node': node['metrics'], 'corpusCases': len(corpus), 'browser': {}}
 try:

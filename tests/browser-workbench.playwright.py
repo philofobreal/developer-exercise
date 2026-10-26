@@ -1,8 +1,8 @@
 """Real authoring/learner workflows on Node and Pages, with keyboard and mobile QA."""
 import json,os,socket,subprocess,threading,time,urllib.request
-from http.server import SimpleHTTPRequestHandler,ThreadingHTTPServer
+from http.server import SimpleHTTPRequestHandler
 from playwright.sync_api import sync_playwright,expect
-from browser_support import ROOT,ARTIFACTS,launch
+from browser_support import ROOT,ARTIFACTS,launch,StaticServer
 with socket.socket() as sock:sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
 BASE=f'http://127.0.0.1:{port}'
 proc=subprocess.Popen(['node','server.mjs'],cwd=ROOT,env={**os.environ,'HOST':'127.0.0.1','PORT':str(port)},stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
@@ -12,7 +12,7 @@ class Pages(SimpleHTTPRequestHandler):
         if not self.path.startswith('/developer-exercise/'):self.send_error(404);return
         self.path=self.path[len('/developer-exercise'):];super().do_GET()
     def log_message(self,*args):pass
-static=ThreadingHTTPServer(('127.0.0.1',0),Pages);threading.Thread(target=static.serve_forever,daemon=True).start()
+static=StaticServer(('127.0.0.1',0),Pages);threading.Thread(target=static.serve_forever,daemon=True).start()
 model=json.loads((ROOT/'docs/evaluate-ordering.generated.json').read_text(encoding='utf-8'))
 source='function typed() {\n const a: number = 10;\n const b: number = 20;\n return a + b;\n}'
 count=0
