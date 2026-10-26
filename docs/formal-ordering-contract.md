@@ -170,9 +170,13 @@ Ha a feltételek nem teljesülnek, a generátor a forrássorrendet tartja meg. E
 
 - **Független kódút, részben közös parser:** JavaScriptre Acorn, TypeScriptre viszont ugyanaz a TypeScript-parser, saját bejárással. Egy TS-parserhiba (A1) mindkét oldalon megjelenhet.
 - **Véges bemenet:** P3 és a P4 futásidejű része a rögzített probe-ot futtatja vm-kontextusban, strict szkriptként, TS-nél ES2022-re fordítva, mindkét osztálymező-módban. Egy „ekvivalens” ítélet csak erre a bemenetre szól. Ezért lehet completeness-rés például a `ch-typeof-strict-equality` vagy az `algo-bfs-js` esete.
-- **P4-lefedettség:** a futásidejű kulcssorrend-pillanatkép csak a felső szintű osztályokat és a deklarált globálisokat látja, a beágyazott osztályokat a szintaktikus P4-szabály fedi. TypeScriptnél a globálisok listája a kibocsátott szkriptből származik (v7), így a generátor TS-AST-szabályától független.
+- **P4-lefedettség:**
+  - a felső szintű osztályok és a deklarált globálisok pillanatképe közvetlenül a szkript kiértékelése után készül;
+  - a beágyazott osztálydeklarációkat (függvényben, blokkban, namespace-ben) az orákulum egy közvetlenül utánuk beszúrt regisztráló utasítással gyűjti, és a probe lefutása után rögzíti; így a descriptor-fajtát is a V8 tényleges állapota dönti el;
+  - nem látja a probe által soha el nem ért beágyazott deklarációt és az osztálykifejezést, ezeket csak a szintaktikus P4-szabály fedi;
+  - TypeScriptnél a globálisok listája a kibocsátott szkriptből származik (v7), így a generátor TS-AST-szabályától független.
 - **Típusellenőrzés:** a teljes TS-típusellenőrzés csak a reflexiós reprodukciókban fut. A P0 egyébként a parserdiagnosztikát, a `transpileModule` diagnosztikáját és az overload-szomszédosságot ellenőrzi.
-- **Mintavétel:** a szomszédság egysoros mozgatást és párcserét vizsgál, a többsoros blokkcserét a tagblokk-permutációs és az A(M)-ellenőrzés fedi. Az A(M) 10 000 sorrend fölött mintavételezett.
+- **Mintavétel:** a szomszédság egysoros mozgatást és párcserét vizsgál. A többsoros egységek mozgatását a blokkmozgatás (`blockMoves`: minden utasítás és osztálytag egészben, a saját listáján belül minden más helyre), a tagblokk-permutációs és az A(M)-ellenőrzés fedi. Az A(M) 10 000 sorrend fölött mintavételezett.
 - **Időtúllépés:** eldöntetlen eredmény, nem ekvivalencia; a rövid keretet hosszabb keret ellenőrzi újra.
 - **Kizárt megfigyelések:** a forrásszöveg-reflexió és a `call-only` politika csak összehasonlító mérésre szolgál.
 
@@ -342,6 +346,32 @@ A felülvizsgálat két új reflexiós fixture-t adott a korpuszhoz (`refl-ts-ac
 - Az R7 463 hibája: 449 az `accessor` mezőn átlépő metódusokból, 14 a kibocsátott `enum`/`namespace`/`import =` globálisokon átlépő függvényekből.
 - A javítás csak éleket ad hozzá, ezért az új elfogadott halmaz a régi részhalmaza, és minden eleme orákulummal ellenőrzötten helyes. Kiesett teljes sorrendek: `ts-enum` 1, `refl-ts-accessor-fields` 448, `refl-ts-emitted-globals` 13. (A hibaszám a hibás szomszédsági elfogadásokat is tartalmazza, ezért nagyobb lehet.) A rések száma nem nőtt; a típus-only `Shapes` namespace előtt a függvény továbbra is szabad.
 - A generálási idő változása (fixture-átlagok összege) mérési zajon belül van.
+
+### Generatív lefedettség: osztályok, szkriptszint, TypeScript
+
+A korábbi véletlenprogram-generátor csak egyetlen függvénytörzs JS-kódját állította elő; osztályt, szkriptszintű deklarációt és TypeScriptet nem. A v7-hibákat ezért kézi felülvizsgálat találta meg. A [random-programs.mjs](../tests/support/random-programs.mjs) két új, rögzített magú módot kapott:
+
+- **`randomClassProgram`:** felső szintű osztály (fele eséllyel egy ősosztállyal), és a `evaluate()`-ben beágyazott osztály. Tagjai: metódus, static metódus és mező, getter, accessorpár, mező (korábbi mezőt vagy `record` hívást olvasó inicializálóval), privát mező és metódus, tömbindex, string és számított nevű metódus, constructor, JS-ben duplikált név. TypeScriptben ezen felül: `declare` mező, paramétertulajdonság, overload-csoport, `accessor` és `static accessor` mező, interface.
+- **`randomScriptProgram`:** klasszikus szkript `function`, `var`, `let`, `const`, `class`, értékadás és `record` utasításokkal. TypeScriptben ezen felül: `enum`, példányosított és típus-only `namespace`, `import =` alias, interface, type alias és `declare`.
+
+Minden referencia hiba nélkül lefut; ezt a `check:all` 160 programon ellenőrzi. Minden programon három sorrendfajta fut: 25 mintavett teljes sorrend, a teljes egysoros szomszédság, valamint minden blokkmozgatás.
+
+**A `check:all`-ban** ([ordering-properties.test.mjs](../tests/ordering-properties.test.mjs)): 12 JS- és 4 TS-osztályprogram, 12 JS- és 8 TS-szkript, összesen kb. 45 s. A TS-osztályprogramoknál az egysoros szomszédság minden negyedik eleme fut, a blokkmozgatás teljesen.
+
+**Kézi kampány:** [ordering-campaign.mjs](../tests/ordering-campaign.mjs). A soundness-sértést azonnal, minimalizált sorrenddel és forráskóddal írja ki, és ilyenkor 1-es kilépési kóddal áll le. Mérés a `check:all`-tól eltérő magokon:
+
+| Programfajta | Magok | Sorrendek | Elfogadott | Hibás elfogadás | Completeness-rés | Blokkmozgatás |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| JS-osztály | 61–200 | 190 461 | 7 434 | **0** | 1 769 | 6 872 |
+| TS-osztály | 61–130 | 109 722 | 4 328 | **0** | 796 | 4 417 |
+| JS-szkript | 61–200 | 26 497 | 2 307 | **0** | 271 | 5 573 |
+| TS-szkript | 61–200 | 46 233 | 2 753 | **0** | 657 | 5 465 |
+| JS-függvénytörzs (régi generátor) | 31–90 | 37 458 | 1 256 | **0** | 31 | 3 130 |
+| **Összesen** | 550 program | 410 371 | 18 078 | **0** | 3 524 | 25 457 |
+
+Orákulum által eldöntetlen és validátor `indeterminate` eredmény nem volt. Ezen felül egy előzetes futás az 5–60. magon, mind a négy új változatra, 168 655 sorrendet vizsgált; ott sem volt hibás elfogadás.
+
+**Értelmezés:** a v7 utáni szabályokban a vizsgált alakkészleten nem került elő újabb hibás elfogadás. Ez korlátos empirikus bizonyíték, nem bizonyítás: a generátor csak a fent felsorolt alakokat állítja elő, és a futásidejű összevetés a rögzített probe-ra szól. A completeness-rések (például a mezőkhöz képest szabadon mozgatható, de egymáshoz kötött metódusok, valamint a típus-only namespace barrierje) a lazítási feladat bemenetei.
 
 **Szomszédsági vakfolt.** A szomszédság egysoros mozgatásokat és párcseréket vizsgál, ezért egy többsoros metódusblokk cseréjét nem látja. A hibát csak az A(M) és az új tagblokk-permutációs teszt mutatta ki: [reflection-ordering.test.mjs](../tests/reflection-ordering.test.mjs). Ez öt osztályra kimerítően vagy mintával felsorolja a tagblokkok sorrendjét, és az elfogadott ⊆ ekvivalens feltételt ellenőrzi; három esetben pontos egyezéssel.
 

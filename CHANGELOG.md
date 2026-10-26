@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased – 2026-10-26 generatív lefedettség: osztályok, szkriptszint, TypeScript
+
+- **Új generátormódok** ([random-programs.mjs](tests/support/random-programs.mjs)): `randomClassProgram` (felső szintű, öröklő és beágyazott osztályok minden tagfajtával, TS-ben `declare`, paramétertulajdonság, overload, `accessor`), valamint `randomScriptProgram` (szkriptszintű deklarációk, TS-ben `enum`, `namespace`, `import =`). A korábbi generátor csak egy függvénytörzs JS-kódját állította elő.
+- **Blokkmozgatás** (`blockMoves`): minden utasítás és osztálytag egészben, a saját listáján belül minden más helyre. Ezt a többsoros mozgást az egysoros szomszédság nem fejezi ki.
+- **Orákulum:** a beágyazott osztálydeklarációk futásidejű kulcs- és descriptor-pillanatképet kapnak, a probe lefutása után. Korábban ezekre csak a szintaktikus szabály vigyázott.
+- **Tesztek:** a `check:all` 160 referencia lefutását ellenőrzi, és 36 rögzített magú programon mintavett, szomszédsági és blokkmozgatásos soundness-tesztet futtat; ehhez jön egy blokkmozgatás- és egy beágyazottosztály-regresszió.
+- **Kézi kampány:** [tests/ordering-campaign.mjs](tests/ordering-campaign.mjs). Eredménye 550 programon és 410 371 sorrenden: **0 hibás elfogadás**, 0 eldöntetlen, 0 `indeterminate`. [Részletek](docs/formal-ordering-contract.md#generatív-lefedettség-osztályok-szkriptszint-typescript).
+- **Production:** változatlan. A generátor, a validátor, a séma és a policy-címke sem változott; csak a tesztkód és a tesztorákulum bővült.
+
 ## Unreleased – 2026-10-26 felülvizsgálat: `accessor` mezők és TS-kibocsátott globálisok (ADR-010 kiegészítés)
 
 - **Felülvizsgálat:** a WP1–WP8 utáni kódáttekintés két, a P4-et sértő hibás elfogadást talált, egyik alak sem szerepelt a korpuszban:
