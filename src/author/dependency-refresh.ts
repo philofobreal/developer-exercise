@@ -25,6 +25,7 @@ export function reconcileDependencies(original: CodeLineExercise, generated: Cod
   ...structuredClone(original),
   lines: original.lines.map((line, index) => ({...structuredClone(line), dependencies: generated.lines[index]!.dependencies.map(id => idMap.get(id)!)})),
   edges: [...edges.values()],
-  authoring: {...original.authoring, ...generated.authoring, dependencyHints: (generated.authoring?.dependencyHints ?? []).map(hint => ({...hint, declarationLine: sourceLine(hint.declarationLine), usageLine: sourceLine(hint.usageLine)}))}
+  // Provenance (ADR-014) describes only the regenerated constraints; a kept original edge has none and explains as unknown.
+  authoring: {...original.authoring, ...generated.authoring, dependencyHints: (generated.authoring?.dependencyHints ?? []).map(hint => ({...hint, declarationLine: sourceLine(hint.declarationLine), usageLine: sourceLine(hint.usageLine)})), provenance: (generated.authoring?.provenance ?? []).map(entry => ({...entry, before: idMap.get(entry.before)!, after: idMap.get(entry.after)!}))}
  };
 }

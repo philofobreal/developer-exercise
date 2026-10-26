@@ -27,6 +27,15 @@ export interface CodeBlock {
     openLineId: number;
     closeLineId: number;
 }
+/** Why a constraint exists (ADR-014). `unknown`: an imported or legacy model carries no provenance for it. */
+export type ConstraintCategory = 'data' | 'effect' | 'structure' | 'unit' | 'policy' | 'author' | 'conservative' | 'unknown';
+/** Explanation metadata for one `before → after` constraint (a dependency or an edge); never a grading rule. */
+export interface ConstraintProvenance {
+    before: number;
+    after: number;
+    category: ConstraintCategory;
+    code: string;
+}
 export interface CodeLineExercise {
     schemaVersion: 2;
     id: string;
@@ -61,6 +70,7 @@ export interface CodeLineExercise {
             declarationLine: number;
             usageLine: number;
         }[];
+        provenance?: ConstraintProvenance[];
     };
 }
 export type AdaptResult = {

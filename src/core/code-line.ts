@@ -29,6 +29,10 @@ export interface CodeBlock {
   openLineId: number;
   closeLineId: number;
 }
+/** Why a constraint exists (ADR-014). `unknown`: an imported or legacy model carries no provenance for it. */
+export type ConstraintCategory = 'data' | 'effect' | 'structure' | 'unit' | 'policy' | 'author' | 'conservative' | 'unknown';
+/** Explanation metadata for one `before → after` constraint (a dependency or an edge); never a grading rule. */
+export interface ConstraintProvenance { before: number; after: number; category: ConstraintCategory; code: string; }
 export interface CodeLineExercise {
   schemaVersion: 2;
   id: string;
@@ -42,7 +46,7 @@ export interface CodeLineExercise {
   edges?: { before: number; after: number }[];
   /** Each profile adds AND constraints; alternative profiles are OR. */
   profiles?: { id: string; edges: { before: number; after: number }[] }[];
-  authoring?: { strategy?: string; reason?: string; note?: string; omittedBlocks?: number; semanticEquivalenceProven?: false; dependencyPolicy?: 'primitive-const-islands-v1' | 'scoped-primitive-dag-v2' | 'scoped-type-members-v3' | 'scoped-effect-analysis-v4' | 'scoped-effect-analysis-v5' | 'scoped-effect-analysis-v6' | 'scoped-effect-analysis-v7' | 'scoped-effect-analysis-v8' | 'scoped-effect-analysis-v9'; dependencyHints?: {name:string; declarationLine:number; usageLine:number}[] };
+  authoring?: { strategy?: string; reason?: string; note?: string; omittedBlocks?: number; semanticEquivalenceProven?: false; dependencyPolicy?: 'primitive-const-islands-v1' | 'scoped-primitive-dag-v2' | 'scoped-type-members-v3' | 'scoped-effect-analysis-v4' | 'scoped-effect-analysis-v5' | 'scoped-effect-analysis-v6' | 'scoped-effect-analysis-v7' | 'scoped-effect-analysis-v8' | 'scoped-effect-analysis-v9'; dependencyHints?: {name:string; declarationLine:number; usageLine:number}[]; provenance?: ConstraintProvenance[] };
 }
 export type AdaptResult = { definition: ExerciseDefinition; compiled: CompiledRules } | ValidationResult;
 const invalid = (message:string):ValidationResult => ({status:'invalid_reference',accepted:false,reason:'invalid_model',message,exploredStates:0});

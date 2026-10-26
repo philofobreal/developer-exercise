@@ -1,9 +1,3 @@
-/** Language-independent CodeLine v2 projection (ADR-011, ADR-013). The adapter
- * supplies the block intervals, the exact-whitespace rows and the ordering
- * relations; this module owns the block/scope hierarchy, the physical-row to
- * line-ID mapping, clause chains, sealing and transitive reduction. It knows no
- * parser and no syntax kind, and never runs for learner input. Rows are 0-based
- * physical rows of the normalised reference source. */
 import { reduceGeneratedDependencies, sealMultiRowUnits } from './ordering-relations.js';
 /** Physical rows that become lines: non-blank, or whitespace-exact. */
 export function projectedRows(physical, exact) {
@@ -63,6 +57,26 @@ export function projectCodeLine({ physical, exact, structure, ordering }) {
     const byPhysical = new Map(rows.map((row, i) => [row.line, i + 1]));
     const blocks = retained.map(block => ({ id: block.id, kind: block.kind, parentScopeId: block.parent?.id ?? null, openLineId: byPhysical.get(block.start), closeLineId: byPhysical.get(block.end), ...(block.kind === 'function' ? { functionBlock: block.functionBlock } : {}) }));
     const scopeOf = (line) => retained.filter(block => block.start < line && line < block.end).at(-1) ?? null;
+    // Reasons per line ID, then per predecessor ID; replaced together with a line's dependencies.
+    const why = new Map();
+    const explain = (before, after, category, code) => {
+        const own = why.get(after) ?? new Map();
+        own.set(before, [...own.get(before) ?? [], { category, code }]);
+        why.set(after, own);
+    };
+    // An unlisted row keeps its source predecessor: a closing row for its block, a continued
+    // row for its multi-row unit, any other row because no analysis freed it.
+    const closers = new Set(retained.map(block => block.end)), spans = ordering?.spans ?? [];
+    rows.forEach(({ line }, i) => {
+        if (!i)
+            return;
+        if (closers.has(line))
+            explain(i, i + 1, 'structure', 'block-close');
+        else if (spans.some(span => span.first < line && line <= span.last))
+            explain(i, i + 1, 'unit', 'continued-row');
+        else
+            explain(i, i + 1, 'conservative', 'source-order');
+    });
     const lines = rows.map(({ code, line }, i) => {
         const boundary = retained.find(block => block.start === line || block.end === line), scope = scopeOf(line);
         let owner = boundary?.kind === 'function' ? boundary : scope;
@@ -75,8 +89,16 @@ export function projectCodeLine({ physical, exact, structure, ordering }) {
     if (ordering) {
         for (const entry of ordering.entries) {
             const id = byPhysical.get(entry.row);
-            if (id !== undefined)
-                lines[id - 1].dependencies = toIds(entry.after);
+            if (id === undefined)
+                continue;
+            lines[id - 1].dependencies = toIds(entry.after);
+            why.delete(id);
+            for (const before of entry.after) {
+                const own = (entry.reasons ?? []).filter(reason => reason.before === before), from = byPhysical.get(before);
+                if (from !== undefined)
+                    for (const { category, code } of own.length ? own : [{ category: 'unknown', code: 'adapter-unspecified' }])
+                        explain(from, id, category, code);
+            }
         }
         for (const [row, inputs] of ordering.protectedInputs) {
             const id = byPhysical.get(row);
@@ -91,18 +113,23 @@ export function projectCodeLine({ physical, exact, structure, ordering }) {
         const boundaries = [chain.start, ...chain.separators, chain.end];
         const segment = (from, to) => rows.filter(row => row.line > from && row.line < to && scopeOf(row.line) === chain && !chain.separators.includes(row.line)).map(row => byPhysical.get(row.line));
         chain.separators.forEach((separator, i) => {
-            const id = byPhysical.get(separator);
-            lines[id - 1].dependencies = [...new Set([byPhysical.get(boundaries[i]), ...segment(boundaries[i], separator)])];
+            const id = byPhysical.get(separator), previous = segment(boundaries[i], separator);
+            lines[id - 1].dependencies = [...new Set([byPhysical.get(boundaries[i]), ...previous])];
+            why.delete(id);
+            explain(byPhysical.get(boundaries[i]), id, 'structure', 'clause-boundary');
+            for (const before of previous)
+                explain(before, id, 'structure', 'clause-segment');
             for (const after of segment(separator, boundaries[i + 2])) {
                 const dependencies = lines[after - 1].dependencies;
                 if (!dependencies.includes(id))
                     dependencies.push(id);
+                explain(id, after, 'structure', 'clause-separator');
             }
         });
     }
     if (ordering) {
         const units = ordering.spans.flatMap(unit => { const first = byPhysical.get(unit.first), last = byPhysical.get(unit.last); return first === undefined || last === undefined ? [] : [{ first, last }]; });
-        sealMultiRowUnits(lines, units, new Map(retained.map(block => [byPhysical.get(block.start), block.id])));
+        sealMultiRowUnits(lines, units, new Map(retained.map(block => [byPhysical.get(block.start), block.id])), (before, after) => explain(before, after, 'unit', 'sealed-unit'));
     }
     reduceGeneratedDependencies(lines, protectedById);
     // A row can still close and open unrelated blocks; lock only each such unrepresentable interval.
@@ -112,6 +139,21 @@ export function projectCodeLine({ physical, exact, structure, ordering }) {
         for (let i = 1; i < ids.length; i++)
             edgeMap.set(ids[i - 1] + ':' + ids[i], { before: ids[i - 1], after: ids[i] });
     }
-    return { lines, blocks, edges: [...edgeMap.values()], omittedBlocks: omitted.length, clauseChains: chains.filter(chain => retained.some(block => block.start === chain.start && block.end === chain.end)).length };
+    const provenance = [];
+    const emit = (before, after, reasons) => {
+        const seen = new Set();
+        for (const { category, code } of reasons)
+            if (!seen.has(category + ':' + code)) {
+                seen.add(category + ':' + code);
+                provenance.push({ before, after, category, code });
+            }
+    };
+    for (const line of lines)
+        for (const before of line.dependencies)
+            emit(before, line.id, why.get(line.id)?.get(before) ?? [{ category: 'unknown', code: 'projection-unspecified' }]);
+    for (const edge of edgeMap.values())
+        emit(edge.before, edge.after, [{ category: 'conservative', code: 'shared-boundary-lock' }]);
+    provenance.sort((a, b) => a.after - b.after || a.before - b.before);
+    return { lines, blocks, edges: [...edgeMap.values()], omittedBlocks: omitted.length, clauseChains: chains.filter(chain => retained.some(block => block.start === chain.start && block.end === chain.end)).length, provenance };
 }
 //# sourceMappingURL=code-line-projection.js.map

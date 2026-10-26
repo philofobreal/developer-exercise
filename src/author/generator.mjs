@@ -17,6 +17,6 @@ export function generateCodeLineExercise({source,language='javascript',title='Sa
  const rows=projectedRows(physical,exact);
  if(rows.length>500||rows.some(x=>x.code.length>2048))throw new AuthoringError('Legfeljebb 500 sor és soronként 2048 karakter támogatott.');
  const ordering=adapter.orderingRelations?.(ast,ts,{imports:importEmit});
- const {lines,blocks,edges,omittedBlocks}=projectCodeLine({physical,exact,structure:adapter.structure(ast,ts),ordering});
- return {schemaVersion:2,id:'draft',revision:1,language,title:String(title).slice(0,140)||'Saját feladat',description:String(description).slice(0,500),lines,blocks,edges,profiles:[],authoring:{strategy:'ast-hierarchy',reason:omittedBlocks?'shared-physical-boundaries':'',omittedBlocks,semanticEquivalenceProven:false,dependencyPolicy:'scoped-effect-analysis-v9',...(ordering?.note?{note:ordering.note}:{}),dependencyHints:adapter.analyzeDependencies?.(ast,ts)??[]}};
+ const {lines,blocks,edges,omittedBlocks,provenance}=projectCodeLine({physical,exact,structure:adapter.structure(ast,ts),ordering});
+ return {schemaVersion:2,id:'draft',revision:1,language,title:String(title).slice(0,140)||'Saját feladat',description:String(description).slice(0,500),lines,blocks,edges,profiles:[],authoring:{strategy:'ast-hierarchy',reason:omittedBlocks?'shared-physical-boundaries':'',omittedBlocks,semanticEquivalenceProven:false,dependencyPolicy:'scoped-effect-analysis-v9',...(provenance.length<=10_000?{provenance}:{}),...(ordering?.note?{note:ordering.note}:{}),dependencyHints:adapter.analyzeDependencies?.(ast,ts)??[]}};
 }

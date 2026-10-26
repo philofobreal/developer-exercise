@@ -7,9 +7,18 @@
  *
  * Rows are 0-based physical rows of the normalised reference source.
  */
+import type { ConstraintCategory } from '../../dist/index.js';
+/** Why `before` must precede the entry's row (ADR-014): explanation only, never a grading rule. */
+export interface OrderingReason {
+    before: number;
+    category: ConstraintCategory;
+    code: string;
+}
+/** `reasons` should cover every row of `after`; an uncovered one is projected as `unknown`. */
 export interface OrderingEntry {
     row: number;
     after: number[];
+    reasons?: OrderingReason[];
 }
 export interface OrderingRelations {
     /** A listed row must follow every row in `after` (a conjunction); unlisted rows keep their source predecessor. */
@@ -24,7 +33,9 @@ export interface OrderingRelations {
     /** Human explanation for authors, never a grading rule; '' when there is nothing to say. */
     note: string;
 }
-/** Conjunction of independent analyses: predecessor sets, protected inputs and spans are unions. */
+/** Merges entries per row: predecessor sets and (deduplicated) reasons are unions. */
+export declare function mergeOrderingEntries(entries: Iterable<OrderingEntry>): OrderingEntry[];
+/** Conjunction of independent analyses: predecessor sets, reasons, protected inputs and spans are unions. */
 export declare function combineOrderingRelations(parts: OrderingRelations[]): OrderingRelations;
 /** CodeLine v2 line as the projection sees it: IDs are 1-based and contiguous in reference order. */
 export interface ProjectedLine {
@@ -36,11 +47,12 @@ export interface ProjectedLine {
  * multi-row unit that holds only at continuation rows and at shared `} else {`
  * style boundaries (omitted blocks); there every same-scope sibling unit keeps its
  * source side (ADR-009). `units` are line-ID spans, `opener` maps a line opening a
- * retained block to that block's scopeId. Mutates the lines' dependencies. */
+ * retained block to that block's scopeId. Mutates the lines' dependencies and
+ * reports every required pair, present or added, to `required`. */
 export declare function sealMultiRowUnits(lines: ProjectedLine[], units: {
     first: number;
     last: number;
-}[], opener: Map<number, string>): void;
+}[], opener: Map<number, string>, required?: (before: number, after: number) => void): void;
 /** Remove only redundant synthetic edges, retaining actual value-read inputs. */
 export declare function reduceGeneratedDependencies(lines: {
     id: number;

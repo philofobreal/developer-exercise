@@ -21,8 +21,11 @@
  * a binding whose initialisation has a TDZ/value position in the same function
  * context adds a protected edge from that declaration row. Pure units thus
  * commute; a barrier keeps its position relative to every ordered sibling.
+ * Every edge carries its reasons (ADR-014): the read, conflict, barrier, global
+ * or comment that requires it.
  */
 import type ts from 'typescript';
+import type { OrderingEntry } from './ordering-relations.js';
 type Compiler = typeof ts;
 export type UnitKind = 'pure' | 'local-write' | 'position-free' | 'barrier' | 'opaque';
 /** Evidence for one unit: why it may move, or why it may not. */
@@ -31,10 +34,6 @@ export interface StatementUnit {
     last: number;
     kind: UnitKind;
     reason: string;
-}
-export interface OrderingEntry {
-    row: number;
-    after: number[];
 }
 export interface StatementOrdering {
     entries: OrderingEntry[];

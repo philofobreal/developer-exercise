@@ -1,5 +1,8 @@
+import { mergeOrderingEntries } from './ordering-relations.js';
 export function typeMemberOrdering(file, compiler) {
     const physical = file.text.split('\n'), entries = [], spans = [];
+    /** `row` follows every row of `after` for the same reason. */
+    const order = (row, after, category, code) => { entries.push({ row, after, reasons: after.map(before => ({ before, category, code })) }); };
     let hasClass = false, hasTypes = false;
     const first = (node) => file.getLineAndCharacterOfPosition(node.getStart(file)).line;
     const last = (node) => file.getLineAndCharacterOfPosition(node.end - 1).line;
@@ -110,7 +113,7 @@ export function typeMemberOrdering(file, compiler) {
                 // wired explicitly so that no barrier inherits a definition's row as predecessor.
                 const wired = new Set();
                 for (const member of free)
-                    entries.push({ row: member.first, after: [first(open)] });
+                    order(member.first, [first(open)], 'structure', 'block-open');
                 for (const unit of [...units, ...free])
                     spans.push({ first: unit.first, last: unit.last });
                 for (let start = 0; start < units.length;) {
@@ -123,11 +126,12 @@ export function typeMemberOrdering(file, compiler) {
                         end++;
                     if (end - start > 1) {
                         const previous = start ? units[start - 1].last : first(open), run = units.slice(start, end);
+                        // The run commutes; it stays between its ordered neighbours, which are conservative barriers.
                         for (const member of run) {
-                            entries.push({ row: member.first, after: [previous] });
+                            order(member.first, [previous], 'conservative', 'type-member-barrier');
                             wired.add(member.first);
                         }
-                        entries.push({ row: units[end]?.first ?? first(close), after: run.map(member => member.last) });
+                        order(units[end]?.first ?? first(close), run.map(member => member.last), 'conservative', 'type-member-barrier');
                         wired.add(units[end]?.first ?? first(close));
                     }
                     start = end;
@@ -136,17 +140,20 @@ export function typeMemberOrdering(file, compiler) {
                     // ADR-012: a runtime unit follows every earlier unit it shares a phase with, and every
                     // phase-less unit. The latest unit of each phase and the latest phase-less unit imply the rest.
                     const latest = new Map();
+                    // A shared phase is an evaluation order; a phase-less unit on either side is conservative.
                     for (const unit of units) {
-                        const before = unit.phases ? [latest.get('none'), ...unit.phases.map(phase => latest.get(phase))] : [...latest.values()];
-                        const rows = [...new Set(before.flatMap(other => other ? [other.last] : []))];
-                        entries.push({ row: unit.first, after: rows.length ? rows : [first(open)] });
+                        const reasons = [];
+                        for (const [key, other] of latest)
+                            if (!unit.phases || key === 'none' || unit.phases.includes(key))
+                                reasons.push({ before: other.last, category: unit.phases && key !== 'none' ? 'effect' : 'conservative', code: unit.phases && key !== 'none' ? 'class-evaluation-order' : 'unclassified-member' });
+                        entries.push(reasons.length ? { row: unit.first, after: [...new Set(reasons.map(reason => reason.before))], reasons } : { row: unit.first, after: [first(open)], reasons: [{ before: first(open), category: 'structure', code: 'block-open' }] });
                         for (const key of unit.phases ?? ['none'])
                             latest.set(key, unit);
                     }
                 }
                 else if (free.length)
                     units.forEach((unit, i) => { if (!wired.has(unit.first))
-                        entries.push({ row: unit.first, after: [i ? units[i - 1].last : first(open)] }); });
+                        order(unit.first, [i ? units[i - 1].last : first(open)], i ? 'conservative' : 'structure', i ? 'type-member-barrier' : 'block-open'); });
                 // Reflectable key order: consecutive key-creating members on the same object stay ordered.
                 // The two halves of an accessor pair that are adjacent in that chain create one
                 // key at the earlier half and form one group: both follow the previous group and
@@ -158,7 +165,7 @@ export function typeMemberOrdering(file, compiler) {
                         const joins = !!member.pair && chain.last.length === 1 && chain.last[0].pair === member.pair;
                         const predecessors = joins ? chain.before : chain.last;
                         if (predecessors.length)
-                            entries.push({ row: member.first, after: predecessors.map(unit => unit.last) });
+                            order(member.first, predecessors.map(unit => unit.last), 'policy', 'reflected-key-order');
                         chains.set(member.reflect, joins ? { last: [...chain.last, member], before: chain.before } : { last: [member], before: chain.last });
                     }
             }
@@ -167,12 +174,6 @@ export function typeMemberOrdering(file, compiler) {
     }
     visit(file);
     // Several constraints on one row are a conjunction.
-    const merged = new Map();
-    for (const entry of entries) {
-        const after = merged.get(entry.row) ?? new Set();
-        entry.after.forEach(row => after.add(row));
-        merged.set(entry.row, after);
-    }
-    return { entries: [...merged].map(([row, after]) => ({ row, after: [...after] })), spans, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor, a declare mezők, a privát (#) és a tömbindex nevű metódusok bárhol állhatnak az osztálytörzsben. A többi metódus és accessor a mezőkhöz képest szabad, de egymáshoz képest megtartja a sorrendjét, mert a prototípus (static esetén a konstruktor) kulcssorrendje reflexióval megfigyelhető; az accessor mező ebben a láncban és a mezők között is a helyén marad. Egy azonos nevű getter és setter egy tulajdonság: egymással felcserélhetők. A példány- és a static mezők egymáshoz képest szabadok, mert más fázisban futnak, de csoportjukon belül megtartják a sorrendet; a számított nevű metódus a mezőkhöz képest szabad. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : '' };
+    return { entries: mergeOrderingEntries(entries), spans, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor, a declare mezők, a privát (#) és a tömbindex nevű metódusok bárhol állhatnak az osztálytörzsben. A többi metódus és accessor a mezőkhöz képest szabad, de egymáshoz képest megtartja a sorrendjét, mert a prototípus (static esetén a konstruktor) kulcssorrendje reflexióval megfigyelhető; az accessor mező ebben a láncban és a mezők között is a helyén marad. Egy azonos nevű getter és setter egy tulajdonság: egymással felcserélhetők. A példány- és a static mezők egymáshoz képest szabadok, mert más fázisban futnak, de csoportjukon belül megtartják a sorrendet; a számított nevű metódus a mezőkhöz képest szabad. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : '' };
 }
 //# sourceMappingURL=type-member-ordering.js.map

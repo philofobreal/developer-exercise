@@ -139,6 +139,80 @@
     "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
     "dependencyPolicy": "scoped-effect-analysis-v9",
+    "provenance": [
+      {
+        "before": 1,
+        "after": 2,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 2,
+        "after": 3,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 2,
+        "after": 4,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 3,
+        "after": 5,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 3,
+        "after": 5,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 4,
+        "after": 5,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 4,
+        "after": 5,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 5,
+        "after": 6,
+        "category": "structure",
+        "code": "clause-segment"
+      },
+      {
+        "before": 6,
+        "after": 7,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 6,
+        "after": 7,
+        "category": "structure",
+        "code": "clause-separator"
+      },
+      {
+        "before": 7,
+        "after": 8,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 8,
+        "after": 9,
+        "category": "structure",
+        "code": "block-close"
+      }
+    ],
     "dependencyHints": [
       {
         "name": "flag",

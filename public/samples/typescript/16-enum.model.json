@@ -82,6 +82,38 @@
     "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
     "dependencyPolicy": "scoped-effect-analysis-v9",
+    "provenance": [
+      {
+        "before": 1,
+        "after": 2,
+        "category": "unit",
+        "code": "continued-row"
+      },
+      {
+        "before": 2,
+        "after": 3,
+        "category": "unit",
+        "code": "continued-row"
+      },
+      {
+        "before": 3,
+        "after": 4,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 4,
+        "after": 5,
+        "category": "effect",
+        "code": "EnumDeclaration"
+      },
+      {
+        "before": 4,
+        "after": 5,
+        "category": "effect",
+        "code": "effectful-or-unknown-initializer"
+      }
+    ],
     "dependencyHints": [
       {
         "name": "Mode",

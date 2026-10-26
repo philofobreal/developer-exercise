@@ -14,17 +14,15 @@
  * private names (not reflected) and erased members. An `accessor` field is in
  * that key chain and keeps its field order too. TypeScript emits parameter
  * properties at the start of construction in both class-field modes, whatever
- * the constructor's position, and erases declare fields (ADR-009). Runs for JS too. */
+ * the constructor's position, and erases declare fields (ADR-009). Runs for JS too.
+ * Every edge carries its reason (ADR-014). */
 import type ts from 'typescript';
+import { type OrderingEntry } from './ordering-relations.js';
 type Compiler = typeof ts;
-interface Entry {
-    row: number;
-    after: number[];
-}
 /** `spans` lists every ordered member/comment unit (0-based physical rows) so the
  * generator can keep same-scope siblings out of a multi-row unit's interior. */
 export interface TypeMemberOrdering {
-    entries: Entry[];
+    entries: OrderingEntry[];
     spans: {
         first: number;
         last: number;

@@ -30,6 +30,8 @@ for (const example of examples) {
   valuesOnly.lines.forEach((line, index) => {line.dependencies = dependencies[index]!;});
   valuesOnly.authoring = {...model.authoring, strategy: 'manual-value-contract', semanticEquivalenceProven: false, note: 'Kézzel szűkített oktatási szerződés: csak a name/id érték számít, az Object.keys és a létrehozási sorrend nem. Kizárólag ehhez a mellékhatásmentes, öröklés/setter nélküli mintához készült; nem általános TS ekvivalencia. A függőségfrissítés visszaállítja a konzervatív generált szabályokat.'};
   delete valuesOnly.authoring.dependencyPolicy;
+  // Hand-written dependencies are the author's rules, not the generated ones (ADR-014).
+  valuesOnly.authoring.provenance = valuesOnly.lines.flatMap(line => line.dependencies.map(before => ({before, after: line.id, category: 'author' as const, code: 'manual-value-contract'})));
   const variant = compileCodeLineExercise(valuesOnly);
   if ('status' in variant || !validateSubmission(variant.compiled, {exerciseId: valuesOnly.id, revision: 1, lines: valuesOnly.lines.map(line => line.code)}).accepted) throw Error('Invalid values-only exercise');
   await writeFile(root + '01-user-account.values-only.model.json', JSON.stringify(valuesOnly, null, 2) + '\n');

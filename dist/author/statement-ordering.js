@@ -1,3 +1,6 @@
+/** Barrier reasons that name an unsupported shape rather than an effect (ADR-014). */
+const unsupportedShape = new Set(['declaration-shape', 'shared-or-continued-rows', 'erased-declaration-shape', 'function-declaration-not-hoistable']);
+const barrierCategory = (reason) => reason === 'overload-group' ? 'structure' : unsupportedShape.has(reason) ? 'conservative' : 'effect';
 /** Separate, browser-safe checker host: only the reference file is visible. */
 export function bindingChecker(file, compiler) {
     const options = { allowJs: true, noLib: true, noResolve: true, target: compiler.ScriptTarget.Latest };
@@ -17,7 +20,7 @@ export function statementOrdering(file, compiler, options = {}) {
     if (dynamic)
         return empty;
     const checker = bindingChecker(file, compiler), physical = file.text.split('\n');
-    const entries = new Map(), protectedInputs = new Map(), units = [];
+    const entries = new Map(), reasons = new Map(), protectedInputs = new Map(), units = [];
     const line = (node) => file.getLineAndCharacterOfPosition(node.getStart(file)).line;
     const end = (node) => file.getLineAndCharacterOfPosition(node.end - 1).line;
     const S = compiler.SyntaxKind;
@@ -383,13 +386,34 @@ export function statementOrdering(file, compiler, options = {}) {
     }
     /** RAW, WAR or WAW on a binding between two units that run code (ADR-013). */
     const meets = (a, b) => [...a].some(symbol => b.has(symbol));
-    const conflict = (a, b) => meets(a.writeSet, b.readSet) || meets(a.writeSet, b.writeSet) || meets(a.readSet, b.writeSet);
-    const add = (before, after, essential = false) => {
+    /** Why units a < b of one list are ordered (ADR-014); empty when they commute. A comment
+     * orders only conservatively; otherwise each barrier side, a shared global creation order
+     * and each RAW/WAR/WAW conflict is a reason of its own. */
+    const pairReasons = (a, b) => {
+        if (a.kind === 'opaque' || b.kind === 'opaque')
+            return [['conservative', 'opaque-row']];
+        const found = [];
+        if (a.kind !== 'position-free' && b.kind !== 'position-free')
+            for (const unit of [a, b])
+                if (unit.kind === 'barrier')
+                    found.push([barrierCategory(unit.reason), unit.reason]);
+        if (a.global && b.global)
+            found.push(['policy', 'script-global-order']);
+        if (meets(a.writeSet, b.readSet))
+            found.push(['data', 'read-after-write']);
+        if (meets(a.readSet, b.writeSet))
+            found.push(['data', 'write-after-read']);
+        if (meets(a.writeSet, b.writeSet))
+            found.push(['data', 'write-after-write']);
+        return found;
+    };
+    const add = (before, after, category, code, essential = false) => {
         if (before >= after)
             return;
         if (!entries.has(after))
             entries.set(after, new Set());
         entries.get(after).add(before);
+        reasons.set(after, [...reasons.get(after) ?? [], { before, category, code }]);
         if (essential) {
             if (!protectedInputs.has(after))
                 protectedInputs.set(after, new Set());
@@ -476,23 +500,23 @@ export function statementOrdering(file, compiler, options = {}) {
                 for (const unit of complete) {
                     units.push({ first: unit.first, last: unit.last, kind: unit.kind, reason: unit.reason });
                     entries.set(unit.first, new Set());
+                    reasons.delete(unit.first);
                     for (const row of unit.reads)
-                        add(row, unit.first, true);
+                        add(row, unit.first, 'data', 'binding-input', true);
                     if (!sourceFile && !entries.get(unit.first).size)
-                        add(line(node), unit.first);
+                        add(line(node), unit.first, 'structure', 'block-open');
                 }
                 for (let i = 0; i < complete.length; i++)
                     for (let j = i + 1; j < complete.length; j++) {
                         const a = complete[i], b = complete[j];
-                        const ordered = a.kind === 'opaque' || b.kind === 'opaque' || a.kind !== 'position-free' && b.kind !== 'position-free' && (a.kind === 'barrier' || b.kind === 'barrier') || !!a.global && !!b.global || conflict(a, b);
-                        if (ordered)
-                            add(a.last, b.first);
+                        for (const [category, code] of pairReasons(a, b))
+                            add(a.last, b.first, category, code);
                     }
             }
         }
         compiler.forEachChild(node, visit);
     }
     visit(file);
-    return { entries: [...entries].map(([row, after]) => ({ row, after: [...after] })), protectedInputs, units };
+    return { entries: [...entries].map(([row, after]) => ({ row, after: [...after], reasons: reasons.get(row) ?? [] })), protectedInputs, units };
 }
 //# sourceMappingURL=statement-ordering.js.map

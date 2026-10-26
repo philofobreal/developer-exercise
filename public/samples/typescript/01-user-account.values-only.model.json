@@ -195,6 +195,98 @@
     "reason": "",
     "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
+    "provenance": [
+      {
+        "before": 1,
+        "after": 2,
+        "category": "author",
+        "code": "manual-value-contract"
+      },
+      {
+        "before": 1,
+        "after": 3,
+        "category": "author",
+        "code": "manual-value-contract"
+      },
+      {
+        "before": 2,
+        "after": 4,
+        "category": "author",
+        "code": "manual-value-contract"
+      },
+      {
+        "before": 3,
+        "after": 4,
+        "category": "author",
+        "code": "manual-value-contract"
+      },
+      {
+        "before": 4,
+        "after": 5,
+        "category": "author",
+        "code": "manual-value-contract"
+      },
+      {
+        "before": 5,
+        "after": 6,
+        "category": "author",
+        "code": "manual-value-contract"
+      },
+      {
+        "before": 5,
+        "after": 7,
+        "category": "author",
+        "code": "manual-value-contract"
+      },
+      {
+        "before": 6,
+        "after": 8,
+        "category": "author",
+        "code": "manual-value-contract"
+      },
+      {
+        "before": 7,
+        "after": 8,
+        "category": "author",
+        "code": "manual-value-contract"
+      },
+      {
+        "before": 8,
+        "after": 9,
+        "category": "author",
+        "code": "manual-value-contract"
+      },
+      {
+        "before": 8,
+        "after": 10,
+        "category": "author",
+        "code": "manual-value-contract"
+      },
+      {
+        "before": 9,
+        "after": 11,
+        "category": "author",
+        "code": "manual-value-contract"
+      },
+      {
+        "before": 10,
+        "after": 11,
+        "category": "author",
+        "code": "manual-value-contract"
+      },
+      {
+        "before": 11,
+        "after": 12,
+        "category": "author",
+        "code": "manual-value-contract"
+      },
+      {
+        "before": 12,
+        "after": 13,
+        "category": "author",
+        "code": "manual-value-contract"
+      }
+    ],
     "note": "Kézzel szűkített oktatási szerződés: csak a name/id érték számít, az Object.keys és a létrehozási sorrend nem. Kizárólag ehhez a mellékhatásmentes, öröklés/setter nélküli mintához készült; nem általános TS ekvivalencia. A függőségfrissítés visszaállítja a konzervatív generált szabályokat.",
     "dependencyHints": [
       {

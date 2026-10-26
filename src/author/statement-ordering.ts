@@ -21,19 +21,25 @@
  * a binding whose initialisation has a TDZ/value position in the same function
  * context adds a protected edge from that declaration row. Pure units thus
  * commute; a barrier keeps its position relative to every ordered sibling.
+ * Every edge carries its reasons (ADR-014): the read, conflict, barrier, global
+ * or comment that requires it.
  */
 import type ts from 'typescript';
+import type {OrderingEntry, OrderingReason} from './ordering-relations.js';
 type Compiler = typeof ts;
 
 export type UnitKind = 'pure' | 'local-write' | 'position-free' | 'barrier' | 'opaque';
 /** Evidence for one unit: why it may move, or why it may not. */
 export interface StatementUnit {first: number; last: number; kind: UnitKind; reason: string;}
-export interface OrderingEntry {row: number; after: number[];}
 export interface StatementOrdering {entries: OrderingEntry[]; protectedInputs: Map<number, Set<number>>; units: StatementUnit[];}
 /** `readSet`/`writeSet`: bindings a pure or local-write unit reads or writes when it runs
  * (may-sets, unions over branches); two such units conflict on RAW, WAR or WAW. */
 interface Summary extends StatementUnit {reads: Set<number>; start: number; global?: boolean; readSet: Set<ts.Symbol>; writeSet: Set<ts.Symbol>;}
 interface Binding {row: number | null; primitiveInitializer: ts.Expression | null;}
+
+/** Barrier reasons that name an unsupported shape rather than an effect (ADR-014). */
+const unsupportedShape = new Set(['declaration-shape', 'shared-or-continued-rows', 'erased-declaration-shape', 'function-declaration-not-hoistable']);
+const barrierCategory = (reason: string): OrderingReason['category'] => reason === 'overload-group' ? 'structure' : unsupportedShape.has(reason) ? 'conservative' : 'effect';
 
 /** Separate, browser-safe checker host: only the reference file is visible. */
 export function bindingChecker(file: ts.SourceFile, compiler: Compiler): ts.TypeChecker {
@@ -60,7 +66,7 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
  scan(file);
  if (dynamic) return empty;
  const checker = bindingChecker(file, compiler), physical = file.text.split('\n');
- const entries = new Map<number, Set<number>>(), protectedInputs = new Map<number, Set<number>>(), units: StatementUnit[] = [];
+ const entries = new Map<number, Set<number>>(), reasons = new Map<number, OrderingReason[]>(), protectedInputs = new Map<number, Set<number>>(), units: StatementUnit[] = [];
  const line = (node: ts.Node): number => file.getLineAndCharacterOfPosition(node.getStart(file)).line;
  const end = (node: ts.Node): number => file.getLineAndCharacterOfPosition(node.end - 1).line;
  const S = compiler.SyntaxKind;
@@ -336,11 +342,24 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
  }
  /** RAW, WAR or WAW on a binding between two units that run code (ADR-013). */
  const meets = (a: Set<ts.Symbol>, b: Set<ts.Symbol>): boolean => [...a].some(symbol => b.has(symbol));
- const conflict = (a: Summary, b: Summary): boolean => meets(a.writeSet, b.readSet) || meets(a.writeSet, b.writeSet) || meets(a.readSet, b.writeSet);
- const add = (before: number, after: number, essential = false): void => {
+ /** Why units a < b of one list are ordered (ADR-014); empty when they commute. A comment
+  * orders only conservatively; otherwise each barrier side, a shared global creation order
+  * and each RAW/WAR/WAW conflict is a reason of its own. */
+ const pairReasons = (a: Summary, b: Summary): [OrderingReason['category'], string][] => {
+  if (a.kind === 'opaque' || b.kind === 'opaque') return [['conservative', 'opaque-row']];
+  const found: [OrderingReason['category'], string][] = [];
+  if (a.kind !== 'position-free' && b.kind !== 'position-free') for (const unit of [a, b]) if (unit.kind === 'barrier') found.push([barrierCategory(unit.reason), unit.reason]);
+  if (a.global && b.global) found.push(['policy', 'script-global-order']);
+  if (meets(a.writeSet, b.readSet)) found.push(['data', 'read-after-write']);
+  if (meets(a.readSet, b.writeSet)) found.push(['data', 'write-after-read']);
+  if (meets(a.writeSet, b.writeSet)) found.push(['data', 'write-after-write']);
+  return found;
+ };
+ const add = (before: number, after: number, category: OrderingReason['category'], code: string, essential = false): void => {
   if (before >= after) return;
   if (!entries.has(after)) entries.set(after, new Set());
   entries.get(after)!.add(before);
+  reasons.set(after, [...reasons.get(after) ?? [], {before, category, code}]);
   if (essential) {if (!protectedInputs.has(after)) protectedInputs.set(after, new Set()); protectedInputs.get(after)!.add(before);}
  };
  /** A statement list whose var/function declarations become global-object properties (classic script). */
@@ -399,19 +418,18 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
     }
     for (const unit of complete) {
      units.push({first: unit.first, last: unit.last, kind: unit.kind, reason: unit.reason});
-     entries.set(unit.first, new Set());
-     for (const row of unit.reads) add(row, unit.first, true);
-     if (!sourceFile && !entries.get(unit.first)!.size) add(line(node), unit.first);
+     entries.set(unit.first, new Set()); reasons.delete(unit.first);
+     for (const row of unit.reads) add(row, unit.first, 'data', 'binding-input', true);
+     if (!sourceFile && !entries.get(unit.first)!.size) add(line(node), unit.first, 'structure', 'block-open');
     }
     for (let i = 0; i < complete.length; i++) for (let j = i + 1; j < complete.length; j++) {
      const a = complete[i]!, b = complete[j]!;
-     const ordered = a.kind === 'opaque' || b.kind === 'opaque' || a.kind !== 'position-free' && b.kind !== 'position-free' && (a.kind === 'barrier' || b.kind === 'barrier') || !!a.global && !!b.global || conflict(a, b);
-     if (ordered) add(a.last, b.first);
+     for (const [category, code] of pairReasons(a, b)) add(a.last, b.first, category, code);
     }
    }
   }
   compiler.forEachChild(node, visit);
  }
  visit(file);
- return {entries: [...entries].map(([row, after]) => ({row, after: [...after]})), protectedInputs, units};
+ return {entries: [...entries].map(([row, after]) => ({row, after: [...after], reasons: reasons.get(row) ?? []})), protectedInputs, units};
 }

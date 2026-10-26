@@ -65,6 +65,7 @@
     "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
     "dependencyPolicy": "scoped-effect-analysis-v9",
+    "provenance": [],
     "dependencyHints": [],
     "note": "Explicit szerzői példa: a középső sor fixed, a két profil OR-kapcsolatú. Ezeket a forrás önmagában nem állítja elő."
   }
