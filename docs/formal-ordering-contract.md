@@ -1,6 +1,33 @@
 # Formális sorrendi szerződés és hatáselemzés
 
-Ez a dokumentum a generált sorrendszabályok jelentését, a támogatott résznyelvet és a bizonyossági szinteket rögzíti. A döntések: [ADR-008](adr/008-effect-based-statement-ordering.md), a WP6-javítások: [ADR-009](adr/009-sealed-units-and-throw-free-reads.md), a reflektálható tulajdonságsorrend: [ADR-010](adr/010-reflective-property-order.md). A strukturális elfogadási feltétel változatlan: [validációs modell](validacios-modell-es-formazas.md).
+Ez a dokumentum a generált sorrendszabályok jelentését, a támogatott résznyelvet és a bizonyossági szinteket rögzíti. A strukturális elfogadási feltétel változatlan: [validációs modell](validacios-modell-es-formazas.md).
+
+**Döntések:**
+
+- [ADR-008](adr/008-effect-based-statement-ordering.md): hatásösszegzés;
+- [ADR-009](adr/009-sealed-units-and-throw-free-reads.md): lezárás, dobásmentes olvasás, írási halmazok;
+- [ADR-010](adr/010-reflective-property-order.md): reflektálható tulajdonságsorrend;
+- [ADR-011](adr/011-language-independent-ordering-relations.md): nyelvfüggetlen sorrendi relációk.
+
+## Végleges állapot (WP1–WP8)
+
+**Mérés:** az 59 fixture-ös korpuszon, reflektáló politikával (P0–P4), [mérés](#adr-010-reflexiós-mérés). Az ADR-011 után mind a 167 generált modell bájtra azonos maradt.
+
+| | K45 (eredeti) | W9 (WP6) | R5 (reflexió) |
+| --- | ---: | ---: | ---: |
+| hibásan elfogadott sorrend (A(M) + szomszédság) | 0 | 0 | 0 |
+| indokolatlanul elutasított szomszéd | 6 | 7 | 8 |
+| elfogadott teljes sorrend, A(M), mind orákulummal ellenőrizve | 2 298 | 61 | 1 928¹ |
+| orákulum által eldöntetlen / validátor `indeterminate` | 0 / 0 | 0 / 0 | 0 / 0 |
+| nem támogatott (elemzés kikapcsolva) | 1 fixture | 0 | 0 |
+
+¹ Az `refl-ts-erased-and-overloads` teljes sorrendjeiből csak 300 rögzített magú minta van ellenőrizve.
+
+**Mit jelentenek ezek a számok:**
+
+- Állítás: soundness a lent definiált résznyelven, emberi bizonyításvázlattal és véges, független empirikus ellenőrzéssel.
+- **Nem állítás:** teljes JavaScript- vagy TypeScript-szemantikai bizonyítás, tetszőleges bemenetre érvényes ekvivalencia, illetve a tesztkészleten kívüli programok completeness-e.
+
 
 ## Fogalmak
 
@@ -10,6 +37,16 @@ Ez a dokumentum a generált sorrendszabályok jelentését, a támogatott részn
 - `E_pol(P)`: a pedagógiai politika szerint P-vel egyenértékű permutációk (lásd lent). `E_pol(P) ⊆ E_run(P)`, ahol `E_run` a puszta futásidejű egyenértékűség.
 
 **Soundness:** `A(M) ⊆ E_pol(P)`. **Completeness:** `E_pol(P) ⊆ A(M)`.
+
+**Mérésben** minden vizsgált S öt diszjunkt kategória egyikébe esik:
+
+- **soundness-sértés:** a validátor elfogadja, az orákulum szerint nem ekvivalens;
+- **completeness-rés:** az orákulum szerint ekvivalens, a validátor elutasítja;
+- **indokolt elutasítás;**
+- **orákulum által eldöntetlen** (időtúllépés);
+- **validátor `indeterminate`** (kimerült keresési keret).
+
+Az utolsó kettő sosem számít elfogadásnak vagy elutasításnak. A completeness-rés a rögzített bemenetű orákulumhoz mért felső becslés: egy rés lehet csak az adott bemenetre fennálló ekvivalencia is (lásd az orákulum határait).
 
 Tetszőleges JavaScript-programok szemantikai egyenértékűsége nem dönthető el mindig termináló algoritmussal (Rice tétele). Ezért egyik tulajdonságra sincs univerzális garancia. A cél: soundness a lent definiált résznyelven, növekvő completeness, és minden másra konzervatív (soros) szabály.
 
@@ -90,7 +127,7 @@ A precedencia csak „előtte” vagy „utána” relációt fejez ki, a „nem
 
 ## Helyességi érvelés a támogatott résznyelven
 
-Állítás: ha P a fenti résznyelvre esik, és teljesülnek az A1–A4 feltevések, akkor minden `S ∈ A(M)` kielégíti P1–P3-at.
+Állítás: ha P a fenti résznyelvre esik, és teljesülnek az A1–A4 feltevések, akkor minden `S ∈ A(M)` kielégíti P0–P4-et.
 
 Feltevések:
 
@@ -108,15 +145,46 @@ Vázlat:
 5. **Késleltetett olvasás.** Closure-törzs csak hívásra fut, a hívás pedig barrier.
 6. **Kompozíció.** A blokk összegzése a gyerekek összegzéséből áll, a kifelé mutató olvasások élként továbbadódnak, így az állítás indukcióval terjed a beágyazásra.
 
-Ez emberi bizonyításvázlat, nem gépi verifikáció. A modelltől független ellenőrzése empirikus (lásd lent).
+Ez emberi bizonyításvázlat, nem gépi verifikáció. A modelltől független ellenőrzése empirikus (lásd lent). A WP6 és az ADR-010 éppen ennek a vázlatnak két hiányát tárta fel: a lyukas egységet (1. lépés) és a kulcssorrendet (4. lépés). Mindkettőt valódi ellenpélda alapján javítottam, ezért a vázlat további rejtett feltevései sem zárhatók ki.
+
+## Konzervatív fallbackek
+
+Ha a feltételek nem teljesülnek, a generátor a forrássorrendet tartja meg. Ez helyes, de szigorúbb:
+
+| Feltétel | Fallback |
+| --- | --- |
+| `with` vagy közvetlen `eval` a fájlban | az egész fájl elemzetlen, minden sor soros |
+| nem támogatott vagy ismeretlen utasítás, hívás, írás, property-olvasás, ciklus, vezérlésátadás | barrier |
+| több utasítás egy fizikai soron, vagy a listának nincs saját nyitó/záró sora | a lista soros |
+| többsoros egység saját blokkhatárok nélkül, illetve elhagyott (`} else {`) blokk | barrier, illetve sorosított intervallum, valamint lezárás (ADR-009) |
+| más kontextusú `let`/`const`/osztály-olvasás, önhivatkozás, `case`-ágbeli kötés | nem tiszta, barrier |
+| újraírt `let`/`var` koerciós operandusként; szkriptszintű `let`/`var` | nem primitív, barrier |
+| számított, duplikált, dekorált, kommentelt osztálytag, accessorpár | kötött tag |
+| a prototípuson vagy a konstruktoron kulcsot létrehozó tagok; szkriptszintű `function`/`var` | egymáshoz képest kötött kulcslánc (ADR-010) |
+| 250-nél több megtartott blokk, 500 sor vagy 50 KB fölött | elhagyott blokk, illetve elutasított szerzői forrás |
+| kimerült validátorkeret | `indeterminate`, soha nem elfogadás |
+| importált kézi modell | a függőségei nem generálódnak újra, csak explicit szerzői művelettel |
+
+## A tesztorákulum bizonyítási határai
+
+- **Független kódút, részben közös parser:** JavaScriptre Acorn, TypeScriptre viszont ugyanaz a TypeScript-parser, saját bejárással. Egy TS-parserhiba (A1) mindkét oldalon megjelenhet.
+- **Véges bemenet:** P3 és a P4 futásidejű része a rögzített probe-ot futtatja vm-kontextusban, strict szkriptként, TS-nél ES2022-re fordítva, mindkét osztálymező-módban. Egy „ekvivalens” ítélet csak erre a bemenetre szól. Ezért lehet completeness-rés például a `ch-typeof-strict-equality` vagy az `algo-bfs-js` esete.
+- **P4-lefedettség:** a futásidejű kulcssorrend-pillanatkép csak a felső szintű osztályokat és a deklarált globálisokat látja, a beágyazott osztályokat a szintaktikus P4-szabály fedi.
+- **Típusellenőrzés:** a teljes TS-típusellenőrzés csak a reflexiós reprodukciókban fut. A P0 egyébként a parserdiagnosztikát, a `transpileModule` diagnosztikáját és az overload-szomszédosságot ellenőrzi.
+- **Mintavétel:** a szomszédság egysoros mozgatást és párcserét vizsgál, a többsoros blokkcserét a tagblokk-permutációs és az A(M)-ellenőrzés fedi. Az A(M) 10 000 sorrend fölött mintavételezett.
+- **Időtúllépés:** eldöntetlen eredmény, nem ekvivalencia; a rövid keretet hosszabb keret ellenőrzi újra.
+- **Kizárt megfigyelések:** a forrásszöveg-reflexió és a `call-only` politika csak összehasonlító mérésre szolgál.
 
 ## Vizsgált technikák
 
-- **Read/write-halmazok és konfliktusfüggőség:** kötésszinten megvalósítva az olvasásokra. Az írások egyelőre barrierek; egy írási halmaz a lokális `let` értékadásokat szabadítaná fel.
+- **Read/write-halmazok és konfliktusfüggőség:** kötésszinten megvalósítva az olvasásokra. Az írási halmaz (ADR-009) az olvasott `let`/`var` stabilitását dönti el, maguk az írások barrierek maradnak.
 - **Vezérlésifolyamat-elemzés:** nem szükséges. A vezérlő utasítások barrierek, a validátor scope-ellenőrzése pedig megakadályozza a vezérlési régiók közötti mozgást.
 - **Absztrakt interpretáció:** egyetlen könnyű tartomány (primitív/nem primitív érték) a koerciós operátorokhoz. Teljes keretrendszer nem indokolt.
 
-## Empirikus bizonyíték
+## Empirikus bizonyíték (történeti mérések)
+
+Az alábbi szakaszok az egyes lépések előtte–utána méréseit rögzítik a saját korpuszukon és orákulumukon. A végleges számok a [végleges állapotnál](#végleges-állapot-wp1wp8) szerepelnek.
+
 
 A [független orákulum](../tests/support/semantic-oracle.mjs) más kódútvonalat használ, mint a generátor: JavaScriptre Acornt, TypeScriptre saját AST-bejárást, és P0–P3-at ellenőrzi. Az ADR-008-mérés idején a [korpusz](../tests/fixtures/ordering-corpus.mjs) 45 fixture-ből állt. Minden egysoros áthelyezés és páros csere (10 861 elrendezés) vizsgálva volt, és minden elfogadható sorrend legfeljebb 5000-ig teljesen, fölötte rögzített maggal mintázva (a WP6 óta a küszöb 10 000). Futtatás: `node tests/ordering-metrics.mjs`.
 
@@ -278,5 +346,5 @@ A lezárás lyukas egységenként végigmegy a testvéreken. A `continued-calls`
 
 - **Régi modellek:** az importált modellek függőségei nem változnak. Újragenerálás csak explicit „Sorfüggőségek újraszámítása” műveletre történik.
 - **Policy-címke:** új generáláskor `scoped-effect-analysis-v6` (ADR-010); a régi enumértékek, köztük a v4 és a v5, érvényesek maradnak (additív sémabővítés).
-- **Belső szerződés:** a `StatementOrdering {entries, protectedInputs, units}` 0-alapú fizikai sorokon dolgozik, nyelvfüggetlen. A projekciót a generátor végzi, a validátor nem változik.
-- **Python-adapterhez:** egy hasonló, saját kötés- és hatásmodellt adó elemző kell. A fő különbségek: függvényszintű scope, nincs TDZ, a `global`/`nonlocal` kezelése, a dekorátorok azonnali futása, az osztálytörzs végrehajtható kód, a behúzás pedig `exact` (lásd [Python-terv](python-adapter-plan.md)).
+- **Belső szerződés (ADR-011):** az adapter `orderingRelations` metódusa nyelvfüggetlen [`OrderingRelations`](../src/author/ordering-relations.ts) relációt ad: előzmények, védett bemenetek, egységhatárok, megjegyzés, 0-alapú fizikai sorokon. A projekciót a generátor végzi, a validátor nem változik.
+- **Python-adapterhez:** natív IR v3 út egységszintű relációkkal; a v2-projekció nem használható. A szerkezeti feladatok: [Python-terv](python-adapter-plan.md#illeszkedés-a-közös-sorrendi-szerződéshez-wp7-adr-011).

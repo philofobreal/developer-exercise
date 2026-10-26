@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased – 2026-10-26 WP7 nyelvfüggetlen sorrendi határ és WP8 dokumentáció (ADR-011)
+
+- **WP7:** új, nyelvfüggetlen [`ordering-relations.ts`](src/author/ordering-relations.ts) szerződés. Tartalma: `OrderingRelations`, konjunktív kombináció, valamint áthelyezve a lezárás és a tranzitív redukció.
+  - A JS/TS-elemzést a [`js-ts-ordering.ts`](src/author/js-ts-ordering.ts) fogja össze, az adapter `orderingRelations` metódusán át.
+  - A `generator.mjs` már csak projekció: nem importál TS-specifikus modult. Az architektúrakapu ezt gépileg tiltja; a korábbi két generátorkivétel megszűnt.
+  - Viselkedésmegőrző: mind a 167 generált modell bájtra azonos (korpusz, 80 véletlen program, nagy referenciák, 24 TS-minta).
+  - Új teszt: [`tests/ordering-relations.test.mjs`](tests/ordering-relations.test.mjs). Lefedi a konjunkciót, a lezárást, a redukciót, a diszjunkt sorokat és egy nem TypeScript-alapú játéknyelvi adapter projekcióját.
+  - A Python szerkezeti feladatai dokumentálva, implementáció nélkül.
+- **WP8:** a [formális szerződés](docs/formal-ordering-contract.md) új szakaszokat kapott:
+  - végleges állapot;
+  - a soundness és a completeness mérési jelentése;
+  - konzervatív fallbackek;
+  - a tesztorákulum bizonyítási határai;
+  - P0–P4-re frissített helyességi állítás.
+
+  A korábbi mérések történeti szakaszként maradnak meg.
+
 ## Unreleased – 2026-10-26 reflektálható tulajdonságsorrend (ADR-010)
 
 - **Probléma:** az ADR-008 óta két különböző nevű osztálymetódus, illetve két szkriptszintű `function`/`var` cseréje elfogadott volt. Minden hívás eredménye azonos maradt, de az `Object.getOwnPropertyNames(C.prototype)`, a `Reflect.ownKeys(C)` és az `Object.keys(globalThis)` sorrendje megváltozott.
