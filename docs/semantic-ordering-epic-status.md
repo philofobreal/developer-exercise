@@ -38,20 +38,55 @@ Ez a dokumentum a „Semantic Ordering Precision, Visual Dependency Rule Editor 
 
 ## Feladatlista (függőségi sorrendben)
 
-Jelölés: ✅ kész és ellenőrzött · 🔄 folyamatban · ⏳ következik · ⛔ blokkolt.
+Jelölés: ✅ kész és ellenőrzött · 🔄 folyamatban · ⏳ következik · ⏸ felfüggesztve · ⛔ blokkolt.
 
 | # | Munkacsomag | Állapot | Elfogadási bizonyíték |
 | --- | --- | --- | --- |
 | B1 | EPIC-02.2: lokális írás-/olvasási halmazok, RAW/WAR/WAW konfliktusélek, `local-write` egység | ✅ | a 248↔249 csere elfogadott a teljes fájlból generált modellen; a 305↔306 (`UUID()`) elutasított; korpusz és kampány: 0 hibás elfogadás |
 | B2 | EPIC-03: közös fizikai határok (`} else {`, `} catch {`, `} finally {`) klauzulaláncként, szeparátorélekkel; a projekció típusos modulba kerül | ✅ | 0 elhagyott blokk a CopyField négy `if/else`-párjánál; v2/v3 kompatibilitás; architektúrakapu |
 | B3 | EPIC-02.1: importelemzés explicit emit-kontextussal (`import type`, specifier-`type`, csak típusként használt, mellékhatás-import, értékimport) | ✅ | az 5–7. sor döntése mindkét emit-kontextusban tesztelve; értékimport és mellékhatás-import kötött |
-| C1 | EPIC-04: proveniencia az `OrderingRelations`-ben és a modell `authoring` metaadatában; örökölt vagy ismeretlen kategória | ✅ | minden generált élnek van kategóriája; a régi modellek „örökölt” jelölést kapnak |
-| D1 | EPIC-05: típusos szerzői szabályműveletek, atomikus admission, refresh a kézi szabályok megőrzésével | ⏳ következik | szabályeditor-regressziók (09.3) |
-| D2 | EPIC-05: vizuális szabálypanel a szerzői felületen | ⏳ | Playwright-bizonyíték |
+| C1 | EPIC-04: proveniencia az `OrderingRelations`-ben és a modell `authoring` metaadatában; örökölt vagy ismeretlen kategória | ✅ (életciklus: C2) | minden generált élnek van kategóriája; a régi modellek „örökölt” jelölést kapnak |
+| A2 | Formális szerződés: verziózott policy-táblázat (P2 a v1–v8 és a v9 között), a megfigyelhető állapot definíciója, hatókörhöz kötött soundness és completeness, reprezentálhatóság | ✅ | a szerződés és az orákulum ugyanazt a megfigyelést nevezi meg; minden policycímkéhez tartozik szabályverzió |
+| C2 | Bizonyíték-életciklus és elemzési környezet: `authoring.evidence` (forrásdigest, elemző- és policyverzió, TypeScript-verzió, import-emit, script/modul, osztálymezőmód-feltevés). Eltérő forrásnál a proveniencia `stale`; a magyarázat és minden szerkesztési döntés ezt tiszteletben tartja | ⏳ | a JSON-ban átírt kódsor után egyetlen ok sem számít érvényesnek; a refresh újraköti |
+| R1 | Referenciaaudit szintjei: szintaktikai; egyfájlos szemantikai (TypeScript `Program`-diagnosztika lib-bel, Node-on); „nem ellenőrizhető”, ha hiányzik a projektkontextus (feloldatlan import). Az eredmény az evidence része; a Pages explicit „nem ellenőrzött” | ⏳ | típushibás referencia jelölése; a feloldatlan import nem „helyes”, hanem „nem ellenőrizhető” |
+| V1 | Model Verification Gate: befogadás, referencia-elfogadás, keretalkalmasság (a referencia és a szomszédság a produkciós kereten belül), a proveniencia lefedettsége és frissessége, a konzervatív és reprezentációs fallbackek helye, lazítások, audit, környezet. Ezekből minősítési státusz: elemzéssel igazolt / konzervatív / szerzői döntéssel módosított / nem igazolt. Kis modellnél a projekció kimerítő összevetése az adapter relációival | ⏳ | minősítési regressziók; a CopyField és a legacy modellek státusza indokolt |
+| D1 | EPIC-05: típusos szabályműveletek (félkész, a `stash@{0}`-ban): atomikus befogadás, profilok, fixed, megjegyzések, lazítás megerősítési szintekkel, hatásjelentés tanúsorrenddel. Minden szerkesztés után V1-újraminősítés. A refresh jelentve vezeti össze a szerzői szabályokat, a lazításokat és a megjegyzéseket | ⏸ felfüggesztve C2/R1/V1 miatt | szabályeditor-regressziók (09.3) |
+| D2 | EPIC-05: vizuális szabálypanel, `importEmit`-választó és a minősítés megjelenítése a szerzői felületen | ⏳ | Playwright-bizonyíték |
 | E1 | EPIC-06: core diagnosztikai modul (bizonyított konfliktusok, többértelműség, keret) | ⏳ | diagnosztikai regressziók (09.4), metamorf: a validátor döntése változatlan |
 | F1 | EPIC-07: tanulói visszajelzés és soronkénti jelölés | ⏳ | böngészőteszt, hozzáférhetőség |
-| F2 | EPIC-08: disclosure policy (szerző / Pages / trusted szerver) | ⏳ | negatív szivárgási tesztek |
-| G1 | EPIC-09/12: teljes regresszió, kampány, böngésző, dokumentáció, végső jelentés | ⏳ | `check:all`, `test:browser:all`, `git diff --check` |
+| F2 | EPIC-08: disclosure policy (szerző / Pages / trusted szerver) és szerveroldali szerzői jogosultság, vagy explicit, dokumentált helyidemó-korlát | ⏳ | negatív szivárgási és jogosultsági tesztek |
+| G1 | EPIC-09/12: teljes regresszió, kampány, böngésző; forráshűségi round-trip (forrás → modell → render → export/import); a szerzői elemzés idő- és memóriakerete; dokumentáció, végső jelentés | ⏳ | `check:all`, `test:browser:all`, `git diff --check` |
+
+## Kritikai felülvizsgálat és újratervezés (2026-10-26)
+
+A felhasználó a MASTER EPIC-ről kritikai elemzést adott át. Az alábbi tábla minden pontját a repository tényleges állapotával veti össze. Állapot: ✅ már teljesül · 🟡 részben teljesül · ❌ nem teljesül.
+
+| Pont | Állapot | Döntés |
+| --- | --- | --- |
+| P2-ellentmondás (EPIC-01 kontra EPIC-02, -12) | ✅ a kódban, 🟡 a szerződésben | **Kódban feloldva:** az ADR-013 explicit, verziózott (`v9`) P2-pontosítás, az orákulum független saját implementációval követi, nem gyengített teszt. **Hiányzik:** a policyverziók táblázata és a megfigyelhető állapot pontos definíciója → A2 |
+| `A(G(P)) = E_policy(P)` túl erős | 🟡 | A szerződés már résznyelvre korlátozott soundnesst állít. Pontosítani kell: a completeness csak a kezelt **és** reprezentálható konstrukciókon kötelező, az `indeterminate` külön státusz, az elfogadási halmaz pedig a szabályverzióhoz és a mozgatási tartományhoz kötött → A2 |
+| Referencia teljes nyelvi auditja | ❌ | Az `audit.mjs` szintaktikai, a `bindingChecker` `noLib`/`noResolve`. Új munkacsomag → R1 |
+| Model Verification Gate | ❌ | A befogadás csak alakot, gráfot és referenciát ellenőriz. Új munkacsomag → V1. Tetszőleges forrás futtatása továbbra sincs; a kimerítő ellenőrzés a projekciót veti össze az elemzés relációival, nem a programot futtatja |
+| Szemantikai újraminősítés szabálylazítás után | 🟡 | A félkész D1 rögzíti a lazításokat (`relaxations`, `conformance`), de a minősítés a V1-re épül, és a döntés helyessége a proveniencia érvényességén múlik → D1 felfüggesztve; C2 és V1 után folytatódik |
+| Effektív fordítási környezet | 🟡 | Az `importEmit` létezik, de nincs a modellhez kötve; a többi feltevés (script/modul, osztálymezőmód, TS-verzió) nincs rögzítve → C2 |
+| Reprezentációs alkalmassági vizsgálat | 🟡 | Az ADR-013 igazolta, hogy a klauzulalánc a v3-mal azonos nyelvet fogad el. A szabadság vetítés közbeni elvesztése generáláskor viszont nincs mérve → V1 (projekciós veszteség) |
+| Proveniencia-életciklus | ❌ | A C1 okai nincsenek forrás-, elemző- és környezetverzióhoz kötve. Egy JSON-ban átírt kódsor mellett elavult okok maradnának, és ezek alapján a D1 megerősítés nélkül engedne törölni egy bizonyított élt. **Ez a D1 biztonsági előfeltétele** → C2 |
+| Szerveroldali szerzői jogosultság | ❌ | A szerver szerzői API-ja hitelesítés nélküli helyi eszköz → F2: szerveroldali kapu, vagy dokumentált korlát, de nem elkészült biztonsági funkcióként |
+| Forráshűség és szerzői teljesítmény | 🟡 | Az exact-whitespace és az 500 soros validáció tesztelt; a teljes round-trip és a szerzői elemzés kerete nem → G1 |
+
+**Visszamenőleges értékelés:**
+
+- **B szakasz:** megfelel az új szempontoknak. A P2 explicit, verziózott továbbfejlesztés lett, nem csendes gyengítés, és az orákulum függetlenül követi.
+- **C1:** a javasolt sorrendnek megfelelően a szerkesztő és a diagnosztika előtt készült el, de életciklus nélkül. Ezt a C2 pótolja, nem újraírással, hanem a meglévő okok verzióhoz kötésével.
+
+**Új sorrend:** A2 → C2 → R1 → V1 → D1 → D2 → E1 → F1 → F2 → G1.
+
+**A D1 felfüggesztése:** a félkész munka a `stash@{0}` „D1 WIP: typed rule edits…” bejegyzésében van; csak saját fájlok, a felhasználói snapshot nélkül. Tartalma:
+
+- `src/core/rule-editing.ts`: `applyRuleEdits`, `mergeAuthorRules`;
+- `ruleNotes`, `relaxations` és `conformance` a sémában, a típusban és a magyarázatban.
+
+A C2 és a V1 után `git stash pop`, majd ütközésfeloldással folytatódik.
 
 ## Döntésnapló
 
@@ -109,3 +144,20 @@ Jelölés: ✅ kész és ellenőrzött · 🔄 folyamatban · ⏳ következik ·
 - **E1:** a profilélek (OR) magyarázata.
 - **F1:** a kódok magyar megjelenítése.
 - **F2:** a proveniencia a trusted gráf része, ezért a tanulói kliens nem kaphatja meg.
+
+## A2 – formális szerződés – lezárva
+
+A [formális szerződés](formal-ordering-contract.md) három új része:
+
+- **[A helyességi cél hatóköre](formal-ordering-contract.md#a-helyességi-cél-hatóköre):**
+  - soundness kötelező a résznyelven;
+  - completeness kötelező a felsorolt, kezelt és reprezentálható eseteken;
+  - minden más jelölt fallback;
+  - az `indeterminate` külön státusz;
+  - minden állítás a feladattartományhoz, a szabályverzióhoz és a szerzői módosításokhoz viszonyított.
+- **[Megfigyelhető állapot](formal-ordering-contract.md#megfigyelhető-állapot):** pontosan az, amit az orákulum összevet (eredmény, kivétel, hatásnapló, reflektált szerkezet, statikus szerkezet). Ide tartozik a nem megfigyelt dolgok listája, a futtatási környezet és egy ismert orákulumkorlát: kivételnél a hatásnapló nincs összevetve.
+- **[Policyverziók](formal-ordering-contract.md#policyverziók):** minden címkéhez döntés és P2/P4-változás tartozik. A v9 P2-je verziózott, szigorúan bővebb újradefiniálás, nem csendes gyengítés.
+
+Új feltevés: **A5** (futtatási környezet).
+
+**Következik:** C2.
