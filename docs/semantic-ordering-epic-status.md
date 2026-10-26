@@ -47,7 +47,7 @@ Jelölés: ✅ kész és ellenőrzött · 🔄 folyamatban · ⏳ következik ·
 | B3 | EPIC-02.1: importelemzés explicit emit-kontextussal (`import type`, specifier-`type`, csak típusként használt, mellékhatás-import, értékimport) | ✅ | az 5–7. sor döntése mindkét emit-kontextusban tesztelve; értékimport és mellékhatás-import kötött |
 | C1 | EPIC-04: proveniencia az `OrderingRelations`-ben és a modell `authoring` metaadatában; örökölt vagy ismeretlen kategória | ✅ (életciklus: C2) | minden generált élnek van kategóriája; a régi modellek „örökölt” jelölést kapnak |
 | A2 | Formális szerződés: verziózott policy-táblázat (P2 a v1–v8 és a v9 között), a megfigyelhető állapot definíciója, hatókörhöz kötött soundness és completeness, reprezentálhatóság | ✅ | a szerződés és az orákulum ugyanazt a megfigyelést nevezi meg; minden policycímkéhez tartozik szabályverzió |
-| C2 | Bizonyíték-életciklus és elemzési környezet: `authoring.evidence` (forrásdigest, elemző- és policyverzió, TypeScript-verzió, import-emit, script/modul, osztálymezőmód-feltevés). Eltérő forrásnál a proveniencia `stale`; a magyarázat és minden szerkesztési döntés ezt tiszteletben tartja | ⏳ | a JSON-ban átírt kódsor után egyetlen ok sem számít érvényesnek; a refresh újraköti |
+| C2 | Bizonyíték-életciklus és elemzési környezet: `authoring.evidence` (forrásdigest, elemző- és policyverzió, TypeScript-verzió, import-emit, script/modul, osztálymezőmód-feltevés). Eltérő forrásnál a proveniencia `stale`; a magyarázat és minden szerkesztési döntés ezt tiszteletben tartja | ✅ | a JSON-ban átírt kódsor után egyetlen ok sem számít érvényesnek; a refresh újraköti |
 | R1 | Referenciaaudit szintjei: szintaktikai; egyfájlos szemantikai (TypeScript `Program`-diagnosztika lib-bel, Node-on); „nem ellenőrizhető”, ha hiányzik a projektkontextus (feloldatlan import). Az eredmény az evidence része; a Pages explicit „nem ellenőrzött” | ⏳ | típushibás referencia jelölése; a feloldatlan import nem „helyes”, hanem „nem ellenőrizhető” |
 | V1 | Model Verification Gate: befogadás, referencia-elfogadás, keretalkalmasság (a referencia és a szomszédság a produkciós kereten belül), a proveniencia lefedettsége és frissessége, a konzervatív és reprezentációs fallbackek helye, lazítások, audit, környezet. Ezekből minősítési státusz: elemzéssel igazolt / konzervatív / szerzői döntéssel módosított / nem igazolt. Kis modellnél a projekció kimerítő összevetése az adapter relációival | ⏳ | minősítési regressziók; a CopyField és a legacy modellek státusza indokolt |
 | D1 | EPIC-05: típusos szabályműveletek (félkész, a `stash@{0}`-ban): atomikus befogadás, profilok, fixed, megjegyzések, lazítás megerősítési szintekkel, hatásjelentés tanúsorrenddel. Minden szerkesztés után V1-újraminősítés. A refresh jelentve vezeti össze a szerzői szabályokat, a lazításokat és a megjegyzéseket | ⏸ felfüggesztve C2/R1/V1 miatt | szabályeditor-regressziók (09.3) |
@@ -160,4 +160,29 @@ A [formális szerződés](formal-ordering-contract.md) három új része:
 
 Új feltevés: **A5** (futtatási környezet).
 
-**Következik:** C2.
+**Következik:** C2. → lezárva.
+
+## C2 – bizonyítékkötés és elemzési környezet – lezárva
+
+**Döntés:** [ADR-015](adr/015-evidence-binding-and-analysis-environment.md).
+
+**Megvalósítás:** a modell `authoring.evidence` mezője tartalmazza:
+
+- a sorok `[id, code, scopeId]` digestjét;
+- a szabályverziót;
+- a környezetet: TypeScript-verzió, import-emit, script/modul, `classFields: either`.
+
+**Működés:**
+
+- **Kötés:** a magyarázat csak egyező digestnél használja a provenienciát, különben `unbound`, és minden ok `legacy`. Így a D1 biztonsági döntése nem épülhet elavult okra.
+- **Egyetlen definíció:** a digest csak a core-ban van, a projekció explicit architektúra-bekötéssel hívja.
+- **Refresh:** a refresh újraköt.
+
+**Bizonyíték:**
+
+- [evidence-binding.test.mjs](../tests/evidence-binding.test.mjs): átírt, átszámozott és leválasztott eset; a fixed és a szabályok nem oldják a kötést; metamorf validáció; séma; refresh; architektúra.
+- `check:all` 613/613, `test:browser:all` 114 PASS, `git diff --check` tiszta.
+
+**A D1 folytatásához:** a `stash@{0}` kódkommentjei még „ADR-015”-öt említenek a szabályszerkesztésre. Folytatáskor a szabályszerkesztés ADR-je a következő szabad szám lesz, és a kommenteket ehhez kell igazítani.
+
+**Következik:** R1, a referenciaaudit szintjei.
