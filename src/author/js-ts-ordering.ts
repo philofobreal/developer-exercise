@@ -7,6 +7,7 @@ import {statementOrdering, type OrderingOptions} from './statement-ordering.js';
 import {typeMemberOrdering} from './type-member-ordering.js';
 import {combineOrderingRelations, type OrderingRelations} from './ordering-relations.js';
 import type {StructureBlock} from './code-line-projection.js';
+import type {AnalysisEnvironment} from '../../dist/index.js';
 
 /** Brace-delimited blocks as 0-based row intervals. A block of an if/else, try,
  * catch or finally clause is marked `clause`: its boundary row may be shared with
@@ -26,6 +27,13 @@ export function jsTsStructure(file: ts.SourceFile, compiler: typeof ts): Structu
  };
  visit(file);
  return result;
+}
+
+/** The emit and runtime assumptions behind the JS/TS analysis (ADR-015): the compiler that
+ * analysed it, the TypeScript import emit, script or module semantics (as the global-order
+ * rule decides it) and class-field-mode independence (ADR-012 holds in both modes). */
+export function jsTsEnvironment(file: ts.SourceFile, compiler: typeof ts, options: OrderingOptions = {}): AnalysisEnvironment {
+ return {typescript: compiler.version, ...(file.fileName.endsWith('.ts') ? {importEmit: options.imports ?? 'verbatim'} : {}), sourceKind: compiler.isExternalModule(file) ? 'module' : 'script', classFields: 'either'};
 }
 
 /** `options.imports` describes the TypeScript emit (ADR-013); JavaScript imports always load their module. */

@@ -1,5 +1,5 @@
 /** Typed author-time entry point. ASTs and parser infrastructure stay inside adapters. */
-import { compileCodeLineExercise, compileCodeLineExerciseV3, prepareRenderPlan, upgradeCodeLineExerciseV2 } from '../../dist/index.js';
+import { codeLineDigest, compileCodeLineExercise, compileCodeLineExerciseV3, prepareRenderPlan, upgradeCodeLineExerciseV2 } from '../../dist/index.js';
 import {reconcileDependencies} from './dependency-refresh.js';
 import type { CodeLineExercise, CodeLineExerciseV3, CompiledRules, IndentPolicy, LanguageIR, RenderPlan } from '../../dist/index.js';
 
@@ -81,7 +81,11 @@ export async function refreshLegacyDependencies(input: CodeLineExercise, ports: 
  const checked = compileCodeLineExercise(generated);
  if ('status' in checked) throw new AdapterContractError(checked.message);
  await ports.audit(generated);
- const refreshed = reconcileDependencies(snapshot, generated), result = compileCodeLineExercise(refreshed);
+ const refreshed = reconcileDependencies(snapshot, generated);
+ // The regenerated provenance now names the original line IDs: bind it to them (ADR-015).
+ const evidence = generated.authoring?.evidence;
+ if (evidence) refreshed.authoring = {...refreshed.authoring, evidence: {...evidence, sourceDigest: codeLineDigest(refreshed.lines)}};
+ const result = compileCodeLineExercise(refreshed);
  if ('status' in result) throw new AdapterContractError(result.message);
  return refreshed;
 }

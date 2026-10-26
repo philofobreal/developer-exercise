@@ -119,6 +119,16 @@
         "code": "sealed-unit"
       }
     ],
+    "evidence": {
+      "sourceDigest": "6ff6367f377eb917",
+      "analyzer": "scoped-effect-analysis-v9",
+      "environment": {
+        "typescript": "5.8.3",
+        "importEmit": "verbatim",
+        "sourceKind": "script",
+        "classFields": "either"
+      }
+    },
     "dependencyHints": [
       {
         "name": "value",

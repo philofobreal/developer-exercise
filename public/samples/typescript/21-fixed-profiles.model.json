@@ -66,6 +66,16 @@
     "semanticEquivalenceProven": false,
     "dependencyPolicy": "scoped-effect-analysis-v9",
     "provenance": [],
+    "evidence": {
+      "sourceDigest": "6df447a43a9a25ba",
+      "analyzer": "scoped-effect-analysis-v9",
+      "environment": {
+        "typescript": "5.8.3",
+        "importEmit": "verbatim",
+        "sourceKind": "script",
+        "classFields": "either"
+      }
+    },
     "dependencyHints": [],
     "note": "Explicit szerzői példa: a középső sor fixed, a két profil OR-kapcsolatú. Ezeket a forrás önmagában nem állítja elő."
   }

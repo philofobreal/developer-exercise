@@ -20,6 +20,12 @@ export function jsTsStructure(file, compiler) {
     visit(file);
     return result;
 }
+/** The emit and runtime assumptions behind the JS/TS analysis (ADR-015): the compiler that
+ * analysed it, the TypeScript import emit, script or module semantics (as the global-order
+ * rule decides it) and class-field-mode independence (ADR-012 holds in both modes). */
+export function jsTsEnvironment(file, compiler, options = {}) {
+    return { typescript: compiler.version, ...(file.fileName.endsWith('.ts') ? { importEmit: options.imports ?? 'verbatim' } : {}), sourceKind: compiler.isExternalModule(file) ? 'module' : 'script', classFields: 'either' };
+}
 /** `options.imports` describes the TypeScript emit (ADR-013); JavaScript imports always load their module. */
 export function jsTsOrderingRelations(file, compiler, options = {}) {
     const statements = statementOrdering(file, compiler, file.fileName.endsWith('.ts') ? options : {}), members = typeMemberOrdering(file, compiler);

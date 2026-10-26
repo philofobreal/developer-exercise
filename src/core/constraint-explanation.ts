@@ -3,11 +3,14 @@
  * It answers, for every line, which constraints bind it, why, and how freely an
  * author may change each one. The reasons come from `authoring.provenance`, which
  * is explanation metadata only: this module never changes or replaces validation,
- * and a model without provenance explains as `legacy`. Block membership is read
+ * and a model without provenance explains as `legacy`. Provenance counts only while its
+ * evidence binds it to these exact lines (ADR-015); otherwise it is `unbound` and every
+ * dependency and edge explains as `legacy` too. Block membership is read
  * from the block hierarchy itself, so it is always a hard structural constraint.
  */
 import type { ValidationResult } from './types.js';
 import { compileCodeLineExercise, type CodeLineExercise, type ConstraintCategory } from './code-line.js';
+import { evidenceStatus } from './evidence.js';
 
 /** How a constraint may change: `hard` only with the structure, `proven` only with the
  * code or the ordering policy, `conservative` by a more precise analysis or an explicit
@@ -29,8 +32,9 @@ export interface LineConstraints {
 }
 export interface ConstraintExplanation {
   lines: LineConstraints[];
-  /** `absent`: no provenance at all (legacy or imported model); `partial`: some constraints are unexplained. */
-  provenance: 'complete' | 'partial' | 'absent';
+  /** `absent`: no provenance at all (legacy or imported model); `unbound`: provenance whose evidence is
+   * missing or no longer matches the lines, so it is ignored; `partial`: some constraints are unexplained. */
+  provenance: 'complete' | 'partial' | 'absent' | 'unbound';
   /** Dependencies and edges without a reason. */
   unexplained: number;
   /** Provenance entries that name no dependency or edge of the model; ignored. */
@@ -44,7 +48,8 @@ const strength: Editability[] = ['legacy', 'pedagogical', 'conservative', 'prove
 export function explainConstraints(model: CodeLineExercise): ConstraintExplanation | ValidationResult {
   const admitted = compileCodeLineExercise(model);
   if ('status' in admitted) return admitted;
-  const provenance = model.authoring?.provenance;
+  const recorded = model.authoring?.provenance, bound = !!recorded && evidenceStatus(model) === 'current';
+  const provenance = bound ? recorded : undefined;
   const constraints = new Map<string, DirectConstraint>();
   const state = (before: number, after: number, origin: DirectConstraint['origins'][number]): DirectConstraint => {
     const key = before + ':' + after;
@@ -62,7 +67,7 @@ export function explainConstraints(model: CodeLineExercise): ConstraintExplanati
     if (!constraint.reasons.some(reason => reason.category === entry.category && reason.code === entry.code)) constraint.reasons.push({ category: entry.category, code: entry.code });
   }
   let unexplained = 0;
-  for (const constraint of constraints.values()) if (!constraint.reasons.length) { unexplained++; constraint.reasons.push({ category: 'unknown', code: provenance ? 'missing-provenance' : 'legacy-model' }); }
+  for (const constraint of constraints.values()) if (!constraint.reasons.length) { unexplained++; constraint.reasons.push({ category: 'unknown', code: provenance ? 'missing-provenance' : recorded ? 'unbound-provenance' : 'legacy-model' }); }
   // The block hierarchy orders every member between its block's open and close lines.
   const blocks = new Map(model.blocks.map(block => [block.id, block]));
   const structural = (before: number, after: number, code: string): void => { state(before, after, 'block').reasons.push({ category: 'structure', code }); };
@@ -101,7 +106,7 @@ export function explainConstraints(model: CodeLineExercise): ConstraintExplanati
       ancestors: [...ancestors.get(line.id)!].sort(byOrder),
       descendants: [...descendants.get(line.id)!].sort(byOrder)
     })),
-    provenance: !provenance ? 'absent' : unexplained ? 'partial' : 'complete',
+    provenance: recorded && !bound ? 'unbound' : !provenance ? 'absent' : unexplained ? 'partial' : 'complete',
     unexplained,
     stale
   };

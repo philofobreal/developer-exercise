@@ -5,7 +5,7 @@
  * parser and no syntax kind, and never runs for learner input. Rows are 0-based
  * physical rows of the normalised reference source. Every dependency and edge it
  * emits carries its reasons (ADR-014). */
-import type {ConstraintProvenance} from '../../dist/index.js';
+import {codeLineDigest, type ConstraintProvenance} from '../../dist/index.js';
 import {reduceGeneratedDependencies, sealMultiRowUnits, type OrderingReason, type OrderingRelations} from './ordering-relations.js';
 
 /** A block interval from the adapter. `clause`: one clause of a compound statement
@@ -25,6 +25,8 @@ export interface CodeLineProjection {
  clauseChains: number;
  /** Every reason of every emitted dependency and edge, in line IDs, ordered by `after`, `before`. */
  provenance: ConstraintProvenance[];
+ /** Digest of the projected lines that the provenance describes (ADR-015). */
+ sourceDigest: string;
 }
 interface Candidate extends StructureBlock {separators: number[];}
 interface Retained extends Candidate {id: string; parent: Retained | null; functionBlock?: number;}
@@ -146,5 +148,5 @@ export function projectCodeLine({physical, exact, structure, ordering}: Projecti
  for (const line of lines) for (const before of line.dependencies) emit(before, line.id, why.get(line.id)?.get(before) ?? [{category: 'unknown', code: 'projection-unspecified'}]);
  for (const edge of edgeMap.values()) emit(edge.before, edge.after, [{category: 'conservative', code: 'shared-boundary-lock'}]);
  provenance.sort((a, b) => a.after - b.after || a.before - b.before);
- return {lines, blocks, edges: [...edgeMap.values()], omittedBlocks: omitted.length, clauseChains: chains.filter(chain => retained.some(block => block.start === chain.start && block.end === chain.end)).length, provenance};
+ return {lines, blocks, edges: [...edgeMap.values()], omittedBlocks: omitted.length, clauseChains: chains.filter(chain => retained.some(block => block.start === chain.start && block.end === chain.end)).length, provenance, sourceDigest: codeLineDigest(lines)};
 }

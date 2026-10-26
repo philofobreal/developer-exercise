@@ -36,6 +36,22 @@ export interface ConstraintProvenance {
     category: ConstraintCategory;
     code: string;
 }
+export type DependencyPolicy = 'primitive-const-islands-v1' | 'scoped-primitive-dag-v2' | 'scoped-type-members-v3' | 'scoped-effect-analysis-v4' | 'scoped-effect-analysis-v5' | 'scoped-effect-analysis-v6' | 'scoped-effect-analysis-v7' | 'scoped-effect-analysis-v8' | 'scoped-effect-analysis-v9';
+/** Assumptions the analysis made about how the reference runs (ADR-015). `classFields: 'either'`:
+ * the result holds in both TypeScript class-field modes. */
+export interface AnalysisEnvironment {
+    typescript?: string;
+    importEmit?: 'verbatim' | 'elide-unused';
+    sourceKind?: 'module' | 'script';
+    classFields?: 'either';
+}
+/** Binds the explanation metadata to the lines it was derived from and to the analysis that
+ * derived it (ADR-015). A digest mismatch makes the provenance unbound, never a grading input. */
+export interface ModelEvidence {
+    sourceDigest: string;
+    analyzer: DependencyPolicy;
+    environment: AnalysisEnvironment;
+}
 export interface CodeLineExercise {
     schemaVersion: 2;
     id: string;
@@ -64,13 +80,14 @@ export interface CodeLineExercise {
         note?: string;
         omittedBlocks?: number;
         semanticEquivalenceProven?: false;
-        dependencyPolicy?: 'primitive-const-islands-v1' | 'scoped-primitive-dag-v2' | 'scoped-type-members-v3' | 'scoped-effect-analysis-v4' | 'scoped-effect-analysis-v5' | 'scoped-effect-analysis-v6' | 'scoped-effect-analysis-v7' | 'scoped-effect-analysis-v8' | 'scoped-effect-analysis-v9';
+        dependencyPolicy?: DependencyPolicy;
         dependencyHints?: {
             name: string;
             declarationLine: number;
             usageLine: number;
         }[];
         provenance?: ConstraintProvenance[];
+        evidence?: ModelEvidence;
     };
 }
 export type AdaptResult = {

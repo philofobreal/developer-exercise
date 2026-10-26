@@ -287,6 +287,16 @@
         "code": "manual-value-contract"
       }
     ],
+    "evidence": {
+      "sourceDigest": "b3adab2637be05fd",
+      "analyzer": "scoped-effect-analysis-v9",
+      "environment": {
+        "typescript": "5.8.3",
+        "importEmit": "verbatim",
+        "sourceKind": "script",
+        "classFields": "either"
+      }
+    },
     "note": "Kézzel szűkített oktatási szerződés: csak a name/id érték számít, az Object.keys és a létrehozási sorrend nem. Kizárólag ehhez a mellékhatásmentes, öröklés/setter nélküli mintához készült; nem általános TS ekvivalencia. A függőségfrissítés visszaállítja a konzervatív generált szabályokat.",
     "dependencyHints": [
       {

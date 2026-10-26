@@ -2,14 +2,17 @@
 // Generated from docs/schema.json, language-ir.schema.json and codeline-v3.schema.json by scripts/sync-schema.mjs. Do not edit.
 "use strict";
 export const validateV2 = validate20;
-const schema31 = { "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://philofobreal.github.io/developer-exercise/schema.json", "title": "ngDynamic CodeLine v2 Exercise", "type": "object", "additionalProperties": false, "required": ["schemaVersion", "id", "revision", "language", "title", "description", "lines", "blocks"], "properties": { "schemaVersion": { "const": 2 }, "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "revision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "language": { "enum": ["javascript", "typescript"] }, "title": { "type": "string", "maxLength": 140 }, "description": { "type": "string", "maxLength": 500 }, "lines": { "type": "array", "minItems": 1, "maxItems": 500, "items": { "$ref": "#/$defs/codeLine" } }, "blocks": { "type": "array", "maxItems": 250, "items": { "$ref": "#/$defs/block" } }, "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" }, "maxItems": 5000 }, "profiles": { "type": "array", "maxItems": 32, "items": { "type": "object", "required": ["id", "edges"], "additionalProperties": false, "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" }, "maxItems": 5000 } } } }, "authoring": { "type": "object", "additionalProperties": false, "properties": { "strategy": { "type": "string", "maxLength": 100 }, "reason": { "type": "string", "maxLength": 500 }, "note": { "type": "string", "maxLength": 1000 }, "omittedBlocks": { "type": "integer", "minimum": 0, "maximum": 500 }, "semanticEquivalenceProven": { "const": false }, "dependencyHints": { "type": "array", "maxItems": 200, "items": { "type": "object", "additionalProperties": false, "required": ["name", "declarationLine", "usageLine"], "properties": { "name": { "type": "string", "maxLength": 2048 }, "declarationLine": { "type": "integer", "minimum": 1, "maximum": 50000 }, "usageLine": { "type": "integer", "minimum": 1, "maximum": 50000 } } } }, "provenance": { "type": "array", "maxItems": 10000, "items": { "type": "object", "additionalProperties": false, "required": ["before", "after", "category", "code"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "category": { "type": "string", "enum": ["data", "effect", "structure", "unit", "policy", "author", "conservative", "unknown"] }, "code": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9-]*$", "maxLength": 64 } } } }, "dependencyPolicy": { "type": "string", "enum": ["primitive-const-islands-v1", "scoped-primitive-dag-v2", "scoped-type-members-v3", "scoped-effect-analysis-v4", "scoped-effect-analysis-v5", "scoped-effect-analysis-v6", "scoped-effect-analysis-v7", "scoped-effect-analysis-v8", "scoped-effect-analysis-v9"] } } } }, "$defs": { "codeLine": { "type": "object", "additionalProperties": false, "required": ["id", "code", "dependencies", "fixed", "functionBlock", "scopeId"], "properties": { "id": { "type": "integer", "minimum": 1, "maximum": 9007199254740991, "description": "Stable identity within this exercise revision; never the current solution position." }, "code": { "type": "string", "maxLength": 2048, "pattern": "^[^\\r\\n\\u2028\\u2029]*$" }, "dependencies": { "type": "array", "uniqueItems": true, "items": { "type": "integer", "minimum": 1 }, "maxItems": 500, "description": "IDs of all required predecessors. Each must occur earlier, at any distance; array order is irrelevant." }, "fixed": { "type": "boolean" }, "functionBlock": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "scopeId": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 200 }, { "type": "null" }] }, "normalization": { "enum": ["indent", "exact"] }, "sourceLine": { "type": "integer", "minimum": 1, "maximum": 50000, "description": "Optional one-based original physical source line; informational, never an identity or ordering constraint." } } }, "block": { "type": "object", "additionalProperties": false, "required": ["id", "kind", "parentScopeId", "openLineId", "closeLineId"], "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "kind": { "enum": ["function", "block"] }, "functionBlock": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "parentScopeId": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 200 }, { "type": "null" }] }, "openLineId": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "closeLineId": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 } }, "anyOf": [{ "properties": { "kind": { "const": "function" }, "functionBlock": {} }, "required": ["functionBlock"] }, { "properties": { "kind": { "const": "block" } }, "not": { "required": ["functionBlock"], "properties": { "functionBlock": {} } } }] }, "edge": { "type": "object", "additionalProperties": false, "required": ["before", "after"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 } } } } };
+const schema31 = { "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://philofobreal.github.io/developer-exercise/schema.json", "title": "ngDynamic CodeLine v2 Exercise", "type": "object", "additionalProperties": false, "required": ["schemaVersion", "id", "revision", "language", "title", "description", "lines", "blocks"], "properties": { "schemaVersion": { "const": 2 }, "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "revision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "language": { "enum": ["javascript", "typescript"] }, "title": { "type": "string", "maxLength": 140 }, "description": { "type": "string", "maxLength": 500 }, "lines": { "type": "array", "minItems": 1, "maxItems": 500, "items": { "$ref": "#/$defs/codeLine" } }, "blocks": { "type": "array", "maxItems": 250, "items": { "$ref": "#/$defs/block" } }, "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" }, "maxItems": 5000 }, "profiles": { "type": "array", "maxItems": 32, "items": { "type": "object", "required": ["id", "edges"], "additionalProperties": false, "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" }, "maxItems": 5000 } } } }, "authoring": { "type": "object", "additionalProperties": false, "properties": { "strategy": { "type": "string", "maxLength": 100 }, "reason": { "type": "string", "maxLength": 500 }, "note": { "type": "string", "maxLength": 1000 }, "omittedBlocks": { "type": "integer", "minimum": 0, "maximum": 500 }, "semanticEquivalenceProven": { "const": false }, "dependencyHints": { "type": "array", "maxItems": 200, "items": { "type": "object", "additionalProperties": false, "required": ["name", "declarationLine", "usageLine"], "properties": { "name": { "type": "string", "maxLength": 2048 }, "declarationLine": { "type": "integer", "minimum": 1, "maximum": 50000 }, "usageLine": { "type": "integer", "minimum": 1, "maximum": 50000 } } } }, "provenance": { "type": "array", "maxItems": 10000, "items": { "type": "object", "additionalProperties": false, "required": ["before", "after", "category", "code"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "category": { "type": "string", "enum": ["data", "effect", "structure", "unit", "policy", "author", "conservative", "unknown"] }, "code": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9-]*$", "maxLength": 64 } } } }, "evidence": { "type": "object", "additionalProperties": false, "required": ["sourceDigest", "analyzer", "environment"], "properties": { "sourceDigest": { "type": "string", "pattern": "^[0-9a-f]{16}$" }, "analyzer": { "$ref": "#/$defs/dependencyPolicy" }, "environment": { "type": "object", "additionalProperties": false, "properties": { "typescript": { "type": "string", "pattern": "^[0-9A-Za-z.+-]{1,40}$" }, "importEmit": { "type": "string", "enum": ["verbatim", "elide-unused"] }, "sourceKind": { "type": "string", "enum": ["module", "script"] }, "classFields": { "const": "either" } } } } }, "dependencyPolicy": { "$ref": "#/$defs/dependencyPolicy" } } } }, "$defs": { "codeLine": { "type": "object", "additionalProperties": false, "required": ["id", "code", "dependencies", "fixed", "functionBlock", "scopeId"], "properties": { "id": { "type": "integer", "minimum": 1, "maximum": 9007199254740991, "description": "Stable identity within this exercise revision; never the current solution position." }, "code": { "type": "string", "maxLength": 2048, "pattern": "^[^\\r\\n\\u2028\\u2029]*$" }, "dependencies": { "type": "array", "uniqueItems": true, "items": { "type": "integer", "minimum": 1 }, "maxItems": 500, "description": "IDs of all required predecessors. Each must occur earlier, at any distance; array order is irrelevant." }, "fixed": { "type": "boolean" }, "functionBlock": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "scopeId": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 200 }, { "type": "null" }] }, "normalization": { "enum": ["indent", "exact"] }, "sourceLine": { "type": "integer", "minimum": 1, "maximum": 50000, "description": "Optional one-based original physical source line; informational, never an identity or ordering constraint." } } }, "block": { "type": "object", "additionalProperties": false, "required": ["id", "kind", "parentScopeId", "openLineId", "closeLineId"], "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "kind": { "enum": ["function", "block"] }, "functionBlock": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "parentScopeId": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 200 }, { "type": "null" }] }, "openLineId": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "closeLineId": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 } }, "anyOf": [{ "properties": { "kind": { "const": "function" }, "functionBlock": {} }, "required": ["functionBlock"] }, { "properties": { "kind": { "const": "block" } }, "not": { "required": ["functionBlock"], "properties": { "functionBlock": {} } } }] }, "edge": { "type": "object", "additionalProperties": false, "required": ["before", "after"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 } } }, "dependencyPolicy": { "type": "string", "enum": ["primitive-const-islands-v1", "scoped-primitive-dag-v2", "scoped-type-members-v3", "scoped-effect-analysis-v4", "scoped-effect-analysis-v5", "scoped-effect-analysis-v6", "scoped-effect-analysis-v7", "scoped-effect-analysis-v8", "scoped-effect-analysis-v9"] } } };
 const schema32 = { "type": "object", "additionalProperties": false, "required": ["id", "code", "dependencies", "fixed", "functionBlock", "scopeId"], "properties": { "id": { "type": "integer", "minimum": 1, "maximum": 9007199254740991, "description": "Stable identity within this exercise revision; never the current solution position." }, "code": { "type": "string", "maxLength": 2048, "pattern": "^[^\\r\\n\\u2028\\u2029]*$" }, "dependencies": { "type": "array", "uniqueItems": true, "items": { "type": "integer", "minimum": 1 }, "maxItems": 500, "description": "IDs of all required predecessors. Each must occur earlier, at any distance; array order is irrelevant." }, "fixed": { "type": "boolean" }, "functionBlock": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "scopeId": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 200 }, { "type": "null" }] }, "normalization": { "enum": ["indent", "exact"] }, "sourceLine": { "type": "integer", "minimum": 1, "maximum": 50000, "description": "Optional one-based original physical source line; informational, never an identity or ordering constraint." } } };
 const schema33 = { "type": "object", "additionalProperties": false, "required": ["id", "kind", "parentScopeId", "openLineId", "closeLineId"], "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "kind": { "enum": ["function", "block"] }, "functionBlock": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "parentScopeId": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 200 }, { "type": "null" }] }, "openLineId": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "closeLineId": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 } }, "anyOf": [{ "properties": { "kind": { "const": "function" }, "functionBlock": {} }, "required": ["functionBlock"] }, { "properties": { "kind": { "const": "block" } }, "not": { "required": ["functionBlock"], "properties": { "functionBlock": {} } } }] };
 const schema34 = { "type": "object", "additionalProperties": false, "required": ["before", "after"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 } } };
+const schema36 = { "type": "string", "enum": ["primitive-const-islands-v1", "scoped-primitive-dag-v2", "scoped-type-members-v3", "scoped-effect-analysis-v4", "scoped-effect-analysis-v5", "scoped-effect-analysis-v6", "scoped-effect-analysis-v7", "scoped-effect-analysis-v8", "scoped-effect-analysis-v9"] };
 const func1 = Object.prototype.hasOwnProperty;
 const func2 = ((value) => Array.from(value).length);
 const pattern4 = new RegExp("^[^\\r\\n\\u2028\\u2029]*$", "u");
 const pattern5 = new RegExp("^[A-Za-z][A-Za-z0-9-]*$", "u");
+const pattern6 = new RegExp("^[0-9a-f]{16}$", "u");
+const pattern7 = new RegExp("^[0-9A-Za-z.+-]{1,40}$", "u");
 function validate20(data, { instancePath = "", parentData, parentDataProperty, rootData = data, dynamicAnchors = {} } = {}) { /*# sourceURL="https://philofobreal.github.io/developer-exercise/schema.json" */ ; let vErrors = null; let errors = 0; const evaluated0 = validate20.evaluated; if (evaluated0.dynamicProps) {
     evaluated0.props = undefined;
 } if (evaluated0.dynamicItems) {
@@ -1217,7 +1220,7 @@ function validate20(data, { instancePath = "", parentData, parentDataProperty, r
                                                                 if (data38 && typeof data38 == "object" && !Array.isArray(data38)) {
                                                                     const _errs96 = errors;
                                                                     for (const key6 in data38) {
-                                                                        if (!((((((((key6 === "strategy") || (key6 === "reason")) || (key6 === "note")) || (key6 === "omittedBlocks")) || (key6 === "semanticEquivalenceProven")) || (key6 === "dependencyHints")) || (key6 === "provenance")) || (key6 === "dependencyPolicy"))) {
+                                                                        if (!(func1.call(schema31.properties.authoring.properties, key6))) {
                                                                             validate20.errors = [{ instancePath: instancePath + "/authoring", schemaPath: "#/properties/authoring/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key6 }, message: "must NOT have additional properties" }];
                                                                             return false;
                                                                             break;
@@ -1618,21 +1621,191 @@ function validate20(data, { instancePath = "", parentData, parentDataProperty, r
                                                                                                     var valid23 = true;
                                                                                                 }
                                                                                                 if (valid23) {
-                                                                                                    if (data38.dependencyPolicy !== undefined) {
-                                                                                                        let data55 = data38.dependencyPolicy;
+                                                                                                    if (data38.evidence !== undefined) {
+                                                                                                        let data55 = data38.evidence;
                                                                                                         const _errs130 = errors;
-                                                                                                        if (typeof data55 !== "string") {
-                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyPolicy", schemaPath: "#/properties/authoring/properties/dependencyPolicy/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                            return false;
-                                                                                                        }
-                                                                                                        if (!(((((((((data55 === "primitive-const-islands-v1") || (data55 === "scoped-primitive-dag-v2")) || (data55 === "scoped-type-members-v3")) || (data55 === "scoped-effect-analysis-v4")) || (data55 === "scoped-effect-analysis-v5")) || (data55 === "scoped-effect-analysis-v6")) || (data55 === "scoped-effect-analysis-v7")) || (data55 === "scoped-effect-analysis-v8")) || (data55 === "scoped-effect-analysis-v9"))) {
-                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyPolicy", schemaPath: "#/properties/authoring/properties/dependencyPolicy/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.dependencyPolicy.enum }, message: "must be equal to one of the allowed values" }];
-                                                                                                            return false;
+                                                                                                        if (errors === _errs130) {
+                                                                                                            if (data55 && typeof data55 == "object" && !Array.isArray(data55)) {
+                                                                                                                let missing10;
+                                                                                                                if ((((data55.sourceDigest === undefined) && (missing10 = "sourceDigest")) || ((data55.analyzer === undefined) && (missing10 = "analyzer"))) || ((data55.environment === undefined) && (missing10 = "environment"))) {
+                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence", schemaPath: "#/properties/authoring/properties/evidence/required", keyword: "required", params: { missingProperty: missing10 }, message: "must have required property '" + missing10 + "'" }];
+                                                                                                                    return false;
+                                                                                                                }
+                                                                                                                else {
+                                                                                                                    const _errs132 = errors;
+                                                                                                                    for (const key9 in data55) {
+                                                                                                                        if (!(((key9 === "sourceDigest") || (key9 === "analyzer")) || (key9 === "environment"))) {
+                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence", schemaPath: "#/properties/authoring/properties/evidence/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key9 }, message: "must NOT have additional properties" }];
+                                                                                                                            return false;
+                                                                                                                            break;
+                                                                                                                        }
+                                                                                                                    }
+                                                                                                                    if (_errs132 === errors) {
+                                                                                                                        if (data55.sourceDigest !== undefined) {
+                                                                                                                            let data56 = data55.sourceDigest;
+                                                                                                                            const _errs133 = errors;
+                                                                                                                            if (errors === _errs133) {
+                                                                                                                                if (typeof data56 === "string") {
+                                                                                                                                    if (!pattern6.test(data56)) {
+                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/sourceDigest", schemaPath: "#/properties/authoring/properties/evidence/properties/sourceDigest/pattern", keyword: "pattern", params: { pattern: "^[0-9a-f]{16}$" }, message: "must match pattern \"" + "^[0-9a-f]{16}$" + "\"" }];
+                                                                                                                                        return false;
+                                                                                                                                    }
+                                                                                                                                }
+                                                                                                                                else {
+                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/sourceDigest", schemaPath: "#/properties/authoring/properties/evidence/properties/sourceDigest/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                    return false;
+                                                                                                                                }
+                                                                                                                            }
+                                                                                                                            var valid28 = _errs133 === errors;
+                                                                                                                        }
+                                                                                                                        else {
+                                                                                                                            var valid28 = true;
+                                                                                                                        }
+                                                                                                                        if (valid28) {
+                                                                                                                            if (data55.analyzer !== undefined) {
+                                                                                                                                let data57 = data55.analyzer;
+                                                                                                                                const _errs135 = errors;
+                                                                                                                                if (typeof data57 !== "string") {
+                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/analyzer", schemaPath: "#/$defs/dependencyPolicy/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                    return false;
+                                                                                                                                }
+                                                                                                                                if (!(((((((((data57 === "primitive-const-islands-v1") || (data57 === "scoped-primitive-dag-v2")) || (data57 === "scoped-type-members-v3")) || (data57 === "scoped-effect-analysis-v4")) || (data57 === "scoped-effect-analysis-v5")) || (data57 === "scoped-effect-analysis-v6")) || (data57 === "scoped-effect-analysis-v7")) || (data57 === "scoped-effect-analysis-v8")) || (data57 === "scoped-effect-analysis-v9"))) {
+                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/analyzer", schemaPath: "#/$defs/dependencyPolicy/enum", keyword: "enum", params: { allowedValues: schema36.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                                                    return false;
+                                                                                                                                }
+                                                                                                                                var valid28 = _errs135 === errors;
+                                                                                                                            }
+                                                                                                                            else {
+                                                                                                                                var valid28 = true;
+                                                                                                                            }
+                                                                                                                            if (valid28) {
+                                                                                                                                if (data55.environment !== undefined) {
+                                                                                                                                    let data58 = data55.environment;
+                                                                                                                                    const _errs138 = errors;
+                                                                                                                                    if (errors === _errs138) {
+                                                                                                                                        if (data58 && typeof data58 == "object" && !Array.isArray(data58)) {
+                                                                                                                                            const _errs140 = errors;
+                                                                                                                                            for (const key10 in data58) {
+                                                                                                                                                if (!((((key10 === "typescript") || (key10 === "importEmit")) || (key10 === "sourceKind")) || (key10 === "classFields"))) {
+                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key10 }, message: "must NOT have additional properties" }];
+                                                                                                                                                    return false;
+                                                                                                                                                    break;
+                                                                                                                                                }
+                                                                                                                                            }
+                                                                                                                                            if (_errs140 === errors) {
+                                                                                                                                                if (data58.typescript !== undefined) {
+                                                                                                                                                    let data59 = data58.typescript;
+                                                                                                                                                    const _errs141 = errors;
+                                                                                                                                                    if (errors === _errs141) {
+                                                                                                                                                        if (typeof data59 === "string") {
+                                                                                                                                                            if (!pattern7.test(data59)) {
+                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/typescript", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/typescript/pattern", keyword: "pattern", params: { pattern: "^[0-9A-Za-z.+-]{1,40}$" }, message: "must match pattern \"" + "^[0-9A-Za-z.+-]{1,40}$" + "\"" }];
+                                                                                                                                                                return false;
+                                                                                                                                                            }
+                                                                                                                                                        }
+                                                                                                                                                        else {
+                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/typescript", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/typescript/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                            return false;
+                                                                                                                                                        }
+                                                                                                                                                    }
+                                                                                                                                                    var valid30 = _errs141 === errors;
+                                                                                                                                                }
+                                                                                                                                                else {
+                                                                                                                                                    var valid30 = true;
+                                                                                                                                                }
+                                                                                                                                                if (valid30) {
+                                                                                                                                                    if (data58.importEmit !== undefined) {
+                                                                                                                                                        let data60 = data58.importEmit;
+                                                                                                                                                        const _errs143 = errors;
+                                                                                                                                                        if (typeof data60 !== "string") {
+                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/importEmit", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/importEmit/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                            return false;
+                                                                                                                                                        }
+                                                                                                                                                        if (!((data60 === "verbatim") || (data60 === "elide-unused"))) {
+                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/importEmit", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/importEmit/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.evidence.properties.environment.properties.importEmit.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                                                                            return false;
+                                                                                                                                                        }
+                                                                                                                                                        var valid30 = _errs143 === errors;
+                                                                                                                                                    }
+                                                                                                                                                    else {
+                                                                                                                                                        var valid30 = true;
+                                                                                                                                                    }
+                                                                                                                                                    if (valid30) {
+                                                                                                                                                        if (data58.sourceKind !== undefined) {
+                                                                                                                                                            let data61 = data58.sourceKind;
+                                                                                                                                                            const _errs145 = errors;
+                                                                                                                                                            if (typeof data61 !== "string") {
+                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/sourceKind", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/sourceKind/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                return false;
+                                                                                                                                                            }
+                                                                                                                                                            if (!((data61 === "module") || (data61 === "script"))) {
+                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/sourceKind", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/sourceKind/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.evidence.properties.environment.properties.sourceKind.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                                                                                return false;
+                                                                                                                                                            }
+                                                                                                                                                            var valid30 = _errs145 === errors;
+                                                                                                                                                        }
+                                                                                                                                                        else {
+                                                                                                                                                            var valid30 = true;
+                                                                                                                                                        }
+                                                                                                                                                        if (valid30) {
+                                                                                                                                                            if (data58.classFields !== undefined) {
+                                                                                                                                                                const _errs147 = errors;
+                                                                                                                                                                if ("either" !== data58.classFields) {
+                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/classFields", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/classFields/const", keyword: "const", params: { allowedValue: "either" }, message: "must be equal to constant" }];
+                                                                                                                                                                    return false;
+                                                                                                                                                                }
+                                                                                                                                                                var valid30 = _errs147 === errors;
+                                                                                                                                                            }
+                                                                                                                                                            else {
+                                                                                                                                                                var valid30 = true;
+                                                                                                                                                            }
+                                                                                                                                                        }
+                                                                                                                                                    }
+                                                                                                                                                }
+                                                                                                                                            }
+                                                                                                                                        }
+                                                                                                                                        else {
+                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                                                                            return false;
+                                                                                                                                        }
+                                                                                                                                    }
+                                                                                                                                    var valid28 = _errs138 === errors;
+                                                                                                                                }
+                                                                                                                                else {
+                                                                                                                                    var valid28 = true;
+                                                                                                                                }
+                                                                                                                            }
+                                                                                                                        }
+                                                                                                                    }
+                                                                                                                }
+                                                                                                            }
+                                                                                                            else {
+                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence", schemaPath: "#/properties/authoring/properties/evidence/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                                                return false;
+                                                                                                            }
                                                                                                         }
                                                                                                         var valid23 = _errs130 === errors;
                                                                                                     }
                                                                                                     else {
                                                                                                         var valid23 = true;
+                                                                                                    }
+                                                                                                    if (valid23) {
+                                                                                                        if (data38.dependencyPolicy !== undefined) {
+                                                                                                            let data63 = data38.dependencyPolicy;
+                                                                                                            const _errs148 = errors;
+                                                                                                            if (typeof data63 !== "string") {
+                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyPolicy", schemaPath: "#/$defs/dependencyPolicy/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                return false;
+                                                                                                            }
+                                                                                                            if (!(((((((((data63 === "primitive-const-islands-v1") || (data63 === "scoped-primitive-dag-v2")) || (data63 === "scoped-type-members-v3")) || (data63 === "scoped-effect-analysis-v4")) || (data63 === "scoped-effect-analysis-v5")) || (data63 === "scoped-effect-analysis-v6")) || (data63 === "scoped-effect-analysis-v7")) || (data63 === "scoped-effect-analysis-v8")) || (data63 === "scoped-effect-analysis-v9"))) {
+                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyPolicy", schemaPath: "#/$defs/dependencyPolicy/enum", keyword: "enum", params: { allowedValues: schema36.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                                return false;
+                                                                                                            }
+                                                                                                            var valid23 = _errs148 === errors;
+                                                                                                        }
+                                                                                                        else {
+                                                                                                            var valid23 = true;
+                                                                                                        }
                                                                                                     }
                                                                                                 }
                                                                                             }
@@ -1673,13 +1846,12 @@ function validate20(data, { instancePath = "", parentData, parentDataProperty, r
 } validate20.errors = vErrors; return errors === 0; }
 validate20.evaluated = { "props": true, "dynamicProps": false, "dynamicItems": false };
 export const validateIR = validate21;
-const schema36 = { "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://philofobreal.github.io/developer-exercise/language-ir-v1.schema.json", "title": "Language IR v1", "type": "object", "additionalProperties": false, "required": ["irVersion", "language", "source", "lines", "units", "containers", "bindingScopes", "boundaries", "edges", "profiles", "indentPolicy", "analysis"], "properties": { "irVersion": { "const": 1 }, "language": { "$ref": "#/$defs/id" }, "source": { "type": "string", "maxLength": 1048576, "not": { "pattern": "[\\r\\u2028\\u2029]" } }, "lines": { "type": "array", "minItems": 1, "maxItems": 500, "items": { "$ref": "#/$defs/line" } }, "units": { "type": "array", "minItems": 1, "maxItems": 500, "items": { "$ref": "#/$defs/unit" } }, "containers": { "type": "array", "maxItems": 250, "items": { "$ref": "#/$defs/container" } }, "bindingScopes": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/container" } }, "boundaries": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/boundary" } }, "edges": { "type": "array", "maxItems": 5000, "items": { "$ref": "#/$defs/edge" } }, "profiles": { "type": "array", "maxItems": 32, "items": { "type": "object", "additionalProperties": false, "required": ["id", "edges"], "properties": { "id": { "$ref": "#/$defs/id" }, "edges": { "type": "array", "maxItems": 5000, "items": { "$ref": "#/$defs/edge" } } } } }, "indentPolicy": { "type": "object", "additionalProperties": false, "required": ["mode", "tabWidth", "display"], "properties": { "mode": { "enum": ["presentation", "semantic"] }, "tabWidth": { "type": "integer", "minimum": 1, "maximum": 16 }, "display": { "enum": ["adapter", "preserve"] } }, "if": { "properties": { "mode": { "const": "semantic" } } }, "then": { "properties": { "display": { "const": "preserve" } } } }, "analysis": { "type": "object", "additionalProperties": false, "required": ["strategy", "sourceOrigin", "semanticEquivalenceProven"], "properties": { "strategy": { "enum": ["legacy-v2-projection", "native"] }, "sourceOrigin": { "enum": ["original", "reconstructed-v2"] }, "semanticEquivalenceProven": { "const": false }, "legacyAuthoring": { "$ref": "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring" } } } }, "$defs": { "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "nullableId": { "anyOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }, "position": { "type": "object", "additionalProperties": false, "required": ["offset", "line", "column"], "properties": { "offset": { "type": "integer", "minimum": 0, "maximum": 2100000 }, "line": { "type": "integer", "minimum": 1, "maximum": 1048577 }, "column": { "type": "integer", "minimum": 0, "maximum": 2100000 } } }, "line": { "type": "object", "additionalProperties": false, "required": ["id", "code", "sourceSpan", "normalization"], "properties": { "id": { "$ref": "#/$defs/id" }, "code": { "type": "string", "maxLength": 2048, "not": { "pattern": "[\\r\\n\\u2028\\u2029]" } }, "normalization": { "enum": ["indent", "exact"] }, "sourceSpan": { "type": "object", "additionalProperties": false, "required": ["start", "end"], "properties": { "start": { "$ref": "#/$defs/position" }, "end": { "$ref": "#/$defs/position" } } } } }, "unit": { "type": "object", "additionalProperties": false, "required": ["id", "lineIds", "containerId", "bindingScopeId", "dependencies", "fixed"], "properties": { "id": { "$ref": "#/$defs/id" }, "lineIds": { "type": "array", "minItems": 1, "maxItems": 500, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 200 } }, "containerId": { "$ref": "#/$defs/nullableId" }, "bindingScopeId": { "$ref": "#/$defs/nullableId" }, "dependencies": { "type": "array", "maxItems": 500, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 200 } }, "fixed": { "type": "boolean" } } }, "container": { "type": "object", "additionalProperties": false, "required": ["id", "parentId", "kind"], "properties": { "id": { "$ref": "#/$defs/id" }, "parentId": { "$ref": "#/$defs/nullableId" }, "kind": { "$ref": "#/$defs/id" } } }, "boundary": { "type": "object", "additionalProperties": false, "required": ["containerId", "unitId", "phase", "action", "virtual"], "properties": { "containerId": { "$ref": "#/$defs/id" }, "unitId": { "$ref": "#/$defs/id" }, "phase": { "enum": ["before", "after"] }, "action": { "enum": ["open", "close"] }, "virtual": { "type": "boolean" } } }, "edge": { "type": "object", "additionalProperties": false, "required": ["before", "after"], "properties": { "before": { "$ref": "#/$defs/id" }, "after": { "$ref": "#/$defs/id" } } } } };
-const schema37 = { "type": "string", "minLength": 1, "maxLength": 200 };
-const schema56 = { "type": "object", "additionalProperties": false, "properties": { "strategy": { "type": "string", "maxLength": 100 }, "reason": { "type": "string", "maxLength": 500 }, "note": { "type": "string", "maxLength": 1000 }, "omittedBlocks": { "type": "integer", "minimum": 0, "maximum": 500 }, "semanticEquivalenceProven": { "const": false }, "dependencyHints": { "type": "array", "maxItems": 200, "items": { "type": "object", "additionalProperties": false, "required": ["name", "declarationLine", "usageLine"], "properties": { "name": { "type": "string", "maxLength": 2048 }, "declarationLine": { "type": "integer", "minimum": 1, "maximum": 50000 }, "usageLine": { "type": "integer", "minimum": 1, "maximum": 50000 } } } }, "provenance": { "type": "array", "maxItems": 10000, "items": { "type": "object", "additionalProperties": false, "required": ["before", "after", "category", "code"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "category": { "type": "string", "enum": ["data", "effect", "structure", "unit", "policy", "author", "conservative", "unknown"] }, "code": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9-]*$", "maxLength": 64 } } } }, "dependencyPolicy": { "type": "string", "enum": ["primitive-const-islands-v1", "scoped-primitive-dag-v2", "scoped-type-members-v3", "scoped-effect-analysis-v4", "scoped-effect-analysis-v5", "scoped-effect-analysis-v6", "scoped-effect-analysis-v7", "scoped-effect-analysis-v8", "scoped-effect-analysis-v9"] } } };
-const pattern6 = new RegExp("[\\r\\u2028\\u2029]", "u");
-const schema38 = { "type": "object", "additionalProperties": false, "required": ["id", "code", "sourceSpan", "normalization"], "properties": { "id": { "$ref": "#/$defs/id" }, "code": { "type": "string", "maxLength": 2048, "not": { "pattern": "[\\r\\n\\u2028\\u2029]" } }, "normalization": { "enum": ["indent", "exact"] }, "sourceSpan": { "type": "object", "additionalProperties": false, "required": ["start", "end"], "properties": { "start": { "$ref": "#/$defs/position" }, "end": { "$ref": "#/$defs/position" } } } } };
-const schema40 = { "type": "object", "additionalProperties": false, "required": ["offset", "line", "column"], "properties": { "offset": { "type": "integer", "minimum": 0, "maximum": 2100000 }, "line": { "type": "integer", "minimum": 1, "maximum": 1048577 }, "column": { "type": "integer", "minimum": 0, "maximum": 2100000 } } };
-const pattern7 = new RegExp("[\\r\\n\\u2028\\u2029]", "u");
+const schema38 = { "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://philofobreal.github.io/developer-exercise/language-ir-v1.schema.json", "title": "Language IR v1", "type": "object", "additionalProperties": false, "required": ["irVersion", "language", "source", "lines", "units", "containers", "bindingScopes", "boundaries", "edges", "profiles", "indentPolicy", "analysis"], "properties": { "irVersion": { "const": 1 }, "language": { "$ref": "#/$defs/id" }, "source": { "type": "string", "maxLength": 1048576, "not": { "pattern": "[\\r\\u2028\\u2029]" } }, "lines": { "type": "array", "minItems": 1, "maxItems": 500, "items": { "$ref": "#/$defs/line" } }, "units": { "type": "array", "minItems": 1, "maxItems": 500, "items": { "$ref": "#/$defs/unit" } }, "containers": { "type": "array", "maxItems": 250, "items": { "$ref": "#/$defs/container" } }, "bindingScopes": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/container" } }, "boundaries": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/boundary" } }, "edges": { "type": "array", "maxItems": 5000, "items": { "$ref": "#/$defs/edge" } }, "profiles": { "type": "array", "maxItems": 32, "items": { "type": "object", "additionalProperties": false, "required": ["id", "edges"], "properties": { "id": { "$ref": "#/$defs/id" }, "edges": { "type": "array", "maxItems": 5000, "items": { "$ref": "#/$defs/edge" } } } } }, "indentPolicy": { "type": "object", "additionalProperties": false, "required": ["mode", "tabWidth", "display"], "properties": { "mode": { "enum": ["presentation", "semantic"] }, "tabWidth": { "type": "integer", "minimum": 1, "maximum": 16 }, "display": { "enum": ["adapter", "preserve"] } }, "if": { "properties": { "mode": { "const": "semantic" } } }, "then": { "properties": { "display": { "const": "preserve" } } } }, "analysis": { "type": "object", "additionalProperties": false, "required": ["strategy", "sourceOrigin", "semanticEquivalenceProven"], "properties": { "strategy": { "enum": ["legacy-v2-projection", "native"] }, "sourceOrigin": { "enum": ["original", "reconstructed-v2"] }, "semanticEquivalenceProven": { "const": false }, "legacyAuthoring": { "$ref": "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring" } } } }, "$defs": { "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "nullableId": { "anyOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }, "position": { "type": "object", "additionalProperties": false, "required": ["offset", "line", "column"], "properties": { "offset": { "type": "integer", "minimum": 0, "maximum": 2100000 }, "line": { "type": "integer", "minimum": 1, "maximum": 1048577 }, "column": { "type": "integer", "minimum": 0, "maximum": 2100000 } } }, "line": { "type": "object", "additionalProperties": false, "required": ["id", "code", "sourceSpan", "normalization"], "properties": { "id": { "$ref": "#/$defs/id" }, "code": { "type": "string", "maxLength": 2048, "not": { "pattern": "[\\r\\n\\u2028\\u2029]" } }, "normalization": { "enum": ["indent", "exact"] }, "sourceSpan": { "type": "object", "additionalProperties": false, "required": ["start", "end"], "properties": { "start": { "$ref": "#/$defs/position" }, "end": { "$ref": "#/$defs/position" } } } } }, "unit": { "type": "object", "additionalProperties": false, "required": ["id", "lineIds", "containerId", "bindingScopeId", "dependencies", "fixed"], "properties": { "id": { "$ref": "#/$defs/id" }, "lineIds": { "type": "array", "minItems": 1, "maxItems": 500, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 200 } }, "containerId": { "$ref": "#/$defs/nullableId" }, "bindingScopeId": { "$ref": "#/$defs/nullableId" }, "dependencies": { "type": "array", "maxItems": 500, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 200 } }, "fixed": { "type": "boolean" } } }, "container": { "type": "object", "additionalProperties": false, "required": ["id", "parentId", "kind"], "properties": { "id": { "$ref": "#/$defs/id" }, "parentId": { "$ref": "#/$defs/nullableId" }, "kind": { "$ref": "#/$defs/id" } } }, "boundary": { "type": "object", "additionalProperties": false, "required": ["containerId", "unitId", "phase", "action", "virtual"], "properties": { "containerId": { "$ref": "#/$defs/id" }, "unitId": { "$ref": "#/$defs/id" }, "phase": { "enum": ["before", "after"] }, "action": { "enum": ["open", "close"] }, "virtual": { "type": "boolean" } } }, "edge": { "type": "object", "additionalProperties": false, "required": ["before", "after"], "properties": { "before": { "$ref": "#/$defs/id" }, "after": { "$ref": "#/$defs/id" } } } } };
+const schema39 = { "type": "string", "minLength": 1, "maxLength": 200 };
+const pattern8 = new RegExp("[\\r\\u2028\\u2029]", "u");
+const schema40 = { "type": "object", "additionalProperties": false, "required": ["id", "code", "sourceSpan", "normalization"], "properties": { "id": { "$ref": "#/$defs/id" }, "code": { "type": "string", "maxLength": 2048, "not": { "pattern": "[\\r\\n\\u2028\\u2029]" } }, "normalization": { "enum": ["indent", "exact"] }, "sourceSpan": { "type": "object", "additionalProperties": false, "required": ["start", "end"], "properties": { "start": { "$ref": "#/$defs/position" }, "end": { "$ref": "#/$defs/position" } } } } };
+const schema42 = { "type": "object", "additionalProperties": false, "required": ["offset", "line", "column"], "properties": { "offset": { "type": "integer", "minimum": 0, "maximum": 2100000 }, "line": { "type": "integer", "minimum": 1, "maximum": 1048577 }, "column": { "type": "integer", "minimum": 0, "maximum": 2100000 } } };
+const pattern9 = new RegExp("[\\r\\n\\u2028\\u2029]", "u");
 function validate22(data, { instancePath = "", parentData, parentDataProperty, rootData = data, dynamicAnchors = {} } = {}) { let vErrors = null; let errors = 0; const evaluated0 = validate22.evaluated; if (evaluated0.dynamicProps) {
     evaluated0.props = undefined;
 } if (evaluated0.dynamicItems) {
@@ -1735,7 +1907,7 @@ function validate22(data, { instancePath = "", parentData, parentDataProperty, r
                         const _errs7 = errors;
                         const _errs8 = errors;
                         if (typeof data1 === "string") {
-                            if (!pattern7.test(data1)) {
+                            if (!pattern9.test(data1)) {
                                 const err0 = {};
                                 if (vErrors === null) {
                                     vErrors = [err0];
@@ -1784,7 +1956,7 @@ function validate22(data, { instancePath = "", parentData, parentDataProperty, r
                             let data2 = data.normalization;
                             const _errs9 = errors;
                             if (!((data2 === "indent") || (data2 === "exact"))) {
-                                validate22.errors = [{ instancePath: instancePath + "/normalization", schemaPath: "#/properties/normalization/enum", keyword: "enum", params: { allowedValues: schema38.properties.normalization.enum }, message: "must be equal to one of the allowed values" }];
+                                validate22.errors = [{ instancePath: instancePath + "/normalization", schemaPath: "#/properties/normalization/enum", keyword: "enum", params: { allowedValues: schema40.properties.normalization.enum }, message: "must be equal to one of the allowed values" }];
                                 return false;
                             }
                             var valid0 = _errs9 === errors;
@@ -2072,8 +2244,8 @@ function validate22(data, { instancePath = "", parentData, parentDataProperty, r
     }
 } validate22.errors = vErrors; return errors === 0; }
 validate22.evaluated = { "props": true, "dynamicProps": false, "dynamicItems": false };
-const schema42 = { "type": "object", "additionalProperties": false, "required": ["id", "lineIds", "containerId", "bindingScopeId", "dependencies", "fixed"], "properties": { "id": { "$ref": "#/$defs/id" }, "lineIds": { "type": "array", "minItems": 1, "maxItems": 500, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 200 } }, "containerId": { "$ref": "#/$defs/nullableId" }, "bindingScopeId": { "$ref": "#/$defs/nullableId" }, "dependencies": { "type": "array", "maxItems": 500, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 200 } }, "fixed": { "type": "boolean" } } };
-const schema44 = { "anyOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] };
+const schema44 = { "type": "object", "additionalProperties": false, "required": ["id", "lineIds", "containerId", "bindingScopeId", "dependencies", "fixed"], "properties": { "id": { "$ref": "#/$defs/id" }, "lineIds": { "type": "array", "minItems": 1, "maxItems": 500, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 200 } }, "containerId": { "$ref": "#/$defs/nullableId" }, "bindingScopeId": { "$ref": "#/$defs/nullableId" }, "dependencies": { "type": "array", "maxItems": 500, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 200 } }, "fixed": { "type": "boolean" } } };
+const schema46 = { "anyOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] };
 function validate25(data, { instancePath = "", parentData, parentDataProperty, rootData = data, dynamicAnchors = {} } = {}) { let vErrors = null; let errors = 0; const evaluated0 = validate25.evaluated; if (evaluated0.dynamicProps) {
     evaluated0.props = undefined;
 } if (evaluated0.dynamicItems) {
@@ -2392,7 +2564,7 @@ function validate24(data, { instancePath = "", parentData, parentDataProperty, r
     }
 } validate24.errors = vErrors; return errors === 0; }
 validate24.evaluated = { "props": true, "dynamicProps": false, "dynamicItems": false };
-const schema46 = { "type": "object", "additionalProperties": false, "required": ["id", "parentId", "kind"], "properties": { "id": { "$ref": "#/$defs/id" }, "parentId": { "$ref": "#/$defs/nullableId" }, "kind": { "$ref": "#/$defs/id" } } };
+const schema48 = { "type": "object", "additionalProperties": false, "required": ["id", "parentId", "kind"], "properties": { "id": { "$ref": "#/$defs/id" }, "parentId": { "$ref": "#/$defs/nullableId" }, "kind": { "$ref": "#/$defs/id" } } };
 function validate29(data, { instancePath = "", parentData, parentDataProperty, rootData = data, dynamicAnchors = {} } = {}) { let vErrors = null; let errors = 0; const evaluated0 = validate29.evaluated; if (evaluated0.dynamicProps) {
     evaluated0.props = undefined;
 } if (evaluated0.dynamicItems) {
@@ -2492,7 +2664,7 @@ function validate29(data, { instancePath = "", parentData, parentDataProperty, r
     }
 } validate29.errors = vErrors; return errors === 0; }
 validate29.evaluated = { "props": true, "dynamicProps": false, "dynamicItems": false };
-const schema49 = { "type": "object", "additionalProperties": false, "required": ["containerId", "unitId", "phase", "action", "virtual"], "properties": { "containerId": { "$ref": "#/$defs/id" }, "unitId": { "$ref": "#/$defs/id" }, "phase": { "enum": ["before", "after"] }, "action": { "enum": ["open", "close"] }, "virtual": { "type": "boolean" } } };
+const schema51 = { "type": "object", "additionalProperties": false, "required": ["containerId", "unitId", "phase", "action", "virtual"], "properties": { "containerId": { "$ref": "#/$defs/id" }, "unitId": { "$ref": "#/$defs/id" }, "phase": { "enum": ["before", "after"] }, "action": { "enum": ["open", "close"] }, "virtual": { "type": "boolean" } } };
 function validate33(data, { instancePath = "", parentData, parentDataProperty, rootData = data, dynamicAnchors = {} } = {}) { let vErrors = null; let errors = 0; const evaluated0 = validate33.evaluated; if (evaluated0.dynamicProps) {
     evaluated0.props = undefined;
 } if (evaluated0.dynamicItems) {
@@ -2574,7 +2746,7 @@ function validate33(data, { instancePath = "", parentData, parentDataProperty, r
                             let data2 = data.phase;
                             const _errs8 = errors;
                             if (!((data2 === "before") || (data2 === "after"))) {
-                                validate33.errors = [{ instancePath: instancePath + "/phase", schemaPath: "#/properties/phase/enum", keyword: "enum", params: { allowedValues: schema49.properties.phase.enum }, message: "must be equal to one of the allowed values" }];
+                                validate33.errors = [{ instancePath: instancePath + "/phase", schemaPath: "#/properties/phase/enum", keyword: "enum", params: { allowedValues: schema51.properties.phase.enum }, message: "must be equal to one of the allowed values" }];
                                 return false;
                             }
                             var valid0 = _errs8 === errors;
@@ -2587,7 +2759,7 @@ function validate33(data, { instancePath = "", parentData, parentDataProperty, r
                                 let data3 = data.action;
                                 const _errs9 = errors;
                                 if (!((data3 === "open") || (data3 === "close"))) {
-                                    validate33.errors = [{ instancePath: instancePath + "/action", schemaPath: "#/properties/action/enum", keyword: "enum", params: { allowedValues: schema49.properties.action.enum }, message: "must be equal to one of the allowed values" }];
+                                    validate33.errors = [{ instancePath: instancePath + "/action", schemaPath: "#/properties/action/enum", keyword: "enum", params: { allowedValues: schema51.properties.action.enum }, message: "must be equal to one of the allowed values" }];
                                     return false;
                                 }
                                 var valid0 = _errs9 === errors;
@@ -2620,7 +2792,7 @@ function validate33(data, { instancePath = "", parentData, parentDataProperty, r
     }
 } validate33.errors = vErrors; return errors === 0; }
 validate33.evaluated = { "props": true, "dynamicProps": false, "dynamicItems": false };
-const schema52 = { "type": "object", "additionalProperties": false, "required": ["before", "after"], "properties": { "before": { "$ref": "#/$defs/id" }, "after": { "$ref": "#/$defs/id" } } };
+const schema54 = { "type": "object", "additionalProperties": false, "required": ["before", "after"], "properties": { "before": { "$ref": "#/$defs/id" }, "after": { "$ref": "#/$defs/id" } } };
 function validate35(data, { instancePath = "", parentData, parentDataProperty, rootData = data, dynamicAnchors = {} } = {}) { let vErrors = null; let errors = 0; const evaluated0 = validate35.evaluated; if (evaluated0.dynamicProps) {
     evaluated0.props = undefined;
 } if (evaluated0.dynamicItems) {
@@ -2707,6 +2879,617 @@ function validate35(data, { instancePath = "", parentData, parentDataProperty, r
     }
 } validate35.errors = vErrors; return errors === 0; }
 validate35.evaluated = { "props": true, "dynamicProps": false, "dynamicItems": false };
+const schema58 = { "type": "object", "additionalProperties": false, "properties": { "strategy": { "type": "string", "maxLength": 100 }, "reason": { "type": "string", "maxLength": 500 }, "note": { "type": "string", "maxLength": 1000 }, "omittedBlocks": { "type": "integer", "minimum": 0, "maximum": 500 }, "semanticEquivalenceProven": { "const": false }, "dependencyHints": { "type": "array", "maxItems": 200, "items": { "type": "object", "additionalProperties": false, "required": ["name", "declarationLine", "usageLine"], "properties": { "name": { "type": "string", "maxLength": 2048 }, "declarationLine": { "type": "integer", "minimum": 1, "maximum": 50000 }, "usageLine": { "type": "integer", "minimum": 1, "maximum": 50000 } } } }, "provenance": { "type": "array", "maxItems": 10000, "items": { "type": "object", "additionalProperties": false, "required": ["before", "after", "category", "code"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "category": { "type": "string", "enum": ["data", "effect", "structure", "unit", "policy", "author", "conservative", "unknown"] }, "code": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9-]*$", "maxLength": 64 } } } }, "evidence": { "type": "object", "additionalProperties": false, "required": ["sourceDigest", "analyzer", "environment"], "properties": { "sourceDigest": { "type": "string", "pattern": "^[0-9a-f]{16}$" }, "analyzer": { "$ref": "#/$defs/dependencyPolicy" }, "environment": { "type": "object", "additionalProperties": false, "properties": { "typescript": { "type": "string", "pattern": "^[0-9A-Za-z.+-]{1,40}$" }, "importEmit": { "type": "string", "enum": ["verbatim", "elide-unused"] }, "sourceKind": { "type": "string", "enum": ["module", "script"] }, "classFields": { "const": "either" } } } } }, "dependencyPolicy": { "$ref": "#/$defs/dependencyPolicy" } } };
+function validate38(data, { instancePath = "", parentData, parentDataProperty, rootData = data, dynamicAnchors = {} } = {}) { let vErrors = null; let errors = 0; const evaluated0 = validate38.evaluated; if (evaluated0.dynamicProps) {
+    evaluated0.props = undefined;
+} if (evaluated0.dynamicItems) {
+    evaluated0.items = undefined;
+} if (errors === 0) {
+    if (data && typeof data == "object" && !Array.isArray(data)) {
+        const _errs1 = errors;
+        for (const key0 in data) {
+            if (!(func1.call(schema58.properties, key0))) {
+                validate38.errors = [{ instancePath, schemaPath: "#/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key0 }, message: "must NOT have additional properties" }];
+                return false;
+                break;
+            }
+        }
+        if (_errs1 === errors) {
+            if (data.strategy !== undefined) {
+                let data0 = data.strategy;
+                const _errs2 = errors;
+                if (errors === _errs2) {
+                    if (typeof data0 === "string") {
+                        if (func2(data0) > 100) {
+                            validate38.errors = [{ instancePath: instancePath + "/strategy", schemaPath: "#/properties/strategy/maxLength", keyword: "maxLength", params: { limit: 100 }, message: "must NOT have more than 100 characters" }];
+                            return false;
+                        }
+                    }
+                    else {
+                        validate38.errors = [{ instancePath: instancePath + "/strategy", schemaPath: "#/properties/strategy/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                        return false;
+                    }
+                }
+                var valid0 = _errs2 === errors;
+            }
+            else {
+                var valid0 = true;
+            }
+            if (valid0) {
+                if (data.reason !== undefined) {
+                    let data1 = data.reason;
+                    const _errs4 = errors;
+                    if (errors === _errs4) {
+                        if (typeof data1 === "string") {
+                            if (func2(data1) > 500) {
+                                validate38.errors = [{ instancePath: instancePath + "/reason", schemaPath: "#/properties/reason/maxLength", keyword: "maxLength", params: { limit: 500 }, message: "must NOT have more than 500 characters" }];
+                                return false;
+                            }
+                        }
+                        else {
+                            validate38.errors = [{ instancePath: instancePath + "/reason", schemaPath: "#/properties/reason/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                            return false;
+                        }
+                    }
+                    var valid0 = _errs4 === errors;
+                }
+                else {
+                    var valid0 = true;
+                }
+                if (valid0) {
+                    if (data.note !== undefined) {
+                        let data2 = data.note;
+                        const _errs6 = errors;
+                        if (errors === _errs6) {
+                            if (typeof data2 === "string") {
+                                if (func2(data2) > 1000) {
+                                    validate38.errors = [{ instancePath: instancePath + "/note", schemaPath: "#/properties/note/maxLength", keyword: "maxLength", params: { limit: 1000 }, message: "must NOT have more than 1000 characters" }];
+                                    return false;
+                                }
+                            }
+                            else {
+                                validate38.errors = [{ instancePath: instancePath + "/note", schemaPath: "#/properties/note/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                return false;
+                            }
+                        }
+                        var valid0 = _errs6 === errors;
+                    }
+                    else {
+                        var valid0 = true;
+                    }
+                    if (valid0) {
+                        if (data.omittedBlocks !== undefined) {
+                            let data3 = data.omittedBlocks;
+                            const _errs8 = errors;
+                            if (!(((typeof data3 == "number") && (!(data3 % 1) && !isNaN(data3))) && (isFinite(data3)))) {
+                                validate38.errors = [{ instancePath: instancePath + "/omittedBlocks", schemaPath: "#/properties/omittedBlocks/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                return false;
+                            }
+                            if (errors === _errs8) {
+                                if ((typeof data3 == "number") && (isFinite(data3))) {
+                                    if (data3 > 500 || isNaN(data3)) {
+                                        validate38.errors = [{ instancePath: instancePath + "/omittedBlocks", schemaPath: "#/properties/omittedBlocks/maximum", keyword: "maximum", params: { comparison: "<=", limit: 500 }, message: "must be <= 500" }];
+                                        return false;
+                                    }
+                                    else {
+                                        if (data3 < 0 || isNaN(data3)) {
+                                            validate38.errors = [{ instancePath: instancePath + "/omittedBlocks", schemaPath: "#/properties/omittedBlocks/minimum", keyword: "minimum", params: { comparison: ">=", limit: 0 }, message: "must be >= 0" }];
+                                            return false;
+                                        }
+                                    }
+                                }
+                            }
+                            var valid0 = _errs8 === errors;
+                        }
+                        else {
+                            var valid0 = true;
+                        }
+                        if (valid0) {
+                            if (data.semanticEquivalenceProven !== undefined) {
+                                const _errs10 = errors;
+                                if (false !== data.semanticEquivalenceProven) {
+                                    validate38.errors = [{ instancePath: instancePath + "/semanticEquivalenceProven", schemaPath: "#/properties/semanticEquivalenceProven/const", keyword: "const", params: { allowedValue: false }, message: "must be equal to constant" }];
+                                    return false;
+                                }
+                                var valid0 = _errs10 === errors;
+                            }
+                            else {
+                                var valid0 = true;
+                            }
+                            if (valid0) {
+                                if (data.dependencyHints !== undefined) {
+                                    let data5 = data.dependencyHints;
+                                    const _errs11 = errors;
+                                    if (errors === _errs11) {
+                                        if (Array.isArray(data5)) {
+                                            if (data5.length > 200) {
+                                                validate38.errors = [{ instancePath: instancePath + "/dependencyHints", schemaPath: "#/properties/dependencyHints/maxItems", keyword: "maxItems", params: { limit: 200 }, message: "must NOT have more than 200 items" }];
+                                                return false;
+                                            }
+                                            else {
+                                                var valid1 = true;
+                                                const len0 = data5.length;
+                                                for (let i0 = 0; i0 < len0; i0++) {
+                                                    let data6 = data5[i0];
+                                                    const _errs13 = errors;
+                                                    if (errors === _errs13) {
+                                                        if (data6 && typeof data6 == "object" && !Array.isArray(data6)) {
+                                                            let missing0;
+                                                            if ((((data6.name === undefined) && (missing0 = "name")) || ((data6.declarationLine === undefined) && (missing0 = "declarationLine"))) || ((data6.usageLine === undefined) && (missing0 = "usageLine"))) {
+                                                                validate38.errors = [{ instancePath: instancePath + "/dependencyHints/" + i0, schemaPath: "#/properties/dependencyHints/items/required", keyword: "required", params: { missingProperty: missing0 }, message: "must have required property '" + missing0 + "'" }];
+                                                                return false;
+                                                            }
+                                                            else {
+                                                                const _errs15 = errors;
+                                                                for (const key1 in data6) {
+                                                                    if (!(((key1 === "name") || (key1 === "declarationLine")) || (key1 === "usageLine"))) {
+                                                                        validate38.errors = [{ instancePath: instancePath + "/dependencyHints/" + i0, schemaPath: "#/properties/dependencyHints/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key1 }, message: "must NOT have additional properties" }];
+                                                                        return false;
+                                                                        break;
+                                                                    }
+                                                                }
+                                                                if (_errs15 === errors) {
+                                                                    if (data6.name !== undefined) {
+                                                                        let data7 = data6.name;
+                                                                        const _errs16 = errors;
+                                                                        if (errors === _errs16) {
+                                                                            if (typeof data7 === "string") {
+                                                                                if (func2(data7) > 2048) {
+                                                                                    validate38.errors = [{ instancePath: instancePath + "/dependencyHints/" + i0 + "/name", schemaPath: "#/properties/dependencyHints/items/properties/name/maxLength", keyword: "maxLength", params: { limit: 2048 }, message: "must NOT have more than 2048 characters" }];
+                                                                                    return false;
+                                                                                }
+                                                                            }
+                                                                            else {
+                                                                                validate38.errors = [{ instancePath: instancePath + "/dependencyHints/" + i0 + "/name", schemaPath: "#/properties/dependencyHints/items/properties/name/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                return false;
+                                                                            }
+                                                                        }
+                                                                        var valid2 = _errs16 === errors;
+                                                                    }
+                                                                    else {
+                                                                        var valid2 = true;
+                                                                    }
+                                                                    if (valid2) {
+                                                                        if (data6.declarationLine !== undefined) {
+                                                                            let data8 = data6.declarationLine;
+                                                                            const _errs18 = errors;
+                                                                            if (!(((typeof data8 == "number") && (!(data8 % 1) && !isNaN(data8))) && (isFinite(data8)))) {
+                                                                                validate38.errors = [{ instancePath: instancePath + "/dependencyHints/" + i0 + "/declarationLine", schemaPath: "#/properties/dependencyHints/items/properties/declarationLine/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                return false;
+                                                                            }
+                                                                            if (errors === _errs18) {
+                                                                                if ((typeof data8 == "number") && (isFinite(data8))) {
+                                                                                    if (data8 > 50000 || isNaN(data8)) {
+                                                                                        validate38.errors = [{ instancePath: instancePath + "/dependencyHints/" + i0 + "/declarationLine", schemaPath: "#/properties/dependencyHints/items/properties/declarationLine/maximum", keyword: "maximum", params: { comparison: "<=", limit: 50000 }, message: "must be <= 50000" }];
+                                                                                        return false;
+                                                                                    }
+                                                                                    else {
+                                                                                        if (data8 < 1 || isNaN(data8)) {
+                                                                                            validate38.errors = [{ instancePath: instancePath + "/dependencyHints/" + i0 + "/declarationLine", schemaPath: "#/properties/dependencyHints/items/properties/declarationLine/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                            return false;
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                            var valid2 = _errs18 === errors;
+                                                                        }
+                                                                        else {
+                                                                            var valid2 = true;
+                                                                        }
+                                                                        if (valid2) {
+                                                                            if (data6.usageLine !== undefined) {
+                                                                                let data9 = data6.usageLine;
+                                                                                const _errs20 = errors;
+                                                                                if (!(((typeof data9 == "number") && (!(data9 % 1) && !isNaN(data9))) && (isFinite(data9)))) {
+                                                                                    validate38.errors = [{ instancePath: instancePath + "/dependencyHints/" + i0 + "/usageLine", schemaPath: "#/properties/dependencyHints/items/properties/usageLine/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                    return false;
+                                                                                }
+                                                                                if (errors === _errs20) {
+                                                                                    if ((typeof data9 == "number") && (isFinite(data9))) {
+                                                                                        if (data9 > 50000 || isNaN(data9)) {
+                                                                                            validate38.errors = [{ instancePath: instancePath + "/dependencyHints/" + i0 + "/usageLine", schemaPath: "#/properties/dependencyHints/items/properties/usageLine/maximum", keyword: "maximum", params: { comparison: "<=", limit: 50000 }, message: "must be <= 50000" }];
+                                                                                            return false;
+                                                                                        }
+                                                                                        else {
+                                                                                            if (data9 < 1 || isNaN(data9)) {
+                                                                                                validate38.errors = [{ instancePath: instancePath + "/dependencyHints/" + i0 + "/usageLine", schemaPath: "#/properties/dependencyHints/items/properties/usageLine/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                return false;
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                                var valid2 = _errs20 === errors;
+                                                                            }
+                                                                            else {
+                                                                                var valid2 = true;
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                        else {
+                                                            validate38.errors = [{ instancePath: instancePath + "/dependencyHints/" + i0, schemaPath: "#/properties/dependencyHints/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                            return false;
+                                                        }
+                                                    }
+                                                    var valid1 = _errs13 === errors;
+                                                    if (!valid1) {
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        else {
+                                            validate38.errors = [{ instancePath: instancePath + "/dependencyHints", schemaPath: "#/properties/dependencyHints/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                            return false;
+                                        }
+                                    }
+                                    var valid0 = _errs11 === errors;
+                                }
+                                else {
+                                    var valid0 = true;
+                                }
+                                if (valid0) {
+                                    if (data.provenance !== undefined) {
+                                        let data10 = data.provenance;
+                                        const _errs22 = errors;
+                                        if (errors === _errs22) {
+                                            if (Array.isArray(data10)) {
+                                                if (data10.length > 10000) {
+                                                    validate38.errors = [{ instancePath: instancePath + "/provenance", schemaPath: "#/properties/provenance/maxItems", keyword: "maxItems", params: { limit: 10000 }, message: "must NOT have more than 10000 items" }];
+                                                    return false;
+                                                }
+                                                else {
+                                                    var valid3 = true;
+                                                    const len1 = data10.length;
+                                                    for (let i1 = 0; i1 < len1; i1++) {
+                                                        let data11 = data10[i1];
+                                                        const _errs24 = errors;
+                                                        if (errors === _errs24) {
+                                                            if (data11 && typeof data11 == "object" && !Array.isArray(data11)) {
+                                                                let missing1;
+                                                                if (((((data11.before === undefined) && (missing1 = "before")) || ((data11.after === undefined) && (missing1 = "after"))) || ((data11.category === undefined) && (missing1 = "category"))) || ((data11.code === undefined) && (missing1 = "code"))) {
+                                                                    validate38.errors = [{ instancePath: instancePath + "/provenance/" + i1, schemaPath: "#/properties/provenance/items/required", keyword: "required", params: { missingProperty: missing1 }, message: "must have required property '" + missing1 + "'" }];
+                                                                    return false;
+                                                                }
+                                                                else {
+                                                                    const _errs26 = errors;
+                                                                    for (const key2 in data11) {
+                                                                        if (!((((key2 === "before") || (key2 === "after")) || (key2 === "category")) || (key2 === "code"))) {
+                                                                            validate38.errors = [{ instancePath: instancePath + "/provenance/" + i1, schemaPath: "#/properties/provenance/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key2 }, message: "must NOT have additional properties" }];
+                                                                            return false;
+                                                                            break;
+                                                                        }
+                                                                    }
+                                                                    if (_errs26 === errors) {
+                                                                        if (data11.before !== undefined) {
+                                                                            let data12 = data11.before;
+                                                                            const _errs27 = errors;
+                                                                            if (!(((typeof data12 == "number") && (!(data12 % 1) && !isNaN(data12))) && (isFinite(data12)))) {
+                                                                                validate38.errors = [{ instancePath: instancePath + "/provenance/" + i1 + "/before", schemaPath: "#/properties/provenance/items/properties/before/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                return false;
+                                                                            }
+                                                                            if (errors === _errs27) {
+                                                                                if ((typeof data12 == "number") && (isFinite(data12))) {
+                                                                                    if (data12 > 9007199254740991 || isNaN(data12)) {
+                                                                                        validate38.errors = [{ instancePath: instancePath + "/provenance/" + i1 + "/before", schemaPath: "#/properties/provenance/items/properties/before/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                        return false;
+                                                                                    }
+                                                                                    else {
+                                                                                        if (data12 < 1 || isNaN(data12)) {
+                                                                                            validate38.errors = [{ instancePath: instancePath + "/provenance/" + i1 + "/before", schemaPath: "#/properties/provenance/items/properties/before/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                            return false;
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                            var valid4 = _errs27 === errors;
+                                                                        }
+                                                                        else {
+                                                                            var valid4 = true;
+                                                                        }
+                                                                        if (valid4) {
+                                                                            if (data11.after !== undefined) {
+                                                                                let data13 = data11.after;
+                                                                                const _errs29 = errors;
+                                                                                if (!(((typeof data13 == "number") && (!(data13 % 1) && !isNaN(data13))) && (isFinite(data13)))) {
+                                                                                    validate38.errors = [{ instancePath: instancePath + "/provenance/" + i1 + "/after", schemaPath: "#/properties/provenance/items/properties/after/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                    return false;
+                                                                                }
+                                                                                if (errors === _errs29) {
+                                                                                    if ((typeof data13 == "number") && (isFinite(data13))) {
+                                                                                        if (data13 > 9007199254740991 || isNaN(data13)) {
+                                                                                            validate38.errors = [{ instancePath: instancePath + "/provenance/" + i1 + "/after", schemaPath: "#/properties/provenance/items/properties/after/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                            return false;
+                                                                                        }
+                                                                                        else {
+                                                                                            if (data13 < 1 || isNaN(data13)) {
+                                                                                                validate38.errors = [{ instancePath: instancePath + "/provenance/" + i1 + "/after", schemaPath: "#/properties/provenance/items/properties/after/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                return false;
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                                var valid4 = _errs29 === errors;
+                                                                            }
+                                                                            else {
+                                                                                var valid4 = true;
+                                                                            }
+                                                                            if (valid4) {
+                                                                                if (data11.category !== undefined) {
+                                                                                    let data14 = data11.category;
+                                                                                    const _errs31 = errors;
+                                                                                    if (typeof data14 !== "string") {
+                                                                                        validate38.errors = [{ instancePath: instancePath + "/provenance/" + i1 + "/category", schemaPath: "#/properties/provenance/items/properties/category/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                        return false;
+                                                                                    }
+                                                                                    if (!((((((((data14 === "data") || (data14 === "effect")) || (data14 === "structure")) || (data14 === "unit")) || (data14 === "policy")) || (data14 === "author")) || (data14 === "conservative")) || (data14 === "unknown"))) {
+                                                                                        validate38.errors = [{ instancePath: instancePath + "/provenance/" + i1 + "/category", schemaPath: "#/properties/provenance/items/properties/category/enum", keyword: "enum", params: { allowedValues: schema58.properties.provenance.items.properties.category.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                        return false;
+                                                                                    }
+                                                                                    var valid4 = _errs31 === errors;
+                                                                                }
+                                                                                else {
+                                                                                    var valid4 = true;
+                                                                                }
+                                                                                if (valid4) {
+                                                                                    if (data11.code !== undefined) {
+                                                                                        let data15 = data11.code;
+                                                                                        const _errs33 = errors;
+                                                                                        if (errors === _errs33) {
+                                                                                            if (typeof data15 === "string") {
+                                                                                                if (func2(data15) > 64) {
+                                                                                                    validate38.errors = [{ instancePath: instancePath + "/provenance/" + i1 + "/code", schemaPath: "#/properties/provenance/items/properties/code/maxLength", keyword: "maxLength", params: { limit: 64 }, message: "must NOT have more than 64 characters" }];
+                                                                                                    return false;
+                                                                                                }
+                                                                                                else {
+                                                                                                    if (!pattern5.test(data15)) {
+                                                                                                        validate38.errors = [{ instancePath: instancePath + "/provenance/" + i1 + "/code", schemaPath: "#/properties/provenance/items/properties/code/pattern", keyword: "pattern", params: { pattern: "^[A-Za-z][A-Za-z0-9-]*$" }, message: "must match pattern \"" + "^[A-Za-z][A-Za-z0-9-]*$" + "\"" }];
+                                                                                                        return false;
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                            else {
+                                                                                                validate38.errors = [{ instancePath: instancePath + "/provenance/" + i1 + "/code", schemaPath: "#/properties/provenance/items/properties/code/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                return false;
+                                                                                            }
+                                                                                        }
+                                                                                        var valid4 = _errs33 === errors;
+                                                                                    }
+                                                                                    else {
+                                                                                        var valid4 = true;
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                            else {
+                                                                validate38.errors = [{ instancePath: instancePath + "/provenance/" + i1, schemaPath: "#/properties/provenance/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                return false;
+                                                            }
+                                                        }
+                                                        var valid3 = _errs24 === errors;
+                                                        if (!valid3) {
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            else {
+                                                validate38.errors = [{ instancePath: instancePath + "/provenance", schemaPath: "#/properties/provenance/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                                return false;
+                                            }
+                                        }
+                                        var valid0 = _errs22 === errors;
+                                    }
+                                    else {
+                                        var valid0 = true;
+                                    }
+                                    if (valid0) {
+                                        if (data.evidence !== undefined) {
+                                            let data16 = data.evidence;
+                                            const _errs35 = errors;
+                                            if (errors === _errs35) {
+                                                if (data16 && typeof data16 == "object" && !Array.isArray(data16)) {
+                                                    let missing2;
+                                                    if ((((data16.sourceDigest === undefined) && (missing2 = "sourceDigest")) || ((data16.analyzer === undefined) && (missing2 = "analyzer"))) || ((data16.environment === undefined) && (missing2 = "environment"))) {
+                                                        validate38.errors = [{ instancePath: instancePath + "/evidence", schemaPath: "#/properties/evidence/required", keyword: "required", params: { missingProperty: missing2 }, message: "must have required property '" + missing2 + "'" }];
+                                                        return false;
+                                                    }
+                                                    else {
+                                                        const _errs37 = errors;
+                                                        for (const key3 in data16) {
+                                                            if (!(((key3 === "sourceDigest") || (key3 === "analyzer")) || (key3 === "environment"))) {
+                                                                validate38.errors = [{ instancePath: instancePath + "/evidence", schemaPath: "#/properties/evidence/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key3 }, message: "must NOT have additional properties" }];
+                                                                return false;
+                                                                break;
+                                                            }
+                                                        }
+                                                        if (_errs37 === errors) {
+                                                            if (data16.sourceDigest !== undefined) {
+                                                                let data17 = data16.sourceDigest;
+                                                                const _errs38 = errors;
+                                                                if (errors === _errs38) {
+                                                                    if (typeof data17 === "string") {
+                                                                        if (!pattern6.test(data17)) {
+                                                                            validate38.errors = [{ instancePath: instancePath + "/evidence/sourceDigest", schemaPath: "#/properties/evidence/properties/sourceDigest/pattern", keyword: "pattern", params: { pattern: "^[0-9a-f]{16}$" }, message: "must match pattern \"" + "^[0-9a-f]{16}$" + "\"" }];
+                                                                            return false;
+                                                                        }
+                                                                    }
+                                                                    else {
+                                                                        validate38.errors = [{ instancePath: instancePath + "/evidence/sourceDigest", schemaPath: "#/properties/evidence/properties/sourceDigest/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                        return false;
+                                                                    }
+                                                                }
+                                                                var valid5 = _errs38 === errors;
+                                                            }
+                                                            else {
+                                                                var valid5 = true;
+                                                            }
+                                                            if (valid5) {
+                                                                if (data16.analyzer !== undefined) {
+                                                                    let data18 = data16.analyzer;
+                                                                    const _errs40 = errors;
+                                                                    if (typeof data18 !== "string") {
+                                                                        validate38.errors = [{ instancePath: instancePath + "/evidence/analyzer", schemaPath: "#/$defs/dependencyPolicy/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                        return false;
+                                                                    }
+                                                                    if (!(((((((((data18 === "primitive-const-islands-v1") || (data18 === "scoped-primitive-dag-v2")) || (data18 === "scoped-type-members-v3")) || (data18 === "scoped-effect-analysis-v4")) || (data18 === "scoped-effect-analysis-v5")) || (data18 === "scoped-effect-analysis-v6")) || (data18 === "scoped-effect-analysis-v7")) || (data18 === "scoped-effect-analysis-v8")) || (data18 === "scoped-effect-analysis-v9"))) {
+                                                                        validate38.errors = [{ instancePath: instancePath + "/evidence/analyzer", schemaPath: "#/$defs/dependencyPolicy/enum", keyword: "enum", params: { allowedValues: schema36.enum }, message: "must be equal to one of the allowed values" }];
+                                                                        return false;
+                                                                    }
+                                                                    var valid5 = _errs40 === errors;
+                                                                }
+                                                                else {
+                                                                    var valid5 = true;
+                                                                }
+                                                                if (valid5) {
+                                                                    if (data16.environment !== undefined) {
+                                                                        let data19 = data16.environment;
+                                                                        const _errs43 = errors;
+                                                                        if (errors === _errs43) {
+                                                                            if (data19 && typeof data19 == "object" && !Array.isArray(data19)) {
+                                                                                const _errs45 = errors;
+                                                                                for (const key4 in data19) {
+                                                                                    if (!((((key4 === "typescript") || (key4 === "importEmit")) || (key4 === "sourceKind")) || (key4 === "classFields"))) {
+                                                                                        validate38.errors = [{ instancePath: instancePath + "/evidence/environment", schemaPath: "#/properties/evidence/properties/environment/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key4 }, message: "must NOT have additional properties" }];
+                                                                                        return false;
+                                                                                        break;
+                                                                                    }
+                                                                                }
+                                                                                if (_errs45 === errors) {
+                                                                                    if (data19.typescript !== undefined) {
+                                                                                        let data20 = data19.typescript;
+                                                                                        const _errs46 = errors;
+                                                                                        if (errors === _errs46) {
+                                                                                            if (typeof data20 === "string") {
+                                                                                                if (!pattern7.test(data20)) {
+                                                                                                    validate38.errors = [{ instancePath: instancePath + "/evidence/environment/typescript", schemaPath: "#/properties/evidence/properties/environment/properties/typescript/pattern", keyword: "pattern", params: { pattern: "^[0-9A-Za-z.+-]{1,40}$" }, message: "must match pattern \"" + "^[0-9A-Za-z.+-]{1,40}$" + "\"" }];
+                                                                                                    return false;
+                                                                                                }
+                                                                                            }
+                                                                                            else {
+                                                                                                validate38.errors = [{ instancePath: instancePath + "/evidence/environment/typescript", schemaPath: "#/properties/evidence/properties/environment/properties/typescript/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                return false;
+                                                                                            }
+                                                                                        }
+                                                                                        var valid7 = _errs46 === errors;
+                                                                                    }
+                                                                                    else {
+                                                                                        var valid7 = true;
+                                                                                    }
+                                                                                    if (valid7) {
+                                                                                        if (data19.importEmit !== undefined) {
+                                                                                            let data21 = data19.importEmit;
+                                                                                            const _errs48 = errors;
+                                                                                            if (typeof data21 !== "string") {
+                                                                                                validate38.errors = [{ instancePath: instancePath + "/evidence/environment/importEmit", schemaPath: "#/properties/evidence/properties/environment/properties/importEmit/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                return false;
+                                                                                            }
+                                                                                            if (!((data21 === "verbatim") || (data21 === "elide-unused"))) {
+                                                                                                validate38.errors = [{ instancePath: instancePath + "/evidence/environment/importEmit", schemaPath: "#/properties/evidence/properties/environment/properties/importEmit/enum", keyword: "enum", params: { allowedValues: schema58.properties.evidence.properties.environment.properties.importEmit.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                return false;
+                                                                                            }
+                                                                                            var valid7 = _errs48 === errors;
+                                                                                        }
+                                                                                        else {
+                                                                                            var valid7 = true;
+                                                                                        }
+                                                                                        if (valid7) {
+                                                                                            if (data19.sourceKind !== undefined) {
+                                                                                                let data22 = data19.sourceKind;
+                                                                                                const _errs50 = errors;
+                                                                                                if (typeof data22 !== "string") {
+                                                                                                    validate38.errors = [{ instancePath: instancePath + "/evidence/environment/sourceKind", schemaPath: "#/properties/evidence/properties/environment/properties/sourceKind/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                    return false;
+                                                                                                }
+                                                                                                if (!((data22 === "module") || (data22 === "script"))) {
+                                                                                                    validate38.errors = [{ instancePath: instancePath + "/evidence/environment/sourceKind", schemaPath: "#/properties/evidence/properties/environment/properties/sourceKind/enum", keyword: "enum", params: { allowedValues: schema58.properties.evidence.properties.environment.properties.sourceKind.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                    return false;
+                                                                                                }
+                                                                                                var valid7 = _errs50 === errors;
+                                                                                            }
+                                                                                            else {
+                                                                                                var valid7 = true;
+                                                                                            }
+                                                                                            if (valid7) {
+                                                                                                if (data19.classFields !== undefined) {
+                                                                                                    const _errs52 = errors;
+                                                                                                    if ("either" !== data19.classFields) {
+                                                                                                        validate38.errors = [{ instancePath: instancePath + "/evidence/environment/classFields", schemaPath: "#/properties/evidence/properties/environment/properties/classFields/const", keyword: "const", params: { allowedValue: "either" }, message: "must be equal to constant" }];
+                                                                                                        return false;
+                                                                                                    }
+                                                                                                    var valid7 = _errs52 === errors;
+                                                                                                }
+                                                                                                else {
+                                                                                                    var valid7 = true;
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                            else {
+                                                                                validate38.errors = [{ instancePath: instancePath + "/evidence/environment", schemaPath: "#/properties/evidence/properties/environment/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                return false;
+                                                                            }
+                                                                        }
+                                                                        var valid5 = _errs43 === errors;
+                                                                    }
+                                                                    else {
+                                                                        var valid5 = true;
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                else {
+                                                    validate38.errors = [{ instancePath: instancePath + "/evidence", schemaPath: "#/properties/evidence/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                    return false;
+                                                }
+                                            }
+                                            var valid0 = _errs35 === errors;
+                                        }
+                                        else {
+                                            var valid0 = true;
+                                        }
+                                        if (valid0) {
+                                            if (data.dependencyPolicy !== undefined) {
+                                                let data24 = data.dependencyPolicy;
+                                                const _errs53 = errors;
+                                                if (typeof data24 !== "string") {
+                                                    validate38.errors = [{ instancePath: instancePath + "/dependencyPolicy", schemaPath: "#/$defs/dependencyPolicy/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                    return false;
+                                                }
+                                                if (!(((((((((data24 === "primitive-const-islands-v1") || (data24 === "scoped-primitive-dag-v2")) || (data24 === "scoped-type-members-v3")) || (data24 === "scoped-effect-analysis-v4")) || (data24 === "scoped-effect-analysis-v5")) || (data24 === "scoped-effect-analysis-v6")) || (data24 === "scoped-effect-analysis-v7")) || (data24 === "scoped-effect-analysis-v8")) || (data24 === "scoped-effect-analysis-v9"))) {
+                                                    validate38.errors = [{ instancePath: instancePath + "/dependencyPolicy", schemaPath: "#/$defs/dependencyPolicy/enum", keyword: "enum", params: { allowedValues: schema36.enum }, message: "must be equal to one of the allowed values" }];
+                                                    return false;
+                                                }
+                                                var valid0 = _errs53 === errors;
+                                            }
+                                            else {
+                                                var valid0 = true;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    else {
+        validate38.errors = [{ instancePath, schemaPath: "#/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+        return false;
+    }
+} validate38.errors = vErrors; return errors === 0; }
+validate38.evaluated = { "props": true, "dynamicProps": false, "dynamicItems": false };
 function validate21(data, { instancePath = "", parentData, parentDataProperty, rootData = data, dynamicAnchors = {} } = {}) { /*# sourceURL="https://philofobreal.github.io/developer-exercise/language-ir-v1.schema.json" */ ; let vErrors = null; let errors = 0; const evaluated0 = validate21.evaluated; if (evaluated0.dynamicProps) {
     evaluated0.props = undefined;
 } if (evaluated0.dynamicItems) {
@@ -2721,7 +3504,7 @@ function validate21(data, { instancePath = "", parentData, parentDataProperty, r
         else {
             const _errs1 = errors;
             for (const key0 in data) {
-                if (!(func1.call(schema36.properties, key0))) {
+                if (!(func1.call(schema38.properties, key0))) {
                     validate21.errors = [{ instancePath, schemaPath: "#/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key0 }, message: "must NOT have additional properties" }];
                     return false;
                     break;
@@ -2774,7 +3557,7 @@ function validate21(data, { instancePath = "", parentData, parentDataProperty, r
                             const _errs8 = errors;
                             const _errs9 = errors;
                             if (typeof data2 === "string") {
-                                if (!pattern6.test(data2)) {
+                                if (!pattern8.test(data2)) {
                                     const err0 = {};
                                     if (vErrors === null) {
                                         vErrors = [err0];
@@ -3250,7 +4033,7 @@ function validate21(data, { instancePath = "", parentData, parentDataProperty, r
                                                                                 let data23 = data20.mode;
                                                                                 const _errs47 = errors;
                                                                                 if (!((data23 === "presentation") || (data23 === "semantic"))) {
-                                                                                    validate21.errors = [{ instancePath: instancePath + "/indentPolicy/mode", schemaPath: "#/properties/indentPolicy/properties/mode/enum", keyword: "enum", params: { allowedValues: schema36.properties.indentPolicy.properties.mode.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                    validate21.errors = [{ instancePath: instancePath + "/indentPolicy/mode", schemaPath: "#/properties/indentPolicy/properties/mode/enum", keyword: "enum", params: { allowedValues: schema38.properties.indentPolicy.properties.mode.enum }, message: "must be equal to one of the allowed values" }];
                                                                                     return false;
                                                                                 }
                                                                                 var valid16 = _errs47 === errors;
@@ -3290,7 +4073,7 @@ function validate21(data, { instancePath = "", parentData, parentDataProperty, r
                                                                                         let data25 = data20.display;
                                                                                         const _errs50 = errors;
                                                                                         if (!((data25 === "adapter") || (data25 === "preserve"))) {
-                                                                                            validate21.errors = [{ instancePath: instancePath + "/indentPolicy/display", schemaPath: "#/properties/indentPolicy/properties/display/enum", keyword: "enum", params: { allowedValues: schema36.properties.indentPolicy.properties.display.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                            validate21.errors = [{ instancePath: instancePath + "/indentPolicy/display", schemaPath: "#/properties/indentPolicy/properties/display/enum", keyword: "enum", params: { allowedValues: schema38.properties.indentPolicy.properties.display.enum }, message: "must be equal to one of the allowed values" }];
                                                                                             return false;
                                                                                         }
                                                                                         var valid16 = _errs50 === errors;
@@ -3338,7 +4121,7 @@ function validate21(data, { instancePath = "", parentData, parentDataProperty, r
                                                                                     let data27 = data26.strategy;
                                                                                     const _errs54 = errors;
                                                                                     if (!((data27 === "legacy-v2-projection") || (data27 === "native"))) {
-                                                                                        validate21.errors = [{ instancePath: instancePath + "/analysis/strategy", schemaPath: "#/properties/analysis/properties/strategy/enum", keyword: "enum", params: { allowedValues: schema36.properties.analysis.properties.strategy.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                        validate21.errors = [{ instancePath: instancePath + "/analysis/strategy", schemaPath: "#/properties/analysis/properties/strategy/enum", keyword: "enum", params: { allowedValues: schema38.properties.analysis.properties.strategy.enum }, message: "must be equal to one of the allowed values" }];
                                                                                         return false;
                                                                                     }
                                                                                     var valid17 = _errs54 === errors;
@@ -3351,7 +4134,7 @@ function validate21(data, { instancePath = "", parentData, parentDataProperty, r
                                                                                         let data28 = data26.sourceOrigin;
                                                                                         const _errs55 = errors;
                                                                                         if (!((data28 === "original") || (data28 === "reconstructed-v2"))) {
-                                                                                            validate21.errors = [{ instancePath: instancePath + "/analysis/sourceOrigin", schemaPath: "#/properties/analysis/properties/sourceOrigin/enum", keyword: "enum", params: { allowedValues: schema36.properties.analysis.properties.sourceOrigin.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                            validate21.errors = [{ instancePath: instancePath + "/analysis/sourceOrigin", schemaPath: "#/properties/analysis/properties/sourceOrigin/enum", keyword: "enum", params: { allowedValues: schema38.properties.analysis.properties.sourceOrigin.enum }, message: "must be equal to one of the allowed values" }];
                                                                                             return false;
                                                                                         }
                                                                                         var valid17 = _errs55 === errors;
@@ -3373,443 +4156,10 @@ function validate21(data, { instancePath = "", parentData, parentDataProperty, r
                                                                                         }
                                                                                         if (valid17) {
                                                                                             if (data26.legacyAuthoring !== undefined) {
-                                                                                                let data30 = data26.legacyAuthoring;
                                                                                                 const _errs57 = errors;
-                                                                                                const _errs58 = errors;
-                                                                                                if (errors === _errs58) {
-                                                                                                    if (data30 && typeof data30 == "object" && !Array.isArray(data30)) {
-                                                                                                        const _errs60 = errors;
-                                                                                                        for (const key4 in data30) {
-                                                                                                            if (!((((((((key4 === "strategy") || (key4 === "reason")) || (key4 === "note")) || (key4 === "omittedBlocks")) || (key4 === "semanticEquivalenceProven")) || (key4 === "dependencyHints")) || (key4 === "provenance")) || (key4 === "dependencyPolicy"))) {
-                                                                                                                validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key4 }, message: "must NOT have additional properties" }];
-                                                                                                                return false;
-                                                                                                                break;
-                                                                                                            }
-                                                                                                        }
-                                                                                                        if (_errs60 === errors) {
-                                                                                                            if (data30.strategy !== undefined) {
-                                                                                                                let data31 = data30.strategy;
-                                                                                                                const _errs61 = errors;
-                                                                                                                if (errors === _errs61) {
-                                                                                                                    if (typeof data31 === "string") {
-                                                                                                                        if (func2(data31) > 100) {
-                                                                                                                            validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/strategy", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/strategy/maxLength", keyword: "maxLength", params: { limit: 100 }, message: "must NOT have more than 100 characters" }];
-                                                                                                                            return false;
-                                                                                                                        }
-                                                                                                                    }
-                                                                                                                    else {
-                                                                                                                        validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/strategy", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/strategy/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                        return false;
-                                                                                                                    }
-                                                                                                                }
-                                                                                                                var valid19 = _errs61 === errors;
-                                                                                                            }
-                                                                                                            else {
-                                                                                                                var valid19 = true;
-                                                                                                            }
-                                                                                                            if (valid19) {
-                                                                                                                if (data30.reason !== undefined) {
-                                                                                                                    let data32 = data30.reason;
-                                                                                                                    const _errs63 = errors;
-                                                                                                                    if (errors === _errs63) {
-                                                                                                                        if (typeof data32 === "string") {
-                                                                                                                            if (func2(data32) > 500) {
-                                                                                                                                validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/reason", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/reason/maxLength", keyword: "maxLength", params: { limit: 500 }, message: "must NOT have more than 500 characters" }];
-                                                                                                                                return false;
-                                                                                                                            }
-                                                                                                                        }
-                                                                                                                        else {
-                                                                                                                            validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/reason", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/reason/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                            return false;
-                                                                                                                        }
-                                                                                                                    }
-                                                                                                                    var valid19 = _errs63 === errors;
-                                                                                                                }
-                                                                                                                else {
-                                                                                                                    var valid19 = true;
-                                                                                                                }
-                                                                                                                if (valid19) {
-                                                                                                                    if (data30.note !== undefined) {
-                                                                                                                        let data33 = data30.note;
-                                                                                                                        const _errs65 = errors;
-                                                                                                                        if (errors === _errs65) {
-                                                                                                                            if (typeof data33 === "string") {
-                                                                                                                                if (func2(data33) > 1000) {
-                                                                                                                                    validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/note", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/note/maxLength", keyword: "maxLength", params: { limit: 1000 }, message: "must NOT have more than 1000 characters" }];
-                                                                                                                                    return false;
-                                                                                                                                }
-                                                                                                                            }
-                                                                                                                            else {
-                                                                                                                                validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/note", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/note/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                return false;
-                                                                                                                            }
-                                                                                                                        }
-                                                                                                                        var valid19 = _errs65 === errors;
-                                                                                                                    }
-                                                                                                                    else {
-                                                                                                                        var valid19 = true;
-                                                                                                                    }
-                                                                                                                    if (valid19) {
-                                                                                                                        if (data30.omittedBlocks !== undefined) {
-                                                                                                                            let data34 = data30.omittedBlocks;
-                                                                                                                            const _errs67 = errors;
-                                                                                                                            if (!(((typeof data34 == "number") && (!(data34 % 1) && !isNaN(data34))) && (isFinite(data34)))) {
-                                                                                                                                validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/omittedBlocks", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/omittedBlocks/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                                                return false;
-                                                                                                                            }
-                                                                                                                            if (errors === _errs67) {
-                                                                                                                                if ((typeof data34 == "number") && (isFinite(data34))) {
-                                                                                                                                    if (data34 > 500 || isNaN(data34)) {
-                                                                                                                                        validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/omittedBlocks", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/omittedBlocks/maximum", keyword: "maximum", params: { comparison: "<=", limit: 500 }, message: "must be <= 500" }];
-                                                                                                                                        return false;
-                                                                                                                                    }
-                                                                                                                                    else {
-                                                                                                                                        if (data34 < 0 || isNaN(data34)) {
-                                                                                                                                            validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/omittedBlocks", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/omittedBlocks/minimum", keyword: "minimum", params: { comparison: ">=", limit: 0 }, message: "must be >= 0" }];
-                                                                                                                                            return false;
-                                                                                                                                        }
-                                                                                                                                    }
-                                                                                                                                }
-                                                                                                                            }
-                                                                                                                            var valid19 = _errs67 === errors;
-                                                                                                                        }
-                                                                                                                        else {
-                                                                                                                            var valid19 = true;
-                                                                                                                        }
-                                                                                                                        if (valid19) {
-                                                                                                                            if (data30.semanticEquivalenceProven !== undefined) {
-                                                                                                                                const _errs69 = errors;
-                                                                                                                                if (false !== data30.semanticEquivalenceProven) {
-                                                                                                                                    validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/semanticEquivalenceProven", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/semanticEquivalenceProven/const", keyword: "const", params: { allowedValue: false }, message: "must be equal to constant" }];
-                                                                                                                                    return false;
-                                                                                                                                }
-                                                                                                                                var valid19 = _errs69 === errors;
-                                                                                                                            }
-                                                                                                                            else {
-                                                                                                                                var valid19 = true;
-                                                                                                                            }
-                                                                                                                            if (valid19) {
-                                                                                                                                if (data30.dependencyHints !== undefined) {
-                                                                                                                                    let data36 = data30.dependencyHints;
-                                                                                                                                    const _errs70 = errors;
-                                                                                                                                    if (errors === _errs70) {
-                                                                                                                                        if (Array.isArray(data36)) {
-                                                                                                                                            if (data36.length > 200) {
-                                                                                                                                                validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/dependencyHints", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/dependencyHints/maxItems", keyword: "maxItems", params: { limit: 200 }, message: "must NOT have more than 200 items" }];
-                                                                                                                                                return false;
-                                                                                                                                            }
-                                                                                                                                            else {
-                                                                                                                                                var valid20 = true;
-                                                                                                                                                const len8 = data36.length;
-                                                                                                                                                for (let i8 = 0; i8 < len8; i8++) {
-                                                                                                                                                    let data37 = data36[i8];
-                                                                                                                                                    const _errs72 = errors;
-                                                                                                                                                    if (errors === _errs72) {
-                                                                                                                                                        if (data37 && typeof data37 == "object" && !Array.isArray(data37)) {
-                                                                                                                                                            let missing4;
-                                                                                                                                                            if ((((data37.name === undefined) && (missing4 = "name")) || ((data37.declarationLine === undefined) && (missing4 = "declarationLine"))) || ((data37.usageLine === undefined) && (missing4 = "usageLine"))) {
-                                                                                                                                                                validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/dependencyHints/" + i8, schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/dependencyHints/items/required", keyword: "required", params: { missingProperty: missing4 }, message: "must have required property '" + missing4 + "'" }];
-                                                                                                                                                                return false;
-                                                                                                                                                            }
-                                                                                                                                                            else {
-                                                                                                                                                                const _errs74 = errors;
-                                                                                                                                                                for (const key5 in data37) {
-                                                                                                                                                                    if (!(((key5 === "name") || (key5 === "declarationLine")) || (key5 === "usageLine"))) {
-                                                                                                                                                                        validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/dependencyHints/" + i8, schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/dependencyHints/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key5 }, message: "must NOT have additional properties" }];
-                                                                                                                                                                        return false;
-                                                                                                                                                                        break;
-                                                                                                                                                                    }
-                                                                                                                                                                }
-                                                                                                                                                                if (_errs74 === errors) {
-                                                                                                                                                                    if (data37.name !== undefined) {
-                                                                                                                                                                        let data38 = data37.name;
-                                                                                                                                                                        const _errs75 = errors;
-                                                                                                                                                                        if (errors === _errs75) {
-                                                                                                                                                                            if (typeof data38 === "string") {
-                                                                                                                                                                                if (func2(data38) > 2048) {
-                                                                                                                                                                                    validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/dependencyHints/" + i8 + "/name", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/dependencyHints/items/properties/name/maxLength", keyword: "maxLength", params: { limit: 2048 }, message: "must NOT have more than 2048 characters" }];
-                                                                                                                                                                                    return false;
-                                                                                                                                                                                }
-                                                                                                                                                                            }
-                                                                                                                                                                            else {
-                                                                                                                                                                                validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/dependencyHints/" + i8 + "/name", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/dependencyHints/items/properties/name/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                                return false;
-                                                                                                                                                                            }
-                                                                                                                                                                        }
-                                                                                                                                                                        var valid21 = _errs75 === errors;
-                                                                                                                                                                    }
-                                                                                                                                                                    else {
-                                                                                                                                                                        var valid21 = true;
-                                                                                                                                                                    }
-                                                                                                                                                                    if (valid21) {
-                                                                                                                                                                        if (data37.declarationLine !== undefined) {
-                                                                                                                                                                            let data39 = data37.declarationLine;
-                                                                                                                                                                            const _errs77 = errors;
-                                                                                                                                                                            if (!(((typeof data39 == "number") && (!(data39 % 1) && !isNaN(data39))) && (isFinite(data39)))) {
-                                                                                                                                                                                validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/dependencyHints/" + i8 + "/declarationLine", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/dependencyHints/items/properties/declarationLine/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                                                                                                return false;
-                                                                                                                                                                            }
-                                                                                                                                                                            if (errors === _errs77) {
-                                                                                                                                                                                if ((typeof data39 == "number") && (isFinite(data39))) {
-                                                                                                                                                                                    if (data39 > 50000 || isNaN(data39)) {
-                                                                                                                                                                                        validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/dependencyHints/" + i8 + "/declarationLine", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/dependencyHints/items/properties/declarationLine/maximum", keyword: "maximum", params: { comparison: "<=", limit: 50000 }, message: "must be <= 50000" }];
-                                                                                                                                                                                        return false;
-                                                                                                                                                                                    }
-                                                                                                                                                                                    else {
-                                                                                                                                                                                        if (data39 < 1 || isNaN(data39)) {
-                                                                                                                                                                                            validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/dependencyHints/" + i8 + "/declarationLine", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/dependencyHints/items/properties/declarationLine/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
-                                                                                                                                                                                            return false;
-                                                                                                                                                                                        }
-                                                                                                                                                                                    }
-                                                                                                                                                                                }
-                                                                                                                                                                            }
-                                                                                                                                                                            var valid21 = _errs77 === errors;
-                                                                                                                                                                        }
-                                                                                                                                                                        else {
-                                                                                                                                                                            var valid21 = true;
-                                                                                                                                                                        }
-                                                                                                                                                                        if (valid21) {
-                                                                                                                                                                            if (data37.usageLine !== undefined) {
-                                                                                                                                                                                let data40 = data37.usageLine;
-                                                                                                                                                                                const _errs79 = errors;
-                                                                                                                                                                                if (!(((typeof data40 == "number") && (!(data40 % 1) && !isNaN(data40))) && (isFinite(data40)))) {
-                                                                                                                                                                                    validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/dependencyHints/" + i8 + "/usageLine", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/dependencyHints/items/properties/usageLine/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                                                                                                    return false;
-                                                                                                                                                                                }
-                                                                                                                                                                                if (errors === _errs79) {
-                                                                                                                                                                                    if ((typeof data40 == "number") && (isFinite(data40))) {
-                                                                                                                                                                                        if (data40 > 50000 || isNaN(data40)) {
-                                                                                                                                                                                            validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/dependencyHints/" + i8 + "/usageLine", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/dependencyHints/items/properties/usageLine/maximum", keyword: "maximum", params: { comparison: "<=", limit: 50000 }, message: "must be <= 50000" }];
-                                                                                                                                                                                            return false;
-                                                                                                                                                                                        }
-                                                                                                                                                                                        else {
-                                                                                                                                                                                            if (data40 < 1 || isNaN(data40)) {
-                                                                                                                                                                                                validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/dependencyHints/" + i8 + "/usageLine", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/dependencyHints/items/properties/usageLine/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
-                                                                                                                                                                                                return false;
-                                                                                                                                                                                            }
-                                                                                                                                                                                        }
-                                                                                                                                                                                    }
-                                                                                                                                                                                }
-                                                                                                                                                                                var valid21 = _errs79 === errors;
-                                                                                                                                                                            }
-                                                                                                                                                                            else {
-                                                                                                                                                                                var valid21 = true;
-                                                                                                                                                                            }
-                                                                                                                                                                        }
-                                                                                                                                                                    }
-                                                                                                                                                                }
-                                                                                                                                                            }
-                                                                                                                                                        }
-                                                                                                                                                        else {
-                                                                                                                                                            validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/dependencyHints/" + i8, schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/dependencyHints/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
-                                                                                                                                                            return false;
-                                                                                                                                                        }
-                                                                                                                                                    }
-                                                                                                                                                    var valid20 = _errs72 === errors;
-                                                                                                                                                    if (!valid20) {
-                                                                                                                                                        break;
-                                                                                                                                                    }
-                                                                                                                                                }
-                                                                                                                                            }
-                                                                                                                                        }
-                                                                                                                                        else {
-                                                                                                                                            validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/dependencyHints", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/dependencyHints/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
-                                                                                                                                            return false;
-                                                                                                                                        }
-                                                                                                                                    }
-                                                                                                                                    var valid19 = _errs70 === errors;
-                                                                                                                                }
-                                                                                                                                else {
-                                                                                                                                    var valid19 = true;
-                                                                                                                                }
-                                                                                                                                if (valid19) {
-                                                                                                                                    if (data30.provenance !== undefined) {
-                                                                                                                                        let data41 = data30.provenance;
-                                                                                                                                        const _errs81 = errors;
-                                                                                                                                        if (errors === _errs81) {
-                                                                                                                                            if (Array.isArray(data41)) {
-                                                                                                                                                if (data41.length > 10000) {
-                                                                                                                                                    validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/provenance", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/provenance/maxItems", keyword: "maxItems", params: { limit: 10000 }, message: "must NOT have more than 10000 items" }];
-                                                                                                                                                    return false;
-                                                                                                                                                }
-                                                                                                                                                else {
-                                                                                                                                                    var valid22 = true;
-                                                                                                                                                    const len9 = data41.length;
-                                                                                                                                                    for (let i9 = 0; i9 < len9; i9++) {
-                                                                                                                                                        let data42 = data41[i9];
-                                                                                                                                                        const _errs83 = errors;
-                                                                                                                                                        if (errors === _errs83) {
-                                                                                                                                                            if (data42 && typeof data42 == "object" && !Array.isArray(data42)) {
-                                                                                                                                                                let missing5;
-                                                                                                                                                                if (((((data42.before === undefined) && (missing5 = "before")) || ((data42.after === undefined) && (missing5 = "after"))) || ((data42.category === undefined) && (missing5 = "category"))) || ((data42.code === undefined) && (missing5 = "code"))) {
-                                                                                                                                                                    validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/provenance/" + i9, schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/provenance/items/required", keyword: "required", params: { missingProperty: missing5 }, message: "must have required property '" + missing5 + "'" }];
-                                                                                                                                                                    return false;
-                                                                                                                                                                }
-                                                                                                                                                                else {
-                                                                                                                                                                    const _errs85 = errors;
-                                                                                                                                                                    for (const key6 in data42) {
-                                                                                                                                                                        if (!((((key6 === "before") || (key6 === "after")) || (key6 === "category")) || (key6 === "code"))) {
-                                                                                                                                                                            validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/provenance/" + i9, schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/provenance/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key6 }, message: "must NOT have additional properties" }];
-                                                                                                                                                                            return false;
-                                                                                                                                                                            break;
-                                                                                                                                                                        }
-                                                                                                                                                                    }
-                                                                                                                                                                    if (_errs85 === errors) {
-                                                                                                                                                                        if (data42.before !== undefined) {
-                                                                                                                                                                            let data43 = data42.before;
-                                                                                                                                                                            const _errs86 = errors;
-                                                                                                                                                                            if (!(((typeof data43 == "number") && (!(data43 % 1) && !isNaN(data43))) && (isFinite(data43)))) {
-                                                                                                                                                                                validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/provenance/" + i9 + "/before", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/provenance/items/properties/before/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                                                                                                return false;
-                                                                                                                                                                            }
-                                                                                                                                                                            if (errors === _errs86) {
-                                                                                                                                                                                if ((typeof data43 == "number") && (isFinite(data43))) {
-                                                                                                                                                                                    if (data43 > 9007199254740991 || isNaN(data43)) {
-                                                                                                                                                                                        validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/provenance/" + i9 + "/before", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/provenance/items/properties/before/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
-                                                                                                                                                                                        return false;
-                                                                                                                                                                                    }
-                                                                                                                                                                                    else {
-                                                                                                                                                                                        if (data43 < 1 || isNaN(data43)) {
-                                                                                                                                                                                            validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/provenance/" + i9 + "/before", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/provenance/items/properties/before/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
-                                                                                                                                                                                            return false;
-                                                                                                                                                                                        }
-                                                                                                                                                                                    }
-                                                                                                                                                                                }
-                                                                                                                                                                            }
-                                                                                                                                                                            var valid23 = _errs86 === errors;
-                                                                                                                                                                        }
-                                                                                                                                                                        else {
-                                                                                                                                                                            var valid23 = true;
-                                                                                                                                                                        }
-                                                                                                                                                                        if (valid23) {
-                                                                                                                                                                            if (data42.after !== undefined) {
-                                                                                                                                                                                let data44 = data42.after;
-                                                                                                                                                                                const _errs88 = errors;
-                                                                                                                                                                                if (!(((typeof data44 == "number") && (!(data44 % 1) && !isNaN(data44))) && (isFinite(data44)))) {
-                                                                                                                                                                                    validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/provenance/" + i9 + "/after", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/provenance/items/properties/after/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                                                                                                    return false;
-                                                                                                                                                                                }
-                                                                                                                                                                                if (errors === _errs88) {
-                                                                                                                                                                                    if ((typeof data44 == "number") && (isFinite(data44))) {
-                                                                                                                                                                                        if (data44 > 9007199254740991 || isNaN(data44)) {
-                                                                                                                                                                                            validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/provenance/" + i9 + "/after", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/provenance/items/properties/after/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
-                                                                                                                                                                                            return false;
-                                                                                                                                                                                        }
-                                                                                                                                                                                        else {
-                                                                                                                                                                                            if (data44 < 1 || isNaN(data44)) {
-                                                                                                                                                                                                validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/provenance/" + i9 + "/after", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/provenance/items/properties/after/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
-                                                                                                                                                                                                return false;
-                                                                                                                                                                                            }
-                                                                                                                                                                                        }
-                                                                                                                                                                                    }
-                                                                                                                                                                                }
-                                                                                                                                                                                var valid23 = _errs88 === errors;
-                                                                                                                                                                            }
-                                                                                                                                                                            else {
-                                                                                                                                                                                var valid23 = true;
-                                                                                                                                                                            }
-                                                                                                                                                                            if (valid23) {
-                                                                                                                                                                                if (data42.category !== undefined) {
-                                                                                                                                                                                    let data45 = data42.category;
-                                                                                                                                                                                    const _errs90 = errors;
-                                                                                                                                                                                    if (typeof data45 !== "string") {
-                                                                                                                                                                                        validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/provenance/" + i9 + "/category", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/provenance/items/properties/category/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                                        return false;
-                                                                                                                                                                                    }
-                                                                                                                                                                                    if (!((((((((data45 === "data") || (data45 === "effect")) || (data45 === "structure")) || (data45 === "unit")) || (data45 === "policy")) || (data45 === "author")) || (data45 === "conservative")) || (data45 === "unknown"))) {
-                                                                                                                                                                                        validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/provenance/" + i9 + "/category", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/provenance/items/properties/category/enum", keyword: "enum", params: { allowedValues: schema56.properties.provenance.items.properties.category.enum }, message: "must be equal to one of the allowed values" }];
-                                                                                                                                                                                        return false;
-                                                                                                                                                                                    }
-                                                                                                                                                                                    var valid23 = _errs90 === errors;
-                                                                                                                                                                                }
-                                                                                                                                                                                else {
-                                                                                                                                                                                    var valid23 = true;
-                                                                                                                                                                                }
-                                                                                                                                                                                if (valid23) {
-                                                                                                                                                                                    if (data42.code !== undefined) {
-                                                                                                                                                                                        let data46 = data42.code;
-                                                                                                                                                                                        const _errs92 = errors;
-                                                                                                                                                                                        if (errors === _errs92) {
-                                                                                                                                                                                            if (typeof data46 === "string") {
-                                                                                                                                                                                                if (func2(data46) > 64) {
-                                                                                                                                                                                                    validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/provenance/" + i9 + "/code", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/provenance/items/properties/code/maxLength", keyword: "maxLength", params: { limit: 64 }, message: "must NOT have more than 64 characters" }];
-                                                                                                                                                                                                    return false;
-                                                                                                                                                                                                }
-                                                                                                                                                                                                else {
-                                                                                                                                                                                                    if (!pattern5.test(data46)) {
-                                                                                                                                                                                                        validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/provenance/" + i9 + "/code", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/provenance/items/properties/code/pattern", keyword: "pattern", params: { pattern: "^[A-Za-z][A-Za-z0-9-]*$" }, message: "must match pattern \"" + "^[A-Za-z][A-Za-z0-9-]*$" + "\"" }];
-                                                                                                                                                                                                        return false;
-                                                                                                                                                                                                    }
-                                                                                                                                                                                                }
-                                                                                                                                                                                            }
-                                                                                                                                                                                            else {
-                                                                                                                                                                                                validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/provenance/" + i9 + "/code", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/provenance/items/properties/code/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                                                return false;
-                                                                                                                                                                                            }
-                                                                                                                                                                                        }
-                                                                                                                                                                                        var valid23 = _errs92 === errors;
-                                                                                                                                                                                    }
-                                                                                                                                                                                    else {
-                                                                                                                                                                                        var valid23 = true;
-                                                                                                                                                                                    }
-                                                                                                                                                                                }
-                                                                                                                                                                            }
-                                                                                                                                                                        }
-                                                                                                                                                                    }
-                                                                                                                                                                }
-                                                                                                                                                            }
-                                                                                                                                                            else {
-                                                                                                                                                                validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/provenance/" + i9, schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/provenance/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
-                                                                                                                                                                return false;
-                                                                                                                                                            }
-                                                                                                                                                        }
-                                                                                                                                                        var valid22 = _errs83 === errors;
-                                                                                                                                                        if (!valid22) {
-                                                                                                                                                            break;
-                                                                                                                                                        }
-                                                                                                                                                    }
-                                                                                                                                                }
-                                                                                                                                            }
-                                                                                                                                            else {
-                                                                                                                                                validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/provenance", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/provenance/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
-                                                                                                                                                return false;
-                                                                                                                                            }
-                                                                                                                                        }
-                                                                                                                                        var valid19 = _errs81 === errors;
-                                                                                                                                    }
-                                                                                                                                    else {
-                                                                                                                                        var valid19 = true;
-                                                                                                                                    }
-                                                                                                                                    if (valid19) {
-                                                                                                                                        if (data30.dependencyPolicy !== undefined) {
-                                                                                                                                            let data47 = data30.dependencyPolicy;
-                                                                                                                                            const _errs94 = errors;
-                                                                                                                                            if (typeof data47 !== "string") {
-                                                                                                                                                validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/dependencyPolicy", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/dependencyPolicy/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                return false;
-                                                                                                                                            }
-                                                                                                                                            if (!(((((((((data47 === "primitive-const-islands-v1") || (data47 === "scoped-primitive-dag-v2")) || (data47 === "scoped-type-members-v3")) || (data47 === "scoped-effect-analysis-v4")) || (data47 === "scoped-effect-analysis-v5")) || (data47 === "scoped-effect-analysis-v6")) || (data47 === "scoped-effect-analysis-v7")) || (data47 === "scoped-effect-analysis-v8")) || (data47 === "scoped-effect-analysis-v9"))) {
-                                                                                                                                                validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring/dependencyPolicy", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/properties/dependencyPolicy/enum", keyword: "enum", params: { allowedValues: schema56.properties.dependencyPolicy.enum }, message: "must be equal to one of the allowed values" }];
-                                                                                                                                                return false;
-                                                                                                                                            }
-                                                                                                                                            var valid19 = _errs94 === errors;
-                                                                                                                                        }
-                                                                                                                                        else {
-                                                                                                                                            var valid19 = true;
-                                                                                                                                        }
-                                                                                                                                    }
-                                                                                                                                }
-                                                                                                                            }
-                                                                                                                        }
-                                                                                                                    }
-                                                                                                                }
-                                                                                                            }
-                                                                                                        }
-                                                                                                    }
-                                                                                                    else {
-                                                                                                        validate21.errors = [{ instancePath: instancePath + "/analysis/legacyAuthoring", schemaPath: "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
-                                                                                                        return false;
-                                                                                                    }
+                                                                                                if (!(validate38(data26.legacyAuthoring, { instancePath: instancePath + "/analysis/legacyAuthoring", parentData: data26, parentDataProperty: "legacyAuthoring", rootData, dynamicAnchors }))) {
+                                                                                                    vErrors = vErrors === null ? validate38.errors : vErrors.concat(validate38.errors);
+                                                                                                    errors = vErrors.length;
                                                                                                 }
                                                                                                 var valid17 = _errs57 === errors;
                                                                                             }
@@ -3852,9 +4202,9 @@ function validate21(data, { instancePath = "", parentData, parentDataProperty, r
     }
 } validate21.errors = vErrors; return errors === 0; }
 validate21.evaluated = { "props": true, "dynamicProps": false, "dynamicItems": false };
-export const validateV3 = validate38;
-const schema57 = { "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://philofobreal.github.io/developer-exercise/codeline-v3.schema.json", "title": "CodeLine Exercise v3", "type": "object", "additionalProperties": false, "required": ["schemaVersion", "id", "revision", "title", "description", "ir"], "properties": { "schemaVersion": { "const": 3 }, "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "revision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "title": { "type": "string", "maxLength": 140 }, "description": { "type": "string", "maxLength": 500 }, "ir": { "$ref": "https://philofobreal.github.io/developer-exercise/language-ir-v1.schema.json" } } };
-function validate38(data, { instancePath = "", parentData, parentDataProperty, rootData = data, dynamicAnchors = {} } = {}) { /*# sourceURL="https://philofobreal.github.io/developer-exercise/codeline-v3.schema.json" */ ; let vErrors = null; let errors = 0; const evaluated0 = validate38.evaluated; if (evaluated0.dynamicProps) {
+export const validateV3 = validate40;
+const schema61 = { "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://philofobreal.github.io/developer-exercise/codeline-v3.schema.json", "title": "CodeLine Exercise v3", "type": "object", "additionalProperties": false, "required": ["schemaVersion", "id", "revision", "title", "description", "ir"], "properties": { "schemaVersion": { "const": 3 }, "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "revision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "title": { "type": "string", "maxLength": 140 }, "description": { "type": "string", "maxLength": 500 }, "ir": { "$ref": "https://philofobreal.github.io/developer-exercise/language-ir-v1.schema.json" } } };
+function validate40(data, { instancePath = "", parentData, parentDataProperty, rootData = data, dynamicAnchors = {} } = {}) { /*# sourceURL="https://philofobreal.github.io/developer-exercise/codeline-v3.schema.json" */ ; let vErrors = null; let errors = 0; const evaluated0 = validate40.evaluated; if (evaluated0.dynamicProps) {
     evaluated0.props = undefined;
 } if (evaluated0.dynamicItems) {
     evaluated0.items = undefined;
@@ -3862,14 +4212,14 @@ function validate38(data, { instancePath = "", parentData, parentDataProperty, r
     if (data && typeof data == "object" && !Array.isArray(data)) {
         let missing0;
         if (((((((data.schemaVersion === undefined) && (missing0 = "schemaVersion")) || ((data.id === undefined) && (missing0 = "id"))) || ((data.revision === undefined) && (missing0 = "revision"))) || ((data.title === undefined) && (missing0 = "title"))) || ((data.description === undefined) && (missing0 = "description"))) || ((data.ir === undefined) && (missing0 = "ir"))) {
-            validate38.errors = [{ instancePath, schemaPath: "#/required", keyword: "required", params: { missingProperty: missing0 }, message: "must have required property '" + missing0 + "'" }];
+            validate40.errors = [{ instancePath, schemaPath: "#/required", keyword: "required", params: { missingProperty: missing0 }, message: "must have required property '" + missing0 + "'" }];
             return false;
         }
         else {
             const _errs1 = errors;
             for (const key0 in data) {
                 if (!((((((key0 === "schemaVersion") || (key0 === "id")) || (key0 === "revision")) || (key0 === "title")) || (key0 === "description")) || (key0 === "ir"))) {
-                    validate38.errors = [{ instancePath, schemaPath: "#/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key0 }, message: "must NOT have additional properties" }];
+                    validate40.errors = [{ instancePath, schemaPath: "#/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key0 }, message: "must NOT have additional properties" }];
                     return false;
                     break;
                 }
@@ -3878,7 +4228,7 @@ function validate38(data, { instancePath = "", parentData, parentDataProperty, r
                 if (data.schemaVersion !== undefined) {
                     const _errs2 = errors;
                     if (3 !== data.schemaVersion) {
-                        validate38.errors = [{ instancePath: instancePath + "/schemaVersion", schemaPath: "#/properties/schemaVersion/const", keyword: "const", params: { allowedValue: 3 }, message: "must be equal to constant" }];
+                        validate40.errors = [{ instancePath: instancePath + "/schemaVersion", schemaPath: "#/properties/schemaVersion/const", keyword: "const", params: { allowedValue: 3 }, message: "must be equal to constant" }];
                         return false;
                     }
                     var valid0 = _errs2 === errors;
@@ -3893,18 +4243,18 @@ function validate38(data, { instancePath = "", parentData, parentDataProperty, r
                         if (errors === _errs3) {
                             if (typeof data1 === "string") {
                                 if (func2(data1) > 200) {
-                                    validate38.errors = [{ instancePath: instancePath + "/id", schemaPath: "#/properties/id/maxLength", keyword: "maxLength", params: { limit: 200 }, message: "must NOT have more than 200 characters" }];
+                                    validate40.errors = [{ instancePath: instancePath + "/id", schemaPath: "#/properties/id/maxLength", keyword: "maxLength", params: { limit: 200 }, message: "must NOT have more than 200 characters" }];
                                     return false;
                                 }
                                 else {
                                     if (func2(data1) < 1) {
-                                        validate38.errors = [{ instancePath: instancePath + "/id", schemaPath: "#/properties/id/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" }];
+                                        validate40.errors = [{ instancePath: instancePath + "/id", schemaPath: "#/properties/id/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" }];
                                         return false;
                                     }
                                 }
                             }
                             else {
-                                validate38.errors = [{ instancePath: instancePath + "/id", schemaPath: "#/properties/id/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                validate40.errors = [{ instancePath: instancePath + "/id", schemaPath: "#/properties/id/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
                                 return false;
                             }
                         }
@@ -3918,18 +4268,18 @@ function validate38(data, { instancePath = "", parentData, parentDataProperty, r
                             let data2 = data.revision;
                             const _errs5 = errors;
                             if (!(((typeof data2 == "number") && (!(data2 % 1) && !isNaN(data2))) && (isFinite(data2)))) {
-                                validate38.errors = [{ instancePath: instancePath + "/revision", schemaPath: "#/properties/revision/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                validate40.errors = [{ instancePath: instancePath + "/revision", schemaPath: "#/properties/revision/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
                                 return false;
                             }
                             if (errors === _errs5) {
                                 if ((typeof data2 == "number") && (isFinite(data2))) {
                                     if (data2 > 9007199254740991 || isNaN(data2)) {
-                                        validate38.errors = [{ instancePath: instancePath + "/revision", schemaPath: "#/properties/revision/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                        validate40.errors = [{ instancePath: instancePath + "/revision", schemaPath: "#/properties/revision/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
                                         return false;
                                     }
                                     else {
                                         if (data2 < 1 || isNaN(data2)) {
-                                            validate38.errors = [{ instancePath: instancePath + "/revision", schemaPath: "#/properties/revision/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                            validate40.errors = [{ instancePath: instancePath + "/revision", schemaPath: "#/properties/revision/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
                                             return false;
                                         }
                                     }
@@ -3947,12 +4297,12 @@ function validate38(data, { instancePath = "", parentData, parentDataProperty, r
                                 if (errors === _errs7) {
                                     if (typeof data3 === "string") {
                                         if (func2(data3) > 140) {
-                                            validate38.errors = [{ instancePath: instancePath + "/title", schemaPath: "#/properties/title/maxLength", keyword: "maxLength", params: { limit: 140 }, message: "must NOT have more than 140 characters" }];
+                                            validate40.errors = [{ instancePath: instancePath + "/title", schemaPath: "#/properties/title/maxLength", keyword: "maxLength", params: { limit: 140 }, message: "must NOT have more than 140 characters" }];
                                             return false;
                                         }
                                     }
                                     else {
-                                        validate38.errors = [{ instancePath: instancePath + "/title", schemaPath: "#/properties/title/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                        validate40.errors = [{ instancePath: instancePath + "/title", schemaPath: "#/properties/title/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
                                         return false;
                                     }
                                 }
@@ -3968,12 +4318,12 @@ function validate38(data, { instancePath = "", parentData, parentDataProperty, r
                                     if (errors === _errs9) {
                                         if (typeof data4 === "string") {
                                             if (func2(data4) > 500) {
-                                                validate38.errors = [{ instancePath: instancePath + "/description", schemaPath: "#/properties/description/maxLength", keyword: "maxLength", params: { limit: 500 }, message: "must NOT have more than 500 characters" }];
+                                                validate40.errors = [{ instancePath: instancePath + "/description", schemaPath: "#/properties/description/maxLength", keyword: "maxLength", params: { limit: 500 }, message: "must NOT have more than 500 characters" }];
                                                 return false;
                                             }
                                         }
                                         else {
-                                            validate38.errors = [{ instancePath: instancePath + "/description", schemaPath: "#/properties/description/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                            validate40.errors = [{ instancePath: instancePath + "/description", schemaPath: "#/properties/description/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
                                             return false;
                                         }
                                     }
@@ -4003,10 +4353,10 @@ function validate38(data, { instancePath = "", parentData, parentDataProperty, r
         }
     }
     else {
-        validate38.errors = [{ instancePath, schemaPath: "#/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+        validate40.errors = [{ instancePath, schemaPath: "#/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
         return false;
     }
-} validate38.errors = vErrors; return errors === 0; }
-validate38.evaluated = { "props": true, "dynamicProps": false, "dynamicItems": false };
+} validate40.errors = vErrors; return errors === 0; }
+validate40.evaluated = { "props": true, "dynamicProps": false, "dynamicItems": false };
 export default validateV2;
 //# sourceMappingURL=schema-check.js.map

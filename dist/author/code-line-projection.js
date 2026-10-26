@@ -1,3 +1,11 @@
+/** Language-independent CodeLine v2 projection (ADR-011, ADR-013). The adapter
+ * supplies the block intervals, the exact-whitespace rows and the ordering
+ * relations; this module owns the block/scope hierarchy, the physical-row to
+ * line-ID mapping, clause chains, sealing and transitive reduction. It knows no
+ * parser and no syntax kind, and never runs for learner input. Rows are 0-based
+ * physical rows of the normalised reference source. Every dependency and edge it
+ * emits carries its reasons (ADR-014). */
+import { codeLineDigest } from '../../dist/index.js';
 import { reduceGeneratedDependencies, sealMultiRowUnits } from './ordering-relations.js';
 /** Physical rows that become lines: non-blank, or whitespace-exact. */
 export function projectedRows(physical, exact) {
@@ -154,6 +162,6 @@ export function projectCodeLine({ physical, exact, structure, ordering }) {
     for (const edge of edgeMap.values())
         emit(edge.before, edge.after, [{ category: 'conservative', code: 'shared-boundary-lock' }]);
     provenance.sort((a, b) => a.after - b.after || a.before - b.before);
-    return { lines, blocks, edges: [...edgeMap.values()], omittedBlocks: omitted.length, clauseChains: chains.filter(chain => retained.some(block => block.start === chain.start && block.end === chain.end)).length, provenance };
+    return { lines, blocks, edges: [...edgeMap.values()], omittedBlocks: omitted.length, clauseChains: chains.filter(chain => retained.some(block => block.start === chain.start && block.end === chain.end)).length, provenance, sourceDigest: codeLineDigest(lines) };
 }
 //# sourceMappingURL=code-line-projection.js.map

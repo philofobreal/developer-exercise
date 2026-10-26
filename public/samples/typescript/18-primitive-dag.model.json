@@ -152,6 +152,16 @@
         "code": "block-close"
       }
     ],
+    "evidence": {
+      "sourceDigest": "d1837c8e8da3cfd4",
+      "analyzer": "scoped-effect-analysis-v9",
+      "environment": {
+        "typescript": "5.8.3",
+        "importEmit": "verbatim",
+        "sourceKind": "script",
+        "classFields": "either"
+      }
+    },
     "dependencyHints": [
       {
         "name": "a",

@@ -24,13 +24,13 @@ declare namespace validate21 {
         dynamicItems: boolean;
     };
 }
-export declare const validateV3: typeof validate38;
-declare function validate38(data: any, { instancePath, parentData, parentDataProperty, rootData, dynamicAnchors }?: {
+export declare const validateV3: typeof validate40;
+declare function validate40(data: any, { instancePath, parentData, parentDataProperty, rootData, dynamicAnchors }?: {
     instancePath?: string | undefined;
     rootData?: any;
     dynamicAnchors?: {} | undefined;
 }): boolean;
-declare namespace validate38 {
+declare namespace validate40 {
     var evaluated: {
         props: boolean;
         dynamicProps: boolean;

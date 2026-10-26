@@ -187,19 +187,53 @@
             }
           }
         },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sourceDigest",
+            "analyzer",
+            "environment"
+          ],
+          "properties": {
+            "sourceDigest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{16}$"
+            },
+            "analyzer": {
+              "$ref": "#/$defs/dependencyPolicy"
+            },
+            "environment": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "typescript": {
+                  "type": "string",
+                  "pattern": "^[0-9A-Za-z.+-]{1,40}$"
+                },
+                "importEmit": {
+                  "type": "string",
+                  "enum": [
+                    "verbatim",
+                    "elide-unused"
+                  ]
+                },
+                "sourceKind": {
+                  "type": "string",
+                  "enum": [
+                    "module",
+                    "script"
+                  ]
+                },
+                "classFields": {
+                  "const": "either"
+                }
+              }
+            }
+          }
+        },
         "dependencyPolicy": {
-          "type": "string",
-          "enum": [
-            "primitive-const-islands-v1",
-            "scoped-primitive-dag-v2",
-            "scoped-type-members-v3",
-            "scoped-effect-analysis-v4",
-            "scoped-effect-analysis-v5",
-            "scoped-effect-analysis-v6",
-            "scoped-effect-analysis-v7",
-            "scoped-effect-analysis-v8",
-            "scoped-effect-analysis-v9"
-          ]
+          "$ref": "#/$defs/dependencyPolicy"
         }
       }
     }
@@ -370,6 +404,20 @@
           "maximum": 9007199254740991
         }
       }
+    },
+    "dependencyPolicy": {
+      "type": "string",
+      "enum": [
+        "primitive-const-islands-v1",
+        "scoped-primitive-dag-v2",
+        "scoped-type-members-v3",
+        "scoped-effect-analysis-v4",
+        "scoped-effect-analysis-v5",
+        "scoped-effect-analysis-v6",
+        "scoped-effect-analysis-v7",
+        "scoped-effect-analysis-v8",
+        "scoped-effect-analysis-v9"
+      ]
     }
   }
 }

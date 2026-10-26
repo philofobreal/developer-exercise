@@ -1,4 +1,5 @@
 import { compileCodeLineExercise } from './code-line.js';
+import { evidenceStatus } from './evidence.js';
 const editabilityOf = { structure: 'hard', unit: 'hard', data: 'proven', effect: 'proven', policy: 'proven', conservative: 'conservative', author: 'pedagogical', unknown: 'legacy' };
 const strength = ['legacy', 'pedagogical', 'conservative', 'proven', 'hard'];
 /** Admits the model first; an inadmissible model is never explained. */
@@ -6,7 +7,8 @@ export function explainConstraints(model) {
     const admitted = compileCodeLineExercise(model);
     if ('status' in admitted)
         return admitted;
-    const provenance = model.authoring?.provenance;
+    const recorded = model.authoring?.provenance, bound = !!recorded && evidenceStatus(model) === 'current';
+    const provenance = bound ? recorded : undefined;
     const constraints = new Map();
     const state = (before, after, origin) => {
         const key = before + ':' + after;
@@ -35,7 +37,7 @@ export function explainConstraints(model) {
     for (const constraint of constraints.values())
         if (!constraint.reasons.length) {
             unexplained++;
-            constraint.reasons.push({ category: 'unknown', code: provenance ? 'missing-provenance' : 'legacy-model' });
+            constraint.reasons.push({ category: 'unknown', code: provenance ? 'missing-provenance' : recorded ? 'unbound-provenance' : 'legacy-model' });
         }
     // The block hierarchy orders every member between its block's open and close lines.
     const blocks = new Map(model.blocks.map(block => [block.id, block]));
@@ -88,7 +90,7 @@ export function explainConstraints(model) {
             ancestors: [...ancestors.get(line.id)].sort(byOrder),
             descendants: [...descendants.get(line.id)].sort(byOrder)
         })),
-        provenance: !provenance ? 'absent' : unexplained ? 'partial' : 'complete',
+        provenance: recorded && !bound ? 'unbound' : !provenance ? 'absent' : unexplained ? 'partial' : 'complete',
         unexplained,
         stale
     };

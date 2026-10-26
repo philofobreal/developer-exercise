@@ -5,7 +5,7 @@
  * parser and no syntax kind, and never runs for learner input. Rows are 0-based
  * physical rows of the normalised reference source. Every dependency and edge it
  * emits carries its reasons (ADR-014). */
-import type { ConstraintProvenance } from '../../dist/index.js';
+import { type ConstraintProvenance } from '../../dist/index.js';
 import { type OrderingRelations } from './ordering-relations.js';
 /** A block interval from the adapter. `clause`: one clause of a compound statement
  * (if/else, try/catch/finally) that may share its first or last row with the next
@@ -53,6 +53,8 @@ export interface CodeLineProjection {
     clauseChains: number;
     /** Every reason of every emitted dependency and edge, in line IDs, ordered by `after`, `before`. */
     provenance: ConstraintProvenance[];
+    /** Digest of the projected lines that the provenance describes (ADR-015). */
+    sourceDigest: string;
 }
 /** Physical rows that become lines: non-blank, or whitespace-exact. */
 export declare function projectedRows(physical: readonly string[], exact: ReadonlySet<number>): {
