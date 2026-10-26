@@ -78,3 +78,29 @@ A [semantic-oracle.mjs](../../tests/support/semantic-oracle.mjs) változásai:
   - az accessorpár, a duplikált és a számított név továbbra is kötött;
   - a beágyazott, függvényen belüli osztályok P4-ét csak a szintaktikus szabály ellenőrzi futás közben, a pillanatkép nem;
   - a forrásszöveg-reflexió kizárt.
+
+## Kiegészítés: felülvizsgálat utáni javítás (`scoped-effect-analysis-v7`)
+
+A WP1–WP8 lezárása utáni kódfelülvizsgálat két, a P4-et sértő hibás elfogadást talált. Egyiket sem mutatta ki a korpusz, mert egyik alak sem szerepelt benne. A második esetben a régi orákulum is ugyanabban a vakfoltban volt, mint a generátor.
+
+| Eset | Mit fogadott el a validátor | Mi változik |
+| --- | --- | --- |
+| TS `accessor level = 1` mező előtt álló `read()` metódus a mező mögé mozgatva | elfogad | `Reflect.ownKeys(Gauge.prototype)`: `constructor, read, level, …` → `constructor, level, read, …`; mindkét emit-módban |
+| `static accessor unit` a `static make()` elé mozgatva | elfogad | `Reflect.ownKeys(Gauge)`: `…, make, unit` → `…, unit, make` |
+| szkriptszintű `function` átmozgatva egy `enum` vagy egy példányosított `namespace` másik oldalára | elfogad | `Object.keys(globalThis)`: `f, E, g` → `E, f, g` |
+
+**Ok:**
+
+- **`accessor` mező:** a TypeScript (és a decorators-javaslat) `accessor` mezője definíciókor get/set párt hoz létre a prototípuson (static esetén a konstruktoron), a metódusok között, forrássorrendben. A generátor sima mezőnek tekintette, a metódusok pedig a mezőkhöz képest szabadok.
+- **TS-kibocsátott globálisok:** az `enum`, a példányosított `namespace` és az `import x = N.y` alias `var` deklarációként kerül a kibocsátott szkriptbe, vagyis globális objektumtulajdonság lesz. A globális lánc csak a `function`/`var` utasításokat ismerte.
+
+**Javítás** (szigorúbb, a validátor változatlan):
+
+- **[type-member-ordering.ts](../../src/author/type-member-ordering.ts):** a nem absztrakt, nem `declare` `accessor` mező a kulcsláncba kerül, és a mezők között is a helyén marad (az inicializálója mezősorrendben fut). A privát és a tömbindex nevű `accessor` a kulcsláncon kívül marad.
+- **[statement-ordering.ts](../../src/author/statement-ordering.ts):** klasszikus szkriptben a nem `declare` `enum`, a példányosított `namespace` és a nem type-only `import =` alias globális egység. Típus-only az a namespace, amelynek törzse csak `interface`-t, `type`-ot, `declare` utasítást és típus-only namespace-t tartalmaz; ez nem bocsát ki semmit, ezért szabad marad. Minden más namespace konzervatívan példányosítottnak számít.
+- **Orákulum:** a TS globális tulajdonságait a kibocsátott (ES2022) szkriptből, Acornnal olvassa ki. Így pontosan azok számítanak, amelyek ténylegesen `var`-t vagy függvényt bocsátanak ki, a generátor TS-AST-szabályától függetlenül. Az `accessor` mező a szintaktikus P4-szabályban a metódusok láncába kerül.
+- **Policy-címke:** új, additív `scoped-effect-analysis-v7`. A régi modellek és címkék érvényesek; importkor nincs újraszámítás.
+
+**Mérés** (61 fixture, azonos orákulum mindkét oldalon): a hibás elfogadások száma a K45-ön 1 → 0 (`ts-enum`), az R7-en 463 → 0. A completeness-rések száma változatlan (6 / 7 / 25). Részletek: [formális szerződés, v7](../formal-ordering-contract.md#v7-kiegészítés-accessor-mezők-és-ts-kibocsátott-globálisok). Reprodukció és tagblokk-permutáció: [reflection-ordering.test.mjs](../../tests/reflection-ordering.test.mjs).
+
+**Tanulság:** a véletlenprogram-generátor csak egy függvénytörzsön belüli JS-t állít elő, ezért osztályt, szkriptszintű deklarációt és TS-t nem fed le. Mindkét hibát kézi felülvizsgálat találta meg, nem a generatív teszt. A generatív lefedettség bővítése külön feladat.

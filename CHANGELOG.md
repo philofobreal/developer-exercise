@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased – 2026-10-26 felülvizsgálat: `accessor` mezők és TS-kibocsátott globálisok (ADR-010 kiegészítés)
+
+- **Felülvizsgálat:** a WP1–WP8 utáni kódáttekintés két, a P4-et sértő hibás elfogadást talált, egyik alak sem szerepelt a korpuszban:
+  - egy metódus átléphetett egy TS `accessor` mezőn, pedig az get/set párt hoz létre a prototípuson (static esetén a konstruktoron) a metódusok között;
+  - egy szkriptszintű függvény átléphetett egy `enum`-on vagy egy példányosított `namespace`-en, pedig ezek `var`-ként globális tulajdonságok. Ezt az orákulum sem látta (közös vakfolt).
+- **Javítás:** az `accessor` mező a kulcsláncba kerül; az `enum`, a példányosított `namespace` és az `import =` alias globális egység. A típus-only namespace szabad marad. Az orákulum a TS globálisokat a kibocsátott szkriptből olvassa. Részletek: [ADR-010 kiegészítés](docs/adr/010-reflective-property-order.md#kiegészítés-felülvizsgálat-utáni-javítás-scoped-effect-analysis-v7).
+- **Policy-címke:** additív `scoped-effect-analysis-v7`. A validátor és a séma jelentése változatlan; az importált modellek nem generálódnak újra.
+- **Tesztek:** két új reflexiós fixture (`refl-ts-accessor-fields`, `refl-ts-emitted-globals`), reprodukciók parserrel, teljes típusellenőrzéssel és mindkét emit-módban, tagblokk-permutáció. A `ts-enum` forgatókönyv probe-ja a globális kulcssorrendet is kiolvassa, ezért a „függvény az enum elé” változat indokolt elutasítás lett.
+- **Mérés** (61 fixture, azonos orákulum mindkét oldalon): a hibás elfogadások száma a K45-ön 1 → 0, az R7-en 463 → 0. A completeness-rések száma változatlan, a K45 A(M) értéke 2 298 → 2 297. Az új elfogadott halmaz a régi részhalmaza, és minden eleme helyes. [Részletek](docs/formal-ordering-contract.md#v7-kiegészítés-accessor-mezők-és-ts-kibocsátott-globálisok).
+
 ## Unreleased – 2026-10-26 WP7 nyelvfüggetlen sorrendi határ és WP8 dokumentáció (ADR-011)
 
 - **WP7:** új, nyelvfüggetlen [`ordering-relations.ts`](src/author/ordering-relations.ts) szerződés. Tartalma: `OrderingRelations`, konjunktív kombináció, valamint áthelyezve a lezárás és a tranzitív redukció.
