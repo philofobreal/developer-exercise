@@ -12,7 +12,8 @@ Ez a dokumentum a generált sorrendszabályok jelentését, a támogatott részn
 - [ADR-013](adr/013-local-writes-clause-chains-and-imports.md): lokális írások, klauzulaláncok és importok;
 - [ADR-014](adr/014-constraint-provenance.md): kényszer-proveniencia és szerkeszthetőségi osztályok;
 - [ADR-015](adr/015-evidence-binding-and-analysis-environment.md): a bizonyítékok kötése és az elemzési környezet;
-- [ADR-016](adr/016-reference-language-audit.md): a referencia nyelvi auditja.
+- [ADR-016](adr/016-reference-language-audit.md): a referencia nyelvi auditja;
+- [ADR-017](adr/017-model-verification-gate.md): modellminősítés (Model Verification Gate).
 
 ## Végleges állapot (WP1–WP8)
 
@@ -64,7 +65,7 @@ Ezért a szerződés négy, külön ellenőrzött állításra bomlik.
 
    A nem reprezentálható esetet (például egyéb közös fizikai határ) a projekció jelöli: elhagyott blokk, `shared-boundary-lock` proveniencia.
 3. **Fallback (kötelező jelölés):** minden más eset konzervatív. A szigorítás oka a modellben `conservative` kategóriájú proveniencia, nem hallgatólagos.
-4. **Eldöntetlenség:** a kimerült keret `indeterminate`, soha nem elfogadás és nem elutasítás. Egy referenciamodell akkor alkalmas élesítésre, ha a referencia és a szomszédsága a produkciós kereten belül eldől. Ezt a modellminősítés (V1) fogja ellenőrizni; addig a katalógus csak a referencia elfogadását vizsgálja.
+4. **Eldöntetlenség:** a kimerült keret `indeterminate`, soha nem elfogadás és nem elutasítás. Egy referenciamodell akkor alkalmas élesítésre, ha a referencia és a szomszédsága a produkciós kereten belül eldől. Ezt a modellminősítés ellenőrzi ([ADR-017](adr/017-model-verification-gate.md): `publishable`), és ugyanott rögzül, mely állítás ellenőrzött, mely csak tesztekkel alátámasztott, és mely nem megállapított.
 
 **Viszonyítási alap:** minden `A(M)`-ről szóló állítás egy rögzített feladattartományra vonatkozik:
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased – 2026-10-26 Model Verification Gate (ADR-017, epic V1)
+
+- **Projekciós veszteség:** a projekció megszámolja azokat az egységpárokat, amelyeket az elemzés szabadon hagyott, de a v2-modell rendez (`evidence.projectionLoss`). CopyField: 0, korpusz: 8 ismert pár.
+- **Újralevezetés:** a `verifyAuthorModel` a modell forrását a rögzített import-emittel újragenerálja. A függőségeknek, a nem szerzői éleknek és okoknak pontosan egyezniük kell, ezért kézi módosítás vagy hamisított ok nem minősül elemzési eredménynek.
+- **Core gate:** a `verifyModel` vizsgálja a befogadást, a referenciát, a keretalkalmasságot (legfeljebb 100 szomszédos csere 50 000 állapottal), a provenienciát, az elemzőverziót, az auditot, a fallbackeket és a szerzői szabályokat.
+  - Státusz: `analysis-verified` / `conservative` / `author-modified` / `unverified`, `publishable` jelzővel.
+  - Az állítások alapja `checked`, `tested`, `not-established` vagy `refuted`. A soundness mindig `tested`, soha nem modellenként bizonyított.
+- **Bekötés:** a szerver minden draftnál újraszámolja, és a megbízható példáknál is rögzíti; a Pages helyben futtatja. Nem tilt, hanem minősít.
+- **Tesztek:** [model-verification.test.mjs](tests/model-verification.test.mjs), és a Pages API-teszt is ellenőrzi.
+
 ## Unreleased – 2026-10-26 a referencia nyelvi auditja (ADR-016, epic R1)
 
 - **Új, típusos auditor:** [reference-audit.ts](src/author/reference-audit.ts). Egyfájlos TypeScript `Program`-ot épít a szabványos könyvtárral, porton át. Eredménye: `ok`, `errors` (sorral és kóddal), `unverifiable` (feloldatlan modul vagy deklarálatlan globális; a modulokat listázza) vagy `not-run` (nincs könyvtár). A rögzített konfigurációt `assumptions` lista írja le.
