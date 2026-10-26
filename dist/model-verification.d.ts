@@ -42,6 +42,11 @@ export interface ModelVerification {
         authorRules: number;
         fixed: number;
         profiles: number;
+        /** Generated constraints the author removed: `conservative` ones and policy overrides. */
+        relaxations: {
+            conservative: number;
+            overrides: number;
+        };
     };
     /** Why the status or publishability is not higher, in Hungarian. */
     findings: string[];

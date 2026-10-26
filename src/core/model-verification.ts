@@ -14,7 +14,8 @@
  *  - `author-modified`: author rules, fixed slots or OR profiles deliberately narrow the
  *    generated model (the generator emits none of them);
  *  - `unverified`: the provenance is missing, unbound or not re-derived, the model
- *    differs from its regeneration, or the reference has a language error.
+ *    differs from its regeneration, the reference has a language error, or the author
+ *    removed a generated constraint (ADR-018): an author's acknowledgement is no proof.
  * `publishable` additionally requires the reference and its adjacent swaps to be
  * decided within the production search budget.
  */
@@ -56,6 +57,8 @@ export interface ModelVerification {
     authorRules: number;
     fixed: number;
     profiles: number;
+    /** Generated constraints the author removed: `conservative` ones and policy overrides. */
+    relaxations: { conservative: number; overrides: number };
   };
   /** Why the status or publishability is not higher, in Hungarian. */
   findings: string[];
@@ -67,7 +70,8 @@ export function verifyModel(model: CodeLineExercise, input: VerificationInput = 
   const checks: ModelVerification['checks'] = {
     admission: 'failed', reference: 'not-run', budget: { probed: 0, indeterminate: 0, maxStates }, provenance: 'absent',
     rederivation: input.rederivation ?? 'not-run', analyzer: 'unknown', audit: input.audit ?? 'not-run',
-    fallbacks: { count: 0, codes: {} }, projectionLoss: null, authorRules: 0, fixed: model.lines.filter(line => line.fixed).length, profiles: model.profiles?.length ?? 0
+    fallbacks: { count: 0, codes: {} }, projectionLoss: null, authorRules: 0, fixed: model.lines.filter(line => line.fixed).length, profiles: model.profiles?.length ?? 0,
+    relaxations: { conservative: (model.authoring?.relaxations ?? []).filter(entry => entry.editability === 'conservative').length, overrides: (model.authoring?.relaxations ?? []).filter(entry => entry.editability !== 'conservative').length }
   };
   const compiled = compileCodeLineExercise(model);
   if ('status' in compiled) return { status: 'unverified', publishable: false, checks, findings: ['A modell befogadása sikertelen: ' + compiled.message], claims: [] };
@@ -108,6 +112,8 @@ export function verifyModel(model: CodeLineExercise, input: VerificationInput = 
   if (checks.rederivation === 'differs') unverified.push('A generált szabályok eltérnek a forrás újragenerálásától (kézi módosítás vagy más elemző).');
   if (checks.rederivation === 'not-run') unverified.push('A szabályokat nem vezettük le újra a forrásból.');
   if (checks.audit === 'errors') unverified.push('A referencia nyelvi hibát tartalmaz.');
+  if (checks.relaxations.conservative) unverified.push(`${checks.relaxations.conservative} konzervatív szabályt a szerző eltávolított; a lazítás helyessége nem igazolt.`);
+  if (checks.relaxations.overrides) unverified.push(`${checks.relaxations.overrides} bizonyított vagy ismeretlen eredetű szabályt a szerző policy-felülírással eltávolított; a modell eltér a sorrendpolitikától.`);
   findings.push(...unverified);
   const limits: string[] = [];
   if (checks.fallbacks.count) limits.push(`${checks.fallbacks.count} kényszer konzervatív fallback (${Object.keys(checks.fallbacks.codes).join(', ')}).`);

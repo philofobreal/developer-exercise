@@ -46,8 +46,8 @@ export interface AnalysisEnvironment {
     classFields?: 'either';
 }
 /** Binds the explanation metadata to the lines it was derived from and to the analysis that
- * derived it (ADR-015). A digest mismatch makes the provenance unbound, never a grading input. */
-/** `projectionLoss` (ADR-017): unit pairs of one list that the analysis left unordered but the
+ * derived it (ADR-015). A digest mismatch makes the provenance unbound, never a grading input.
+ * `projectionLoss` (ADR-017): unit pairs of one list that the analysis left unordered but the
  * projected model orders, with up to 20 examples. */
 export interface ModelEvidence {
     sourceDigest: string;
@@ -60,6 +60,20 @@ export interface ModelEvidence {
             after: number;
         }[];
     };
+}
+/** An author's note on one direct constraint (ADR-018); untrusted text, escaped wherever shown. */
+export interface RuleNote {
+    before: number;
+    after: number;
+    note: string;
+}
+/** A generated constraint the author removed (ADR-018). `editability` records how strong it
+ * was: `conservative` is an unproven author judgement, `proven` and `legacy` a policy override. */
+export interface RuleRelaxation {
+    before: number;
+    after: number;
+    editability: 'conservative' | 'proven' | 'legacy';
+    note?: string;
 }
 export interface CodeLineExercise {
     schemaVersion: 2;
@@ -97,6 +111,8 @@ export interface CodeLineExercise {
         }[];
         provenance?: ConstraintProvenance[];
         evidence?: ModelEvidence;
+        ruleNotes?: RuleNote[];
+        relaxations?: RuleRelaxation[];
     };
 }
 export type AdaptResult = {

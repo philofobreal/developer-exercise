@@ -2,7 +2,7 @@
 // Generated from docs/schema.json, language-ir.schema.json and codeline-v3.schema.json by scripts/sync-schema.mjs. Do not edit.
 "use strict";
 export const validateV2 = validate20;
-const schema31 = { "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://philofobreal.github.io/developer-exercise/schema.json", "title": "ngDynamic CodeLine v2 Exercise", "type": "object", "additionalProperties": false, "required": ["schemaVersion", "id", "revision", "language", "title", "description", "lines", "blocks"], "properties": { "schemaVersion": { "const": 2 }, "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "revision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "language": { "enum": ["javascript", "typescript"] }, "title": { "type": "string", "maxLength": 140 }, "description": { "type": "string", "maxLength": 500 }, "lines": { "type": "array", "minItems": 1, "maxItems": 500, "items": { "$ref": "#/$defs/codeLine" } }, "blocks": { "type": "array", "maxItems": 250, "items": { "$ref": "#/$defs/block" } }, "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" }, "maxItems": 5000 }, "profiles": { "type": "array", "maxItems": 32, "items": { "type": "object", "required": ["id", "edges"], "additionalProperties": false, "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" }, "maxItems": 5000 } } } }, "authoring": { "type": "object", "additionalProperties": false, "properties": { "strategy": { "type": "string", "maxLength": 100 }, "reason": { "type": "string", "maxLength": 500 }, "note": { "type": "string", "maxLength": 1000 }, "omittedBlocks": { "type": "integer", "minimum": 0, "maximum": 500 }, "semanticEquivalenceProven": { "const": false }, "dependencyHints": { "type": "array", "maxItems": 200, "items": { "type": "object", "additionalProperties": false, "required": ["name", "declarationLine", "usageLine"], "properties": { "name": { "type": "string", "maxLength": 2048 }, "declarationLine": { "type": "integer", "minimum": 1, "maximum": 50000 }, "usageLine": { "type": "integer", "minimum": 1, "maximum": 50000 } } } }, "provenance": { "type": "array", "maxItems": 10000, "items": { "type": "object", "additionalProperties": false, "required": ["before", "after", "category", "code"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "category": { "type": "string", "enum": ["data", "effect", "structure", "unit", "policy", "author", "conservative", "unknown"] }, "code": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9-]*$", "maxLength": 64 } } } }, "evidence": { "type": "object", "additionalProperties": false, "required": ["sourceDigest", "analyzer", "environment"], "properties": { "sourceDigest": { "type": "string", "pattern": "^[0-9a-f]{16}$" }, "analyzer": { "$ref": "#/$defs/dependencyPolicy" }, "environment": { "type": "object", "additionalProperties": false, "properties": { "typescript": { "type": "string", "pattern": "^[0-9A-Za-z.+-]{1,40}$" }, "importEmit": { "type": "string", "enum": ["verbatim", "elide-unused"] }, "sourceKind": { "type": "string", "enum": ["module", "script"] }, "classFields": { "const": "either" } } }, "projectionLoss": { "type": "object", "additionalProperties": false, "required": ["pairs", "examples"], "properties": { "pairs": { "type": "integer", "minimum": 0, "maximum": 125000 }, "examples": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/edge" } } } } } }, "dependencyPolicy": { "$ref": "#/$defs/dependencyPolicy" } } } }, "$defs": { "codeLine": { "type": "object", "additionalProperties": false, "required": ["id", "code", "dependencies", "fixed", "functionBlock", "scopeId"], "properties": { "id": { "type": "integer", "minimum": 1, "maximum": 9007199254740991, "description": "Stable identity within this exercise revision; never the current solution position." }, "code": { "type": "string", "maxLength": 2048, "pattern": "^[^\\r\\n\\u2028\\u2029]*$" }, "dependencies": { "type": "array", "uniqueItems": true, "items": { "type": "integer", "minimum": 1 }, "maxItems": 500, "description": "IDs of all required predecessors. Each must occur earlier, at any distance; array order is irrelevant." }, "fixed": { "type": "boolean" }, "functionBlock": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "scopeId": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 200 }, { "type": "null" }] }, "normalization": { "enum": ["indent", "exact"] }, "sourceLine": { "type": "integer", "minimum": 1, "maximum": 50000, "description": "Optional one-based original physical source line; informational, never an identity or ordering constraint." } } }, "block": { "type": "object", "additionalProperties": false, "required": ["id", "kind", "parentScopeId", "openLineId", "closeLineId"], "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "kind": { "enum": ["function", "block"] }, "functionBlock": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "parentScopeId": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 200 }, { "type": "null" }] }, "openLineId": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "closeLineId": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 } }, "anyOf": [{ "properties": { "kind": { "const": "function" }, "functionBlock": {} }, "required": ["functionBlock"] }, { "properties": { "kind": { "const": "block" } }, "not": { "required": ["functionBlock"], "properties": { "functionBlock": {} } } }] }, "edge": { "type": "object", "additionalProperties": false, "required": ["before", "after"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 } } }, "dependencyPolicy": { "type": "string", "enum": ["primitive-const-islands-v1", "scoped-primitive-dag-v2", "scoped-type-members-v3", "scoped-effect-analysis-v4", "scoped-effect-analysis-v5", "scoped-effect-analysis-v6", "scoped-effect-analysis-v7", "scoped-effect-analysis-v8", "scoped-effect-analysis-v9"] } } };
+const schema31 = { "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://philofobreal.github.io/developer-exercise/schema.json", "title": "ngDynamic CodeLine v2 Exercise", "type": "object", "additionalProperties": false, "required": ["schemaVersion", "id", "revision", "language", "title", "description", "lines", "blocks"], "properties": { "schemaVersion": { "const": 2 }, "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "revision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "language": { "enum": ["javascript", "typescript"] }, "title": { "type": "string", "maxLength": 140 }, "description": { "type": "string", "maxLength": 500 }, "lines": { "type": "array", "minItems": 1, "maxItems": 500, "items": { "$ref": "#/$defs/codeLine" } }, "blocks": { "type": "array", "maxItems": 250, "items": { "$ref": "#/$defs/block" } }, "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" }, "maxItems": 5000 }, "profiles": { "type": "array", "maxItems": 32, "items": { "type": "object", "required": ["id", "edges"], "additionalProperties": false, "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" }, "maxItems": 5000 } } } }, "authoring": { "type": "object", "additionalProperties": false, "properties": { "strategy": { "type": "string", "maxLength": 100 }, "reason": { "type": "string", "maxLength": 500 }, "note": { "type": "string", "maxLength": 1000 }, "omittedBlocks": { "type": "integer", "minimum": 0, "maximum": 500 }, "semanticEquivalenceProven": { "const": false }, "dependencyHints": { "type": "array", "maxItems": 200, "items": { "type": "object", "additionalProperties": false, "required": ["name", "declarationLine", "usageLine"], "properties": { "name": { "type": "string", "maxLength": 2048 }, "declarationLine": { "type": "integer", "minimum": 1, "maximum": 50000 }, "usageLine": { "type": "integer", "minimum": 1, "maximum": 50000 } } } }, "provenance": { "type": "array", "maxItems": 10000, "items": { "type": "object", "additionalProperties": false, "required": ["before", "after", "category", "code"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "category": { "type": "string", "enum": ["data", "effect", "structure", "unit", "policy", "author", "conservative", "unknown"] }, "code": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9-]*$", "maxLength": 64 } } } }, "evidence": { "type": "object", "additionalProperties": false, "required": ["sourceDigest", "analyzer", "environment"], "properties": { "sourceDigest": { "type": "string", "pattern": "^[0-9a-f]{16}$" }, "analyzer": { "$ref": "#/$defs/dependencyPolicy" }, "environment": { "type": "object", "additionalProperties": false, "properties": { "typescript": { "type": "string", "pattern": "^[0-9A-Za-z.+-]{1,40}$" }, "importEmit": { "type": "string", "enum": ["verbatim", "elide-unused"] }, "sourceKind": { "type": "string", "enum": ["module", "script"] }, "classFields": { "const": "either" } } }, "projectionLoss": { "type": "object", "additionalProperties": false, "required": ["pairs", "examples"], "properties": { "pairs": { "type": "integer", "minimum": 0, "maximum": 125000 }, "examples": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/edge" } } } } } }, "ruleNotes": { "type": "array", "maxItems": 1000, "items": { "type": "object", "additionalProperties": false, "required": ["before", "after", "note"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "note": { "type": "string", "minLength": 1, "maxLength": 500 } } } }, "relaxations": { "type": "array", "maxItems": 1000, "items": { "type": "object", "additionalProperties": false, "required": ["before", "after", "editability"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "editability": { "type": "string", "enum": ["conservative", "proven", "legacy"] }, "note": { "type": "string", "minLength": 1, "maxLength": 500 } } } }, "dependencyPolicy": { "$ref": "#/$defs/dependencyPolicy" } } } }, "$defs": { "codeLine": { "type": "object", "additionalProperties": false, "required": ["id", "code", "dependencies", "fixed", "functionBlock", "scopeId"], "properties": { "id": { "type": "integer", "minimum": 1, "maximum": 9007199254740991, "description": "Stable identity within this exercise revision; never the current solution position." }, "code": { "type": "string", "maxLength": 2048, "pattern": "^[^\\r\\n\\u2028\\u2029]*$" }, "dependencies": { "type": "array", "uniqueItems": true, "items": { "type": "integer", "minimum": 1 }, "maxItems": 500, "description": "IDs of all required predecessors. Each must occur earlier, at any distance; array order is irrelevant." }, "fixed": { "type": "boolean" }, "functionBlock": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "scopeId": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 200 }, { "type": "null" }] }, "normalization": { "enum": ["indent", "exact"] }, "sourceLine": { "type": "integer", "minimum": 1, "maximum": 50000, "description": "Optional one-based original physical source line; informational, never an identity or ordering constraint." } } }, "block": { "type": "object", "additionalProperties": false, "required": ["id", "kind", "parentScopeId", "openLineId", "closeLineId"], "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "kind": { "enum": ["function", "block"] }, "functionBlock": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "parentScopeId": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 200 }, { "type": "null" }] }, "openLineId": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "closeLineId": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 } }, "anyOf": [{ "properties": { "kind": { "const": "function" }, "functionBlock": {} }, "required": ["functionBlock"] }, { "properties": { "kind": { "const": "block" } }, "not": { "required": ["functionBlock"], "properties": { "functionBlock": {} } } }] }, "edge": { "type": "object", "additionalProperties": false, "required": ["before", "after"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 } } }, "dependencyPolicy": { "type": "string", "enum": ["primitive-const-islands-v1", "scoped-primitive-dag-v2", "scoped-type-members-v3", "scoped-effect-analysis-v4", "scoped-effect-analysis-v5", "scoped-effect-analysis-v6", "scoped-effect-analysis-v7", "scoped-effect-analysis-v8", "scoped-effect-analysis-v9"] } } };
 const schema32 = { "type": "object", "additionalProperties": false, "required": ["id", "code", "dependencies", "fixed", "functionBlock", "scopeId"], "properties": { "id": { "type": "integer", "minimum": 1, "maximum": 9007199254740991, "description": "Stable identity within this exercise revision; never the current solution position." }, "code": { "type": "string", "maxLength": 2048, "pattern": "^[^\\r\\n\\u2028\\u2029]*$" }, "dependencies": { "type": "array", "uniqueItems": true, "items": { "type": "integer", "minimum": 1 }, "maxItems": 500, "description": "IDs of all required predecessors. Each must occur earlier, at any distance; array order is irrelevant." }, "fixed": { "type": "boolean" }, "functionBlock": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "scopeId": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 200 }, { "type": "null" }] }, "normalization": { "enum": ["indent", "exact"] }, "sourceLine": { "type": "integer", "minimum": 1, "maximum": 50000, "description": "Optional one-based original physical source line; informational, never an identity or ordering constraint." } } };
 const schema33 = { "type": "object", "additionalProperties": false, "required": ["id", "kind", "parentScopeId", "openLineId", "closeLineId"], "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "kind": { "enum": ["function", "block"] }, "functionBlock": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "parentScopeId": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 200 }, { "type": "null" }] }, "openLineId": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "closeLineId": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 } }, "anyOf": [{ "properties": { "kind": { "const": "function" }, "functionBlock": {} }, "required": ["functionBlock"] }, { "properties": { "kind": { "const": "block" } }, "not": { "required": ["functionBlock"], "properties": { "functionBlock": {} } } }] };
 const schema34 = { "type": "object", "additionalProperties": false, "required": ["before", "after"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 } } };
@@ -1965,21 +1965,321 @@ function validate20(data, { instancePath = "", parentData, parentDataProperty, r
                                                                                                         var valid23 = true;
                                                                                                     }
                                                                                                     if (valid23) {
-                                                                                                        if (data38.dependencyPolicy !== undefined) {
-                                                                                                            let data69 = data38.dependencyPolicy;
+                                                                                                        if (data38.ruleNotes !== undefined) {
+                                                                                                            let data69 = data38.ruleNotes;
                                                                                                             const _errs163 = errors;
-                                                                                                            if (typeof data69 !== "string") {
-                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyPolicy", schemaPath: "#/$defs/dependencyPolicy/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                return false;
-                                                                                                            }
-                                                                                                            if (!(((((((((data69 === "primitive-const-islands-v1") || (data69 === "scoped-primitive-dag-v2")) || (data69 === "scoped-type-members-v3")) || (data69 === "scoped-effect-analysis-v4")) || (data69 === "scoped-effect-analysis-v5")) || (data69 === "scoped-effect-analysis-v6")) || (data69 === "scoped-effect-analysis-v7")) || (data69 === "scoped-effect-analysis-v8")) || (data69 === "scoped-effect-analysis-v9"))) {
-                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyPolicy", schemaPath: "#/$defs/dependencyPolicy/enum", keyword: "enum", params: { allowedValues: schema36.enum }, message: "must be equal to one of the allowed values" }];
-                                                                                                                return false;
+                                                                                                            if (errors === _errs163) {
+                                                                                                                if (Array.isArray(data69)) {
+                                                                                                                    if (data69.length > 1000) {
+                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes", schemaPath: "#/properties/authoring/properties/ruleNotes/maxItems", keyword: "maxItems", params: { limit: 1000 }, message: "must NOT have more than 1000 items" }];
+                                                                                                                        return false;
+                                                                                                                    }
+                                                                                                                    else {
+                                                                                                                        var valid35 = true;
+                                                                                                                        const len9 = data69.length;
+                                                                                                                        for (let i10 = 0; i10 < len9; i10++) {
+                                                                                                                            let data70 = data69[i10];
+                                                                                                                            const _errs165 = errors;
+                                                                                                                            if (errors === _errs165) {
+                                                                                                                                if (data70 && typeof data70 == "object" && !Array.isArray(data70)) {
+                                                                                                                                    let missing13;
+                                                                                                                                    if ((((data70.before === undefined) && (missing13 = "before")) || ((data70.after === undefined) && (missing13 = "after"))) || ((data70.note === undefined) && (missing13 = "note"))) {
+                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10, schemaPath: "#/properties/authoring/properties/ruleNotes/items/required", keyword: "required", params: { missingProperty: missing13 }, message: "must have required property '" + missing13 + "'" }];
+                                                                                                                                        return false;
+                                                                                                                                    }
+                                                                                                                                    else {
+                                                                                                                                        const _errs167 = errors;
+                                                                                                                                        for (const key13 in data70) {
+                                                                                                                                            if (!(((key13 === "before") || (key13 === "after")) || (key13 === "note"))) {
+                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10, schemaPath: "#/properties/authoring/properties/ruleNotes/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key13 }, message: "must NOT have additional properties" }];
+                                                                                                                                                return false;
+                                                                                                                                                break;
+                                                                                                                                            }
+                                                                                                                                        }
+                                                                                                                                        if (_errs167 === errors) {
+                                                                                                                                            if (data70.before !== undefined) {
+                                                                                                                                                let data71 = data70.before;
+                                                                                                                                                const _errs168 = errors;
+                                                                                                                                                if (!(((typeof data71 == "number") && (!(data71 % 1) && !isNaN(data71))) && (isFinite(data71)))) {
+                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10 + "/before", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/before/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                                                                    return false;
+                                                                                                                                                }
+                                                                                                                                                if (errors === _errs168) {
+                                                                                                                                                    if ((typeof data71 == "number") && (isFinite(data71))) {
+                                                                                                                                                        if (data71 > 9007199254740991 || isNaN(data71)) {
+                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10 + "/before", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/before/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                                                                            return false;
+                                                                                                                                                        }
+                                                                                                                                                        else {
+                                                                                                                                                            if (data71 < 1 || isNaN(data71)) {
+                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10 + "/before", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/before/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                                                                return false;
+                                                                                                                                                            }
+                                                                                                                                                        }
+                                                                                                                                                    }
+                                                                                                                                                }
+                                                                                                                                                var valid36 = _errs168 === errors;
+                                                                                                                                            }
+                                                                                                                                            else {
+                                                                                                                                                var valid36 = true;
+                                                                                                                                            }
+                                                                                                                                            if (valid36) {
+                                                                                                                                                if (data70.after !== undefined) {
+                                                                                                                                                    let data72 = data70.after;
+                                                                                                                                                    const _errs170 = errors;
+                                                                                                                                                    if (!(((typeof data72 == "number") && (!(data72 % 1) && !isNaN(data72))) && (isFinite(data72)))) {
+                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10 + "/after", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/after/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                                                                        return false;
+                                                                                                                                                    }
+                                                                                                                                                    if (errors === _errs170) {
+                                                                                                                                                        if ((typeof data72 == "number") && (isFinite(data72))) {
+                                                                                                                                                            if (data72 > 9007199254740991 || isNaN(data72)) {
+                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10 + "/after", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/after/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                                                                                return false;
+                                                                                                                                                            }
+                                                                                                                                                            else {
+                                                                                                                                                                if (data72 < 1 || isNaN(data72)) {
+                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10 + "/after", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/after/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                                                                    return false;
+                                                                                                                                                                }
+                                                                                                                                                            }
+                                                                                                                                                        }
+                                                                                                                                                    }
+                                                                                                                                                    var valid36 = _errs170 === errors;
+                                                                                                                                                }
+                                                                                                                                                else {
+                                                                                                                                                    var valid36 = true;
+                                                                                                                                                }
+                                                                                                                                                if (valid36) {
+                                                                                                                                                    if (data70.note !== undefined) {
+                                                                                                                                                        let data73 = data70.note;
+                                                                                                                                                        const _errs172 = errors;
+                                                                                                                                                        if (errors === _errs172) {
+                                                                                                                                                            if (typeof data73 === "string") {
+                                                                                                                                                                if (func2(data73) > 500) {
+                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10 + "/note", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/note/maxLength", keyword: "maxLength", params: { limit: 500 }, message: "must NOT have more than 500 characters" }];
+                                                                                                                                                                    return false;
+                                                                                                                                                                }
+                                                                                                                                                                else {
+                                                                                                                                                                    if (func2(data73) < 1) {
+                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10 + "/note", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/note/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" }];
+                                                                                                                                                                        return false;
+                                                                                                                                                                    }
+                                                                                                                                                                }
+                                                                                                                                                            }
+                                                                                                                                                            else {
+                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10 + "/note", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/note/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                return false;
+                                                                                                                                                            }
+                                                                                                                                                        }
+                                                                                                                                                        var valid36 = _errs172 === errors;
+                                                                                                                                                    }
+                                                                                                                                                    else {
+                                                                                                                                                        var valid36 = true;
+                                                                                                                                                    }
+                                                                                                                                                }
+                                                                                                                                            }
+                                                                                                                                        }
+                                                                                                                                    }
+                                                                                                                                }
+                                                                                                                                else {
+                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10, schemaPath: "#/properties/authoring/properties/ruleNotes/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                                                                    return false;
+                                                                                                                                }
+                                                                                                                            }
+                                                                                                                            var valid35 = _errs165 === errors;
+                                                                                                                            if (!valid35) {
+                                                                                                                                break;
+                                                                                                                            }
+                                                                                                                        }
+                                                                                                                    }
+                                                                                                                }
+                                                                                                                else {
+                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes", schemaPath: "#/properties/authoring/properties/ruleNotes/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                                                                                                    return false;
+                                                                                                                }
                                                                                                             }
                                                                                                             var valid23 = _errs163 === errors;
                                                                                                         }
                                                                                                         else {
                                                                                                             var valid23 = true;
+                                                                                                        }
+                                                                                                        if (valid23) {
+                                                                                                            if (data38.relaxations !== undefined) {
+                                                                                                                let data74 = data38.relaxations;
+                                                                                                                const _errs174 = errors;
+                                                                                                                if (errors === _errs174) {
+                                                                                                                    if (Array.isArray(data74)) {
+                                                                                                                        if (data74.length > 1000) {
+                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations", schemaPath: "#/properties/authoring/properties/relaxations/maxItems", keyword: "maxItems", params: { limit: 1000 }, message: "must NOT have more than 1000 items" }];
+                                                                                                                            return false;
+                                                                                                                        }
+                                                                                                                        else {
+                                                                                                                            var valid37 = true;
+                                                                                                                            const len10 = data74.length;
+                                                                                                                            for (let i11 = 0; i11 < len10; i11++) {
+                                                                                                                                let data75 = data74[i11];
+                                                                                                                                const _errs176 = errors;
+                                                                                                                                if (errors === _errs176) {
+                                                                                                                                    if (data75 && typeof data75 == "object" && !Array.isArray(data75)) {
+                                                                                                                                        let missing14;
+                                                                                                                                        if ((((data75.before === undefined) && (missing14 = "before")) || ((data75.after === undefined) && (missing14 = "after"))) || ((data75.editability === undefined) && (missing14 = "editability"))) {
+                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11, schemaPath: "#/properties/authoring/properties/relaxations/items/required", keyword: "required", params: { missingProperty: missing14 }, message: "must have required property '" + missing14 + "'" }];
+                                                                                                                                            return false;
+                                                                                                                                        }
+                                                                                                                                        else {
+                                                                                                                                            const _errs178 = errors;
+                                                                                                                                            for (const key14 in data75) {
+                                                                                                                                                if (!((((key14 === "before") || (key14 === "after")) || (key14 === "editability")) || (key14 === "note"))) {
+                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11, schemaPath: "#/properties/authoring/properties/relaxations/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key14 }, message: "must NOT have additional properties" }];
+                                                                                                                                                    return false;
+                                                                                                                                                    break;
+                                                                                                                                                }
+                                                                                                                                            }
+                                                                                                                                            if (_errs178 === errors) {
+                                                                                                                                                if (data75.before !== undefined) {
+                                                                                                                                                    let data76 = data75.before;
+                                                                                                                                                    const _errs179 = errors;
+                                                                                                                                                    if (!(((typeof data76 == "number") && (!(data76 % 1) && !isNaN(data76))) && (isFinite(data76)))) {
+                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/before", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/before/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                                                                        return false;
+                                                                                                                                                    }
+                                                                                                                                                    if (errors === _errs179) {
+                                                                                                                                                        if ((typeof data76 == "number") && (isFinite(data76))) {
+                                                                                                                                                            if (data76 > 9007199254740991 || isNaN(data76)) {
+                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/before", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/before/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                                                                                return false;
+                                                                                                                                                            }
+                                                                                                                                                            else {
+                                                                                                                                                                if (data76 < 1 || isNaN(data76)) {
+                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/before", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/before/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                                                                    return false;
+                                                                                                                                                                }
+                                                                                                                                                            }
+                                                                                                                                                        }
+                                                                                                                                                    }
+                                                                                                                                                    var valid38 = _errs179 === errors;
+                                                                                                                                                }
+                                                                                                                                                else {
+                                                                                                                                                    var valid38 = true;
+                                                                                                                                                }
+                                                                                                                                                if (valid38) {
+                                                                                                                                                    if (data75.after !== undefined) {
+                                                                                                                                                        let data77 = data75.after;
+                                                                                                                                                        const _errs181 = errors;
+                                                                                                                                                        if (!(((typeof data77 == "number") && (!(data77 % 1) && !isNaN(data77))) && (isFinite(data77)))) {
+                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/after", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/after/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                                                                            return false;
+                                                                                                                                                        }
+                                                                                                                                                        if (errors === _errs181) {
+                                                                                                                                                            if ((typeof data77 == "number") && (isFinite(data77))) {
+                                                                                                                                                                if (data77 > 9007199254740991 || isNaN(data77)) {
+                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/after", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/after/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                                                                                    return false;
+                                                                                                                                                                }
+                                                                                                                                                                else {
+                                                                                                                                                                    if (data77 < 1 || isNaN(data77)) {
+                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/after", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/after/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                                                                        return false;
+                                                                                                                                                                    }
+                                                                                                                                                                }
+                                                                                                                                                            }
+                                                                                                                                                        }
+                                                                                                                                                        var valid38 = _errs181 === errors;
+                                                                                                                                                    }
+                                                                                                                                                    else {
+                                                                                                                                                        var valid38 = true;
+                                                                                                                                                    }
+                                                                                                                                                    if (valid38) {
+                                                                                                                                                        if (data75.editability !== undefined) {
+                                                                                                                                                            let data78 = data75.editability;
+                                                                                                                                                            const _errs183 = errors;
+                                                                                                                                                            if (typeof data78 !== "string") {
+                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/editability", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/editability/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                return false;
+                                                                                                                                                            }
+                                                                                                                                                            if (!(((data78 === "conservative") || (data78 === "proven")) || (data78 === "legacy"))) {
+                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/editability", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/editability/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.relaxations.items.properties.editability.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                                                                                return false;
+                                                                                                                                                            }
+                                                                                                                                                            var valid38 = _errs183 === errors;
+                                                                                                                                                        }
+                                                                                                                                                        else {
+                                                                                                                                                            var valid38 = true;
+                                                                                                                                                        }
+                                                                                                                                                        if (valid38) {
+                                                                                                                                                            if (data75.note !== undefined) {
+                                                                                                                                                                let data79 = data75.note;
+                                                                                                                                                                const _errs185 = errors;
+                                                                                                                                                                if (errors === _errs185) {
+                                                                                                                                                                    if (typeof data79 === "string") {
+                                                                                                                                                                        if (func2(data79) > 500) {
+                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/note", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/note/maxLength", keyword: "maxLength", params: { limit: 500 }, message: "must NOT have more than 500 characters" }];
+                                                                                                                                                                            return false;
+                                                                                                                                                                        }
+                                                                                                                                                                        else {
+                                                                                                                                                                            if (func2(data79) < 1) {
+                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/note", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/note/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" }];
+                                                                                                                                                                                return false;
+                                                                                                                                                                            }
+                                                                                                                                                                        }
+                                                                                                                                                                    }
+                                                                                                                                                                    else {
+                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/note", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/note/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                        return false;
+                                                                                                                                                                    }
+                                                                                                                                                                }
+                                                                                                                                                                var valid38 = _errs185 === errors;
+                                                                                                                                                            }
+                                                                                                                                                            else {
+                                                                                                                                                                var valid38 = true;
+                                                                                                                                                            }
+                                                                                                                                                        }
+                                                                                                                                                    }
+                                                                                                                                                }
+                                                                                                                                            }
+                                                                                                                                        }
+                                                                                                                                    }
+                                                                                                                                    else {
+                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11, schemaPath: "#/properties/authoring/properties/relaxations/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                                                                        return false;
+                                                                                                                                    }
+                                                                                                                                }
+                                                                                                                                var valid37 = _errs176 === errors;
+                                                                                                                                if (!valid37) {
+                                                                                                                                    break;
+                                                                                                                                }
+                                                                                                                            }
+                                                                                                                        }
+                                                                                                                    }
+                                                                                                                    else {
+                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations", schemaPath: "#/properties/authoring/properties/relaxations/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                                                                                                        return false;
+                                                                                                                    }
+                                                                                                                }
+                                                                                                                var valid23 = _errs174 === errors;
+                                                                                                            }
+                                                                                                            else {
+                                                                                                                var valid23 = true;
+                                                                                                            }
+                                                                                                            if (valid23) {
+                                                                                                                if (data38.dependencyPolicy !== undefined) {
+                                                                                                                    let data80 = data38.dependencyPolicy;
+                                                                                                                    const _errs187 = errors;
+                                                                                                                    if (typeof data80 !== "string") {
+                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyPolicy", schemaPath: "#/$defs/dependencyPolicy/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                        return false;
+                                                                                                                    }
+                                                                                                                    if (!(((((((((data80 === "primitive-const-islands-v1") || (data80 === "scoped-primitive-dag-v2")) || (data80 === "scoped-type-members-v3")) || (data80 === "scoped-effect-analysis-v4")) || (data80 === "scoped-effect-analysis-v5")) || (data80 === "scoped-effect-analysis-v6")) || (data80 === "scoped-effect-analysis-v7")) || (data80 === "scoped-effect-analysis-v8")) || (data80 === "scoped-effect-analysis-v9"))) {
+                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyPolicy", schemaPath: "#/$defs/dependencyPolicy/enum", keyword: "enum", params: { allowedValues: schema36.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                                        return false;
+                                                                                                                    }
+                                                                                                                    var valid23 = _errs187 === errors;
+                                                                                                                }
+                                                                                                                else {
+                                                                                                                    var valid23 = true;
+                                                                                                                }
+                                                                                                            }
                                                                                                         }
                                                                                                     }
                                                                                                 }
@@ -3054,7 +3354,7 @@ function validate35(data, { instancePath = "", parentData, parentDataProperty, r
     }
 } validate35.errors = vErrors; return errors === 0; }
 validate35.evaluated = { "props": true, "dynamicProps": false, "dynamicItems": false };
-const schema59 = { "type": "object", "additionalProperties": false, "properties": { "strategy": { "type": "string", "maxLength": 100 }, "reason": { "type": "string", "maxLength": 500 }, "note": { "type": "string", "maxLength": 1000 }, "omittedBlocks": { "type": "integer", "minimum": 0, "maximum": 500 }, "semanticEquivalenceProven": { "const": false }, "dependencyHints": { "type": "array", "maxItems": 200, "items": { "type": "object", "additionalProperties": false, "required": ["name", "declarationLine", "usageLine"], "properties": { "name": { "type": "string", "maxLength": 2048 }, "declarationLine": { "type": "integer", "minimum": 1, "maximum": 50000 }, "usageLine": { "type": "integer", "minimum": 1, "maximum": 50000 } } } }, "provenance": { "type": "array", "maxItems": 10000, "items": { "type": "object", "additionalProperties": false, "required": ["before", "after", "category", "code"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "category": { "type": "string", "enum": ["data", "effect", "structure", "unit", "policy", "author", "conservative", "unknown"] }, "code": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9-]*$", "maxLength": 64 } } } }, "evidence": { "type": "object", "additionalProperties": false, "required": ["sourceDigest", "analyzer", "environment"], "properties": { "sourceDigest": { "type": "string", "pattern": "^[0-9a-f]{16}$" }, "analyzer": { "$ref": "#/$defs/dependencyPolicy" }, "environment": { "type": "object", "additionalProperties": false, "properties": { "typescript": { "type": "string", "pattern": "^[0-9A-Za-z.+-]{1,40}$" }, "importEmit": { "type": "string", "enum": ["verbatim", "elide-unused"] }, "sourceKind": { "type": "string", "enum": ["module", "script"] }, "classFields": { "const": "either" } } }, "projectionLoss": { "type": "object", "additionalProperties": false, "required": ["pairs", "examples"], "properties": { "pairs": { "type": "integer", "minimum": 0, "maximum": 125000 }, "examples": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/edge" } } } } } }, "dependencyPolicy": { "$ref": "#/$defs/dependencyPolicy" } } };
+const schema59 = { "type": "object", "additionalProperties": false, "properties": { "strategy": { "type": "string", "maxLength": 100 }, "reason": { "type": "string", "maxLength": 500 }, "note": { "type": "string", "maxLength": 1000 }, "omittedBlocks": { "type": "integer", "minimum": 0, "maximum": 500 }, "semanticEquivalenceProven": { "const": false }, "dependencyHints": { "type": "array", "maxItems": 200, "items": { "type": "object", "additionalProperties": false, "required": ["name", "declarationLine", "usageLine"], "properties": { "name": { "type": "string", "maxLength": 2048 }, "declarationLine": { "type": "integer", "minimum": 1, "maximum": 50000 }, "usageLine": { "type": "integer", "minimum": 1, "maximum": 50000 } } } }, "provenance": { "type": "array", "maxItems": 10000, "items": { "type": "object", "additionalProperties": false, "required": ["before", "after", "category", "code"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "category": { "type": "string", "enum": ["data", "effect", "structure", "unit", "policy", "author", "conservative", "unknown"] }, "code": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9-]*$", "maxLength": 64 } } } }, "evidence": { "type": "object", "additionalProperties": false, "required": ["sourceDigest", "analyzer", "environment"], "properties": { "sourceDigest": { "type": "string", "pattern": "^[0-9a-f]{16}$" }, "analyzer": { "$ref": "#/$defs/dependencyPolicy" }, "environment": { "type": "object", "additionalProperties": false, "properties": { "typescript": { "type": "string", "pattern": "^[0-9A-Za-z.+-]{1,40}$" }, "importEmit": { "type": "string", "enum": ["verbatim", "elide-unused"] }, "sourceKind": { "type": "string", "enum": ["module", "script"] }, "classFields": { "const": "either" } } }, "projectionLoss": { "type": "object", "additionalProperties": false, "required": ["pairs", "examples"], "properties": { "pairs": { "type": "integer", "minimum": 0, "maximum": 125000 }, "examples": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/edge" } } } } } }, "ruleNotes": { "type": "array", "maxItems": 1000, "items": { "type": "object", "additionalProperties": false, "required": ["before", "after", "note"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "note": { "type": "string", "minLength": 1, "maxLength": 500 } } } }, "relaxations": { "type": "array", "maxItems": 1000, "items": { "type": "object", "additionalProperties": false, "required": ["before", "after", "editability"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "editability": { "type": "string", "enum": ["conservative", "proven", "legacy"] }, "note": { "type": "string", "minLength": 1, "maxLength": 500 } } } }, "dependencyPolicy": { "$ref": "#/$defs/dependencyPolicy" } } };
 function validate38(data, { instancePath = "", parentData, parentDataProperty, rootData = data, dynamicAnchors = {} } = {}) { let vErrors = null; let errors = 0; const evaluated0 = validate38.evaluated; if (evaluated0.dynamicProps) {
     evaluated0.props = undefined;
 } if (evaluated0.dynamicItems) {
@@ -3808,21 +4108,321 @@ function validate38(data, { instancePath = "", parentData, parentDataProperty, r
                                             var valid0 = true;
                                         }
                                         if (valid0) {
-                                            if (data.dependencyPolicy !== undefined) {
-                                                let data30 = data.dependencyPolicy;
+                                            if (data.ruleNotes !== undefined) {
+                                                let data30 = data.ruleNotes;
                                                 const _errs68 = errors;
-                                                if (typeof data30 !== "string") {
-                                                    validate38.errors = [{ instancePath: instancePath + "/dependencyPolicy", schemaPath: "#/$defs/dependencyPolicy/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                    return false;
-                                                }
-                                                if (!(((((((((data30 === "primitive-const-islands-v1") || (data30 === "scoped-primitive-dag-v2")) || (data30 === "scoped-type-members-v3")) || (data30 === "scoped-effect-analysis-v4")) || (data30 === "scoped-effect-analysis-v5")) || (data30 === "scoped-effect-analysis-v6")) || (data30 === "scoped-effect-analysis-v7")) || (data30 === "scoped-effect-analysis-v8")) || (data30 === "scoped-effect-analysis-v9"))) {
-                                                    validate38.errors = [{ instancePath: instancePath + "/dependencyPolicy", schemaPath: "#/$defs/dependencyPolicy/enum", keyword: "enum", params: { allowedValues: schema36.enum }, message: "must be equal to one of the allowed values" }];
-                                                    return false;
+                                                if (errors === _errs68) {
+                                                    if (Array.isArray(data30)) {
+                                                        if (data30.length > 1000) {
+                                                            validate38.errors = [{ instancePath: instancePath + "/ruleNotes", schemaPath: "#/properties/ruleNotes/maxItems", keyword: "maxItems", params: { limit: 1000 }, message: "must NOT have more than 1000 items" }];
+                                                            return false;
+                                                        }
+                                                        else {
+                                                            var valid12 = true;
+                                                            const len3 = data30.length;
+                                                            for (let i3 = 0; i3 < len3; i3++) {
+                                                                let data31 = data30[i3];
+                                                                const _errs70 = errors;
+                                                                if (errors === _errs70) {
+                                                                    if (data31 && typeof data31 == "object" && !Array.isArray(data31)) {
+                                                                        let missing5;
+                                                                        if ((((data31.before === undefined) && (missing5 = "before")) || ((data31.after === undefined) && (missing5 = "after"))) || ((data31.note === undefined) && (missing5 = "note"))) {
+                                                                            validate38.errors = [{ instancePath: instancePath + "/ruleNotes/" + i3, schemaPath: "#/properties/ruleNotes/items/required", keyword: "required", params: { missingProperty: missing5 }, message: "must have required property '" + missing5 + "'" }];
+                                                                            return false;
+                                                                        }
+                                                                        else {
+                                                                            const _errs72 = errors;
+                                                                            for (const key7 in data31) {
+                                                                                if (!(((key7 === "before") || (key7 === "after")) || (key7 === "note"))) {
+                                                                                    validate38.errors = [{ instancePath: instancePath + "/ruleNotes/" + i3, schemaPath: "#/properties/ruleNotes/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key7 }, message: "must NOT have additional properties" }];
+                                                                                    return false;
+                                                                                    break;
+                                                                                }
+                                                                            }
+                                                                            if (_errs72 === errors) {
+                                                                                if (data31.before !== undefined) {
+                                                                                    let data32 = data31.before;
+                                                                                    const _errs73 = errors;
+                                                                                    if (!(((typeof data32 == "number") && (!(data32 % 1) && !isNaN(data32))) && (isFinite(data32)))) {
+                                                                                        validate38.errors = [{ instancePath: instancePath + "/ruleNotes/" + i3 + "/before", schemaPath: "#/properties/ruleNotes/items/properties/before/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                        return false;
+                                                                                    }
+                                                                                    if (errors === _errs73) {
+                                                                                        if ((typeof data32 == "number") && (isFinite(data32))) {
+                                                                                            if (data32 > 9007199254740991 || isNaN(data32)) {
+                                                                                                validate38.errors = [{ instancePath: instancePath + "/ruleNotes/" + i3 + "/before", schemaPath: "#/properties/ruleNotes/items/properties/before/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                return false;
+                                                                                            }
+                                                                                            else {
+                                                                                                if (data32 < 1 || isNaN(data32)) {
+                                                                                                    validate38.errors = [{ instancePath: instancePath + "/ruleNotes/" + i3 + "/before", schemaPath: "#/properties/ruleNotes/items/properties/before/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                    return false;
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                    var valid13 = _errs73 === errors;
+                                                                                }
+                                                                                else {
+                                                                                    var valid13 = true;
+                                                                                }
+                                                                                if (valid13) {
+                                                                                    if (data31.after !== undefined) {
+                                                                                        let data33 = data31.after;
+                                                                                        const _errs75 = errors;
+                                                                                        if (!(((typeof data33 == "number") && (!(data33 % 1) && !isNaN(data33))) && (isFinite(data33)))) {
+                                                                                            validate38.errors = [{ instancePath: instancePath + "/ruleNotes/" + i3 + "/after", schemaPath: "#/properties/ruleNotes/items/properties/after/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                            return false;
+                                                                                        }
+                                                                                        if (errors === _errs75) {
+                                                                                            if ((typeof data33 == "number") && (isFinite(data33))) {
+                                                                                                if (data33 > 9007199254740991 || isNaN(data33)) {
+                                                                                                    validate38.errors = [{ instancePath: instancePath + "/ruleNotes/" + i3 + "/after", schemaPath: "#/properties/ruleNotes/items/properties/after/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                    return false;
+                                                                                                }
+                                                                                                else {
+                                                                                                    if (data33 < 1 || isNaN(data33)) {
+                                                                                                        validate38.errors = [{ instancePath: instancePath + "/ruleNotes/" + i3 + "/after", schemaPath: "#/properties/ruleNotes/items/properties/after/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                        return false;
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                        var valid13 = _errs75 === errors;
+                                                                                    }
+                                                                                    else {
+                                                                                        var valid13 = true;
+                                                                                    }
+                                                                                    if (valid13) {
+                                                                                        if (data31.note !== undefined) {
+                                                                                            let data34 = data31.note;
+                                                                                            const _errs77 = errors;
+                                                                                            if (errors === _errs77) {
+                                                                                                if (typeof data34 === "string") {
+                                                                                                    if (func2(data34) > 500) {
+                                                                                                        validate38.errors = [{ instancePath: instancePath + "/ruleNotes/" + i3 + "/note", schemaPath: "#/properties/ruleNotes/items/properties/note/maxLength", keyword: "maxLength", params: { limit: 500 }, message: "must NOT have more than 500 characters" }];
+                                                                                                        return false;
+                                                                                                    }
+                                                                                                    else {
+                                                                                                        if (func2(data34) < 1) {
+                                                                                                            validate38.errors = [{ instancePath: instancePath + "/ruleNotes/" + i3 + "/note", schemaPath: "#/properties/ruleNotes/items/properties/note/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" }];
+                                                                                                            return false;
+                                                                                                        }
+                                                                                                    }
+                                                                                                }
+                                                                                                else {
+                                                                                                    validate38.errors = [{ instancePath: instancePath + "/ruleNotes/" + i3 + "/note", schemaPath: "#/properties/ruleNotes/items/properties/note/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                    return false;
+                                                                                                }
+                                                                                            }
+                                                                                            var valid13 = _errs77 === errors;
+                                                                                        }
+                                                                                        else {
+                                                                                            var valid13 = true;
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                    else {
+                                                                        validate38.errors = [{ instancePath: instancePath + "/ruleNotes/" + i3, schemaPath: "#/properties/ruleNotes/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                        return false;
+                                                                    }
+                                                                }
+                                                                var valid12 = _errs70 === errors;
+                                                                if (!valid12) {
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    else {
+                                                        validate38.errors = [{ instancePath: instancePath + "/ruleNotes", schemaPath: "#/properties/ruleNotes/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                                        return false;
+                                                    }
                                                 }
                                                 var valid0 = _errs68 === errors;
                                             }
                                             else {
                                                 var valid0 = true;
+                                            }
+                                            if (valid0) {
+                                                if (data.relaxations !== undefined) {
+                                                    let data35 = data.relaxations;
+                                                    const _errs79 = errors;
+                                                    if (errors === _errs79) {
+                                                        if (Array.isArray(data35)) {
+                                                            if (data35.length > 1000) {
+                                                                validate38.errors = [{ instancePath: instancePath + "/relaxations", schemaPath: "#/properties/relaxations/maxItems", keyword: "maxItems", params: { limit: 1000 }, message: "must NOT have more than 1000 items" }];
+                                                                return false;
+                                                            }
+                                                            else {
+                                                                var valid14 = true;
+                                                                const len4 = data35.length;
+                                                                for (let i4 = 0; i4 < len4; i4++) {
+                                                                    let data36 = data35[i4];
+                                                                    const _errs81 = errors;
+                                                                    if (errors === _errs81) {
+                                                                        if (data36 && typeof data36 == "object" && !Array.isArray(data36)) {
+                                                                            let missing6;
+                                                                            if ((((data36.before === undefined) && (missing6 = "before")) || ((data36.after === undefined) && (missing6 = "after"))) || ((data36.editability === undefined) && (missing6 = "editability"))) {
+                                                                                validate38.errors = [{ instancePath: instancePath + "/relaxations/" + i4, schemaPath: "#/properties/relaxations/items/required", keyword: "required", params: { missingProperty: missing6 }, message: "must have required property '" + missing6 + "'" }];
+                                                                                return false;
+                                                                            }
+                                                                            else {
+                                                                                const _errs83 = errors;
+                                                                                for (const key8 in data36) {
+                                                                                    if (!((((key8 === "before") || (key8 === "after")) || (key8 === "editability")) || (key8 === "note"))) {
+                                                                                        validate38.errors = [{ instancePath: instancePath + "/relaxations/" + i4, schemaPath: "#/properties/relaxations/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key8 }, message: "must NOT have additional properties" }];
+                                                                                        return false;
+                                                                                        break;
+                                                                                    }
+                                                                                }
+                                                                                if (_errs83 === errors) {
+                                                                                    if (data36.before !== undefined) {
+                                                                                        let data37 = data36.before;
+                                                                                        const _errs84 = errors;
+                                                                                        if (!(((typeof data37 == "number") && (!(data37 % 1) && !isNaN(data37))) && (isFinite(data37)))) {
+                                                                                            validate38.errors = [{ instancePath: instancePath + "/relaxations/" + i4 + "/before", schemaPath: "#/properties/relaxations/items/properties/before/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                            return false;
+                                                                                        }
+                                                                                        if (errors === _errs84) {
+                                                                                            if ((typeof data37 == "number") && (isFinite(data37))) {
+                                                                                                if (data37 > 9007199254740991 || isNaN(data37)) {
+                                                                                                    validate38.errors = [{ instancePath: instancePath + "/relaxations/" + i4 + "/before", schemaPath: "#/properties/relaxations/items/properties/before/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                    return false;
+                                                                                                }
+                                                                                                else {
+                                                                                                    if (data37 < 1 || isNaN(data37)) {
+                                                                                                        validate38.errors = [{ instancePath: instancePath + "/relaxations/" + i4 + "/before", schemaPath: "#/properties/relaxations/items/properties/before/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                        return false;
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                        var valid15 = _errs84 === errors;
+                                                                                    }
+                                                                                    else {
+                                                                                        var valid15 = true;
+                                                                                    }
+                                                                                    if (valid15) {
+                                                                                        if (data36.after !== undefined) {
+                                                                                            let data38 = data36.after;
+                                                                                            const _errs86 = errors;
+                                                                                            if (!(((typeof data38 == "number") && (!(data38 % 1) && !isNaN(data38))) && (isFinite(data38)))) {
+                                                                                                validate38.errors = [{ instancePath: instancePath + "/relaxations/" + i4 + "/after", schemaPath: "#/properties/relaxations/items/properties/after/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                return false;
+                                                                                            }
+                                                                                            if (errors === _errs86) {
+                                                                                                if ((typeof data38 == "number") && (isFinite(data38))) {
+                                                                                                    if (data38 > 9007199254740991 || isNaN(data38)) {
+                                                                                                        validate38.errors = [{ instancePath: instancePath + "/relaxations/" + i4 + "/after", schemaPath: "#/properties/relaxations/items/properties/after/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                        return false;
+                                                                                                    }
+                                                                                                    else {
+                                                                                                        if (data38 < 1 || isNaN(data38)) {
+                                                                                                            validate38.errors = [{ instancePath: instancePath + "/relaxations/" + i4 + "/after", schemaPath: "#/properties/relaxations/items/properties/after/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                            return false;
+                                                                                                        }
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                            var valid15 = _errs86 === errors;
+                                                                                        }
+                                                                                        else {
+                                                                                            var valid15 = true;
+                                                                                        }
+                                                                                        if (valid15) {
+                                                                                            if (data36.editability !== undefined) {
+                                                                                                let data39 = data36.editability;
+                                                                                                const _errs88 = errors;
+                                                                                                if (typeof data39 !== "string") {
+                                                                                                    validate38.errors = [{ instancePath: instancePath + "/relaxations/" + i4 + "/editability", schemaPath: "#/properties/relaxations/items/properties/editability/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                    return false;
+                                                                                                }
+                                                                                                if (!(((data39 === "conservative") || (data39 === "proven")) || (data39 === "legacy"))) {
+                                                                                                    validate38.errors = [{ instancePath: instancePath + "/relaxations/" + i4 + "/editability", schemaPath: "#/properties/relaxations/items/properties/editability/enum", keyword: "enum", params: { allowedValues: schema59.properties.relaxations.items.properties.editability.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                    return false;
+                                                                                                }
+                                                                                                var valid15 = _errs88 === errors;
+                                                                                            }
+                                                                                            else {
+                                                                                                var valid15 = true;
+                                                                                            }
+                                                                                            if (valid15) {
+                                                                                                if (data36.note !== undefined) {
+                                                                                                    let data40 = data36.note;
+                                                                                                    const _errs90 = errors;
+                                                                                                    if (errors === _errs90) {
+                                                                                                        if (typeof data40 === "string") {
+                                                                                                            if (func2(data40) > 500) {
+                                                                                                                validate38.errors = [{ instancePath: instancePath + "/relaxations/" + i4 + "/note", schemaPath: "#/properties/relaxations/items/properties/note/maxLength", keyword: "maxLength", params: { limit: 500 }, message: "must NOT have more than 500 characters" }];
+                                                                                                                return false;
+                                                                                                            }
+                                                                                                            else {
+                                                                                                                if (func2(data40) < 1) {
+                                                                                                                    validate38.errors = [{ instancePath: instancePath + "/relaxations/" + i4 + "/note", schemaPath: "#/properties/relaxations/items/properties/note/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" }];
+                                                                                                                    return false;
+                                                                                                                }
+                                                                                                            }
+                                                                                                        }
+                                                                                                        else {
+                                                                                                            validate38.errors = [{ instancePath: instancePath + "/relaxations/" + i4 + "/note", schemaPath: "#/properties/relaxations/items/properties/note/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                            return false;
+                                                                                                        }
+                                                                                                    }
+                                                                                                    var valid15 = _errs90 === errors;
+                                                                                                }
+                                                                                                else {
+                                                                                                    var valid15 = true;
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                        else {
+                                                                            validate38.errors = [{ instancePath: instancePath + "/relaxations/" + i4, schemaPath: "#/properties/relaxations/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                            return false;
+                                                                        }
+                                                                    }
+                                                                    var valid14 = _errs81 === errors;
+                                                                    if (!valid14) {
+                                                                        break;
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                        else {
+                                                            validate38.errors = [{ instancePath: instancePath + "/relaxations", schemaPath: "#/properties/relaxations/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                                            return false;
+                                                        }
+                                                    }
+                                                    var valid0 = _errs79 === errors;
+                                                }
+                                                else {
+                                                    var valid0 = true;
+                                                }
+                                                if (valid0) {
+                                                    if (data.dependencyPolicy !== undefined) {
+                                                        let data41 = data.dependencyPolicy;
+                                                        const _errs92 = errors;
+                                                        if (typeof data41 !== "string") {
+                                                            validate38.errors = [{ instancePath: instancePath + "/dependencyPolicy", schemaPath: "#/$defs/dependencyPolicy/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                            return false;
+                                                        }
+                                                        if (!(((((((((data41 === "primitive-const-islands-v1") || (data41 === "scoped-primitive-dag-v2")) || (data41 === "scoped-type-members-v3")) || (data41 === "scoped-effect-analysis-v4")) || (data41 === "scoped-effect-analysis-v5")) || (data41 === "scoped-effect-analysis-v6")) || (data41 === "scoped-effect-analysis-v7")) || (data41 === "scoped-effect-analysis-v8")) || (data41 === "scoped-effect-analysis-v9"))) {
+                                                            validate38.errors = [{ instancePath: instancePath + "/dependencyPolicy", schemaPath: "#/$defs/dependencyPolicy/enum", keyword: "enum", params: { allowedValues: schema36.enum }, message: "must be equal to one of the allowed values" }];
+                                                            return false;
+                                                        }
+                                                        var valid0 = _errs92 === errors;
+                                                    }
+                                                    else {
+                                                        var valid0 = true;
+                                                    }
+                                                }
                                             }
                                         }
                                     }

@@ -9,7 +9,7 @@
  * from the block hierarchy itself, so it is always a hard structural constraint.
  */
 import type { ValidationResult } from './types.js';
-import { compileCodeLineExercise, type CodeLineExercise, type ConstraintCategory } from './code-line.js';
+import { compileCodeLineExercise, type CodeLineExercise, type ConstraintCategory, type RuleRelaxation } from './code-line.js';
 import { evidenceStatus } from './evidence.js';
 
 /** How a constraint may change: `hard` only with the structure, `proven` only with the
@@ -18,7 +18,7 @@ import { evidenceStatus } from './evidence.js';
 export type Editability = 'hard' | 'proven' | 'conservative' | 'pedagogical' | 'legacy';
 export interface ConstraintReason { category: ConstraintCategory; code: string; }
 /** One direct `before → after` constraint; `origins` lists where the model states it. */
-export interface DirectConstraint { before: number; after: number; origins: ('dependency' | 'edge' | 'block')[]; reasons: ConstraintReason[]; editability: Editability; }
+export interface DirectConstraint { before: number; after: number; origins: ('dependency' | 'edge' | 'block')[]; reasons: ConstraintReason[]; editability: Editability; note?: string; }
 export interface LineConstraints {
   id: number;
   scopeId: string | null;
@@ -37,12 +37,20 @@ export interface ConstraintExplanation {
   provenance: 'complete' | 'partial' | 'absent' | 'unbound';
   /** Dependencies and edges without a reason. */
   unexplained: number;
-  /** Provenance entries that name no dependency or edge of the model; ignored. */
+  /** Provenance entries and notes that name no dependency or edge of the model; ignored. */
   stale: number;
+  /** Generated constraints the author removed (ADR-018); what that means for the model's
+   * claims is the verification gate's decision (ADR-017). */
+  relaxations: RuleRelaxation[];
 }
 
 const editabilityOf: Record<ConstraintCategory, Editability> = { structure: 'hard', unit: 'hard', data: 'proven', effect: 'proven', policy: 'proven', conservative: 'conservative', author: 'pedagogical', unknown: 'legacy' };
-const strength: Editability[] = ['legacy', 'pedagogical', 'conservative', 'proven', 'hard'];
+/** Weakest to strongest. */
+export const editabilityOrder: readonly Editability[] = ['legacy', 'pedagogical', 'conservative', 'proven', 'hard'];
+/** The class of the strongest reason; `legacy` without reasons. */
+function strongest(reasons: readonly ConstraintReason[]): Editability {
+  return reasons.reduce<Editability>((best, reason) => editabilityOrder.indexOf(editabilityOf[reason.category]) > editabilityOrder.indexOf(best) ? editabilityOf[reason.category] : best, 'legacy');
+}
 
 /** Admits the model first; an inadmissible model is never explained. */
 export function explainConstraints(model: CodeLineExercise): ConstraintExplanation | ValidationResult {
@@ -76,7 +84,11 @@ export function explainConstraints(model: CodeLineExercise): ConstraintExplanati
     if (block) { structural(block.openLineId, line.id, 'block-member'); structural(line.id, block.closeLineId, 'block-member'); }
   }
   for (const block of model.blocks) structural(block.openLineId, block.closeLineId, 'block-pair');
-  for (const constraint of constraints.values()) constraint.editability = constraint.reasons.reduce<Editability>((best, reason) => strength.indexOf(editabilityOf[reason.category]) > strength.indexOf(best) ? editabilityOf[reason.category] : best, 'legacy');
+  for (const constraint of constraints.values()) constraint.editability = strongest(constraint.reasons);
+  for (const { before, after, note } of model.authoring?.ruleNotes ?? []) {
+    const constraint = constraints.get(before + ':' + after);
+    if (constraint) constraint.note = note; else stale++;
+  }
 
   const ids = model.lines.map(line => line.id), position = new Map(ids.map((id, index) => [id, index]));
   const byOrder = (a: number, b: number): number => position.get(a)! - position.get(b)!;
@@ -108,6 +120,7 @@ export function explainConstraints(model: CodeLineExercise): ConstraintExplanati
     })),
     provenance: recorded && !bound ? 'unbound' : !provenance ? 'absent' : unexplained ? 'partial' : 'complete',
     unexplained,
-    stale
+    stale,
+    relaxations: structuredClone(model.authoring?.relaxations ?? [])
   };
 }

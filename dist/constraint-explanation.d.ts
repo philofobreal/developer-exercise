@@ -9,7 +9,7 @@
  * from the block hierarchy itself, so it is always a hard structural constraint.
  */
 import type { ValidationResult } from './types.js';
-import { type CodeLineExercise, type ConstraintCategory } from './code-line.js';
+import { type CodeLineExercise, type ConstraintCategory, type RuleRelaxation } from './code-line.js';
 /** How a constraint may change: `hard` only with the structure, `proven` only with the
  * code or the ordering policy, `conservative` by a more precise analysis or an explicit
  * author decision, `pedagogical` by the author, `legacy` is unexplained. */
@@ -25,6 +25,7 @@ export interface DirectConstraint {
     origins: ('dependency' | 'edge' | 'block')[];
     reasons: ConstraintReason[];
     editability: Editability;
+    note?: string;
 }
 export interface LineConstraints {
     id: number;
@@ -44,8 +45,13 @@ export interface ConstraintExplanation {
     provenance: 'complete' | 'partial' | 'absent' | 'unbound';
     /** Dependencies and edges without a reason. */
     unexplained: number;
-    /** Provenance entries that name no dependency or edge of the model; ignored. */
+    /** Provenance entries and notes that name no dependency or edge of the model; ignored. */
     stale: number;
+    /** Generated constraints the author removed (ADR-018); what that means for the model's
+     * claims is the verification gate's decision (ADR-017). */
+    relaxations: RuleRelaxation[];
 }
+/** Weakest to strongest. */
+export declare const editabilityOrder: readonly Editability[];
 /** Admits the model first; an inadmissible model is never explained. */
 export declare function explainConstraints(model: CodeLineExercise): ConstraintExplanation | ValidationResult;

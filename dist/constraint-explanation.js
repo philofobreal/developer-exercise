@@ -1,7 +1,12 @@
 import { compileCodeLineExercise } from './code-line.js';
 import { evidenceStatus } from './evidence.js';
 const editabilityOf = { structure: 'hard', unit: 'hard', data: 'proven', effect: 'proven', policy: 'proven', conservative: 'conservative', author: 'pedagogical', unknown: 'legacy' };
-const strength = ['legacy', 'pedagogical', 'conservative', 'proven', 'hard'];
+/** Weakest to strongest. */
+export const editabilityOrder = ['legacy', 'pedagogical', 'conservative', 'proven', 'hard'];
+/** The class of the strongest reason; `legacy` without reasons. */
+function strongest(reasons) {
+    return reasons.reduce((best, reason) => editabilityOrder.indexOf(editabilityOf[reason.category]) > editabilityOrder.indexOf(best) ? editabilityOf[reason.category] : best, 'legacy');
+}
 /** Admits the model first; an inadmissible model is never explained. */
 export function explainConstraints(model) {
     const admitted = compileCodeLineExercise(model);
@@ -52,7 +57,14 @@ export function explainConstraints(model) {
     for (const block of model.blocks)
         structural(block.openLineId, block.closeLineId, 'block-pair');
     for (const constraint of constraints.values())
-        constraint.editability = constraint.reasons.reduce((best, reason) => strength.indexOf(editabilityOf[reason.category]) > strength.indexOf(best) ? editabilityOf[reason.category] : best, 'legacy');
+        constraint.editability = strongest(constraint.reasons);
+    for (const { before, after, note } of model.authoring?.ruleNotes ?? []) {
+        const constraint = constraints.get(before + ':' + after);
+        if (constraint)
+            constraint.note = note;
+        else
+            stale++;
+    }
     const ids = model.lines.map(line => line.id), position = new Map(ids.map((id, index) => [id, index]));
     const byOrder = (a, b) => position.get(a) - position.get(b);
     const incoming = new Map(ids.map(id => [id, []])), outgoing = new Map(ids.map(id => [id, []]));
@@ -92,7 +104,8 @@ export function explainConstraints(model) {
         })),
         provenance: recorded && !bound ? 'unbound' : !provenance ? 'absent' : unexplained ? 'partial' : 'complete',
         unexplained,
-        stale
+        stale,
+        relaxations: structuredClone(model.authoring?.relaxations ?? [])
     };
 }
 //# sourceMappingURL=constraint-explanation.js.map

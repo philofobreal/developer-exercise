@@ -13,17 +13,14 @@ export function reconcileDependencies(original, generated) {
     if (oldBlocks.size !== generated.blocks.length || generated.blocks.some(block => !oldBlocks.has(signature(block, newKeys))) || original.lines.some((line, index) => (line.scopeId === null ? null : oldKeys.get(line.scopeId)) !== (generated.lines[index].scopeId === null ? null : newKeys.get(generated.lines[index].scopeId))))
         return fail();
     const idMap = new Map(generated.lines.map((line, index) => [line.id, original.lines[index].id]));
-    const edges = new Map((original.edges ?? []).map(edge => [JSON.stringify([edge.before, edge.after]), { ...edge }]));
-    for (const edge of generated.edges ?? []) {
-        const mapped = { before: idMap.get(edge.before), after: idMap.get(edge.after) };
-        edges.set(JSON.stringify([mapped.before, mapped.after]), mapped);
-    }
+    // Only the regenerated edges: which original edges are author rules decides mergeAuthorRules (ADR-018).
+    const edges = (generated.edges ?? []).map(edge => ({ before: idMap.get(edge.before), after: idMap.get(edge.after) }));
     const sourceLine = (row) => original.lines[row - 1]?.sourceLine ?? row;
     return {
         ...structuredClone(original),
         lines: original.lines.map((line, index) => ({ ...structuredClone(line), dependencies: generated.lines[index].dependencies.map(id => idMap.get(id)) })),
-        edges: [...edges.values()],
-        // Provenance (ADR-014) describes only the regenerated constraints; a kept original edge has none and explains as unknown.
+        edges,
+        // Provenance (ADR-014) describes only the regenerated constraints.
         authoring: { ...original.authoring, ...generated.authoring, dependencyHints: (generated.authoring?.dependencyHints ?? []).map(hint => ({ ...hint, declarationLine: sourceLine(hint.declarationLine), usageLine: sourceLine(hint.usageLine) })), provenance: (generated.authoring?.provenance ?? []).map(entry => ({ ...entry, before: idMap.get(entry.before), after: idMap.get(entry.after) })) }
     };
 }
