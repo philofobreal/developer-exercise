@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased – 2026-10-26 lokális írások, klauzulaláncok és importok (ADR-013, epic B szakasz)
+
+- **Lokális írások:** az `x = e` (x ugyanabban a függvényben korábban deklarált `let`/`var`, e tiszta) már nem akadály. A tiszta és lokális író egységek szimbólumszintű olvasási és írási halmazt kapnak, él csak RAW/WAR/WAW konfliktusnál keletkezik. A P2 ennek megfelelően pontosítva, az orákulum saját, független implementációval követi.
+- **Klauzulaláncok:** a `} else {`, `} catch {`, `} finally {` közös határ egy konténer szeparátorsorokkal, nem elhagyott és sorosított blokk. Minden sor a saját klauzulájában marad, a v3 határeseményes reprezentációval azonos nyelvvel.
+- **Importok:** explicit `importEmit` kontextus (`verbatim` alapértelmezés, `elide-unused`). Az `import type` és a TS-emit által törölt import szabad; a modulbetöltő, a mellékhatás- és a JS-import kötött; dekorátoros fájlban konzervatív.
+- **Migráció:** a projekció típusos modulba került ([code-line-projection.ts](src/author/code-line-projection.ts)), a JS/TS szerkezet a `js-ts-ordering.ts`-be. A `generator.mjs` csak belépési pont. Az architektúrakapu és a Pages-bekötés frissült.
+- **`CopyFieldUtilityService`:** 8 → 0 elhagyott blokk, a 248↔249 csere elfogadott, a 305↔306 (`UUID()`) elutasított; az importok az emit szerint döntődnek el.
+- **Mérés:** korpusz és 560 programos kampány: 0 hibás elfogadás; rések 2 072 → 1 959 (a függvényprogramokon −68%). [Részletek](docs/formal-ordering-contract.md#adr-013-lokális-írások-klauzulaláncok-és-importok).
+- **Tesztek:** [import-ordering.test.mjs](tests/import-ordering.test.mjs), [local-write-ordering.test.mjs](tests/local-write-ordering.test.mjs), három `precision` korpuszfixture, frissített architektúra- és Pages-tesztek. A `20-shared-boundaries` TS-minta elvárása frissült: az ágon belüli két független konstans felcserélhető, az ágak közötti átlépés továbbra is elutasított. Policy-címke: additív `scoped-effect-analysis-v9`.
+
 ## Unreleased – 2026-10-26 osztálykiértékelési fázisok és accessorpárok (ADR-012)
 
 - **Lazítás, a soundness megtartásával:** a generatív kampány réseinek osztályozása alapján, a ClassDefinitionEvaluation lépéseire épülő érveléssel ([ADR-012](docs/adr/012-class-evaluation-phases-and-accessor-pairs.md)):

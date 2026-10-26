@@ -33,6 +33,6 @@ A közös `dependency-analysis.mjs` böngészőben is működő compiler hosttal
 | Kötés- és hatáselemzés | [statement-ordering.ts](../src/author/statement-ordering.ts), [type-member-ordering.ts](../src/author/type-member-ordering.ts), összefogva: [js-ts-ordering.ts](../src/author/js-ts-ordering.ts) | szimbólumfeloldás, TDZ, írási halmaz, hatásosztályok, reflexiós kulcssorrend |
 | Közös sorrendi relációk | [ordering-relations.ts](../src/author/ordering-relations.ts) | konjunkció, lezárás (ADR-009), tranzitív redukció; nyelvi szabályt nem ismer |
 | Blokk- és scope-hierarchia | adapter `structure` → generátor | megtartott és elhagyott blokkok, `scopeId`, `functionBlock` |
-| CodeLine v2-projekció | [generator.mjs](../src/author/generator.mjs) | fizikai sor → sorazonosító, korlátok, policy-címke |
+| CodeLine v2-projekció | [code-line-projection.ts](../src/author/code-line-projection.ts), belépési pont: [generator.mjs](../src/author/generator.mjs) | fizikai sor → sorazonosító, blokk- és scope-hierarchia, klauzulaláncok (ADR-013), lezárás, redukció; a generátor csak bemenetet ellenőriz és policy-címkét ad |
 
 A generátor csak a nyelvfüggetlen modult importálja, a JS/TS-elemzést pedig kizárólag a nyelvi regiszter köti be. Ezt az architektúrakapu gépileg ellenőrzi. A tanulói értékelő továbbra is a megbízható modell DAG-ját és a tartalmi bijekciót vizsgálja; nem futtat vagy parse-ol tanulói kódot.

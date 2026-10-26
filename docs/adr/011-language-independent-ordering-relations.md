@@ -65,4 +65,4 @@ A Pages-build ugyanezt a két útvonalat vetíti át.
 - Viselkedés és mérés változatlan: azonos modellek, azonos policy-címke (`scoped-effect-analysis-v6`).
 - **Architektúra-tesztek:** az új, szigorúbb határ szerint frissültek, a korábbi engedélyek szűkültek, nem tágultak.
 - **Új teszt:** [ordering-relations.test.mjs](../../tests/ordering-relations.test.mjs). Ellenőrzi a konjunkciót, a lezárást, a redukciót, a diszjunkt sorokat és egy nem TypeScript-alapú adapter projekcióját.
-- **Nyitott:** a generátor maradék MJS-része (sorleképezés, blokkmegtartás) az ADR-001 migrációs listáján marad.
+- **Nyitott:** a generátor maradék MJS-része (sorleképezés, blokkmegtartás) az ADR-001 migrációs listáján marad. *Utóirat:* az ADR-013 ezt a részt a típusos [code-line-projection.ts](../../src/author/code-line-projection.ts) modulba vitte; a `generator.mjs` azóta csak belépési pont.
