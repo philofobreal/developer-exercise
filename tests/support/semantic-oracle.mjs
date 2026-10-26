@@ -321,6 +321,12 @@ export function extensions(model,{limit=Infinity,rng=null}={}){
  const lines=model.lines,openers=new Map(model.blocks.map(b=>[b.openLineId,b.id])),closers=new Map(model.blocks.map(b=>[b.closeLineId,b.id]));
  const before=new Map(lines.map(line=>[line.id,new Set(line.dependencies)]));for(const edge of model.edges??[])before.get(edge.after).add(edge.before);
  const pinned=new Map(lines.flatMap((line,i)=>line.fixed?[[i,line.id]]:[]));
+ // Dead-end pruning (the enumerated set is unchanged): a block opens only once every
+ // dependency its rows have outside it is placed, and closes only once all its rows are.
+ const parent=new Map(model.blocks.map(b=>[b.id,b.parentScopeId])),inside=new Map(model.blocks.map(b=>[b.id,new Set()]));
+ for(const line of lines)for(let scope=line.scopeId;scope;scope=parent.get(scope))inside.get(scope)?.add(line.id);
+ const external=new Map(model.blocks.map(b=>{const rows=inside.get(b.id),needs=new Set();for(const id of [...rows,b.closeLineId])for(const dep of before.get(id)??[])if(!rows.has(dep)&&dep!==b.openLineId)needs.add(dep);return [b.id,needs];}));
+ const ready=line=>{const open=openers.get(line.id),close=closers.get(line.id);return (open===undefined||[...external.get(open)].every(id=>placed.has(id)))&&(close===undefined||[...inside.get(close)].every(id=>placed.has(id)));};
  const results=[],placed=new Set(),sequence=[],stack=[];
  (function extend(){
   if(results.length>=limit)return;
@@ -328,7 +334,7 @@ export function extensions(model,{limit=Infinity,rng=null}={}){
   const candidates=rng?[...lines].sort(()=>rng()-0.5):lines;
   for(const line of candidates){
    if(results.length>=limit)return;
-   if(placed.has(line.id)||[...before.get(line.id)].some(id=>!placed.has(id)))continue;
+   if(placed.has(line.id)||[...before.get(line.id)].some(id=>!placed.has(id))||!ready(line))continue;
    if(line.fixed?lines.indexOf(line)!==sequence.length:pinned.has(sequence.length))continue;
    const close=closers.get(line.id);if(close!==undefined&&stack.at(-1)!==close)continue;
    if(close!==undefined)stack.pop();
