@@ -94,8 +94,8 @@
     "reason": "",
     "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
-    "dependencyPolicy": "scoped-effect-analysis-v5",
-    "note": "A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. Az egyedi nevű metódusok, accessorok, a constructor (paramétertulajdonságokkal együtt) és a declare osztálymezők az osztálytörzsön belül bárhol állhatnak. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.",
+    "dependencyPolicy": "scoped-effect-analysis-v6",
+    "note": "A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor (paramétertulajdonságokkal együtt), a declare mezők, a privát (#) és a tömbindex nevű metódusok az osztálytörzsön belül bárhol állhatnak. A többi metódus és accessor a mezőkhöz képest szabad, de egymáshoz képest megtartja a sorrendjét, mert a prototípus (static esetén a konstruktor) kulcssorrendje reflexióval megfigyelhető. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.",
     "dependencyHints": [
       {
         "name": "call",

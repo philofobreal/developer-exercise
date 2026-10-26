@@ -42,7 +42,7 @@ export interface CodeLineExercise {
   edges?: { before: number; after: number }[];
   /** Each profile adds AND constraints; alternative profiles are OR. */
   profiles?: { id: string; edges: { before: number; after: number }[] }[];
-  authoring?: { strategy?: string; reason?: string; note?: string; omittedBlocks?: number; semanticEquivalenceProven?: false; dependencyPolicy?: 'primitive-const-islands-v1' | 'scoped-primitive-dag-v2' | 'scoped-type-members-v3' | 'scoped-effect-analysis-v4' | 'scoped-effect-analysis-v5'; dependencyHints?: {name:string; declarationLine:number; usageLine:number}[] };
+  authoring?: { strategy?: string; reason?: string; note?: string; omittedBlocks?: number; semanticEquivalenceProven?: false; dependencyPolicy?: 'primitive-const-islands-v1' | 'scoped-primitive-dag-v2' | 'scoped-type-members-v3' | 'scoped-effect-analysis-v4' | 'scoped-effect-analysis-v5' | 'scoped-effect-analysis-v6'; dependencyHints?: {name:string; declarationLine:number; usageLine:number}[] };
 }
 export type AdaptResult = { definition: ExerciseDefinition; compiled: CompiledRules } | ValidationResult;
 const invalid = (message:string):ValidationResult => ({status:'invalid_reference',accepted:false,reason:'invalid_model',message,exploredStates:0});

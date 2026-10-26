@@ -113,6 +113,6 @@
         "usageLine": 4
       }
     ],
-    "dependencyPolicy": "scoped-effect-analysis-v5"
+    "dependencyPolicy": "scoped-effect-analysis-v6"
   }
 }

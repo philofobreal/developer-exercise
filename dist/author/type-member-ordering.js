@@ -10,8 +10,14 @@ export function typeMemberOrdering(file, compiler) {
         if (!('name' in node))
             return undefined;
         const key = node.name;
-        return key && (compiler.isIdentifier(key) || compiler.isStringLiteral(key)) ? key.text : undefined;
+        // Numeric class keys are canonical property keys (ADR-010); type members keep the ADR-007 barrier.
+        if (key && compiler.isNumericLiteral(key)) {
+            const value = Number(key.text);
+            return compiler.isClassLike(node.parent) && Number.isFinite(value) ? String(value) : undefined;
+        }
+        return key && (compiler.isIdentifier(key) || compiler.isStringLiteral(key) || compiler.isPrivateIdentifier(key)) ? key.text : undefined;
     };
+    const arrayIndex = (key) => /^(0|[1-9]\d*)$/.test(key) && Number(key) < 4294967295;
     const definitionModifiers = new Set([compiler.SyntaxKind.PublicKeyword, compiler.SyntaxKind.ProtectedKeyword, compiler.SyntaxKind.PrivateKeyword, compiler.SyntaxKind.StaticKeyword, compiler.SyntaxKind.OverrideKeyword, compiler.SyntaxKind.AbstractKeyword, compiler.SyntaxKind.AsyncKeyword]);
     /** A whole method/accessor/constructor that owns its rows: one row, or `{` on the first and `}` on the last row. */
     const definitionRows = (member) => {
@@ -48,8 +54,11 @@ export function typeMemberOrdering(file, compiler) {
                 const distinct = !decorated && !leadingComment && key !== undefined && counts.get(key) === 1;
                 const definition = isClass && (compiler.isMethodDeclaration(member) || compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member) || compiler.isConstructorDeclaration(member)) && (!!member.body || !!modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.AbstractKeyword)) && (modifiers ?? []).every(modifier => definitionModifiers.has(modifier.kind)) && distinct && definitionRows(member);
                 const pure = erased && simpleModifiers && distinct && row === end && physical[row]?.trim() === member.getText(file).trim();
+                // An emitted method/accessor creates a key unless it is private or an array index; a computed key is unknown, so ordered.
+                const emitted = isClass && (compiler.isMethodDeclaration(member) || compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member)) && !!member.body;
+                const reflected = emitted && !(member.name && compiler.isPrivateIdentifier(member.name)) && !(key !== undefined && arrayIndex(key));
                 // A declare field emits nothing in either class-field mode: it is position-free in a class body.
-                return { first: row, last: end, pure, free: definition || isClass && pure };
+                return { first: row, last: end, pure, free: definition || isClass && pure, ...(reflected ? { reflect: modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.StaticKeyword) ? 'static' : 'prototype' } : {}) };
             });
             // An overload signature must directly precede the next signature or the
             // implementation (TS2389/TS2391): the whole group is one ordered unit.
@@ -58,7 +67,7 @@ export function typeMemberOrdering(file, compiler) {
             members.forEach((member, i) => {
                 const previous = node.members[i - 1];
                 if (isClass && previous && signature(previous) && name(previous) === name(node.members[i]))
-                    grouped.push({ first: grouped.pop().first, last: member.last, pure: false });
+                    grouped.push({ first: grouped.pop().first, last: member.last, pure: false, ...(member.reflect ? { reflect: member.reflect } : {}) });
                 else
                     grouped.push(member);
             });
@@ -105,11 +114,27 @@ export function typeMemberOrdering(file, compiler) {
                 if (free.length)
                     units.forEach((unit, i) => { if (!wired.has(unit.first))
                         entries.push({ row: unit.first, after: [i ? units[i - 1].last : first(open)] }); });
+                // Reflectable key order: consecutive key-creating members on the same object stay ordered.
+                const previous = new Map();
+                for (const member of grouped)
+                    if (member.reflect) {
+                        const before = previous.get(member.reflect);
+                        if (before && (before.free || member.free))
+                            entries.push({ row: member.first, after: [before.last] });
+                        previous.set(member.reflect, member);
+                    }
             }
         }
         compiler.forEachChild(node, visit);
     }
     visit(file);
-    return { entries, spans, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. Az egyedi nevű metódusok, accessorok, a constructor (paramétertulajdonságokkal együtt) és a declare osztálymezők az osztálytörzsön belül bárhol állhatnak. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : '' };
+    // Several constraints on one row are a conjunction.
+    const merged = new Map();
+    for (const entry of entries) {
+        const after = merged.get(entry.row) ?? new Set();
+        entry.after.forEach(row => after.add(row));
+        merged.set(entry.row, after);
+    }
+    return { entries: [...merged].map(([row, after]) => ({ row, after: [...after] })), spans, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor (paramétertulajdonságokkal együtt), a declare mezők, a privát (#) és a tömbindex nevű metódusok az osztálytörzsön belül bárhol állhatnak. A többi metódus és accessor a mezőkhöz képest szabad, de egymáshoz képest megtartja a sorrendjét, mert a prototípus (static esetén a konstruktor) kulcssorrendje reflexióval megfigyelhető. A rendes osztálymezők és this-értékadások sorrendje megmarad: mezőlétrehozás, kulcssorrend, setter, öröklés és inicializálási hatás is megfigyelhető. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : '' };
 }
 //# sourceMappingURL=type-member-ordering.js.map

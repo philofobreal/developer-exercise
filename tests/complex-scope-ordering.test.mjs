@@ -76,9 +76,10 @@ const scenarios=[
    {name:'return a hoistolt függvénydeklaráció elé',order:o=>moveBefore(o,9,6),status:'accepted',equivalent:true},
    {name:'var count a ciklus után',order:o=>moveBefore(o,2,9),status:'rejected',equivalent:false},
    {name:'var count a ciklusmagba',order:o=>moveBefore(o,2,4),status:'rejected',equivalent:false}]},
- {name:'felső szintű függvények',language:'javascript',source:corpus.get('top-level-functions').source,
+ // ADR-010: the probes also read the reflected key order (global object, prototype).
+ {name:'felső szintű függvények',language:'javascript',source:corpus.get('top-level-functions').source,probe:"[evaluate(), Object.keys(globalThis).filter(key => ['double', 'evaluate'].includes(key))]",
   variants:[
-   {name:'a két függvénydeklaráció cseréje',order:o=>moveBefore(o,range(4,6),1),status:'accepted',equivalent:true},
+   {name:'a két függvénydeklaráció cseréje',order:o=>moveBefore(o,range(4,6),1),status:'rejected',equivalent:false},
    {name:'a két függvénytörzs cseréje',order:o=>swap(o,2,5),status:'rejected',equivalent:false}]},
  {name:'closure és késleltetett olvasás',language:'javascript',source:corpus.get('closure-deferred-read').source,
   variants:[
@@ -110,10 +111,11 @@ const scenarios=[
    {name:'primitív konstans és destrukturálás cseréje',order:o=>swap(o,3,4),status:'rejected',equivalent:true},
    {name:'template a destrukturálás elé',order:o=>swap(o,4,5),status:'rejected',equivalent:false},
    {name:'scale a return után',order:o=>moveAfter(o,3,6),status:'rejected',equivalent:false}]},
- {name:'JavaScript osztály: mezők és metódusok',language:'javascript',source:corpus.get('js-class-fields-methods').source,
+ {name:'JavaScript osztály: mezők és metódusok',language:'javascript',source:corpus.get('js-class-fields-methods').source,probe:'[evaluate(), Object.getOwnPropertyNames(Counter.prototype)]',
   variants:[
    {name:'egymásra hivatkozó mezőinicializálók cseréje',order:o=>swap(o,2,3),status:'rejected',equivalent:false},
-   {name:'metódusok cseréje',order:o=>moveBefore(o,range(8,10),4),status:'accepted',equivalent:true},
+   {name:'metódusok cseréje',order:o=>moveBefore(o,range(8,10),4),status:'rejected',equivalent:false},
+   {name:'metódus a mezők elé',order:o=>moveBefore(o,range(4,7),2),status:'accepted',equivalent:true},
    {name:'osztálydeklaráció a később hívott függvény után',order:o=>moveAfter(o,range(1,11),18),status:'accepted',equivalent:true},
    {name:'reset a második increment elé',order:o=>swap(o,15,16),status:'rejected',equivalent:false}]},
  {name:'TypeScript interface és típusliterál',language:'typescript',source:corpus.get('ts-interface-type-literal').source,

@@ -150,7 +150,8 @@
             "scoped-primitive-dag-v2",
             "scoped-type-members-v3",
             "scoped-effect-analysis-v4",
-            "scoped-effect-analysis-v5"
+            "scoped-effect-analysis-v5",
+            "scoped-effect-analysis-v6"
           ]
         }
       }

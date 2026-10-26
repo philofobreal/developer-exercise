@@ -260,8 +260,38 @@
  "wp6-overload-groups": {
   "neighbours": 322,
   "accepted": 4,
-  "completenessGaps": 2,
-  "justifiedRejections": 316
+  "completenessGaps": 1,
+  "justifiedRejections": 317
+ },
+ "refl-prototype-and-static-methods": {
+  "neighbours": 1334,
+  "accepted": 25,
+  "completenessGaps": 0,
+  "justifiedRejections": 1309
+ },
+ "refl-explicit-property-names": {
+  "neighbours": 171,
+  "accepted": 5,
+  "completenessGaps": 0,
+  "justifiedRejections": 166
+ },
+ "refl-index-private-accessor-duplicate": {
+  "neighbours": 1786,
+  "accepted": 21,
+  "completenessGaps": 0,
+  "justifiedRejections": 1765
+ },
+ "refl-ts-erased-and-overloads": {
+  "neighbours": 1864,
+  "accepted": 42,
+  "completenessGaps": 8,
+  "justifiedRejections": 1814
+ },
+ "refl-script-globals": {
+  "neighbours": 168,
+  "accepted": 6,
+  "completenessGaps": 0,
+  "justifiedRejections": 162
  },
  "wp6-self-referential-initializer": {
   "neighbours": 176,

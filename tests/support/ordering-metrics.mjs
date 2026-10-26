@@ -26,10 +26,10 @@ export function edgeStats(model){
  return {edges:total,redundant};
 }
 /** Classifies the generated model of one fixture against the policy oracle. */
-export function measureFixture(fixture,{model=generate(fixture),exhaustiveLimit=10000,samples=300,repeats=3}={}){
+export function measureFixture(fixture,{model=generate(fixture),exhaustiveLimit=10000,samples=300,repeats=3,policy='reflective'}={}){
  const started=performance.now();for(let i=0;i<repeats;i++)generate(fixture);const generationMs=repeats?(performance.now()-started)/repeats:0;
  const compiled=compileCodeLineExercise(model);if(compiled.status)throw Error(fixture.id+': '+compiled.message);
- const judge=createOracle(fixture),reference=model.lines.map(line=>line.id);
+ const judge=createOracle(fixture,{policy}),reference=model.lines.map(line=>line.id);
  const grade=order=>validateSubmission(compiled.compiled,{exerciseId:model.id,revision:model.revision,lines:codesOf(model,order)},{maxStates:200_000});
  const result={id:fixture.id,origin:fixture.origin,language:fixture.language,rows:model.lines.length,unsupported:analysisDisabled(fixture),...edgeStats(model),generationMs:+generationMs.toFixed(2),
   orders:0,ordersExhaustive:true,unsound:0,undecidedAccepted:0,neighbours:0,accepted:0,completenessGaps:0,justifiedRejections:0,undecided:0,indeterminate:0,states:0,counterexamples:[],gaps:[]};

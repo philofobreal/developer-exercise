@@ -264,9 +264,43 @@ export function statementOrdering(file, compiler) {
             protectedInputs.get(after).add(before);
         }
     };
+    /** A statement list whose var/function declarations become global-object properties (classic script). */
+    const scriptGlobal = (list) => {
+        if (compiler.isExternalModule(file))
+            return false;
+        for (let current = list; current && !compiler.isSourceFile(current); current = current.parent)
+            if (functionLike(current) || compiler.isModuleBlock(current) || compiler.isClassStaticBlockDeclaration(current) || compiler.isClassLike(current))
+                return false;
+        return true;
+    };
+    /** A function implementation, var names or Annex B block functions declared outside nested functions. */
+    const declaresGlobal = (statement) => {
+        if (modifiers(statement).includes(S.DeclareKeyword))
+            return false;
+        if (compiler.isFunctionDeclaration(statement))
+            return !!statement.body;
+        let found = false;
+        const scan = (node) => {
+            if (found || functionLike(node) || compiler.isClassLike(node) || compiler.isModuleDeclaration(node)) {
+                if (compiler.isFunctionDeclaration(node))
+                    found = true;
+                return;
+            }
+            if (compiler.isVariableDeclarationList(node) && !(node.flags & compiler.NodeFlags.BlockScoped))
+                found = true;
+            compiler.forEachChild(node, scan);
+        };
+        compiler.forEachChild(statement, scan);
+        if (compiler.isVariableStatement(statement) && !(statement.declarationList.flags & compiler.NodeFlags.BlockScoped))
+            found = true;
+        return found;
+    };
     function visit(node) {
         if (compiler.isSourceFile(node) || compiler.isBlock(node) || compiler.isModuleBlock(node)) {
             const summaries = node.statements.map(statement => summary(statement, node)), sourceFile = compiler.isSourceFile(node);
+            if (scriptGlobal(node))
+                summaries.forEach((unit, i) => { if (declaresGlobal(node.statements[i]))
+                    unit.global = true; });
             // A physical row containing multiple statements/boundaries is indivisible.
             const separate = summaries.every((unit, i) => !i || summaries[i - 1].last < unit.first) && (!summaries.length || sourceFile || summaries[0].first > line(node) && summaries.at(-1).last < end(node));
             if (separate) {
@@ -302,7 +336,7 @@ export function statementOrdering(file, compiler) {
                 for (let i = 0; i < complete.length; i++)
                     for (let j = i + 1; j < complete.length; j++) {
                         const a = complete[i], b = complete[j];
-                        const ordered = a.kind === 'opaque' || b.kind === 'opaque' || a.kind !== 'position-free' && b.kind !== 'position-free' && (a.kind === 'barrier' || b.kind === 'barrier');
+                        const ordered = a.kind === 'opaque' || b.kind === 'opaque' || a.kind !== 'position-free' && b.kind !== 'position-free' && (a.kind === 'barrier' || b.kind === 'barrier') || !!a.global && !!b.global;
                         if (ordered)
                             add(a.last, b.first);
                     }

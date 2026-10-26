@@ -119,42 +119,117 @@ function effectPairs(lists,key,hasEffect,positionFree){
  }
  return JSON.stringify(pairs.sort());
 }
+/* ------------------- P4 reflective property order (ADR-010) ------------------
+ * OrdinaryOwnPropertyKeys lists array-index keys ascending, then string keys in
+ * creation order. ClassDefinitionEvaluation creates `constructor` first, then
+ * methods/accessors in source order on the prototype (static ones on the
+ * constructor, before static fields); instance fields follow source order
+ * (TS parameter properties first). A script's top-level function and var
+ * names become global-object properties; the specification creates functions
+ * first, V8 interleaves them in source order, so P4 compares the source order
+ * of all of them. Private names are not reflected. */
+const arrayIndex=key=>/^(0|[1-9]\d*)$/.test(key)&&Number(key)<4294967295;
+const firstOccurrences=keys=>[...new Set(keys)].filter(key=>!arrayIndex(key));
+function jsReflection(tree){
+ const classes=[],globals=[];
+ const keyOf=member=>member.computed?'computed:'+jsShape(member.key):member.key.type==='PrivateIdentifier'?null:member.key.type==='Identifier'?member.key.name:String(member.key.value);
+ const patternNames=(pattern,out)=>{if(!pattern)return;if(pattern.type==='Identifier')out.push(pattern.name);else if(pattern.type==='ObjectPattern')pattern.properties.forEach(p=>patternNames(p.type==='RestElement'?p.argument:p.value,out));else if(pattern.type==='ArrayPattern')pattern.elements.forEach(e=>patternNames(e,out));else if(pattern.type==='RestElement')patternNames(pattern.argument,out);else if(pattern.type==='AssignmentPattern')patternNames(pattern.left,out);};
+ const visit=(node,global)=>{
+  if(!node||typeof node!=='object')return;
+  if(Array.isArray(node)){node.forEach(item=>visit(item,global));return;}
+  if(node.type==='ClassDeclaration'||node.type==='ClassExpression'){
+   const proto=[],statics=[],staticFields=[],instance=[];
+   for(const member of node.body.body){
+    const key=member.type==='StaticBlock'?null:keyOf(member);if(key===null)continue;
+    if(member.type==='MethodDefinition'&&member.kind!=='constructor')(member.static?statics:proto).push(key);
+    if(member.type==='PropertyDefinition')(member.static?staticFields:instance).push(key);
+   }
+   classes.push(JSON.stringify([firstOccurrences(proto),firstOccurrences([...statics,...staticFields]),firstOccurrences(instance)]));
+  }
+  if(global&&node.type==='VariableDeclaration'&&node.kind==='var')node.declarations.forEach(d=>patternNames(d.id,globals));
+  if(global&&node.type==='FunctionDeclaration')globals.push(node.id.name);
+  const inner=global&&!jsFunction.has(node.type);
+  for(const [key,value] of Object.entries(node))if(value&&typeof value==='object')visit(value,inner&&!(node.type==='ClassBody'));
+ };
+ visit(tree,true);
+ return {order:JSON.stringify([classes.sort(),firstOccurrences(globals)]),classNames:tree.body.filter(s=>s.type==='ClassDeclaration').map(s=>s.id.name),globals:firstOccurrences(globals)};
+}
+function tsReflection(file){
+ const classes=[],globals=[];
+ const has=(node,kind)=>!!ts.canHaveModifiers(node)&&!!ts.getModifiers(node)?.some(m=>m.kind===kind);
+ const keyOf=name=>!name||ts.isPrivateIdentifier(name)?null:ts.isComputedPropertyName(name)?'computed:'+tsShape(name.expression):ts.isNumericLiteral(name)?String(Number(name.text)):name.text;
+ const bindingNames=(name,out)=>{if(ts.isIdentifier(name))out.push(name.text);else name.elements.forEach(e=>{if(!ts.isOmittedExpression(e))bindingNames(e.name,out);});};
+ const visit=(node,global)=>{
+  if(ts.isClassLike(node)&&!has(node,ts.SyntaxKind.DeclareKeyword)){
+   const proto=[],statics=[],staticFields=[],instance=[],parameters=[];
+   for(const member of node.members){
+    if(has(member,ts.SyntaxKind.AbstractKeyword)||has(member,ts.SyntaxKind.DeclareKeyword))continue;
+    if(ts.isConstructorDeclaration(member)&&member.body)for(const p of member.parameters)if(ts.getModifiers(p)?.length&&ts.isIdentifier(p.name))parameters.push(p.name.text);
+    const key=keyOf(member.name);if(key===null)continue;
+    const isStatic=has(member,ts.SyntaxKind.StaticKeyword);
+    if((ts.isMethodDeclaration(member)||ts.isGetAccessorDeclaration(member)||ts.isSetAccessorDeclaration(member))&&member.body)(isStatic?statics:proto).push(key);
+    if(ts.isPropertyDeclaration(member))(isStatic?staticFields:instance).push(key);
+   }
+   classes.push(JSON.stringify([firstOccurrences(proto),firstOccurrences([...statics,...staticFields]),firstOccurrences([...parameters,...instance])]));
+  }
+  const declared=has(node,ts.SyntaxKind.DeclareKeyword);
+  if(global&&!declared&&ts.isVariableDeclarationList(node)&&!(node.flags&ts.NodeFlags.BlockScoped))node.declarations.forEach(d=>bindingNames(d.name,globals));
+  if(global&&!declared&&ts.isFunctionDeclaration(node)&&node.body&&node.name)globals.push(node.name.text);
+  const inner=global&&!declared&&!tsFunction(node)&&!ts.isModuleDeclaration(node)&&!ts.isClassLike(node);
+  ts.forEachChild(node,child=>visit(child,inner));
+ };
+ visit(file,true);
+ return {order:JSON.stringify([classes.sort(),firstOccurrences(globals)]),classNames:file.statements.flatMap(s=>ts.isClassDeclaration(s)&&s.name&&!has(s,ts.SyntaxKind.DeclareKeyword)?[s.name.text]:[]),globals:firstOccurrences(globals)};
+}
+
 function analyse(code,language){
  if(language==='typescript'){
   const file=ts.createSourceFile('fixture.ts',code,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);
   if(file.parseDiagnostics.length||!tsOverloadsAdjacent(file))return null;
-  return {shape:tsShape(file),effects:effectPairs(tsLists(file),tsShape,tsHasEffect,tsPositionFree)};
+  return {shape:tsShape(file),effects:effectPairs(tsLists(file),tsShape,tsHasEffect,tsPositionFree),reflection:tsReflection(file)};
  }
  let tree;try{tree=parseScript(code,{ecmaVersion:'latest',sourceType:'script'});}catch{return null;}
- return {shape:jsShape(tree),effects:effectPairs(jsLists(tree),node=>jsShape(node),jsHasEffect,jsPositionFree)};
+ return {shape:jsShape(tree),effects:effectPairs(jsLists(tree),node=>jsShape(node),jsHasEffect,jsPositionFree),reflection:jsReflection(tree)};
 }
-function execute(code,{language,probe,strict=true,asynchronous=false}){
+/** Runs a fixed fixture. `call`: probe value, exception and record() trace.
+ * `reflection`: own keys and descriptor kinds of the top-level classes'
+ * prototypes and constructors, and the declared global-object properties
+ * (names come from the reference analysis), read right after evaluation. */
+function execute(code,{language,probe,strict=true,asynchronous=false},{classNames=[],globals=[]}={}){
+ const reflect=`;var __reflection=(()=>{try{const keys=o=>Reflect.ownKeys(o).map(k=>{const d=Object.getOwnPropertyDescriptor(o,k);return [String(k),'get' in d||'set' in d?'accessor':'value',d.enumerable,d.configurable,d.writable===undefined?null:d.writable];});`
+  +`return JSON.stringify({classes:[${classNames.map(name=>`typeof ${name}==='function'?[keys(${name}.prototype),keys(${name})]:null`).join(',')}],globals:Object.getOwnPropertyNames(globalThis).filter(k=>${JSON.stringify(globals)}.includes(k))});}catch(error){return 'throws:'+(error&&error.name);}})();`;
  const attempt=(js,timeout)=>{
   const context=createContext({trace:[]},asynchronous?{microtaskMode:'afterEvaluate'}:{});
   const tail=asynchronous
    ?`;var __result='pending';Promise.resolve(${probe}).then(value=>{__result=JSON.stringify({value,trace});},error=>{__result='throws:'+(error&&error.name)+':'+(error&&error.message);});`
    :`;var __result=JSON.stringify({value:(${probe}),trace});`;
-  try{new Script((strict?'"use strict";\n':'')+'function record(...args) { trace.push(args); }\n'+js+'\n'+tail,{filename:'fixed-oracle-fixture.js'}).runInContext(context,{timeout});return String(context.__result);}
-  catch(error){if(error?.code==='ERR_SCRIPT_EXECUTION_TIMEOUT')return 'timeout';return 'throws:'+error?.name+':'+error?.message;}
+  try{new Script((strict?'"use strict";\n':'')+'function record(...args) { trace.push(args); }\n'+js+'\n'+reflect+tail,{filename:'fixed-oracle-fixture.js'}).runInContext(context,{timeout});return {call:String(context.__result),reflection:String(context.__reflection)};}
+  catch(error){if(error?.code==='ERR_SCRIPT_EXECUTION_TIMEOUT')return {call:'timeout',reflection:''};return {call:'throws:'+error?.name+':'+error?.message,reflection:''};}
  };
- const run=js=>{let result='timeout';for(const timeout of TIMEOUTS_MS){result=attempt(js,timeout);if(result!=='timeout')break;}return result;};
+ const run=js=>{let result={call:'timeout',reflection:''};for(const timeout of TIMEOUTS_MS){result=attempt(js,timeout);if(result.call!=='timeout')break;}return result;};
  if(language!=='typescript')return run(code);
  const outputs=[];
  for(const define of [false,true]){
   const output=ts.transpileModule(code,{reportDiagnostics:true,compilerOptions:{target:ts.ScriptTarget.ES2022,useDefineForClassFields:define}});
-  if(output.diagnostics?.length)return 'syntax';
+  if(output.diagnostics?.length)return {call:'syntax',reflection:''};
   outputs.push(run(output.outputText));
  }
- return outputs.join(' | ');
+ return {call:outputs.map(o=>o.call).join(' | '),reflection:outputs.map(o=>o.reflection).join(' | ')};
 }
 
-/** Returns judge(lines) → {ok: true|false|null, reason}. ok=null means undecided. */
-export function createOracle(fixture){
+/** Returns judge(lines) → {ok: true|false|null, reason}. ok=null means undecided.
+ * policy 'reflective' (default, ADR-010) adds P4: reflectable property order
+ * (syntactic rule and runtime snapshot) is part of the observable behaviour;
+ * reason 'reflection' separates it from a call-level 'runtime' difference.
+ * policy 'call-only' is the pre-ADR-010 P0–P3 policy, kept for comparison. */
+export function createOracle(fixture,{policy='reflective'}={}){
+ if(!['reflective','call-only'].includes(policy))throw Error('unknown oracle policy '+policy);
  const source=Array.isArray(fixture.source)?fixture.source.join('\n'):fixture.source;
- const reference=analyse(source,fixture.language),baseline=execute(source,fixture);
+ const reference=analyse(source,fixture.language);
  if(!reference)throw Error(`oracle fixture ${fixture.id} does not parse`);
- if(/^throws:|timeout|syntax/.test(baseline))throw Error(`oracle fixture ${fixture.id} reference fails: ${baseline}`);
- const cache=new Map();
+ const baseline=execute(source,fixture,reference.reflection);
+ if(/^throws:|timeout|syntax/.test(baseline.call))throw Error(`oracle fixture ${fixture.id} reference fails: ${baseline.call}`);
+ const reflective=policy==='reflective',cache=new Map();
  return lines=>{
   const code=lines.join('\n');
   if(cache.has(code))return cache.get(code);
@@ -162,7 +237,11 @@ export function createOracle(fixture){
   if(!candidate)verdict={ok:false,reason:'syntax'};
   else if(candidate.shape!==reference.shape)verdict={ok:false,reason:'scope'};
   else if(candidate.effects!==reference.effects)verdict={ok:false,reason:'effect-order'};
-  else{const observed=execute(code,fixture);verdict=observed===baseline?{ok:true,reason:'equivalent'}:observed.includes('timeout')?{ok:null,reason:'timeout'}:{ok:false,reason:'runtime'};}
+  else if(reflective&&candidate.reflection.order!==reference.reflection.order)verdict={ok:false,reason:'reflection'};
+  else{
+   const observed=execute(code,fixture,reference.reflection);
+   verdict=observed.call.includes('timeout')?{ok:null,reason:'timeout'}:observed.call!==baseline.call?{ok:false,reason:'runtime'}:reflective&&observed.reflection!==baseline.reflection?{ok:false,reason:'reflection'}:{ok:true,reason:'equivalent'};
+  }
   cache.set(code,verdict);return verdict;
  };
 }
