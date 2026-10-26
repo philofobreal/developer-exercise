@@ -148,7 +148,7 @@
     "reason": "",
     "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
-    "dependencyPolicy": "scoped-effect-analysis-v8",
+    "dependencyPolicy": "scoped-effect-analysis-v9",
     "note": "A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor, a declare mezők, a privát (#) és a tömbindex nevű metódusok bárhol állhatnak az osztálytörzsben. A többi metódus és accessor a mezőkhöz képest szabad, de egymáshoz képest megtartja a sorrendjét, mert a prototípus (static esetén a konstruktor) kulcssorrendje reflexióval megfigyelhető; az accessor mező ebben a láncban és a mezők között is a helyén marad. Egy azonos nevű getter és setter egy tulajdonság: egymással felcserélhetők. A példány- és a static mezők egymáshoz képest szabadok, mert más fázisban futnak, de csoportjukon belül megtartják a sorrendet; a számított nevű metódus a mezőkhöz képest szabad. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.",
     "dependencyHints": [
       {

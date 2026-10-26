@@ -5,7 +5,7 @@
 import {parse as parseJavaScript} from './vendor/acorn.mjs';
 import {AuthoringError} from './errors.mjs';
 import {bindingChecker,declarationGroups} from './dependency-analysis.mjs';
-import {jsTsOrderingRelations} from '../../dist/author/js-ts-ordering.js';
+import {jsTsOrderingRelations,jsTsStructure} from '../../dist/author/js-ts-ordering.js';
 import {formatTypedSource} from './ts-format.mjs';
 const registry=new Map();
 export function registerLanguageAdapter(id,adapter){
@@ -15,17 +15,6 @@ export function registerLanguageAdapter(id,adapter){
 }
 export function getLanguageAdapter(id){const a=registry.get(id);if(!a)throw new AuthoringError('Nem támogatott nyelv: '+id);return a;}
 export const languageIds=()=>[...registry.keys()];
-function structure(file,ts){
- const result=[];
- const visit=node=>{
-  const eligible=ts.isBlock(node)||ts.isModuleBlock(node)||ts.isClassLike(node)||ts.isInterfaceDeclaration(node)||ts.isTypeLiteralNode(node)||ts.isObjectLiteralExpression(node)||ts.isEnumDeclaration(node);
-  if(eligible){
-   const children=node.getChildren(file),open=children.find(x=>x.kind===ts.SyntaxKind.OpenBraceToken),close=children.findLast(x=>x.kind===ts.SyntaxKind.CloseBraceToken);
-   if(open&&close)result.push({start:file.getLineAndCharacterOfPosition(open.getStart(file)).line,end:file.getLineAndCharacterOfPosition(close.getStart(file)).line,kind:ts.isBlock(node)&&ts.isFunctionLike(node.parent)?'function':'block'});
-  }
-  ts.forEachChild(node,visit);
- };visit(file);return result;
-}
 function whitespace(file,ts){
  const exact=new Set();
  const visit=node=>{
@@ -48,7 +37,7 @@ for(const language of ['javascript','typescript'])registerLanguageAdapter(langua
   return file;
  },
  format:(source,ts)=>{getLanguageAdapter(language).parse(source,ts);return formatTypedSource(source,language,ts);},
- structure,whitespace,declarationGroups,orderingRelations:jsTsOrderingRelations,
+ structure:jsTsStructure,whitespace,declarationGroups,orderingRelations:jsTsOrderingRelations,
  tokenize(file,ts){const out=[];const walk=n=>{const children=n.getChildren(file);if(!children.length&&n.kind!==ts.SyntaxKind.EndOfFileToken)out.push({kind:n.kind,text:n.getText(file)});else children.forEach(walk);};walk(file);return out;},
  analyzeDependencies(file,ts){
   // Binding identity, not equal identifier spelling, resolves shadowed locals.

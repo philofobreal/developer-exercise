@@ -31,12 +31,12 @@ test('typed author engine alone may call the shared compiler; other author algor
  assert.ok(inspectModule('src/core/another.ts',"import {LanguageEngine} from '../author/engine.js';").some(e=>e.rule==='core-boundary'));
 });
 
-// ADR-011: the projection imports only language-independent ordering relations;
+// ADR-011/013: the generator reaches only the typed, language-independent projection;
 // only the language registry wires the JS/TS binding/effect analysis.
-test('the generator may wire only the language-independent ordering relations',()=>{
- assert.deepEqual(inspectModule('src/author/generator.mjs',"import {sealMultiRowUnits} from '../../dist/author/ordering-relations.js';"),[]);
- for(const module of ['type-member-ordering','statement-ordering','js-ts-ordering'])assert.ok(inspectModule('src/author/generator.mjs',`import {x} from '../../dist/author/${module}.js';`).some(error=>error.rule==='author-boundary'),module);
- assert.ok(inspectModule('src/author/another.mjs',"import {sealMultiRowUnits} from '../../dist/author/ordering-relations.js';").some(error=>error.rule==='author-boundary'));
+test('the generator may wire only the language-independent projection',()=>{
+ assert.deepEqual(inspectModule('src/author/generator.mjs',"import {projectCodeLine} from '../../dist/author/code-line-projection.js';"),[]);
+ for(const module of ['ordering-relations','type-member-ordering','statement-ordering','js-ts-ordering'])assert.ok(inspectModule('src/author/generator.mjs',`import {x} from '../../dist/author/${module}.js';`).some(error=>error.rule==='author-boundary'),module);
+ assert.ok(inspectModule('src/author/another.mjs',"import {projectCodeLine} from '../../dist/author/code-line-projection.js';").some(error=>error.rule==='author-boundary'));
 });
 
 test('only the language registry may wire the JS/TS ordering analysis',()=>{
@@ -44,5 +44,5 @@ test('only the language registry may wire the JS/TS ordering analysis',()=>{
  assert.deepEqual(inspectModule('src/author/languages.mjs',source),[]);
  for(const file of ['src/author/generator.mjs','src/author/audit.mjs','src/author/dependency-analysis.mjs','src/author/another.mjs'])assert.ok(inspectModule(file,source).length,file);
  for(const module of ['type-member-ordering','statement-ordering'])assert.ok(inspectModule('src/author/languages.mjs',`import {x} from '../../dist/author/${module}.js';`).some(error=>error.rule==='author-boundary'),module);
- for(const file of ['src/author/statement-ordering.ts','src/author/type-member-ordering.ts','src/author/js-ts-ordering.ts'])assert.deepEqual(inspectModule(file,"import type ts from 'typescript';import {combineOrderingRelations} from './ordering-relations.js';"),[]);
+ for(const file of ['src/author/statement-ordering.ts','src/author/type-member-ordering.ts','src/author/js-ts-ordering.ts','src/author/code-line-projection.ts'])assert.deepEqual(inspectModule(file,"import type ts from 'typescript';import {combineOrderingRelations} from './ordering-relations.js';"),[]);
 });

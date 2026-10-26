@@ -151,8 +151,8 @@
  },
  "ch-loop-and-catch-bindings": {
   "neighbours": 328,
-  "accepted": 4,
-  "completenessGaps": 1,
+  "accepted": 5,
+  "completenessGaps": 0,
   "justifiedRejections": 323
  },
  "ch-parameter-reads": {
@@ -188,8 +188,8 @@
  "ch-typeof-strict-equality": {
   "neighbours": 51,
   "accepted": 2,
-  "completenessGaps": 1,
-  "justifiedRejections": 48
+  "completenessGaps": 0,
+  "justifiedRejections": 49
  },
  "ch-var-operand": {
   "neighbours": 35,
@@ -247,8 +247,8 @@
  },
  "wp6-hoisted-into-shared-boundaries": {
   "neighbours": 285,
-  "accepted": 4,
-  "completenessGaps": 3,
+  "accepted": 7,
+  "completenessGaps": 0,
   "justifiedRejections": 278
  },
  "wp6-member-into-continued-field": {
@@ -334,6 +334,24 @@
   "accepted": 2,
   "completenessGaps": 0,
   "justifiedRejections": 115
+ },
+ "prec-else-chain-local-writes": {
+  "neighbours": 477,
+  "accepted": 6,
+  "completenessGaps": 0,
+  "justifiedRejections": 471
+ },
+ "prec-try-catch-finally": {
+  "neighbours": 425,
+  "accepted": 8,
+  "completenessGaps": 1,
+  "justifiedRejections": 416
+ },
+ "prec-ts-clause-chain": {
+  "neighbours": 475,
+  "accepted": 14,
+  "completenessGaps": 0,
+  "justifiedRejections": 461
  },
  "evaluate-ordering": {
   "neighbours": 51,

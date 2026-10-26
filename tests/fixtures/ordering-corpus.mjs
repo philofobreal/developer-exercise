@@ -136,6 +136,13 @@ const fixtures=[
   'function evaluate() {','  let rate = 3;',"  var unit = 'cm';",'  const width = rate * 2;',"  const label = unit + ':' + width;",'  const height = rate + 1;','  return [label, height];','}']},
  {id:'wp6-written-let-coercion',origin:'wp6',language:'javascript',source:[
   'function evaluate() {','  let count = 0;','  let base = 2;','  if (count === 0) {','    base = { valueOf() { count += 1; return count; } };','  }','  const small = base * 2;','  const large = base * 10;','  return [small, large];','}']},
+ // ADR-013: local writes commute unless they conflict; clause chains keep each row in its clause.
+ {id:'prec-else-chain-local-writes',origin:'precision',language:'javascript',source:[
+  'function evaluate() {','  const results = [];','  for (const n of [1, 5, 50]) {','    let label;','    let size;','    if (n > 10) {',"      label = 'big';",'      size = 3;','    } else if (n > 2) {',"      label = 'mid';",'      size = label.length;','    } else {',"      label = 'small';",'      size = 1;','    }','    results.push([label, size]);','  }','  return results;','}']},
+ {id:'prec-try-catch-finally',origin:'precision',language:'javascript',source:[
+  'function evaluate() {','  let a = 0;','  let b = 0;','  let c = 0;','  try {','    a = 1;','    b = 2;',"    record('try', a);",'    c = b;','  } catch (error) {','    a = 3;','    b = 4;','  } finally {','    c = c + 1;','    b = 5;','  }','  return [a, b, c];','}']},
+ {id:'prec-ts-clause-chain',origin:'precision',language:'typescript',source:[
+  'interface Point {','  x: number;','  y: number;','}','function evaluate(): Array<number | string> {','  let best: Point = { x: 0, y: 0 };','  let label = "none";','  const candidates: Point[] = [{ x: 1, y: 2 }, { x: 3, y: 1 }];','  for (const point of candidates) {','    if (point.x > best.x) {','      best = point;','      label = "x";','    } else {','      label = "keep";','      best = best;','    }','  }','  return [best.x, best.y, label];','}']}
 ];
 
 const evaluateSource=(await readFile(new URL('./evaluate-ordering.js',import.meta.url),'utf8')).replace(/\r\n?/g,'\n').trimEnd().split('\n');

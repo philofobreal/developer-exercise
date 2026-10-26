@@ -12,7 +12,7 @@ await cp(distRoot,path.join(out,'dist'),{recursive:true,filter:source=>path.rela
 await cp(path.join(root,'src/author'),path.join(out,'author'),{recursive:true});
 // Source generator is two directories below the root; the static author folder is one.
 // Only the explicit typed-author wiring (ADR-011) is re-rooted.
-for(const [file,modules] of [['generator.mjs',['ordering-relations.js']],['languages.mjs',['js-ts-ordering.js']]]){
+for(const [file,modules] of [['generator.mjs',['code-line-projection.js']],['languages.mjs',['js-ts-ordering.js']]]){
  const target=path.join(out,'author',file);let text=await readFile(target,'utf8');
  for(const module of modules){if(!text.includes('../../dist/author/'+module))throw Error(`Typed author packaging path changed: ${file} -> ${module}`);text=text.replace('../../dist/author/'+module,'../dist/author/'+module);}
  await writeFile(target,text);

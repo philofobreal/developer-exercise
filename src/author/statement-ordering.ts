@@ -25,12 +25,14 @@
 import type ts from 'typescript';
 type Compiler = typeof ts;
 
-export type UnitKind = 'pure' | 'position-free' | 'barrier' | 'opaque';
+export type UnitKind = 'pure' | 'local-write' | 'position-free' | 'barrier' | 'opaque';
 /** Evidence for one unit: why it may move, or why it may not. */
 export interface StatementUnit {first: number; last: number; kind: UnitKind; reason: string;}
 export interface OrderingEntry {row: number; after: number[];}
 export interface StatementOrdering {entries: OrderingEntry[]; protectedInputs: Map<number, Set<number>>; units: StatementUnit[];}
-interface Summary extends StatementUnit {reads: Set<number>; start: number; global?: boolean;}
+/** `readSet`/`writeSet`: bindings a pure or local-write unit reads or writes when it runs
+ * (may-sets, unions over branches); two such units conflict on RAW, WAR or WAW. */
+interface Summary extends StatementUnit {reads: Set<number>; start: number; global?: boolean; readSet: Set<ts.Symbol>; writeSet: Set<ts.Symbol>;}
 interface Binding {row: number | null; primitiveInitializer: ts.Expression | null;}
 
 /** Separate, browser-safe checker host: only the reference file is visible. */
@@ -40,7 +42,14 @@ export function bindingChecker(file: ts.SourceFile, compiler: Compiler): ts.Type
  return compiler.createProgram([file.fileName], options, host).getTypeChecker();
 }
 
-export function statementOrdering(file: ts.SourceFile, compiler: Compiler): StatementOrdering {
+/** How the reference's TypeScript is emitted (ADR-013). `verbatim` (the default, also
+ * for an unknown build) keeps every import that is not `import type`, as under
+ * verbatimModuleSyntax; `elide-unused` is TypeScript's default emit, which drops an
+ * import none of whose bindings is used as a value. */
+export type ImportEmit = 'verbatim' | 'elide-unused';
+export interface OrderingOptions {imports?: ImportEmit;}
+
+export function statementOrdering(file: ts.SourceFile, compiler: Compiler, options: OrderingOptions = {}): StatementOrdering {
  const empty: StatementOrdering = {entries: [], protectedInputs: new Map(), units: []};
  let dynamic = false;
  const scan = (node: ts.Node): void => {
@@ -194,9 +203,79 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler): Stat
   return false;
  }
 
+ /** A use in a type position: a type node, an `implements` clause or an interface's `extends`. */
+ const typePosition = (node: ts.Node): boolean => {
+  for (let current: ts.Node | undefined = node; current && !compiler.isSourceFile(current); current = current.parent) {
+   if (compiler.isTypeNode(current) && !compiler.isExpressionWithTypeArguments(current)) return true;
+   if (compiler.isHeritageClause(current)) return current.token === S.ImplementsKeyword || compiler.isInterfaceDeclaration(current.parent);
+   if (compiler.isStatement(current)) return false;
+  }
+  return false;
+ };
+ // Decorator metadata (emitDecoratorMetadata) may turn a type annotation into a value reference.
+ let decoratedFile = false;
+ const findDecorators = (node: ts.Node): void => {if (decoratedFile) return; if (compiler.isDecorator(node)) {decoratedFile = true; return;} compiler.forEachChild(node, findDecorators);};
+ findDecorators(file);
+ /** An import that emits nothing (ADR-013): `import type` always; under `elide-unused` also
+  * one with bindings none of which is used as a value, in a file without decorators. A
+  * side-effect import (no clause) always loads its module. */
+ function erasedImport(node: ts.ImportDeclaration): boolean {
+  const clause = node.importClause;
+  if (!clause || !ownsRows(node, ...braces(clause.namedBindings && compiler.isNamedImports(clause.namedBindings) ? clause.namedBindings : undefined))) return false;
+  if (clause.isTypeOnly) return true;
+  if (options.imports !== 'elide-unused' || decoratedFile) return false;
+  const names: ts.Identifier[] = [...(clause.name ? [clause.name] : []), ...(clause.namedBindings ? compiler.isNamespaceImport(clause.namedBindings) ? [clause.namedBindings.name] : clause.namedBindings.elements.map(element => element.name) : [])];
+  const symbols = new Set(names.flatMap(name => {const symbol = checker.getSymbolAtLocation(name); return symbol ? [symbol] : [];}));
+  if (symbols.size !== names.length) return false;
+  let valueUse = false;
+  const visit = (current: ts.Node): void => {
+   if (valueUse || current === node) return;
+   if (compiler.isIdentifier(current)) {
+    const symbol = compiler.isShorthandPropertyAssignment(current.parent) && current.parent.name === current ? checker.getShorthandAssignmentValueSymbol(current.parent) : checker.getSymbolAtLocation(current);
+    if (symbol && symbols.has(symbol) && !typePosition(current)) valueUse = true;
+    return;
+   }
+   compiler.forEachChild(current, visit);
+  };
+  visit(file);
+  return !valueUse;
+ }
+ /** Bindings read when `expr` is evaluated; closure bodies run later, at a call barrier. */
+ function symbolReads(expr: ts.Node | undefined, into: Set<ts.Symbol>): Set<ts.Symbol> {
+  const visit = (node: ts.Node): void => {
+   if (functionLike(node) || compiler.isTypeNode(node)) return;
+   if (compiler.isShorthandPropertyAssignment(node)) {const symbol = checker.getShorthandAssignmentValueSymbol(node); if (symbol) into.add(symbol); return;}
+   if (compiler.isPropertyAssignment(node)) {visit(node.initializer); return;}
+   if (compiler.isIdentifier(node)) {const symbol = checker.getSymbolAtLocation(node); if (symbol) into.add(symbol); return;}
+   compiler.forEachChild(node, visit);
+  };
+  if (expr) visit(expr);
+  return into;
+ }
+ /** `x = e` where x is a let/var declared earlier in this function context and e is pure (ADR-013). */
+ function localWrite(statement: ts.ExpressionStatement, reads: Set<number>): Set<ts.Symbol> | null {
+  const expr = unwrap(statement.expression);
+  if (!compiler.isBinaryExpression(expr) || expr.operatorToken.kind !== S.EqualsToken || !compiler.isIdentifier(expr.left)) return null;
+  const symbol = checker.getSymbolAtLocation(expr.left), declaration = unique(symbol);
+  if (!symbol || !declaration || !compiler.isVariableDeclaration(declaration) || !compiler.isIdentifier(declaration.name)) return null;
+  const list = declaration.parent, owner = list.parent;
+  if (!compiler.isVariableDeclarationList(list) || disposable(list) || (list.flags & compiler.NodeFlags.BlockScoped) === compiler.NodeFlags.Const || !compiler.isVariableStatement(owner) || modifiers(owner).length || list.declarations.length !== 1) return null;
+  // Same function context (never script level: the global scope is writable from elsewhere), declared before the write, not in a switch clause.
+  const scope = context(statement);
+  if (scope === file || context(owner) !== scope || owner.end > statement.getStart(file) || compiler.isCaseClause(owner.parent) || compiler.isDefaultClause(owner.parent)) return null;
+  if (!pure(expr.right, reads)) return null;
+  reads.add(line(owner));
+  return new Set([symbol]);
+ }
  function summary(node: ts.Statement, list: ts.Node): Summary {
-  const reads = new Set<number>(), base = {first: line(node), last: end(node), start: node.getStart(file), reads};
+  const reads = new Set<number>(), readSet = new Set<ts.Symbol>(), writeSet = new Set<ts.Symbol>(), base = {first: line(node), last: end(node), start: node.getStart(file), reads, readSet, writeSet};
   const barrier = (reason: string): Summary => ({...base, kind: 'barrier', reason});
+  /** Pure or local-write children compose; the unit reads and may write their unions. */
+  const compose = (children: Summary[], kind: string): Summary | null => {
+   if (!children.every(child => child.kind === 'pure' || child.kind === 'local-write')) return null;
+   for (const child of children) {child.readSet.forEach(symbol => readSet.add(symbol)); child.writeSet.forEach(symbol => writeSet.add(symbol));}
+   return children.some(child => child.kind === 'local-write') ? {...base, kind: 'local-write', reason: 'local-write-' + kind} : {...base, kind: 'pure', reason: 'pure-' + kind};
+  };
   const mods = modifiers(node);
   if (mods.includes(S.DeclareKeyword) || compiler.isInterfaceDeclaration(node) || compiler.isTypeAliasDeclaration(node)) {
    const shape = compiler.isInterfaceDeclaration(node) ? node : compiler.isTypeAliasDeclaration(node) && compiler.isTypeLiteralNode(node.type) ? node.type : undefined;
@@ -208,6 +287,10 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler): Stat
    if (node.body && node.name && hoistingList(list) && mods.every(kind => kind === S.ExportKeyword || kind === S.DefaultKeyword || kind === S.AsyncKeyword) && !decorated(node) && unique(checker.getSymbolAtLocation(node.name)) && ownsRows(node, ...braces(node.body))) return {...base, kind: 'position-free', reason: 'hoisted-function-declaration'};
    return barrier('function-declaration-not-hoistable');
   }
+  if (compiler.isImportDeclaration(node)) {
+   if (erasedImport(node)) return {...base, kind: 'position-free', reason: node.importClause?.isTypeOnly ? 'type-only-import' : 'elided-type-import'};
+   return barrier('module-import');
+  }
   if (compiler.isVariableStatement(node)) {
    const list = node.declarationList, declaration = list.declarations[0];
    const flags = list.flags & compiler.NodeFlags.BlockScoped;
@@ -215,6 +298,7 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler): Stat
    const initializer = declaration.initializer ? unwrap(declaration.initializer) : undefined;
    if (!initializer ? flags === compiler.NodeFlags.Const : !pure(declaration.initializer!, reads)) return barrier('effectful-or-unknown-initializer');
    const delimited = initializer && (compiler.isObjectLiteralExpression(initializer) ? initializer : (compiler.isArrowFunction(initializer) || compiler.isFunctionExpression(initializer)) && compiler.isBlock(initializer.body) ? initializer.body : undefined);
+   symbolReads(declaration.initializer, readSet); writeSet.add(checker.getSymbolAtLocation(declaration.name)!);
    return ownsRows(node, ...braces(delimited)) ? {...base, kind: 'pure', reason: initializer ? 'pure-declaration' : 'uninitialised-declaration'} : barrier('shared-or-continued-rows');
   }
   if (compiler.isClassDeclaration(node)) {
@@ -223,23 +307,36 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler): Stat
    // `extends` throws unless its value is a constructor: only a declared class qualifies.
    const base_ = heritage && compiler.isIdentifier(heritage) ? unique(checker.getSymbolAtLocation(heritage)) : undefined;
    const heritageSafe = !heritage || !!base_ && compiler.isClassDeclaration(base_) && pure(heritage, reads);
-   if (node.name && !decorated(node) && mods.every(kind => kind === S.ExportKeyword || kind === S.DefaultKeyword || kind === S.AbstractKeyword) && definitionOnly && heritageSafe && unique(checker.getSymbolAtLocation(node.name)) && ownsRows(node, ...braces(node))) return {...base, kind: 'pure', reason: 'class-definition'};
+   if (node.name && !decorated(node) && mods.every(kind => kind === S.ExportKeyword || kind === S.DefaultKeyword || kind === S.AbstractKeyword) && definitionOnly && heritageSafe && unique(checker.getSymbolAtLocation(node.name)) && ownsRows(node, ...braces(node))) {
+    symbolReads(heritage, readSet); writeSet.add(checker.getSymbolAtLocation(node.name)!);
+    return {...base, kind: 'pure', reason: 'class-definition'};
+   }
    return barrier('class-evaluates-code');
+  }
+  if (compiler.isExpressionStatement(node)) {
+   const written = localWrite(node, reads);
+   if (written && ownsRows(node)) {symbolReads((unwrap(node.expression) as ts.BinaryExpression).right, readSet); written.forEach(symbol => writeSet.add(symbol)); return {...base, kind: 'local-write', reason: 'local-write'};}
+   return barrier(S[node.kind]);
   }
   if (compiler.isBlock(node)) {
    const children = node.statements.map(child => summary(child, node));
    for (const child of children) for (const row of child.reads) if (row < base.first) reads.add(row);
-   return children.every(child => child.kind === 'pure') ? {...base, kind: 'pure', reason: 'pure-block'} : barrier('block-contains-barrier');
+   return compose(children, 'block') ?? barrier('block-contains-barrier');
   }
   if (compiler.isIfStatement(node) && compiler.isBlock(node.thenStatement) && (!node.elseStatement || compiler.isBlock(node.elseStatement))) {
    const branches = [summary(node.thenStatement, node), ...(node.elseStatement ? [summary(node.elseStatement, node)] : [])];
    for (const branch of branches) for (const row of branch.reads) if (row < base.first) reads.add(row);
-   return pure(node.expression, reads) && branches.every(branch => branch.kind === 'pure') ? {...base, kind: 'pure', reason: 'pure-branch'} : barrier('branch-contains-barrier');
+   if (!pure(node.expression, reads)) return barrier('branch-contains-barrier');
+   symbolReads(node.expression, readSet);
+   return compose(branches, 'branch') ?? barrier('branch-contains-barrier');
   }
   if (compiler.isReturnStatement(node) && node.expression) pure(node.expression, reads);
   // Any other statement is an ordering barrier, including control transfers.
   return barrier(S[node.kind]);
  }
+ /** RAW, WAR or WAW on a binding between two units that run code (ADR-013). */
+ const meets = (a: Set<ts.Symbol>, b: Set<ts.Symbol>): boolean => [...a].some(symbol => b.has(symbol));
+ const conflict = (a: Summary, b: Summary): boolean => meets(a.writeSet, b.readSet) || meets(a.writeSet, b.writeSet) || meets(a.readSet, b.writeSet);
  const add = (before: number, after: number, essential = false): void => {
   if (before >= after) return;
   if (!entries.has(after)) entries.set(after, new Set());
@@ -297,7 +394,7 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler): Stat
     // Preserve comments and other non-statement rows as opaque units.
     const complete: Summary[] = [];
     for (let i = 0; i < grouped.length; i++) {
-     if (i) for (let row = grouped[i - 1]!.last + 1; row < grouped[i]!.first; row++) if (physical[row]?.trim()) complete.push({first: row, last: row, start: -1, kind: 'opaque', reason: 'non-statement-row', reads: new Set()});
+     if (i) for (let row = grouped[i - 1]!.last + 1; row < grouped[i]!.first; row++) if (physical[row]?.trim()) complete.push({first: row, last: row, start: -1, kind: 'opaque', reason: 'non-statement-row', reads: new Set(), readSet: new Set(), writeSet: new Set()});
      complete.push(grouped[i]!);
     }
     for (const unit of complete) {
@@ -308,7 +405,7 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler): Stat
     }
     for (let i = 0; i < complete.length; i++) for (let j = i + 1; j < complete.length; j++) {
      const a = complete[i]!, b = complete[j]!;
-     const ordered = a.kind === 'opaque' || b.kind === 'opaque' || a.kind !== 'position-free' && b.kind !== 'position-free' && (a.kind === 'barrier' || b.kind === 'barrier') || !!a.global && !!b.global;
+     const ordered = a.kind === 'opaque' || b.kind === 'opaque' || a.kind !== 'position-free' && b.kind !== 'position-free' && (a.kind === 'barrier' || b.kind === 'barrier') || !!a.global && !!b.global || conflict(a, b);
      if (ordered) add(a.last, b.first);
     }
    }

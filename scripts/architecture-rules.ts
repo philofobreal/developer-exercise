@@ -2,8 +2,8 @@
 import ts from 'typescript';
 import path from 'node:path';
 export interface Violation {file:string;rule:string;message:string;}
-// ADR-011: the projection sees only language-independent relations; the registry wires the JS/TS analysis.
-const typedAuthorWiring=new Set(['src/author/generator.mjs -> dist/author/ordering-relations.js','src/author/languages.mjs -> dist/author/js-ts-ordering.js']);
+// ADR-011/013: the generator reaches only the typed language-independent projection; the registry wires the JS/TS analysis.
+const typedAuthorWiring=new Set(['src/author/generator.mjs -> dist/author/code-line-projection.js','src/author/languages.mjs -> dist/author/js-ts-ordering.js']);
 export function inspectModule(file:string,source:string):Violation[]{
  const out:Violation[]=[],normalized=file.replaceAll('\\','/'),generatedSchema=normalized==='src/core/schema-check.ts';
  const core=normalized.startsWith('src/core/'),ui=normalized.startsWith('src/workbench/'),author=normalized.startsWith('src/author/'),python=normalized.startsWith('src/python/');

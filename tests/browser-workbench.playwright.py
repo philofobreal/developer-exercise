@@ -123,7 +123,7 @@ def legacy_dependency_refresh(page):
     page.locator('[data-view="model"]').click();after=json.loads(page.locator('#model-editor').input_value())
     assert [l['dependencies'] for l in after['lines']]==[[],[1],[1],[2,3],[1],[4,5],[6]]
     assert [(l['id'],l['code'],l['fixed']) for l in after['lines']]==[(l['id'],l['code'],l['fixed']) for l in legacy['lines']]
-    assert after['authoring']['dependencyPolicy']=='scoped-effect-analysis-v8'
+    assert after['authoring']['dependencyPolicy']=='scoped-effect-analysis-v9'
     page.screenshot(path=str(ARTIFACTS/('ux-legacy-dependency-refresh-'+('node' if page.url.startswith(BASE) else 'pages')+'.png')),full_page=True)
 
 def stale_file_import(page):

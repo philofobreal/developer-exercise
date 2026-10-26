@@ -404,19 +404,23 @@
   {
     "id": "20-shared-boundaries",
     "title": "Közös else sorhatár",
-    "description": "A v2-ben nem külön mozgatható close/open eseményeket eredeti sorrendű élek védik.",
-    "acceptedSwaps": [],
-    "rejectedSwaps": [
+    "description": "A } else { sor klauzulalánc-szeparátor (ADR-013): az ágon belül a független konstansok felcserélhetők, de egy sor sem léphet át a másik ágba.",
+    "acceptedSwaps": [
       [
         3,
         4
-      ],
+      ]
+    ],
+    "rejectedSwaps": [
       [
         5,
         7
       ]
     ],
-    "permutableIds": [],
+    "permutableIds": [
+      3,
+      4
+    ],
     "probe": "JSON.stringify([choose(true),choose(false)])"
   },
   {

@@ -24,7 +24,7 @@
  */
 import type ts from 'typescript';
 type Compiler = typeof ts;
-export type UnitKind = 'pure' | 'position-free' | 'barrier' | 'opaque';
+export type UnitKind = 'pure' | 'local-write' | 'position-free' | 'barrier' | 'opaque';
 /** Evidence for one unit: why it may move, or why it may not. */
 export interface StatementUnit {
     first: number;
@@ -43,5 +43,13 @@ export interface StatementOrdering {
 }
 /** Separate, browser-safe checker host: only the reference file is visible. */
 export declare function bindingChecker(file: ts.SourceFile, compiler: Compiler): ts.TypeChecker;
-export declare function statementOrdering(file: ts.SourceFile, compiler: Compiler): StatementOrdering;
+/** How the reference's TypeScript is emitted (ADR-013). `verbatim` (the default, also
+ * for an unknown build) keeps every import that is not `import type`, as under
+ * verbatimModuleSyntax; `elide-unused` is TypeScript's default emit, which drops an
+ * import none of whose bindings is used as a value. */
+export type ImportEmit = 'verbatim' | 'elide-unused';
+export interface OrderingOptions {
+    imports?: ImportEmit;
+}
+export declare function statementOrdering(file: ts.SourceFile, compiler: Compiler, options?: OrderingOptions): StatementOrdering;
 export {};

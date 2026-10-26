@@ -4,7 +4,7 @@ export function bindingChecker(file, compiler) {
     const host = { getSourceFile: name => name === file.fileName ? file : undefined, getDefaultLibFileName: () => '', writeFile: () => undefined, getCurrentDirectory: () => '', getDirectories: () => [], getCanonicalFileName: name => name, useCaseSensitiveFileNames: () => true, getNewLine: () => '\n', fileExists: name => name === file.fileName, readFile: name => name === file.fileName ? file.text : undefined };
     return compiler.createProgram([file.fileName], options, host).getTypeChecker();
 }
-export function statementOrdering(file, compiler) {
+export function statementOrdering(file, compiler, options = {}) {
     const empty = { entries: [], protectedInputs: new Map(), units: [] };
     let dynamic = false;
     const scan = (node) => {
@@ -194,9 +194,116 @@ export function statementOrdering(file, compiler) {
             return pure(expr.left, reads) && pure(expr.right, reads);
         return false;
     }
+    /** A use in a type position: a type node, an `implements` clause or an interface's `extends`. */
+    const typePosition = (node) => {
+        for (let current = node; current && !compiler.isSourceFile(current); current = current.parent) {
+            if (compiler.isTypeNode(current) && !compiler.isExpressionWithTypeArguments(current))
+                return true;
+            if (compiler.isHeritageClause(current))
+                return current.token === S.ImplementsKeyword || compiler.isInterfaceDeclaration(current.parent);
+            if (compiler.isStatement(current))
+                return false;
+        }
+        return false;
+    };
+    // Decorator metadata (emitDecoratorMetadata) may turn a type annotation into a value reference.
+    let decoratedFile = false;
+    const findDecorators = (node) => { if (decoratedFile)
+        return; if (compiler.isDecorator(node)) {
+        decoratedFile = true;
+        return;
+    } compiler.forEachChild(node, findDecorators); };
+    findDecorators(file);
+    /** An import that emits nothing (ADR-013): `import type` always; under `elide-unused` also
+     * one with bindings none of which is used as a value, in a file without decorators. A
+     * side-effect import (no clause) always loads its module. */
+    function erasedImport(node) {
+        const clause = node.importClause;
+        if (!clause || !ownsRows(node, ...braces(clause.namedBindings && compiler.isNamedImports(clause.namedBindings) ? clause.namedBindings : undefined)))
+            return false;
+        if (clause.isTypeOnly)
+            return true;
+        if (options.imports !== 'elide-unused' || decoratedFile)
+            return false;
+        const names = [...(clause.name ? [clause.name] : []), ...(clause.namedBindings ? compiler.isNamespaceImport(clause.namedBindings) ? [clause.namedBindings.name] : clause.namedBindings.elements.map(element => element.name) : [])];
+        const symbols = new Set(names.flatMap(name => { const symbol = checker.getSymbolAtLocation(name); return symbol ? [symbol] : []; }));
+        if (symbols.size !== names.length)
+            return false;
+        let valueUse = false;
+        const visit = (current) => {
+            if (valueUse || current === node)
+                return;
+            if (compiler.isIdentifier(current)) {
+                const symbol = compiler.isShorthandPropertyAssignment(current.parent) && current.parent.name === current ? checker.getShorthandAssignmentValueSymbol(current.parent) : checker.getSymbolAtLocation(current);
+                if (symbol && symbols.has(symbol) && !typePosition(current))
+                    valueUse = true;
+                return;
+            }
+            compiler.forEachChild(current, visit);
+        };
+        visit(file);
+        return !valueUse;
+    }
+    /** Bindings read when `expr` is evaluated; closure bodies run later, at a call barrier. */
+    function symbolReads(expr, into) {
+        const visit = (node) => {
+            if (functionLike(node) || compiler.isTypeNode(node))
+                return;
+            if (compiler.isShorthandPropertyAssignment(node)) {
+                const symbol = checker.getShorthandAssignmentValueSymbol(node);
+                if (symbol)
+                    into.add(symbol);
+                return;
+            }
+            if (compiler.isPropertyAssignment(node)) {
+                visit(node.initializer);
+                return;
+            }
+            if (compiler.isIdentifier(node)) {
+                const symbol = checker.getSymbolAtLocation(node);
+                if (symbol)
+                    into.add(symbol);
+                return;
+            }
+            compiler.forEachChild(node, visit);
+        };
+        if (expr)
+            visit(expr);
+        return into;
+    }
+    /** `x = e` where x is a let/var declared earlier in this function context and e is pure (ADR-013). */
+    function localWrite(statement, reads) {
+        const expr = unwrap(statement.expression);
+        if (!compiler.isBinaryExpression(expr) || expr.operatorToken.kind !== S.EqualsToken || !compiler.isIdentifier(expr.left))
+            return null;
+        const symbol = checker.getSymbolAtLocation(expr.left), declaration = unique(symbol);
+        if (!symbol || !declaration || !compiler.isVariableDeclaration(declaration) || !compiler.isIdentifier(declaration.name))
+            return null;
+        const list = declaration.parent, owner = list.parent;
+        if (!compiler.isVariableDeclarationList(list) || disposable(list) || (list.flags & compiler.NodeFlags.BlockScoped) === compiler.NodeFlags.Const || !compiler.isVariableStatement(owner) || modifiers(owner).length || list.declarations.length !== 1)
+            return null;
+        // Same function context (never script level: the global scope is writable from elsewhere), declared before the write, not in a switch clause.
+        const scope = context(statement);
+        if (scope === file || context(owner) !== scope || owner.end > statement.getStart(file) || compiler.isCaseClause(owner.parent) || compiler.isDefaultClause(owner.parent))
+            return null;
+        if (!pure(expr.right, reads))
+            return null;
+        reads.add(line(owner));
+        return new Set([symbol]);
+    }
     function summary(node, list) {
-        const reads = new Set(), base = { first: line(node), last: end(node), start: node.getStart(file), reads };
+        const reads = new Set(), readSet = new Set(), writeSet = new Set(), base = { first: line(node), last: end(node), start: node.getStart(file), reads, readSet, writeSet };
         const barrier = (reason) => ({ ...base, kind: 'barrier', reason });
+        /** Pure or local-write children compose; the unit reads and may write their unions. */
+        const compose = (children, kind) => {
+            if (!children.every(child => child.kind === 'pure' || child.kind === 'local-write'))
+                return null;
+            for (const child of children) {
+                child.readSet.forEach(symbol => readSet.add(symbol));
+                child.writeSet.forEach(symbol => writeSet.add(symbol));
+            }
+            return children.some(child => child.kind === 'local-write') ? { ...base, kind: 'local-write', reason: 'local-write-' + kind } : { ...base, kind: 'pure', reason: 'pure-' + kind };
+        };
         const mods = modifiers(node);
         if (mods.includes(S.DeclareKeyword) || compiler.isInterfaceDeclaration(node) || compiler.isTypeAliasDeclaration(node)) {
             const shape = compiler.isInterfaceDeclaration(node) ? node : compiler.isTypeAliasDeclaration(node) && compiler.isTypeLiteralNode(node.type) ? node.type : undefined;
@@ -210,6 +317,11 @@ export function statementOrdering(file, compiler) {
                 return { ...base, kind: 'position-free', reason: 'hoisted-function-declaration' };
             return barrier('function-declaration-not-hoistable');
         }
+        if (compiler.isImportDeclaration(node)) {
+            if (erasedImport(node))
+                return { ...base, kind: 'position-free', reason: node.importClause?.isTypeOnly ? 'type-only-import' : 'elided-type-import' };
+            return barrier('module-import');
+        }
         if (compiler.isVariableStatement(node)) {
             const list = node.declarationList, declaration = list.declarations[0];
             const flags = list.flags & compiler.NodeFlags.BlockScoped;
@@ -219,6 +331,8 @@ export function statementOrdering(file, compiler) {
             if (!initializer ? flags === compiler.NodeFlags.Const : !pure(declaration.initializer, reads))
                 return barrier('effectful-or-unknown-initializer');
             const delimited = initializer && (compiler.isObjectLiteralExpression(initializer) ? initializer : (compiler.isArrowFunction(initializer) || compiler.isFunctionExpression(initializer)) && compiler.isBlock(initializer.body) ? initializer.body : undefined);
+            symbolReads(declaration.initializer, readSet);
+            writeSet.add(checker.getSymbolAtLocation(declaration.name));
             return ownsRows(node, ...braces(delimited)) ? { ...base, kind: 'pure', reason: initializer ? 'pure-declaration' : 'uninitialised-declaration' } : barrier('shared-or-continued-rows');
         }
         if (compiler.isClassDeclaration(node)) {
@@ -227,9 +341,21 @@ export function statementOrdering(file, compiler) {
             // `extends` throws unless its value is a constructor: only a declared class qualifies.
             const base_ = heritage && compiler.isIdentifier(heritage) ? unique(checker.getSymbolAtLocation(heritage)) : undefined;
             const heritageSafe = !heritage || !!base_ && compiler.isClassDeclaration(base_) && pure(heritage, reads);
-            if (node.name && !decorated(node) && mods.every(kind => kind === S.ExportKeyword || kind === S.DefaultKeyword || kind === S.AbstractKeyword) && definitionOnly && heritageSafe && unique(checker.getSymbolAtLocation(node.name)) && ownsRows(node, ...braces(node)))
+            if (node.name && !decorated(node) && mods.every(kind => kind === S.ExportKeyword || kind === S.DefaultKeyword || kind === S.AbstractKeyword) && definitionOnly && heritageSafe && unique(checker.getSymbolAtLocation(node.name)) && ownsRows(node, ...braces(node))) {
+                symbolReads(heritage, readSet);
+                writeSet.add(checker.getSymbolAtLocation(node.name));
                 return { ...base, kind: 'pure', reason: 'class-definition' };
+            }
             return barrier('class-evaluates-code');
+        }
+        if (compiler.isExpressionStatement(node)) {
+            const written = localWrite(node, reads);
+            if (written && ownsRows(node)) {
+                symbolReads(unwrap(node.expression).right, readSet);
+                written.forEach(symbol => writeSet.add(symbol));
+                return { ...base, kind: 'local-write', reason: 'local-write' };
+            }
+            return barrier(S[node.kind]);
         }
         if (compiler.isBlock(node)) {
             const children = node.statements.map(child => summary(child, node));
@@ -237,7 +363,7 @@ export function statementOrdering(file, compiler) {
                 for (const row of child.reads)
                     if (row < base.first)
                         reads.add(row);
-            return children.every(child => child.kind === 'pure') ? { ...base, kind: 'pure', reason: 'pure-block' } : barrier('block-contains-barrier');
+            return compose(children, 'block') ?? barrier('block-contains-barrier');
         }
         if (compiler.isIfStatement(node) && compiler.isBlock(node.thenStatement) && (!node.elseStatement || compiler.isBlock(node.elseStatement))) {
             const branches = [summary(node.thenStatement, node), ...(node.elseStatement ? [summary(node.elseStatement, node)] : [])];
@@ -245,13 +371,19 @@ export function statementOrdering(file, compiler) {
                 for (const row of branch.reads)
                     if (row < base.first)
                         reads.add(row);
-            return pure(node.expression, reads) && branches.every(branch => branch.kind === 'pure') ? { ...base, kind: 'pure', reason: 'pure-branch' } : barrier('branch-contains-barrier');
+            if (!pure(node.expression, reads))
+                return barrier('branch-contains-barrier');
+            symbolReads(node.expression, readSet);
+            return compose(branches, 'branch') ?? barrier('branch-contains-barrier');
         }
         if (compiler.isReturnStatement(node) && node.expression)
             pure(node.expression, reads);
         // Any other statement is an ordering barrier, including control transfers.
         return barrier(S[node.kind]);
     }
+    /** RAW, WAR or WAW on a binding between two units that run code (ADR-013). */
+    const meets = (a, b) => [...a].some(symbol => b.has(symbol));
+    const conflict = (a, b) => meets(a.writeSet, b.readSet) || meets(a.writeSet, b.writeSet) || meets(a.readSet, b.writeSet);
     const add = (before, after, essential = false) => {
         if (before >= after)
             return;
@@ -338,7 +470,7 @@ export function statementOrdering(file, compiler) {
                     if (i)
                         for (let row = grouped[i - 1].last + 1; row < grouped[i].first; row++)
                             if (physical[row]?.trim())
-                                complete.push({ first: row, last: row, start: -1, kind: 'opaque', reason: 'non-statement-row', reads: new Set() });
+                                complete.push({ first: row, last: row, start: -1, kind: 'opaque', reason: 'non-statement-row', reads: new Set(), readSet: new Set(), writeSet: new Set() });
                     complete.push(grouped[i]);
                 }
                 for (const unit of complete) {
@@ -352,7 +484,7 @@ export function statementOrdering(file, compiler) {
                 for (let i = 0; i < complete.length; i++)
                     for (let j = i + 1; j < complete.length; j++) {
                         const a = complete[i], b = complete[j];
-                        const ordered = a.kind === 'opaque' || b.kind === 'opaque' || a.kind !== 'position-free' && b.kind !== 'position-free' && (a.kind === 'barrier' || b.kind === 'barrier') || !!a.global && !!b.global;
+                        const ordered = a.kind === 'opaque' || b.kind === 'opaque' || a.kind !== 'position-free' && b.kind !== 'position-free' && (a.kind === 'barrier' || b.kind === 'barrier') || !!a.global && !!b.global || conflict(a, b);
                         if (ordered)
                             add(a.last, b.first);
                     }

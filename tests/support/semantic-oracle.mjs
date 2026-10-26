@@ -7,9 +7,12 @@
  *   P1 scope      – every statement/member stays in the same lexical list
  *                   (statement and member lists compared as multisets);
  *   P2 effects    – in each statement list, the relative order of every pair
- *                   with at least one evaluation-time effect is unchanged,
- *                   unless one side is position-free (hoisted function or
- *                   erased type declaration);
+ *                   with at least one external evaluation-time effect is
+ *                   unchanged, unless one side is position-free (hoisted
+ *                   function or erased type declaration); a write of a
+ *                   function-local let/var/parameter with an effect-free right
+ *                   side is a local effect, ordered only against statements
+ *                   that read or write the same name (RAW/WAR/WAW, ADR-013);
  *   P3 runtime    – value, thrown exception and record() trace agree with the
  *                   reference on the fixture probe (TS: both class-field modes).
  * P3 is empirical evidence on finite inputs, not an equivalence proof.
@@ -43,15 +46,53 @@ function jsHasEffect(node){
  }
  return Object.entries(node).some(([key,value])=>key!=='type'&&value&&typeof value==='object'&&jsHasEffect(value));
 }
+const jsScope=new Set(['BlockStatement','StaticBlock','ForStatement','ForInStatement','ForOfStatement','CatchClause']);
+/** Statement lists with their scope chain: the enclosing function (or Program) first. */
 function jsLists(tree){
  const lists=[];
- const visit=(node,functionLevel)=>{
+ const visit=(node,functionLevel,chain)=>{
   if(!node||typeof node!=='object')return;
-  if(Array.isArray(node)){node.forEach(item=>visit(item,false));return;}
-  if((node.type==='Program'||node.type==='BlockStatement'||node.type==='StaticBlock')&&Array.isArray(node.body))lists.push({items:node.body,hoisting:node.type==='Program'||functionLevel});
-  for(const [key,value] of Object.entries(node))if(value&&typeof value==='object')visit(value,jsFunction.has(node.type)&&key==='body');
+  if(Array.isArray(node)){node.forEach(item=>visit(item,false,chain));return;}
+  const scopes=jsFunction.has(node.type)||node.type==='Program'?[node]:jsScope.has(node.type)?[...chain,node]:chain;
+  if((node.type==='Program'||node.type==='BlockStatement'||node.type==='StaticBlock')&&Array.isArray(node.body))lists.push({items:node.body,hoisting:node.type==='Program'||functionLevel,chain:scopes});
+  for(const [key,value] of Object.entries(node))if(value&&typeof value==='object')visit(value,jsFunction.has(node.type)&&key==='body',scopes);
  };
- visit(tree,false);return lists;
+ visit(tree,false,[]);return lists;
+}
+/* P2 local writes (ADR-013). Bindings are keyed by name inside one function:
+ * shadowing can only merge two bindings, which reports more conflicts (the safe
+ * direction), never fewer. Independent of the generator's TypeScript checker. */
+function jsPatternNames(pattern,out){if(!pattern)return out;if(pattern.type==='Identifier')out.push(pattern.name);else if(pattern.type==='ObjectPattern')pattern.properties.forEach(p=>jsPatternNames(p.type==='RestElement'?p.argument:p.value,out));else if(pattern.type==='ArrayPattern')pattern.elements.forEach(e=>jsPatternNames(e,out));else if(pattern.type==='RestElement')jsPatternNames(pattern.argument,out);else if(pattern.type==='AssignmentPattern')jsPatternNames(pattern.left,out);return out;}
+const jsWritable=declaration=>declaration?.type==='VariableDeclaration'&&declaration.kind!=='const'?declaration.declarations.flatMap(d=>jsPatternNames(d.id,[])):[];
+function jsVarNames(fn){const names=new Set();const visit=node=>{if(!node||typeof node!=='object')return;if(Array.isArray(node)){node.forEach(visit);return;}if(node!==fn&&jsFunction.has(node.type))return;if(node.type==='VariableDeclaration'&&node.kind==='var')jsWritable(node).forEach(n=>names.add(n));for(const value of Object.values(node))if(value&&typeof value==='object')visit(value);};visit(fn.body);return names;}
+function jsDeclares(scope,name){
+ if(jsFunction.has(scope.type))return scope.params.some(p=>jsPatternNames(p,[]).includes(name))||jsVarNames(scope).has(name);
+ if(Array.isArray(scope.body))return scope.body.some(statement=>jsWritable(statement).includes(name));
+ if(scope.type==='ForStatement')return jsWritable(scope.init).includes(name);
+ if(scope.type==='ForInStatement'||scope.type==='ForOfStatement')return jsWritable(scope.left).includes(name);
+ if(scope.type==='CatchClause')return jsPatternNames(scope.param,[]).includes(name);
+ return false;
+}
+/** {external, reads, writes}: external = an effect outside function-local bindings. */
+function jsClassify(statement,chain){
+ let external=false;const reads=new Set(),writes=new Set();
+ const local=(name,scopes)=>scopes[0]?.type!=='Program'&&scopes.some(scope=>jsDeclares(scope,name));
+ const visit=(node,scopes)=>{
+  if(!node||typeof node!=='object'||external)return;
+  if(Array.isArray(node)){node.forEach(item=>visit(item,scopes));return;}
+  if(jsFunction.has(node.type))return;
+  if(node.type==='AssignmentExpression'){if(node.operator==='='&&node.left.type==='Identifier'&&local(node.left.name,scopes)){writes.add(node.left.name);visit(node.right,scopes);}else external=true;return;}
+  if(node.type==='ClassDeclaration'||node.type==='ClassExpression'){if(jsHasEffect(node)){external=true;return;}if(node.type==='ClassDeclaration')writes.add(node.id.name);visit(node.superClass,scopes);return;}
+  if(jsEffect.has(node.type)||node.type==='UnaryExpression'&&node.operator==='delete'||node.type==='BinaryExpression'&&['in','instanceof'].includes(node.operator)||node.type==='Identifier'&&node.name==='eval'){external=true;return;}
+  if(node.type==='VariableDeclarator'){if(node.id.type!=='Identifier'){external=true;return;}writes.add(node.id.name);visit(node.init,scopes);return;}
+  if(node.type==='Identifier'){reads.add(node.name);return;}
+  if(node.type==='Property'){if(node.computed)visit(node.key,scopes);visit(node.value,scopes);return;}
+  if(node.type==='LabeledStatement'){visit(node.body,scopes);return;}
+  const inner=jsScope.has(node.type)?[...scopes,node]:scopes;
+  for(const [key,value] of Object.entries(node))if(key!=='type'&&value&&typeof value==='object')visit(value,inner);
+ };
+ visit(statement,chain);
+ return {external,reads,writes};
 }
 const jsPositionFree=(statement,hoisting)=>hoisting&&statement.type==='FunctionDeclaration';
 
@@ -71,6 +112,8 @@ function tsShape(node){
  return JSON.stringify([head,children]);
 }
 const erased=node=>ts.isInterfaceDeclaration(node)||ts.isTypeAliasDeclaration(node)||!!ts.canHaveModifiers(node)&&!!ts.getModifiers(node)?.some(m=>m.kind===ts.SyntaxKind.DeclareKeyword);
+/** An effect of this node itself (children aside); assignments are classified separately. */
+const tsDirectEffect=node=>ts.isCallExpression(node)||ts.isNewExpression(node)||ts.isPrefixUnaryExpression(node)&&[ts.SyntaxKind.PlusPlusToken,ts.SyntaxKind.MinusMinusToken].includes(node.operator)||ts.isPostfixUnaryExpression(node)||ts.isDeleteExpression(node)||ts.isAwaitExpression(node)||ts.isYieldExpression(node)||ts.isThrowStatement(node)||ts.isReturnStatement(node)||ts.isBreakOrContinueStatement(node)||ts.isTaggedTemplateExpression(node)||ts.isPropertyAccessExpression(node)||ts.isElementAccessExpression(node)||ts.isSpreadElement(node)||ts.isSpreadAssignment(node)||ts.isObjectBindingPattern(node)||ts.isArrayBindingPattern(node)||ts.isIterationStatement(node,false)||ts.isWithStatement(node)||ts.isDebuggerStatement(node)||ts.isEnumDeclaration(node)||ts.isModuleDeclaration(node)||ts.isDecorator(node)||ts.isClassStaticBlockDeclaration(node)||ts.isIdentifier(node)&&node.text==='eval';
 function tsHasEffect(node){
  if(erased(node))return false;
  if(ts.isFunctionDeclaration(node))return !node.body;
@@ -81,13 +124,49 @@ function tsHasEffect(node){
  if(ts.isClassLike(node))return node.heritageClauses?.some(clause=>clause.types.some(type=>tsHasEffect(type.expression)))||node.members.some(member=>member.name&&ts.isComputedPropertyName(member.name)&&tsHasEffect(member.name.expression)||ts.isPropertyDeclaration(member)&&!!member.initializer&&!!ts.getModifiers(member)?.some(m=>m.kind===ts.SyntaxKind.StaticKeyword)||ts.isClassStaticBlockDeclaration(member));
  return !!ts.forEachChild(node,child=>tsHasEffect(child)||undefined);
 }
+const tsScope=node=>ts.isBlock(node)||ts.isForStatement(node)||ts.isForInStatement(node)||ts.isForOfStatement(node)||ts.isCatchClause(node);
+/** Statement lists with their scope chain: the enclosing function, file or namespace body first. */
 function tsLists(file){
  const lists=[];
- const visit=node=>{
-  if(ts.isSourceFile(node)||ts.isBlock(node)||ts.isModuleBlock(node))lists.push({items:[...node.statements],hoisting:ts.isSourceFile(node)||ts.isModuleBlock(node)||tsFunction(node.parent)});
-  ts.forEachChild(node,visit);
+ const visit=(node,chain)=>{
+  const scopes=tsFunction(node)||ts.isSourceFile(node)||ts.isModuleBlock(node)||ts.isClassStaticBlockDeclaration(node)?[node]:tsScope(node)?[...chain,node]:chain;
+  if(ts.isSourceFile(node)||ts.isBlock(node)||ts.isModuleBlock(node))lists.push({items:[...node.statements],hoisting:ts.isSourceFile(node)||ts.isModuleBlock(node)||tsFunction(node.parent),chain:scopes});
+  ts.forEachChild(node,child=>visit(child,scopes));
  };
- visit(file);return lists;
+ visit(file,[]);return lists;
+}
+const tsBindingNames=(name,out)=>{if(ts.isIdentifier(name))out.push(name.text);else name.elements.forEach(e=>{if(!ts.isOmittedExpression(e))tsBindingNames(e.name,out);});return out;};
+const tsWritable=list=>!!list&&ts.isVariableDeclarationList(list)&&[0,ts.NodeFlags.Let].includes(list.flags&ts.NodeFlags.BlockScoped)?list.declarations.flatMap(d=>tsBindingNames(d.name,[])):[];
+function tsVarNames(fn){const names=new Set();const visit=node=>{if(node!==fn&&tsFunction(node))return;if(ts.isVariableDeclarationList(node)&&!(node.flags&ts.NodeFlags.BlockScoped))tsWritable(node).forEach(n=>names.add(n));ts.forEachChild(node,visit);};if(fn.body)visit(fn.body);return names;}
+function tsDeclares(scope,name){
+ if(tsFunction(scope))return scope.parameters.some(p=>tsBindingNames(p.name,[]).includes(name))||tsVarNames(scope).has(name);
+ if(ts.isBlock(scope))return scope.statements.some(statement=>ts.isVariableStatement(statement)&&tsWritable(statement.declarationList).includes(name));
+ if(ts.isForStatement(scope))return tsWritable(scope.initializer).includes(name);
+ if(ts.isForInStatement(scope)||ts.isForOfStatement(scope))return tsWritable(scope.initializer).includes(name);
+ if(ts.isCatchClause(scope))return !!scope.variableDeclaration&&tsBindingNames(scope.variableDeclaration.name,[]).includes(name);
+ return false;
+}
+/** {external, reads, writes} over the TS AST; types are not reads. Same policy as jsClassify. */
+function tsClassify(statement,chain){
+ let external=false;const reads=new Set(),writes=new Set();
+ const local=(name,scopes)=>!!scopes[0]&&tsFunction(scopes[0])&&scopes.some(scope=>tsDeclares(scope,name));
+ const visit=(node,scopes)=>{
+  if(external||ts.isTypeNode(node)||erased(node))return;
+  if(ts.isFunctionDeclaration(node)&&!node.body){external=true;return;}
+  if(tsFunction(node))return;
+  if(ts.isBinaryExpression(node)&&assignment.has(node.operatorToken.kind)){if(node.operatorToken.kind===ts.SyntaxKind.EqualsToken&&ts.isIdentifier(node.left)&&local(node.left.text,scopes)){writes.add(node.left.text);visit(node.right,scopes);}else external=true;return;}
+  if(ts.isClassLike(node)){if(tsHasEffect(node)){external=true;return;}if(ts.isClassDeclaration(node)&&node.name)writes.add(node.name.text);node.heritageClauses?.forEach(clause=>clause.types.forEach(type=>visit(type.expression,scopes)));return;}
+  if(tsDirectEffect(node)){external=true;return;}
+  if(ts.isVariableDeclaration(node)){if(!ts.isIdentifier(node.name)){external=true;return;}writes.add(node.name.text);if(node.initializer)visit(node.initializer,scopes);return;}
+  if(ts.isIdentifier(node)){reads.add(node.text);return;}
+  if(ts.isPropertyAssignment(node)){if(ts.isComputedPropertyName(node.name))visit(node.name.expression,scopes);visit(node.initializer,scopes);return;}
+  if(ts.isShorthandPropertyAssignment(node)){reads.add(node.name.text);return;}
+  if(ts.isLabeledStatement(node)){visit(node.statement,scopes);return;}
+  const inner=tsScope(node)?[...scopes,node]:scopes;
+  ts.forEachChild(node,child=>{visit(child,inner);});
+ };
+ visit(statement,chain);
+ return {external,reads,writes};
 }
 const tsPositionFree=(statement,hoisting)=>erased(statement)||hoisting&&ts.isFunctionDeclaration(statement)&&!!statement.body;
 /** TS2389/TS2391: an overload signature must be directly followed by the next
@@ -110,12 +189,17 @@ function tsOverloadsAdjacent(file){
 }
 
 /* ------------------------------- shared policy ------------------------------- */
-function effectPairs(lists,key,hasEffect,positionFree){
+const meets=(x,y)=>[...x].some(v=>y.has(v));
+/** Ordered pairs of P2: an external effect on either side, or a RAW/WAR/WAW conflict. */
+function effectPairs(lists,key,classify,positionFree){
  const pairs=[];
- for(const {items,hoisting} of lists)for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++){
-  const a=items[i],b=items[j];
-  if(positionFree(a,hoisting)||positionFree(b,hoisting))continue;
-  if(hasEffect(a)||hasEffect(b))pairs.push(key(a)+'\u0000'+key(b));
+ for(const {items,hoisting,chain} of lists){
+  const classes=items.map(item=>classify(item,chain));
+  for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++){
+   const a=items[i],b=items[j],ca=classes[i],cb=classes[j];
+   if(positionFree(a,hoisting)||positionFree(b,hoisting))continue;
+   if(ca.external||cb.external||meets(ca.writes,cb.reads)||meets(ca.writes,cb.writes)||meets(ca.reads,cb.writes))pairs.push(key(a)+'\u0000'+key(b));
+  }
  }
  return JSON.stringify(pairs.sort());
 }
@@ -212,10 +296,10 @@ function analyse(code,language){
   // Global-object properties are what the emitted script declares; a module declares none.
   let globals=[];
   if(!ts.isExternalModule(file)){try{globals=jsReflection(parseScript(ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,{ecmaVersion:'latest',sourceType:'script'})).globals;}catch{return null;}}
-  return {shape:tsShape(file),effects:effectPairs(tsLists(file),tsShape,tsHasEffect,tsPositionFree),reflection:tsReflection(file,globals),nested:nestedClasses(code,language)};
+  return {shape:tsShape(file),effects:effectPairs(tsLists(file),tsShape,tsClassify,tsPositionFree),reflection:tsReflection(file,globals),nested:nestedClasses(code,language)};
  }
  let tree;try{tree=parseScript(code,{ecmaVersion:'latest',sourceType:'script'});}catch{return null;}
- return {shape:jsShape(tree),effects:effectPairs(jsLists(tree),node=>jsShape(node),jsHasEffect,jsPositionFree),reflection:jsReflection(tree),nested:nestedClasses(code,language)};
+ return {shape:jsShape(tree),effects:effectPairs(jsLists(tree),node=>jsShape(node),jsClassify,jsPositionFree),reflection:jsReflection(tree),nested:nestedClasses(code,language)};
 }
 /** Runs a fixed fixture. `call`: probe value, exception and record() trace.
  * `reflection`: own keys and descriptor kinds of the top-level classes'

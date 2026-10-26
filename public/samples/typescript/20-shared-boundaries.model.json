@@ -4,7 +4,7 @@
   "revision": 1,
   "language": "typescript",
   "title": "Közös else sorhatár",
-  "description": "A v2-ben nem külön mozgatható close/open eseményeket eredeti sorrendű élek védik.",
+  "description": "A } else { sor klauzulalánc-szeparátor (ADR-013): az ágon belül a független konstansok felcserélhetők, de egy sor sem léphet át a másik ágba.",
   "lines": [
     {
       "id": 1,
@@ -37,7 +37,7 @@
       ],
       "fixed": false,
       "functionBlock": 1,
-      "scopeId": "scope-1",
+      "scopeId": "scope-2",
       "normalization": "indent"
     },
     {
@@ -49,7 +49,7 @@
       ],
       "fixed": false,
       "functionBlock": 1,
-      "scopeId": "scope-1",
+      "scopeId": "scope-2",
       "normalization": "indent"
     },
     {
@@ -62,7 +62,7 @@
       ],
       "fixed": false,
       "functionBlock": 1,
-      "scopeId": "scope-1",
+      "scopeId": "scope-2",
       "normalization": "indent"
     },
     {
@@ -74,7 +74,7 @@
       ],
       "fixed": false,
       "functionBlock": 1,
-      "scopeId": "scope-1",
+      "scopeId": "scope-2",
       "normalization": "indent"
     },
     {
@@ -86,7 +86,7 @@
       ],
       "fixed": false,
       "functionBlock": 1,
-      "scopeId": "scope-1",
+      "scopeId": "scope-2",
       "normalization": "indent"
     },
     {
@@ -122,41 +122,23 @@
       "openLineId": 1,
       "closeLineId": 9,
       "functionBlock": 1
+    },
+    {
+      "id": "scope-2",
+      "kind": "block",
+      "parentScopeId": "scope-1",
+      "openLineId": 2,
+      "closeLineId": 8
     }
   ],
-  "edges": [
-    {
-      "before": 2,
-      "after": 3
-    },
-    {
-      "before": 3,
-      "after": 4
-    },
-    {
-      "before": 4,
-      "after": 5
-    },
-    {
-      "before": 5,
-      "after": 6
-    },
-    {
-      "before": 6,
-      "after": 7
-    },
-    {
-      "before": 7,
-      "after": 8
-    }
-  ],
+  "edges": [],
   "profiles": [],
   "authoring": {
     "strategy": "ast-hierarchy",
-    "reason": "shared-physical-boundaries",
-    "omittedBlocks": 2,
+    "reason": "",
+    "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
-    "dependencyPolicy": "scoped-effect-analysis-v8",
+    "dependencyPolicy": "scoped-effect-analysis-v9",
     "dependencyHints": [
       {
         "name": "flag",
