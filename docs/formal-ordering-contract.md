@@ -13,7 +13,8 @@ Ez a dokumentum a generált sorrendszabályok jelentését, a támogatott részn
 - [ADR-014](adr/014-constraint-provenance.md): kényszer-proveniencia és szerkeszthetőségi osztályok;
 - [ADR-015](adr/015-evidence-binding-and-analysis-environment.md): a bizonyítékok kötése és az elemzési környezet;
 - [ADR-016](adr/016-reference-language-audit.md): a referencia nyelvi auditja;
-- [ADR-017](adr/017-model-verification-gate.md): modellminősítés (Model Verification Gate).
+- [ADR-017](adr/017-model-verification-gate.md): modellminősítés (Model Verification Gate);
+- [ADR-018](adr/018-typed-rule-editing.md): típusos szerzői szabályműveletek.
 
 ## Végleges állapot (WP1–WP8)
 
@@ -250,6 +251,7 @@ Ha a feltételek nem teljesülnek, a generátor a forrássorrendet tartja meg. E
 | 250-nél több megtartott blokk, 500 sor vagy 50 KB fölött | elhagyott blokk, illetve elutasított szerzői forrás |
 | kimerült validátorkeret | `indeterminate`, soha nem elfogadás |
 | importált kézi modell | a függőségei nem generálódnak újra, csak explicit szerzői művelettel |
+| szerzői lazítás (generált kényszer eltávolítása) | csak megerősítéssel, rögzítve; a modell ezután `unverified`, a soundness nem állított (ADR-018) |
 
 ## A tesztorákulum bizonyítási határai
 

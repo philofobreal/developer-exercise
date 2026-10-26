@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased – 2026-10-26 típusos szerzői szabályműveletek (ADR-018, epic D1)
+
+- **Műveletek:** [rule-editing.ts](src/core/rule-editing.ts), `applyRuleEdits`. Szerzői szabály, megjegyzés, `fixed`, OR-profil és profilszabály. Kötegelt, atomikus; minden lépés befogadott, a referenciát el kell fogadni, a bemenet nem változik, a revízió nő.
+- **Biztonság:** a `hard` kényszer nem törölhető. A `conservative` csak `unproven-relaxation`, a `proven` és a `legacy` csak `policy-override` megerősítéssel; a lazítás rögzül (`authoring.relaxations`). A szerzői és a redundáns szabály szabadon törölhető, a tranzitív következmény nem törölhető.
+- **Hatásjelentés:** a szigorítás és a lazítás `no` (tartalmazással bizonyított), `yes` (validátorral ellenőrzött tanúsorrend) vagy `maybe`.
+- **Újraminősítés:** az `editAuthorModel` minden szerkesztés után lefuttatja a gate-et. Szerzői szűkítés esetén `author-modified`, bármilyen lazítás esetén `unverified`.
+- **Refresh:** a `refreshAuthorModel` átviszi a szerzői szabályokat, a legacy éleket, a lazításokat (újraalkalmazva vagy visszavonva) és a megjegyzéseket. A korábbi elemzés generált éleit lecseréli, és jelentést ad (`refresh` a draftválaszban).
+- **Tesztek:** [rule-editing.test.mjs](tests/rule-editing.test.mjs).
+
 ## Unreleased – 2026-10-26 Model Verification Gate (ADR-017, epic V1)
 
 - **Projekciós veszteség:** a projekció megszámolja azokat az egységpárokat, amelyeket az elemzés szabadon hagyott, de a v2-modell rendez (`evidence.projectionLoss`). CopyField: 0, korpusz: 8 ismert pár.
