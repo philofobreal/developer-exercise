@@ -48,7 +48,7 @@ Jelölés: ✅ kész és ellenőrzött · 🔄 folyamatban · ⏳ következik ·
 | C1 | EPIC-04: proveniencia az `OrderingRelations`-ben és a modell `authoring` metaadatában; örökölt vagy ismeretlen kategória | ✅ (életciklus: C2) | minden generált élnek van kategóriája; a régi modellek „örökölt” jelölést kapnak |
 | A2 | Formális szerződés: verziózott policy-táblázat (P2 a v1–v8 és a v9 között), a megfigyelhető állapot definíciója, hatókörhöz kötött soundness és completeness, reprezentálhatóság | ✅ | a szerződés és az orákulum ugyanazt a megfigyelést nevezi meg; minden policycímkéhez tartozik szabályverzió |
 | C2 | Bizonyíték-életciklus és elemzési környezet: `authoring.evidence` (forrásdigest, elemző- és policyverzió, TypeScript-verzió, import-emit, script/modul, osztálymezőmód-feltevés). Eltérő forrásnál a proveniencia `stale`; a magyarázat és minden szerkesztési döntés ezt tiszteletben tartja | ✅ | a JSON-ban átírt kódsor után egyetlen ok sem számít érvényesnek; a refresh újraköti |
-| R1 | Referenciaaudit szintjei: szintaktikai; egyfájlos szemantikai (TypeScript `Program`-diagnosztika lib-bel, Node-on); „nem ellenőrizhető”, ha hiányzik a projektkontextus (feloldatlan import). Az eredmény az evidence része; a Pages explicit „nem ellenőrzött” | ⏳ | típushibás referencia jelölése; a feloldatlan import nem „helyes”, hanem „nem ellenőrizhető” |
+| R1 | Referenciaaudit szintjei: szintaktikai; egyfájlos szemantikai (TypeScript `Program`-diagnosztika lib-bel, Node-on); „nem ellenőrizhető”, ha hiányzik a projektkontextus (feloldatlan import). Az eredmény az evidence része; a Pages explicit „nem ellenőrzött” | ✅ | típushibás referencia jelölése; a feloldatlan import nem „helyes”, hanem „nem ellenőrizhető” |
 | V1 | Model Verification Gate: befogadás, referencia-elfogadás, keretalkalmasság (a referencia és a szomszédság a produkciós kereten belül), a proveniencia lefedettsége és frissessége, a konzervatív és reprezentációs fallbackek helye, lazítások, audit, környezet. Ezekből minősítési státusz: elemzéssel igazolt / konzervatív / szerzői döntéssel módosított / nem igazolt. Kis modellnél a projekció kimerítő összevetése az adapter relációival | ⏳ | minősítési regressziók; a CopyField és a legacy modellek státusza indokolt |
 | D1 | EPIC-05: típusos szabályműveletek (félkész, a `stash@{0}`-ban): atomikus befogadás, profilok, fixed, megjegyzések, lazítás megerősítési szintekkel, hatásjelentés tanúsorrenddel. Minden szerkesztés után V1-újraminősítés. A refresh jelentve vezeti össze a szerzői szabályokat, a lazításokat és a megjegyzéseket | ⏸ felfüggesztve C2/R1/V1 miatt | szabályeditor-regressziók (09.3) |
 | D2 | EPIC-05: vizuális szabálypanel, `importEmit`-választó és a minősítés megjelenítése a szerzői felületen | ⏳ | Playwright-bizonyíték |
@@ -185,4 +185,36 @@ A [formális szerződés](formal-ordering-contract.md) három új része:
 
 **A D1 folytatásához:** a `stash@{0}` kódkommentjei még „ADR-015”-öt említenek a szabályszerkesztésre. Folytatáskor a szabályszerkesztés ADR-je a következő szabad szám lesz, és a kommenteket ehhez kell igazítani.
 
-**Következik:** R1, a referenciaaudit szintjei.
+**Következik:** R1, a referenciaaudit szintjei. → lezárva.
+
+## R1 – a referencia nyelvi auditja – lezárva
+
+**Döntés:** [ADR-016](adr/016-reference-language-audit.md).
+
+**Megvalósítás:** `createReferenceAuditor(ts, library?)`, egyfájlos TypeScript `Program` a szabványos könyvtárral, porton át.
+
+| Eredmény | Jelentés |
+| --- | --- |
+| `ok` | nincs diagnosztika ebben az egyfájlos kontextusban |
+| `errors` | biztos nyelvi hiba |
+| `unverifiable` | csak hiányzó kontextusra visszavezethető diagnosztika, a modulok listájával |
+| `not-run` | nincs szabványos könyvtár |
+
+**Működés:**
+
+- **Szerver:** minden befogadásnál fut. Az eredmény a válasz része, a modellbe nem kerül, importból nem vehető át.
+- **Pages:** `not-run`.
+
+**Bizonyíték:**
+
+- [reference-audit.test.mjs](../tests/reference-audit.test.mjs): hibák, `ok`, kontextushiány, CopyField (11 feloldatlan import, `unverifiable`), dekorátormód, `not-run`, lib-port szűkítése és gyorsítótár, szerverválasz.
+- A Pages API-teszt is ellenőrzi.
+- `check:all` 621/621, `test:browser:all` 114 PASS, `git diff --check` tiszta.
+
+**Nyitott:**
+
+- **Többfájlos projektkontextus:** saját `tsconfig`, `node_modules`, path mapping; jelenleg nem adható meg, ezért `unverifiable`.
+- **Megjelenítés:** a D2 feladata.
+- **Minősítés:** a V1 feladata.
+
+**Következik:** V1, a Model Verification Gate.
