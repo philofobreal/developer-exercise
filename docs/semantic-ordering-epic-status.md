@@ -45,8 +45,8 @@ Jelölés: ✅ kész és ellenőrzött · 🔄 folyamatban · ⏳ következik ·
 | B1 | EPIC-02.2: lokális írás-/olvasási halmazok, RAW/WAR/WAW konfliktusélek, `local-write` egység | ✅ | a 248↔249 csere elfogadott a teljes fájlból generált modellen; a 305↔306 (`UUID()`) elutasított; korpusz és kampány: 0 hibás elfogadás |
 | B2 | EPIC-03: közös fizikai határok (`} else {`, `} catch {`, `} finally {`) klauzulaláncként, szeparátorélekkel; a projekció típusos modulba kerül | ✅ | 0 elhagyott blokk a CopyField négy `if/else`-párjánál; v2/v3 kompatibilitás; architektúrakapu |
 | B3 | EPIC-02.1: importelemzés explicit emit-kontextussal (`import type`, specifier-`type`, csak típusként használt, mellékhatás-import, értékimport) | ✅ | az 5–7. sor döntése mindkét emit-kontextusban tesztelve; értékimport és mellékhatás-import kötött |
-| C1 | EPIC-04: proveniencia az `OrderingRelations`-ben és a modell `authoring` metaadatában; örökölt vagy ismeretlen kategória | ⏳ következik | minden generált élnek van kategóriája; a régi modellek „örökölt” jelölést kapnak |
-| D1 | EPIC-05: típusos szerzői szabályműveletek, atomikus admission, refresh a kézi szabályok megőrzésével | ⏳ | szabályeditor-regressziók (09.3) |
+| C1 | EPIC-04: proveniencia az `OrderingRelations`-ben és a modell `authoring` metaadatában; örökölt vagy ismeretlen kategória | ✅ | minden generált élnek van kategóriája; a régi modellek „örökölt” jelölést kapnak |
+| D1 | EPIC-05: típusos szerzői szabályműveletek, atomikus admission, refresh a kézi szabályok megőrzésével | ⏳ következik | szabályeditor-regressziók (09.3) |
 | D2 | EPIC-05: vizuális szabálypanel a szerzői felületen | ⏳ | Playwright-bizonyíték |
 | E1 | EPIC-06: core diagnosztikai modul (bizonyított konfliktusok, többértelműség, keret) | ⏳ | diagnosztikai regressziók (09.4), metamorf: a validátor döntése változatlan |
 | F1 | EPIC-07: tanulói visszajelzés és soronkénti jelölés | ⏳ | böngészőteszt, hozzáférhetőség |
@@ -73,4 +73,39 @@ Jelölés: ✅ kész és ellenőrzött · 🔄 folyamatban · ⏳ következik ·
 **Nyitott, a későbbi szakaszokba integrálva:**
 
 - **D2:** a szerzői felületen még nincs `importEmit`-választó; az alapértelmezés a konzervatív `verbatim`.
-- **C1:** a proveniencia (miért kötött egy él) még nem tartós.
+- **C1:** a proveniencia (miért kötött egy él) még nem tartós. → lezárva (ADR-014).
+
+## C1 – proveniencia – lezárva
+
+**Döntés:** [ADR-014](adr/014-constraint-provenance.md).
+
+**Megvalósítás:**
+
+- **Okok az elemzésben:** az `OrderingEntry.reasons` mezőt a `statement-ordering.ts` és a `type-member-ordering.ts` tölti ki.
+- **Okok a projekcióban:** a `code-line-projection.ts` a saját éleihez is okot rögzít, és a redukció után megmaradt élek okait `provenance` listaként adja vissza.
+- **Modell:** a generátor ezt `authoring.provenance` mezőként menti.
+- **Core:** az `explainConstraints` a modell alapján magyaráz.
+
+**Bizonyíték:**
+
+- A korpusz minden fixture-ében és a teljes `CopyFieldUtilityService`-ben minden függőségnek van ismert kategóriájú oka. A CopyField 451 függősége 582 okkal szerepel, `unknown` nélkül.
+- A 248/249. sor előzménye `data` / `binding-input`, a 306. soré `effect` / `ExpressionStatement`, a `} else {` soré `structure` / `clause-*`.
+- A régi modellek `legacy` jelölést kapnak.
+- A proveniencia elhagyása vagy átírása egyetlen ítéletet sem változtat meg (metamorf teszt).
+
+**Szerkeszthetőségi osztályok:**
+
+| Osztály | Kategóriák |
+| --- | --- |
+| `hard` | `structure`, `unit` |
+| `proven` | `data`, `effect`, `policy` |
+| `conservative` | `conservative` |
+| `pedagogical` | `author` |
+| `legacy` | `unknown` |
+
+**Nyitott, a későbbi szakaszokba integrálva:**
+
+- **D1:** a kézi szabályok `author` okkal kerülnek a modellbe; a refresh megőrzi őket. Jelenleg a megtartott eredeti él `unknown`.
+- **E1:** a profilélek (OR) magyarázata.
+- **F1:** a kódok magyar megjelenítése.
+- **F2:** a proveniencia a trusted gráf része, ezért a tanulói kliens nem kaphatja meg.
