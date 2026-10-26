@@ -63,6 +63,8 @@ A tranzitív redukció után csak a megmaradt függőségek és élek okai kerü
 - A `compileCodeLineExercise` csak az alakját ellenőrzi.
 - A lefordított szabályok és minden ítélet a mező nélkül, illetve átírt mezővel is azonos (metamorf teszt).
 
+**Érvényesség:** a proveniencia csak a hozzá kötött sorokra érvényes ([ADR-015](015-evidence-binding-and-analysis-environment.md)); eltérés esetén `unbound`.
+
 **Refresh:** a „Sorfüggőségek újraszámítása” az újragenerált okokat az eredeti sorazonosítókra képezi. A régi okokat eldobja; a megtartott eredeti élek oka `unknown` lesz.
 
 ### 4. Nyelvfüggetlen magyarázat a core-ban

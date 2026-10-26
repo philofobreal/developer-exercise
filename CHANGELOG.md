@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased – 2026-10-26 bizonyítékkötés és elemzési környezet (ADR-015, epic C2)
+
+- **Evidence:** új, additív `authoring.evidence` mező. Tartalma: a sorok `[id, code, scopeId]` digestje, a szabályverzió és az elemzési környezet (TypeScript-verzió, import-emit, script/modul, osztálymezőmód-függetlenség).
+- **Kötött proveniencia:** a magyarázat csak akkor használja az okokat, ha a digest egyezik. Átírt sor, átszámozott azonosító, megváltozott scope vagy hiányzó evidence esetén `unbound`, és minden ok `legacy`. A `fixed` és a szabályok változtatása nem oldja a kötést.
+- **Egyetlen definíció:** a digest csak a core-ban van ([evidence.ts](src/core/evidence.ts)); a projekció explicit architektúra-bekötéssel hívja. Az adapter új, opcionális `environment` metódusa adja a környezetet.
+- **Refresh:** az újragenerált okokat az eredeti sorazonosítókra köti újra.
+- **Minták:** a mintamodellek és a javított legacy JSON evidence-et kaptak.
+- **Tesztek:** [evidence-binding.test.mjs](tests/evidence-binding.test.mjs).
+
+## Unreleased – 2026-10-26 a formális szerződés hatóköre (A2)
+
+- A helyességi cél hatóköre, a megfigyelhető állapot pontos definíciója (az orákulummal azonos), az A5 feltevés és a policyverziók táblázata ([formális szerződés](docs/formal-ordering-contract.md#a-helyességi-cél-hatóköre)).
+
 ## Unreleased – 2026-10-26 kényszer-proveniencia (ADR-014, epic C1)
 
 - **Okok az elemzésben:** az `OrderingEntry` opcionális `reasons` mezőt kap. A JS/TS utasítás- és osztálytag-elemzés minden élhez kategóriát és kódot ad: kötésolvasás, RAW/WAR/WAW, barrier oka, globális lánc, kiértékelési fázis, reflektált kulcssorrend, komment, nem támogatott alak.

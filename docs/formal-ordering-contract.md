@@ -10,7 +10,8 @@ Ez a dokumentum a generált sorrendszabályok jelentését, a támogatott részn
 - [ADR-011](adr/011-language-independent-ordering-relations.md): nyelvfüggetlen sorrendi relációk;
 - [ADR-012](adr/012-class-evaluation-phases-and-accessor-pairs.md): osztálykiértékelési fázisok és accessorpárok;
 - [ADR-013](adr/013-local-writes-clause-chains-and-imports.md): lokális írások, klauzulaláncok és importok;
-- [ADR-014](adr/014-constraint-provenance.md): kényszer-proveniencia és szerkeszthetőségi osztályok.
+- [ADR-014](adr/014-constraint-provenance.md): kényszer-proveniencia és szerkeszthetőségi osztályok;
+- [ADR-015](adr/015-evidence-binding-and-analysis-environment.md): a bizonyítékok kötése és az elemzési környezet.
 
 ## Végleges állapot (WP1–WP8)
 
@@ -118,7 +119,7 @@ A P3 és a P4 a következőket figyeli. Ugyanezt hasonlítja össze a független
 - a `record` nélküli konzolkimenet;
 - a modulbetöltés tényleges külső hatása: ezt a modulbetöltő import kötése fedi, nem futtatással igazoljuk.
 
-**Futtatási környezet:** strict klasszikus szkript, TypeScriptnél ES2022-re fordítva, mindkét osztálymezőmódban (`useDefineForClassFields` igaz és hamis). Ami ezen kívül esik (CommonJS-betöltő, bundler, dekorátortranszformáció, más `target`), azt a generátor konzervatív szabállyal kezeli. A feltevéseket a C2 köti majd a modellhez (elemzési környezet).
+**Futtatási környezet:** strict klasszikus szkript, TypeScriptnél ES2022-re fordítva, mindkét osztálymezőmódban (`useDefineForClassFields` igaz és hamis). Ami ezen kívül esik (CommonJS-betöltő, bundler, dekorátortranszformáció, más `target`), azt a generátor konzervatív szabállyal kezeli. A ténylegesen feltételezett beállításokat a modell `authoring.evidence.environment` mezője rögzíti (ADR-015).
 
 ### Policyverziók
 
@@ -537,5 +538,5 @@ Az osztályprogramokon a rések száma 42%-kal csökkent. A szkript- és a függ
 - **Régi modellek:** az importált modellek függőségei nem változnak. Újragenerálás csak explicit „Sorfüggőségek újraszámítása” műveletre történik.
 - **Policy-címke:** új generáláskor `scoped-effect-analysis-v9` (ADR-013); a régi enumértékek, köztük a v4–v8, érvényesek maradnak (additív sémabővítés).
 - **Belső szerződés (ADR-011):** az adapter `orderingRelations` metódusa nyelvfüggetlen [`OrderingRelations`](../src/author/ordering-relations.ts) relációt ad: előzmények, védett bemenetek, egységhatárok, megjegyzés, 0-alapú fizikai sorokon. A projekciót a típusos [code-line-projection.ts](../src/author/code-line-projection.ts) végzi (ADR-013), a validátor nem változik.
-- **Proveniencia (ADR-014):** minden előzményhez ok tartozik (kategória és kód), a projekció a saját éleinek okát is rögzíti, és a modell `authoring.provenance` mezőjébe csak a redukció után megmaradt élek okai kerülnek. Ez magyarázat, nem szabály: a validáció nem olvassa.
+- **Proveniencia (ADR-014):** minden előzményhez ok tartozik (kategória és kód), a projekció a saját éleinek okát is rögzíti, és a modell `authoring.provenance` mezőjébe csak a redukció után megmaradt élek okai kerülnek. Ez magyarázat, nem szabály: a validáció nem olvassa. Csak addig érvényes, amíg az `authoring.evidence` digestje egyezik a sorokkal (ADR-015); különben `unbound`.
 - **Python-adapterhez:** natív IR v3 út egységszintű relációkkal; a v2-projekció nem használható. A szerkezeti feladatok: [Python-terv](python-adapter-plan.md#illeszkedés-a-közös-sorrendi-szerződéshez-wp7-adr-011).

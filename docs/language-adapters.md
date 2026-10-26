@@ -13,6 +13,7 @@ A `registerLanguageAdapter(id, adapter)` és `getLanguageAdapter(id)` a szerzői
 | `whitespace(tree, infrastructure)` | Olyan fizikai sorok halmaza, amelyek payloadja `exact` kezelést igényel |
 | `analyzeDependencies(tree, infrastructure)` | Opcionális deklaráció/használat-jelzések, szerzői támpontként |
 | `orderingRelations(tree, infrastructure)` | Opcionális, nyelvfüggetlen [`OrderingRelations`](../src/author/ordering-relations.ts) 0-alapú fizikai sorokra: kötelező előzmények, védett értékbemenetek, egységhatárok és szerzői megjegyzés ([ADR-011](adr/011-language-independent-ordering-relations.md)) |
+| `environment(tree, infrastructure, options)` | Opcionális: az elemzés feltevései (TypeScript-verzió, import-emit, script/modul, osztálymezőmód); a generátor `authoring.evidence.environment`-ként rögzíti ([ADR-015](adr/015-evidence-binding-and-analysis-environment.md)) |
 | `declarationGroups(tree, infrastructure)` | Korábbi, kompatibilitásból megtartott lokális támpont; a generátor már az `orderingRelations` eredményét használja |
 
 A beépített JS-adapter Acornt és TypeScript AST-t használ; a TS-adapter a TypeScript infrastruktúráját. A generátor és a szerver formázó végpontja a regiszteren át választ adaptert. A frontend részleges JS/TS behúzója önálló, toleráns megjelenítési réteg; ez nem teszi a TypeScript compilert kötelezővé tanulói szerverértékeléskor.
