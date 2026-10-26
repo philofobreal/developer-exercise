@@ -50,7 +50,7 @@ Jelölés: ✅ kész és ellenőrzött · 🔄 folyamatban · ⏳ következik ·
 | C2 | Bizonyíték-életciklus és elemzési környezet: `authoring.evidence` (forrásdigest, elemző- és policyverzió, TypeScript-verzió, import-emit, script/modul, osztálymezőmód-feltevés). Eltérő forrásnál a proveniencia `stale`; a magyarázat és minden szerkesztési döntés ezt tiszteletben tartja | ✅ | a JSON-ban átírt kódsor után egyetlen ok sem számít érvényesnek; a refresh újraköti |
 | R1 | Referenciaaudit szintjei: szintaktikai; egyfájlos szemantikai (TypeScript `Program`-diagnosztika lib-bel, Node-on); „nem ellenőrizhető”, ha hiányzik a projektkontextus (feloldatlan import). Az eredmény az evidence része; a Pages explicit „nem ellenőrzött” | ✅ | típushibás referencia jelölése; a feloldatlan import nem „helyes”, hanem „nem ellenőrizhető” |
 | V1 | Model Verification Gate: befogadás, referencia-elfogadás, keretalkalmasság (a referencia és a szomszédság a produkciós kereten belül), a proveniencia lefedettsége és frissessége, a konzervatív és reprezentációs fallbackek helye, lazítások, audit, környezet. Ezekből minősítési státusz: elemzéssel igazolt / konzervatív / szerzői döntéssel módosított / nem igazolt. Kis modellnél a projekció kimerítő összevetése az adapter relációival | ✅ | minősítési regressziók; a CopyField és a legacy modellek státusza indokolt |
-| D1 | EPIC-05: típusos szabályműveletek (félkész, a `stash@{0}`-ban): atomikus befogadás, profilok, fixed, megjegyzések, lazítás megerősítési szintekkel, hatásjelentés tanúsorrenddel. Minden szerkesztés után V1-újraminősítés. A refresh jelentve vezeti össze a szerzői szabályokat, a lazításokat és a megjegyzéseket | ⏸ felfüggesztve C2/R1/V1 miatt | szabályeditor-regressziók (09.3) |
+| D1 | EPIC-05: típusos szabályműveletek (félkész, a `stash@{0}`-ban): atomikus befogadás, profilok, fixed, megjegyzések, lazítás megerősítési szintekkel, hatásjelentés tanúsorrenddel. Minden szerkesztés után V1-újraminősítés. A refresh jelentve vezeti össze a szerzői szabályokat, a lazításokat és a megjegyzéseket | ✅ | szabályeditor-regressziók (09.3) |
 | D2 | EPIC-05: vizuális szabálypanel, `importEmit`-választó és a minősítés megjelenítése a szerzői felületen | ⏳ | Playwright-bizonyíték |
 | E1 | EPIC-06: core diagnosztikai modul (bizonyított konfliktusok, többértelműség, keret) | ⏳ | diagnosztikai regressziók (09.4), metamorf: a validátor döntése változatlan |
 | F1 | EPIC-07: tanulói visszajelzés és soronkénti jelölés | ⏳ | böngészőteszt, hozzáférhetőség |
@@ -257,4 +257,38 @@ A 4 `unverified` minta: a soros legacy modell, a kézi `values-only` szerződés
 - A gate megjelenítése a D2 része.
 - A lazítások bekötése a D1 folytatásakor történik.
 
-**Következik:** D1 folytatása (`git stash pop`), a gate-tel való újraminősítéssel; ADR-018.
+**Következik:** D1 folytatása (`git stash pop`), a gate-tel való újraminősítéssel; ADR-018. → lezárva.
+
+## D1 – típusos szabályműveletek – lezárva
+
+**Döntés:** [ADR-018](adr/018-typed-rule-editing.md).
+
+**Folytatás a stash-ből:**
+
+- a `stash@{0}` munkája visszaállt, az ütközéseket feloldottam (séma, típus, magyarázat, index);
+- az ADR-hivatkozás 018 lett;
+- a magyarázat `conformance` mezője megszűnt, a minősítés a gate dolga.
+
+**Megvalósítás:**
+
+- **Műveletek:** `applyRuleEdits` (atomikus köteg, szerkeszthetőség szerinti biztonság, rögzített lazítás, hatásjelentés tanúsorrenddel).
+- **Szerkesztés:** az `editAuthorModel` minden szerkesztés után újraminősít. Lazítás után `unverified`, szerzői szűkítés után `author-modified`; az újralevezetés levonja a rögzített lazításokat.
+- **Refresh:** a `refreshAuthorModel` és a `mergeAuthorRules` jelentéssel együtt viszi át a szabályokat; az eredeti proveniencia csak kötött állapotban dönt.
+
+**Bizonyíték:**
+
+- [rule-editing.test.mjs](../tests/rule-editing.test.mjs), 12 eset: hozzáadás és eltávolítás, tranzitív, kör, a referencia ellen, atomikus köteg, pedagógiai és redundáns eltávolítás, `hard` / konzervatív / bizonyított, kötetlen proveniencia, `fixed`, OR-profilok (őszinte `maybe`), megjegyzések, újraminősítés, refresh `reapplied` / `revoked` / legacy / felülírt esettel, v2-kompatibilitás és JSON-oda-vissza.
+- `check:all` 641/641, `git diff --check` tiszta.
+
+**Böngészős futás:** a teljes kör 114/114 PASS (a második futás).
+
+- **Javított tesztkörnyezeti hiba:** a tesztek statikus szervere 5 elemű kapcsolatsorral futott. Ezért a bővülő ES-modulgráf egy részét Windowson `ERR_CONNECTION_REFUSED` hibával elutasította, és a TypeScript-es Pages-teszt reprodukálhatóan elbukott. A közös `StaticServer` (`tests/browser_support.py`, sorhossz 128) mind a hat tesztkörnyezetben ezt használja; a tesztek elvárásai nem változtak.
+- **Régebbi flake:** a mátrix valódi egeres és érintéses beszúrási esete terhelés alatt időnként elbukik. Ez a C1-korabeli `e8e5694`-n is kimutatható (5 futásból 4 hiba), tehát nem ennek a munkának a következménye. A tesztet nem gyengítettem; a kivizsgálás a G1 része.
+
+**Nyitott:**
+
+- **D2:** szabálypanel, `importEmit`-választó, a gate és a refresh-jelentés megjelenítése.
+- **F2:** szerveroldali szerzői jogosultság.
+- **G1:** a drag-and-drop flake kivizsgálása, valamint a `23-parameter-property` minta fordíthatósága.
+
+**Következik:** D2.
