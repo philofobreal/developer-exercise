@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased – 2026-10-26 kényszer-proveniencia (ADR-014, epic C1)
+
+- **Okok az elemzésben:** az `OrderingEntry` opcionális `reasons` mezőt kap. A JS/TS utasítás- és osztálytag-elemzés minden élhez kategóriát és kódot ad: kötésolvasás, RAW/WAR/WAW, barrier oka, globális lánc, kiértékelési fázis, reflektált kulcssorrend, komment, nem támogatott alak.
+- **Okok a projekcióban:** a blokkzáró, a folytatósor, a klauzulalánc, a lezárás és az elhagyott blokk zárolása saját okot kap. A modellbe csak a redukció után megmaradt élek okai kerülnek.
+- **Modell:** új, additív `authoring.provenance` mező (séma és típus, legfeljebb 10 000 elem). Nem értékelési szabály: a lefordított szabályok és az ítéletek nélküle is azonosak. A refresh az új okokat az eredeti sorazonosítókra képezi.
+- **Core:** nyelvfüggetlen `explainConstraints(model)` ([constraint-explanation.ts](src/core/constraint-explanation.ts)). Soronként adja a közvetlen és tranzitív kényszereket, az okokat és a szerkeszthetőségi osztályt (`hard`, `proven`, `conservative`, `pedagogical`, `legacy`). A régi és importált modellek `legacy` jelölést kapnak.
+- **Minták:** a TS-példatár modelljei és a [javított legacy JSON](docs/evaluate-legacy-serial.corrected.json) proveniencia-mezőt kaptak; a kézi `values-only` modell élei `author` kategóriájúak.
+- **Tesztek:** [constraint-provenance.test.mjs](tests/constraint-provenance.test.mjs). Minden generált élnek ismert a kategóriája a korpuszon és a CopyFieldön; ide tartoznak a kategória- és szerkeszthetőségi esetek, a legacy, partial és stale proveniencia, a metamorf validációs teszt, a séma és a refresh-leképezés is.
+
 ## Unreleased – 2026-10-26 lokális írások, klauzulaláncok és importok (ADR-013, epic B szakasz)
 
 - **Lokális írások:** az `x = e` (x ugyanabban a függvényben korábban deklarált `let`/`var`, e tiszta) már nem akadály. A tiszta és lokális író egységek szimbólumszintű olvasási és írási halmazt kapnak, él csak RAW/WAR/WAW konfliktusnál keletkezik. A P2 ennek megfelelően pontosítva, az orákulum saját, független implementációval követi.

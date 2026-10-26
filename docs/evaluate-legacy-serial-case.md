@@ -14,7 +14,7 @@ A jelenlegi JS/TS generátor ennél a szűk, primitív `const` példánál már 
 | 6 / return { c, note } | 4, 5 |
 | 7 / záró kapcsos zárójel | 6 |
 
-A [javított, importálható JSON](evaluate-legacy-serial.corrected.json) ugyanezt tartalmazza, az eredeti feladatazonosítóval és 2-es revízióval. A kód, sor-ID-k, blokkok, scope-ok, fixed mezők és a normalizálás változatlanok. A szerzői API saját előnézetazonosítót ad az importhoz.
+A [javított, importálható JSON](evaluate-legacy-serial.corrected.json) ugyanezt tartalmazza, az eredeti feladatazonosítóval és 2-es revízióval. A kód, sor-ID-k, blokkok, scope-ok, fixed mezők és a normalizálás változatlanok. Az `authoring.provenance` mező (ADR-014) minden új függőség okát rögzíti, például a `return { c, note };` sor előzményeinél `data` / `binding-input` és `effect` / `ReturnStatement`; a validációt nem befolyásolja. A szerzői API saját előnézetazonosítót ad az importhoz.
 
 A frissítés a sorfüggőségeket cseréli. A kézi `edges` és `profiles` korlátok megmaradnak, a generátor strukturális élei hozzáadódhatnak, ezért egy kézzel szigorított modell továbbra is elutasíthatja ezt a sorrendet. Eltérő fizikai sor- vagy blokkstruktúrán a függőségfrissítés hibával leáll; ilyenkor a teljes Referenciaforrás alkalmazása külön szerzői döntés. A korábbi JSON előtte exportálható. Ez nem általános szemantikai ekvivalenciabizonyítás vagy a validátor lazítása.
 
