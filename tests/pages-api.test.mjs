@@ -33,6 +33,8 @@ test('Pages demo: exercises → local validation → author → edited model →
    assert.equal(first.model.lines.length,5);
    assert.equal(first.audit.semantics,'not-run','the static demo ships no standard library (ADR-016)');
    assert.ok(first.audit.assumptions.includes('no-standard-library'));
+   assert.equal(first.verification.publishable,true);
+   assert.equal(first.verification.checks.rederivation,'match','the static demo re-derives the rules locally (ADR-017)');
    assert.equal((await api.previewDraft({draftId:first.draftId,lines:first.model.lines.map(x=>x.code)})).status,'accepted');
    const changed=structuredClone(first.model);
    changed.lines[2].dependencies=[];

@@ -1,7 +1,7 @@
 /** Typed author-time entry point. ASTs and parser infrastructure stay inside adapters. */
-import { codeLineDigest, compileCodeLineExercise, compileCodeLineExerciseV3, prepareRenderPlan, upgradeCodeLineExerciseV2 } from '../../dist/index.js';
+import { codeLineDigest, compileCodeLineExercise, compileCodeLineExerciseV3, evidenceStatus, prepareRenderPlan, upgradeCodeLineExerciseV2, verifyModel } from '../../dist/index.js';
 import {reconcileDependencies} from './dependency-refresh.js';
-import type { CodeLineExercise, CodeLineExerciseV3, CompiledRules, IndentPolicy, LanguageIR, RenderPlan } from '../../dist/index.js';
+import type { CodeLineExercise, CodeLineExerciseV3, CompiledRules, IndentPolicy, LanguageIR, ModelVerification, RenderPlan, VerificationInput } from '../../dist/index.js';
 
 export interface AuthorSource { source: string; title?: string; description?: string; }
 export interface FormatResult { code: string; }
@@ -67,7 +67,7 @@ export class LanguageEngine {
 
 /** Narrow transitional ports; this does not claim the legacy MJS is type checked. */
 export interface LegacyJSTSPorts {
-  generate(input: AuthorSource & { language: 'javascript' | 'typescript' }): CodeLineExercise | Promise<CodeLineExercise>;
+  generate(input: AuthorSource & { language: 'javascript' | 'typescript'; importEmit?: 'verbatim' | 'elide-unused' }): CodeLineExercise | Promise<CodeLineExercise>;
   audit(model: CodeLineExercise): void | Promise<void>;
   format(source: string, language: 'javascript' | 'typescript'): FormatResult | Promise<FormatResult>;
 }
@@ -88,6 +88,31 @@ export async function refreshLegacyDependencies(input: CodeLineExercise, ports: 
  const result = compileCodeLineExercise(refreshed);
  if ('status' in result) throw new AdapterContractError(result.message);
  return refreshed;
+}
+
+/** Model Verification Gate for a JS/TS v2 model (ADR-017). The generated constraints are
+ * re-derived from the model's own source under its recorded import emit: they must equal
+ * the regeneration exactly (dependencies per line, non-author edges and reasons), so neither a hand
+ * edit nor forged provenance passes as analysis. The regeneration also supplies the
+ * current analyser version and the projection loss; the core gate does the rest. */
+export async function verifyAuthorModel(model: CodeLineExercise, ports: Pick<LegacyJSTSPorts, 'generate'>, input: Pick<VerificationInput, 'audit' | 'maxStates' | 'neighbours'> = {}): Promise<ModelVerification> {
+ let rederivation: 'match' | 'differs' = 'differs', currentAnalyzer, projectionLoss;
+ try {
+  const importEmit = model.authoring?.evidence?.environment?.importEmit;
+  const generated = await ports.generate({source: model.lines.map(line => line.code).join('\n'), language: model.language, title: model.title, description: model.description, ...(importEmit ? {importEmit} : {})});
+  currentAnalyzer = generated.authoring?.evidence?.analyzer;
+  projectionLoss = generated.authoring?.evidence?.projectionLoss?.pairs;
+  reconcileDependencies(model, generated);
+  const id = (generatedId: number): number => model.lines[generatedId - 1]!.id;
+  const author = new Set(evidenceStatus(model) === 'current' ? (model.authoring?.provenance ?? []).filter(entry => entry.category === 'author').map(entry => entry.before + ':' + entry.after) : []);
+  const pairs = (edges: {before: number; after: number}[]): string => edges.map(edge => edge.before + ':' + edge.after).sort().join();
+  const sameDependencies = generated.lines.every((line, index) => pairs(line.dependencies.map(before => ({before: id(before), after: 0}))) === pairs(model.lines[index]!.dependencies.map(before => ({before, after: 0}))));
+  const sameEdges = pairs((generated.edges ?? []).map(edge => ({before: id(edge.before), after: id(edge.after)}))) === pairs((model.edges ?? []).filter(edge => !author.has(edge.before + ':' + edge.after)));
+  const reasons = (entries: {before: number; after: number; category: string; code: string}[]): string => entries.map(entry => [entry.before, entry.after, entry.category, entry.code].join(':')).sort().join();
+  const sameProvenance = reasons((generated.authoring?.provenance ?? []).map(entry => ({...entry, before: id(entry.before), after: id(entry.after)}))) === reasons((model.authoring?.provenance ?? []).filter(entry => entry.category !== 'author'));
+  if (sameDependencies && sameEdges && sameProvenance) rederivation = 'match';
+ } catch { rederivation = 'differs'; }
+ return verifyModel(model, {...input, rederivation, ...(currentAnalyzer ? {currentAnalyzer} : {}), ...(projectionLoss === undefined ? {} : {projectionLoss})});
 }
 
 export function createLegacyJSTSBridge(language: 'javascript' | 'typescript', ports: LegacyJSTSPorts): LanguagePlugin {

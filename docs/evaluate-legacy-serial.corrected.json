@@ -195,6 +195,10 @@
         "typescript": "5.8.3",
         "sourceKind": "script",
         "classFields": "either"
+      },
+      "projectionLoss": {
+        "pairs": 0,
+        "examples": []
       }
     }
   }

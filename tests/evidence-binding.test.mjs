@@ -16,7 +16,7 @@ const sample=['function f(n) {','  const a = n + 1;','  const b = n + 2;','  ret
 
 test('a generated model carries evidence: line digest, analyser version and analysis environment',()=>{
  const js=generate(sample);
- assert.deepEqual(js.authoring.evidence,{sourceDigest:codeLineDigest(js.lines),analyzer:js.authoring.dependencyPolicy,environment:{typescript:ts.version,sourceKind:'script',classFields:'either'}});
+ assert.deepEqual(js.authoring.evidence,{sourceDigest:codeLineDigest(js.lines),analyzer:js.authoring.dependencyPolicy,environment:{typescript:ts.version,sourceKind:'script',classFields:'either'},projectionLoss:{pairs:0,examples:[]}});
  assert.match(js.authoring.evidence.sourceDigest,/^[0-9a-f]{16}$/);
  const module=generate(['import {x} from "./x";','export const a = x;'],'typescript',{importEmit:'elide-unused'});
  assert.deepEqual(module.authoring.evidence.environment,{typescript:ts.version,importEmit:'elide-unused',sourceKind:'module',classFields:'either'});

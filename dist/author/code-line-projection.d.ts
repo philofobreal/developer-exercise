@@ -55,6 +55,15 @@ export interface CodeLineProjection {
     provenance: ConstraintProvenance[];
     /** Digest of the projected lines that the provenance describes (ADR-015). */
     sourceDigest: string;
+    /** Unit pairs of one statement or member list that the adapter's relations leave unordered
+     * but the projected model orders (ADR-017); `examples` holds up to 20 of them in line IDs. */
+    projectionLoss: {
+        pairs: number;
+        examples: {
+            before: number;
+            after: number;
+        }[];
+    };
 }
 /** Physical rows that become lines: non-blank, or whitespace-exact. */
 export declare function projectedRows(physical: readonly string[], exact: ReadonlySet<number>): {

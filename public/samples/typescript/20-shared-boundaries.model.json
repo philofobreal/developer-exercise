@@ -221,6 +221,10 @@
         "importEmit": "verbatim",
         "sourceKind": "script",
         "classFields": "either"
+      },
+      "projectionLoss": {
+        "pairs": 0,
+        "examples": []
       }
     },
     "dependencyHints": [

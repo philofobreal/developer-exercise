@@ -229,6 +229,28 @@
                   "const": "either"
                 }
               }
+            },
+            "projectionLoss": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "pairs",
+                "examples"
+              ],
+              "properties": {
+                "pairs": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 125000
+                },
+                "examples": {
+                  "type": "array",
+                  "maxItems": 20,
+                  "items": {
+                    "$ref": "#/$defs/edge"
+                  }
+                }
+              }
             }
           }
         },

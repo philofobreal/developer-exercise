@@ -11,6 +11,22 @@ import { reduceGeneratedDependencies, sealMultiRowUnits } from './ordering-relat
 export function projectedRows(physical, exact) {
     return physical.flatMap((code, line) => code.trim() || exact.has(line) ? [{ code, line }] : []);
 }
+/** Forward reachability over IDs 0..size-1, one bit set per source. */
+function reachability(size, next) {
+    const words = (size >> 5) + 1, reach = [];
+    for (let start = 0; start < size; start++) {
+        const seen = new Uint32Array(words), stack = [start];
+        while (stack.length)
+            for (const target of next[stack.pop()])
+                if (!(seen[target >> 5] & (1 << (target & 31)))) {
+                    seen[target >> 5] |= 1 << (target & 31);
+                    stack.push(target);
+                }
+        reach.push(seen);
+    }
+    return reach;
+}
+const reaches = (reach, from, to) => !!(reach[from][to >> 5] & (1 << (to & 31)));
 /** Joins clause blocks sharing a boundary row (`} else {`) into one container: the
  * shared rows become separators, each clause a segment between two of them. Only a
  * row shared by exactly the two linked clauses qualifies, and the chain's own first
@@ -162,6 +178,50 @@ export function projectCodeLine({ physical, exact, structure, ordering }) {
     for (const edge of edgeMap.values())
         emit(edge.before, edge.after, [{ category: 'conservative', code: 'shared-boundary-lock' }]);
     provenance.sort((a, b) => a.after - b.after || a.before - b.before);
-    return { lines, blocks, edges: [...edgeMap.values()], omittedBlocks: omitted.length, clauseChains: chains.filter(chain => retained.some(block => block.start === chain.start && block.end === chain.end)).length, provenance, sourceDigest: codeLineDigest(lines) };
+    // Freedom lost in projection (ADR-017): within one list (same enclosing unit, scope and clause
+    // segment), a unit pair the adapter leaves unordered must stay unordered in the model.
+    const loss = [];
+    let lostPairs = 0;
+    if (ordering) {
+        const unitRows = [...new Map(ordering.spans.map(span => [span.first + ':' + span.last, span])).values()].filter(span => byPhysical.has(span.first) && byPhysical.has(span.last)).sort((a, b) => a.first - b.first);
+        const adapterNext = physical.map(() => []);
+        for (const entry of ordering.entries)
+            for (const before of entry.after)
+                adapterNext[before]?.push(entry.row);
+        for (const span of unitRows)
+            adapterNext[span.first].push(span.last);
+        const modelNext = lines.map(() => []), add = (before, after) => { modelNext[before - 1].push(after - 1); };
+        for (const line of lines)
+            for (const before of line.dependencies)
+                add(before, line.id);
+        for (const edge of edgeMap.values())
+            add(edge.before, edge.after);
+        const blockOf = new Map(blocks.map(block => [block.id, block]));
+        for (const line of lines) {
+            const block = line.scopeId === null ? undefined : blockOf.get(line.scopeId);
+            if (block) {
+                add(block.openLineId, line.id);
+                add(line.id, block.closeLineId);
+            }
+        }
+        const adapter = reachability(physical.length, adapterNext), model = reachability(lines.length, modelNext);
+        const lists = new Map();
+        for (const span of unitRows) {
+            const parent = unitRows.filter(other => other !== span && other.first <= span.first && other.last >= span.last && (other.first < span.first || other.last > span.last)).at(-1), scope = scopeOf(span.first);
+            const key = [parent ? parent.first + ':' + parent.last : '', scope?.id ?? '', scope ? scope.separators.filter(row => row < span.first).length : 0].join('|');
+            lists.set(key, [...lists.get(key) ?? [], span]);
+        }
+        for (const list of lists.values())
+            for (let i = 0; i < list.length; i++)
+                for (let j = i + 1; j < list.length; j++) {
+                    const a = list[i], b = list[j], ia = byPhysical.get(a.first) - 1, ib = byPhysical.get(b.first) - 1;
+                    if ((reaches(model, ia, ib) || reaches(model, ib, ia)) && !reaches(adapter, a.first, b.first) && !reaches(adapter, b.first, a.first)) {
+                        lostPairs++;
+                        if (loss.length < 20)
+                            loss.push({ before: ia + 1, after: ib + 1 });
+                    }
+                }
+    }
+    return { lines, blocks, edges: [...edgeMap.values()], omittedBlocks: omitted.length, clauseChains: chains.filter(chain => retained.some(block => block.start === chain.start && block.end === chain.end)).length, provenance, sourceDigest: codeLineDigest(lines), projectionLoss: { pairs: lostPairs, examples: loss } };
 }
 //# sourceMappingURL=code-line-projection.js.map

@@ -4,7 +4,7 @@ import {compileCodeLineExercise,validateSubmission} from '../dist/index.js';
 import {generateCodeLineExercise} from '../author/generator.mjs';
 import {getLanguageAdapter} from '../author/languages.mjs';
 import {auditReference} from '../author/audit.mjs';
-import {refreshLegacyDependencies} from '../dist/author/engine.js';
+import {refreshLegacyDependencies,verifyAuthorModel} from '../dist/author/engine.js';
 import {createReferenceAuditor} from '../dist/author/reference-audit.js';
 
 export const validationMode='local-demo';
@@ -56,8 +56,9 @@ export async function compileDraft(body){
   if(drafts.size>=MAX_DRAFTS)drafts.delete(drafts.keys().next().value);
   // No standard library is shipped to the static demo: the language audit reports `not-run` (ADR-016).
   const audit=createReferenceAuditor(getTypeScript()).audit(model.lines.map(l=>l.code).join('\n'),model.language);
+  const verification=await verifyAuthorModel(model,{generate:input=>generateCodeLineExercise(input,getTypeScript())},{audit:audit.semantics});
   drafts.set(draftId,{model,compiled});
-  return {draftId,model,previewOnly:true,mode:'local-demo',audit};
+  return {draftId,model,previewOnly:true,mode:'local-demo',audit,verification};
 }
 export async function previewDraft(body){
   const ref=drafts.get(body?.draftId);

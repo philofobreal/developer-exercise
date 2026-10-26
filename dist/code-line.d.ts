@@ -47,10 +47,19 @@ export interface AnalysisEnvironment {
 }
 /** Binds the explanation metadata to the lines it was derived from and to the analysis that
  * derived it (ADR-015). A digest mismatch makes the provenance unbound, never a grading input. */
+/** `projectionLoss` (ADR-017): unit pairs of one list that the analysis left unordered but the
+ * projected model orders, with up to 20 examples. */
 export interface ModelEvidence {
     sourceDigest: string;
     analyzer: DependencyPolicy;
     environment: AnalysisEnvironment;
+    projectionLoss?: {
+        pairs: number;
+        examples: {
+            before: number;
+            after: number;
+        }[];
+    };
 }
 export interface CodeLineExercise {
     schemaVersion: 2;

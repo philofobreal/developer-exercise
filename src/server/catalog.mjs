@@ -10,7 +10,7 @@ import {generateCodeLineExercise,AuthoringError} from '../author/generator.mjs';
 import {getLanguageAdapter} from '../author/languages.mjs';
 import {auditReference} from '../author/audit.mjs';
 import {compileCodeLineExercise,validateSubmission} from '../../dist/index.js';
-import {refreshLegacyDependencies} from '../../dist/author/engine.js';
+import {refreshLegacyDependencies,verifyAuthorModel} from '../../dist/author/engine.js';
 import {createReferenceAuditor} from '../../dist/author/reference-audit.js';
 export class ServiceError extends Error{constructor(code,message){super(message);this.statusCode=code;}}
 export class ExerciseCatalog{
@@ -25,7 +25,9 @@ export class ExerciseCatalog{
       const self=validateSubmission(result.compiled,{exerciseId:model.id,revision:model.revision,lines:model.lines.map(x=>x.code)});
       if(!self.accepted)throw Error(`Reference ${model.id} inconsistent: ${self.message}`);
       if(records.has(model.id))throw Error(`Duplicate exercise ${model.id}`);
-      records.set(model.id,{model,compiled:result.compiled,audit:(await catalog.auditor()).audit(model.lines.map(x=>x.code).join('\n'),model.language)});
+      const audit=(await catalog.auditor()).audit(model.lines.map(x=>x.code).join('\n'),model.language),parser=await catalog.parser();
+      // Trusted references are graded as published; the gate only records what they can claim (ADR-017).
+      records.set(model.id,{model,compiled:result.compiled,audit,verification:await verifyAuthorModel(model,{generate:input=>generateCodeLineExercise(input,parser)},{audit:audit.semantics})});
     }
     if(!records.size)throw Error('No JSON exercises in examples/');
     return catalog;
@@ -52,9 +54,11 @@ export class ExerciseCatalog{
     auditReference(model,await this.parser());
     const self=validateSubmission(result.compiled,{exerciseId:model.id,revision:1,lines:model.lines.map(l=>l.code)},{maxStates:200_000});
     if(!self.accepted)throw new ServiceError(422,`A referencia nem érvényes: ${self.message}`);
-    const audit=(await this.auditor()).audit(model.lines.map(l=>l.code).join('\n'),model.language);
-    this.drafts.set(draftId,{created:Date.now(),model,compiled:result.compiled,audit});
-    return {draftId,model,previewOnly:true,mode:'preview-validation',audit};
+    const parser=await this.parser(),audit=(await this.auditor()).audit(model.lines.map(l=>l.code).join('\n'),model.language);
+    // Model Verification Gate (ADR-017): re-derived here, never taken from the request.
+    const verification=await verifyAuthorModel(model,{generate:input=>generateCodeLineExercise(input,parser)},{audit:audit.semantics});
+    this.drafts.set(draftId,{created:Date.now(),model,compiled:result.compiled,audit,verification});
+    return {draftId,model,previewOnly:true,mode:'preview-validation',audit,verification};
   }
   preview(body){
     this.prune();if(typeof body?.draftId!=='string'||!Array.isArray(body?.lines)||body.lines.length>500)throw new ServiceError(400,'Invalid draft submission');
