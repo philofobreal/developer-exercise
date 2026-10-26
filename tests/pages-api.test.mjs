@@ -31,6 +31,8 @@ test('Pages demo: exercises → local validation → author → edited model →
    const js='function demo() {\nconst a = 10;\nconst b = 20;\nreturn a + b;\n}';
    const first=await api.compileDraft({source:js,language:'javascript',title:'User draft'});
    assert.equal(first.model.lines.length,5);
+   assert.equal(first.audit.semantics,'not-run','the static demo ships no standard library (ADR-016)');
+   assert.ok(first.audit.assumptions.includes('no-standard-library'));
    assert.equal((await api.previewDraft({draftId:first.draftId,lines:first.model.lines.map(x=>x.code)})).status,'accepted');
    const changed=structuredClone(first.model);
    changed.lines[2].dependencies=[];

@@ -5,6 +5,7 @@ import {generateCodeLineExercise} from '../author/generator.mjs';
 import {getLanguageAdapter} from '../author/languages.mjs';
 import {auditReference} from '../author/audit.mjs';
 import {refreshLegacyDependencies} from '../dist/author/engine.js';
+import {createReferenceAuditor} from '../dist/author/reference-audit.js';
 
 export const validationMode='local-demo';
 const records = new Map();
@@ -53,8 +54,10 @@ export async function compileDraft(body){
   const compiled=assertSafeModel(model);
   auditReference(model,getTypeScript());
   if(drafts.size>=MAX_DRAFTS)drafts.delete(drafts.keys().next().value);
+  // No standard library is shipped to the static demo: the language audit reports `not-run` (ADR-016).
+  const audit=createReferenceAuditor(getTypeScript()).audit(model.lines.map(l=>l.code).join('\n'),model.language);
   drafts.set(draftId,{model,compiled});
-  return {draftId,model,previewOnly:true,mode:'local-demo'};
+  return {draftId,model,previewOnly:true,mode:'local-demo',audit};
 }
 export async function previewDraft(body){
   const ref=drafts.get(body?.draftId);

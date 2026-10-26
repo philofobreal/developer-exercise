@@ -4,12 +4,14 @@
  */
 import {randomUUID} from 'node:crypto';
 import {readdir,readFile} from 'node:fs/promises';
+import {readFileSync} from 'node:fs';
 import path from 'node:path';
 import {generateCodeLineExercise,AuthoringError} from '../author/generator.mjs';
 import {getLanguageAdapter} from '../author/languages.mjs';
 import {auditReference} from '../author/audit.mjs';
 import {compileCodeLineExercise,validateSubmission} from '../../dist/index.js';
 import {refreshLegacyDependencies} from '../../dist/author/engine.js';
+import {createReferenceAuditor} from '../../dist/author/reference-audit.js';
 export class ServiceError extends Error{constructor(code,message){super(message);this.statusCode=code;}}
 export class ExerciseCatalog{
   constructor(records){this.trusted=records;this.drafts=new Map();this.ts=null;}
@@ -23,7 +25,7 @@ export class ExerciseCatalog{
       const self=validateSubmission(result.compiled,{exerciseId:model.id,revision:model.revision,lines:model.lines.map(x=>x.code)});
       if(!self.accepted)throw Error(`Reference ${model.id} inconsistent: ${self.message}`);
       if(records.has(model.id))throw Error(`Duplicate exercise ${model.id}`);
-      records.set(model.id,{model,compiled:result.compiled});
+      records.set(model.id,{model,compiled:result.compiled,audit:(await catalog.auditor()).audit(model.lines.map(x=>x.code).join('\n'),model.language)});
     }
     if(!records.size)throw Error('No JSON exercises in examples/');
     return catalog;
@@ -31,6 +33,8 @@ export class ExerciseCatalog{
   list(){return [...this.trusted.values()].map(({model:d})=>({id:d.id,revision:d.revision,language:d.language,title:d.title,description:d.description,
     lines:d.lines.map(l=>({id:l.id,code:l.code,fixed:l.fixed,normalization:l.normalization??'indent',functionBlock:l.functionBlock}))}));}
   async parser(){return this.ts??=(await import('typescript')).default;}
+  /** Language audit beyond syntax (ADR-016): the installed compiler's standard library, read by base name only. */
+  async auditor(){const ts=await this.parser(),dir=path.dirname(ts.getDefaultLibFilePath({}));return this.languageAudit??=createReferenceAuditor(ts,name=>{try{return readFileSync(path.join(dir,path.basename(name)),'utf8');}catch{return undefined;}});}
   async format({source,language='typescript'}={}){return getLanguageAdapter(language).format(source,await this.parser());}
   prune(){const now=Date.now();for(const [key,value] of this.drafts)if(now-value.created>1_800_000)this.drafts.delete(key);}
   async createDraft(body){
@@ -48,8 +52,9 @@ export class ExerciseCatalog{
     auditReference(model,await this.parser());
     const self=validateSubmission(result.compiled,{exerciseId:model.id,revision:1,lines:model.lines.map(l=>l.code)},{maxStates:200_000});
     if(!self.accepted)throw new ServiceError(422,`A referencia nem érvényes: ${self.message}`);
-    this.drafts.set(draftId,{created:Date.now(),model,compiled:result.compiled});
-    return {draftId,model,previewOnly:true,mode:'preview-validation'};
+    const audit=(await this.auditor()).audit(model.lines.map(l=>l.code).join('\n'),model.language);
+    this.drafts.set(draftId,{created:Date.now(),model,compiled:result.compiled,audit});
+    return {draftId,model,previewOnly:true,mode:'preview-validation',audit};
   }
   preview(body){
     this.prune();if(typeof body?.draftId!=='string'||!Array.isArray(body?.lines)||body.lines.length>500)throw new ServiceError(400,'Invalid draft submission');
