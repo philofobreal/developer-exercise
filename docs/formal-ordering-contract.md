@@ -41,6 +41,37 @@ Ez a dokumentum a generált sorrendszabályok jelentését, a támogatott részn
 
 **Soundness:** `A(M) ⊆ E_pol(P)`. **Completeness:** `E_pol(P) ⊆ A(M)`.
 
+### A helyességi cél hatóköre
+
+Az `A(M) = E_pol(P)` elméleti cél, nem általános ígéret. Három ok miatt nem az:
+
+- a sorrendelemzés csak bizonyos konstrukciókon vezeti le a függetlenséget;
+- a v2/v3 reprezentáció (DAG, scope, fixed, OR-profilok) nem minden megengedett halmazt ír le tömören;
+- a validátor korlátos keresést végez.
+
+Ezért a szerződés négy, külön ellenőrzött állításra bomlik.
+
+1. **Soundness (kötelező):** `A(M) ⊆ E_pol^v(P)` minden olyan P-re, amely a támogatott résznyelvre esik ([helyességi érvelés](#helyességi-érvelés-a-támogatott-résznyelven)). Itt `v` a modell `dependencyPolicy` címkéjéhez tartozó policyverzió ([policyverziók](#policyverziók)). A résznyelven kívül a konzervatív fallbackek miatt a modell szigorúbb, és soundness-állítást csak a fallbackek helyességéig tesz.
+2. **Completeness (kötelező a kezelt és reprezentálható részen):** ha két egység a lenti „kezelt” esetek valamelyikébe esik, és a v2 projekció a különállásukat ki tudja fejezni, akkor a felcserélésük nem utasítható el. Kezelt esetek:
+   - független tiszta deklarációk;
+   - konfliktusmentes lokális írások;
+   - pozíciófüggetlen deklarációk;
+   - fázison belül vagy fázisok között szabad osztálytagok;
+   - az emit által törölt importok;
+   - egy klauzulalánc szegmensén belüli sorok.
+
+   A nem reprezentálható esetet (például egyéb közös fizikai határ) a projekció jelöli: elhagyott blokk, `shared-boundary-lock` proveniencia.
+3. **Fallback (kötelező jelölés):** minden más eset konzervatív. A szigorítás oka a modellben `conservative` kategóriájú proveniencia, nem hallgatólagos.
+4. **Eldöntetlenség:** a kimerült keret `indeterminate`, soha nem elfogadás és nem elutasítás. Egy referenciamodell akkor alkalmas élesítésre, ha a referencia és a szomszédsága a produkciós kereten belül eldől. Ezt a modellminősítés (V1) fogja ellenőrizni; addig a katalógus csak a referencia elfogadását vizsgálja.
+
+**Viszonyítási alap:** minden `A(M)`-ről szóló állítás egy rögzített feladattartományra vonatkozik:
+
+- a T sorelőfordulásainak permutációira, sorszintű mozgatással, a sorok szövege és multiplicitása változatlan;
+- a modell szabályverziójára (`dependencyPolicy`);
+- a szerzői módosításokra.
+
+Szerzői lazítás után a modell nem állíthatja, hogy `A(M) ⊆ E_pol^v(P)`.
+
 **Mérésben** minden vizsgált S öt diszjunkt kategória egyikébe esik:
 
 - **soundness-sértés:** a validátor elfogadja, az orákulum szerint nem ekvivalens;
@@ -67,6 +98,43 @@ Egy S permutáció akkor egyenértékű P-vel, ha egyszerre teljesül:
    - a klasszikus szkript globális objektuma (`function`/`var`).
 
    Ezt minden reflexiós API megfigyeli: `Object.getOwnPropertyNames`, `Reflect.ownKeys`, `Object.keys`, `Object.getOwnPropertyDescriptors`.
+
+### Megfigyelhető állapot
+
+A P3 és a P4 a következőket figyeli. Ugyanezt hasonlítja össze a független orákulum ([semantic-oracle.mjs](../tests/support/semantic-oracle.mjs)): a generátor és az orákulum ugyanabban az értelemben használja az egyenértékűséget.
+
+| Megfigyelés | Tartalom | Hol rögzül |
+| --- | --- | --- |
+| eredmény | a rögzített probe visszatérési értéke JSON-szerializálva, az objektumok kulcssorrendjével együtt; aszinkron probe esetén a teljesült érték | `call` |
+| kivétel | a dobott kivétel neve és üzenete; dobáskor az orákulum a hatásnaplót nem veti össze (ismert korlát) | `call` |
+| hatásnapló | a `record(...)` hívások argumentumai, sorrendben (a fixture minden megfigyelt hatást ezen át jelent) | `call.trace` |
+| reflektált szerkezet | az osztályok prototípusának és konstruktorának saját kulcsai sorrendben, kulcsonként a descriptor fajtája (érték/accessor) és az `enumerable`, `configurable`, `writable` jelzők; a beágyazott osztályoké; a klasszikus szkript deklarált globálisainak sorrendje | `reflection` |
+| szerkezet | a listák multihalmaza (P1) és a hatásos egységek sorrendje listánként (P2) | statikus `shape`, `effects` |
+
+**Nem megfigyelt:**
+
+- a futási idő és a memória;
+- a forrásszöveg-reflexió (lásd a kizárást);
+- a `record` nélküli konzolkimenet;
+- a modulbetöltés tényleges külső hatása: ezt a modulbetöltő import kötése fedi, nem futtatással igazoljuk.
+
+**Futtatási környezet:** strict klasszikus szkript, TypeScriptnél ES2022-re fordítva, mindkét osztálymezőmódban (`useDefineForClassFields` igaz és hamis). Ami ezen kívül esik (CommonJS-betöltő, bundler, dekorátortranszformáció, más `target`), azt a generátor konzervatív szabállyal kezeli. A feltevéseket a C2 köti majd a modellhez (elemzési környezet).
+
+### Policyverziók
+
+A `dependencyPolicy` címke a generálási szabályok verziója. Egy modell állításai mindig a saját címkéjéhez tartozó szabályokra vonatkoznak. Az újabb címke nem érvényteleníti a régi modellt; a régi modell csak explicit „Sorfüggőségek újraszámítása” után kap új szabályokat.
+
+| Címke | Döntés | A P2 és a P4 változása |
+| --- | --- | --- |
+| `primitive-const-islands-v1`, `scoped-primitive-dag-v2` | korai, ADR előtti generátorok | csak primitív `const`-szigetek, illetve listánkénti primitív DAG; részletes szerződés nincs, ezért proveniencia nélkül `legacy` |
+| `scoped-type-members-v3` | [ADR-007](adr/007-typescript-erased-member-ordering.md) | törölt TS-adattagok futamai szabadok |
+| `scoped-effect-analysis-v4` | [ADR-008](adr/008-effect-based-statement-ordering.md) | P2: minden hatásos utasítás (az értékadás is) barrier; a tiszta egységek kommutálnak |
+| `scoped-effect-analysis-v5` | [ADR-009](adr/009-sealed-units-and-throw-free-reads.md) | lezárás, dobásmentes olvasás |
+| `scoped-effect-analysis-v6`, `-v7` | [ADR-010](adr/010-reflective-property-order.md) | P4 bekerül: kulcslánc, szkriptszintű globális lánc; v7: `accessor` mező, TS-kibocsátott globálisok |
+| `scoped-effect-analysis-v8` | [ADR-012](adr/012-class-evaluation-phases-and-accessor-pairs.md) | osztálykiértékelési fázisok, accessorpárok |
+| `scoped-effect-analysis-v9` | [ADR-013](adr/013-local-writes-clause-chains-and-imports.md) | **P2 explicit pontosítása:** a függvénylokális írás tiszta jobb oldallal csak RAW/WAR/WAW konfliktusnál kötött; az emit által törölt import pozíciófüggetlen; klauzulaláncok |
+
+A v9 P2-je **szigorúan bővebb** a v4–v8 P2-jénél: minden, amit a régi szabály megengedett, az újban is megengedett. Az új szabadságnak két forrása van, és egyiknek sincs megfigyelhető hatása a felcserélt párra nézve (lásd a [megfigyelhető állapotot](#megfigyelhető-állapot)): a lokális írás csak a saját kötését módosítja és nem dob; az emit által törölt import futásidőben nem létezik. Ez nem a régi P2 csendes gyengítése, hanem verziózott újradefiniálás: a régi címkéjű modellek a régi szabállyal maradnak érvényesek, és az orákulum a v9 P2-t saját, független implementációval követi (ADR-013).
 
 **Kizárás:** a forrásszöveg-reflexió (`Function.prototype.toString`, `stack`, sor- és oszlopszám) nem része az E_pol-nak, mert minden átrendezést megkülönböztet.
 
@@ -137,7 +205,7 @@ A precedencia csak „előtte” vagy „utána” relációt fejez ki, a „nem
 
 ## Helyességi érvelés a támogatott résznyelven
 
-Állítás: ha P a fenti résznyelvre esik, és teljesülnek az A1–A4 feltevések, akkor minden `S ∈ A(M)` kielégíti P0–P4-et.
+Állítás: ha P a fenti résznyelvre esik, és teljesülnek az A1–A5 feltevések, akkor minden `S ∈ A(M)` kielégíti P0–P4-et.
 
 Feltevések:
 
@@ -145,6 +213,7 @@ Feltevések:
 - **A2:** nincsenek egzotikus hoszt-objektumok a primitív műveletekben.
 - **A3:** nincs `with`/`eval` (kizárt).
 - **A4:** a megosztott fizikai határú intervallumok sorosak, és minden lyukas többsoros egység le van zárva (a generátor biztosítja).
+- **A5:** a referencia futtatási környezete a [megfigyelhető állapotnál](#megfigyelhető-állapot) leírt környezet, vagy olyan, amelynek eltérését konzervatív szabály fedi. Ilyen az ismeretlen buildnél alkalmazott `verbatim` import-emit, a dekorátoros fájl és a modulbetöltő importok kötése. A szerző által megadott környezet (`importEmit`) maga is feltevés: ha hibás, az állítás nem érvényes.
 
 Vázlat:
 
