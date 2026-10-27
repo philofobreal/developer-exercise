@@ -28,7 +28,7 @@ try:
                 context=browser.new_context(viewport={'width':1500,'height':1000})
                 page=context.new_page(); errors=[]; page.on('pageerror',lambda error: errors.append(str(error)))
                 try:
-                    page.goto(url); expect(page.locator('[data-task]').first).to_be_visible()
+                    page.goto(url); expect(page.locator('[data-step="source"]')).to_have_attribute('aria-current','step')
                     matrix=page.evaluate('''async () => {
                         const api=await import('./app/api.js');
                         const read=async path=>{const r=await fetch(new URL(path,location.href));if(!r.ok)throw Error('Missing '+path);return r;};
@@ -58,13 +58,13 @@ try:
                         return {models:suite.length,authoredVariants:1,checks,posts};
                     }''')
                     results[mode]=matrix
-                    page.locator('[data-view="author"]').click()
+                    page.locator('[data-step="source"]').click()
                     source=(ROOT/'public/samples/typescript/01-user-account.ts').read_text(encoding='utf-8')
                     page.locator('[data-source-file]').set_input_files({'name':'user-account.ts','mimeType':'text/plain','buffer':source.encode()})
                     expect(page.locator('#author-editor')).to_have_value(source)
                     page.locator('[data-author="title"]').fill('UserAccount sorrendszabályok')
                     page.locator('[data-author="description"]').fill('Az interface mezők cserélhetők; az osztálymezők és a constructor értékadásai sorrendtartók.')
-                    page.locator('[data-author-apply]').click();expect(page.locator('.solution-zone .code-row')).to_have_count(13)
+                    page.locator('[data-author-apply]').click();expect(page.locator('[data-board-line]')).to_have_count(13);page.locator('[data-step="try"]').click();expect(page.locator('.source-zone .code-row')).to_have_count(13)
                     model=json.loads((ROOT/'public/samples/typescript/01-user-account.model.json').read_text(encoding='utf-8'))
                     def check_order(order,label):
                         by_id={line['id']:line['code'] for line in model['lines']}
@@ -75,7 +75,7 @@ try:
                     page.locator('[data-ordering-policy] summary').click();expect(page.locator('[data-ordering-policy]')).to_contain_text('kulcssorrend')
                     page.screenshot(path=str(ARTIFACTS/f'typescript-{mode}-screenshot-explained.png'),full_page=True)
                     page.locator('[data-preview-toggle]').click();expect(page.locator('[data-ordering-policy]')).to_have_count(0)
-                    page.locator('[data-preview-toggle]').click();page.locator('[data-view="author"]').click()
+                    page.locator('[data-preview-toggle]').click();page.locator('[data-step="source"]').click()
                     with page.expect_popup() as popup: page.locator('[data-typescript-catalog]').click()
                     catalog=popup.value;expect(catalog.locator('tbody tr')).to_have_count(24)
                     with catalog.expect_download() as download: catalog.locator('a[download]').nth(1).click()

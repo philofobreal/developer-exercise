@@ -52,7 +52,7 @@ Jelölés: ✅ kész és ellenőrzött · 🔄 folyamatban · ⏳ következik ·
 | V1 | Model Verification Gate: befogadás, referencia-elfogadás, keretalkalmasság (a referencia és a szomszédság a produkciós kereten belül), a proveniencia lefedettsége és frissessége, a konzervatív és reprezentációs fallbackek helye, lazítások, audit, környezet. Ezekből minősítési státusz: elemzéssel igazolt / konzervatív / szerzői döntéssel módosított / nem igazolt. Kis modellnél a projekció kimerítő összevetése az adapter relációival | ✅ | minősítési regressziók; a CopyField és a legacy modellek státusza indokolt |
 | D1 | EPIC-05: típusos szabályműveletek: atomikus befogadás, profilok, fixed, megjegyzések, lazítás megerősítési szintekkel, hatásjelentés tanúsorrenddel. Minden szerkesztés után V1-újraminősítés. A refresh jelentve vezeti össze a szerzői szabályokat, a lazításokat és a megjegyzéseket | ✅ | szabályeditor-regressziók (09.3) |
 | D2 | EPIC-05: vizuális szabálypanel, `importEmit`-választó és a minősítés megjelenítése a szerzői felületen | ✅ | Playwright-bizonyíték |
-| U1 | A szerzői és a próbanézetek egyszerűsítése: léptetéses folyamat, egyetlen aktív állapottal, egyértelmű állapotkapcsolattal és frissítéssel a nézetek között | ⏳ | állapotgép-egységtesztek, Playwright-átjárási tesztek minden lépésváltásra, újragenerálásra és frissítésre |
+| U1 | A szerzői és a próbanézetek egyszerűsítése: léptetéses folyamat, egyetlen aktív állapottal, egyértelmű állapotkapcsolattal és frissítéssel a nézetek között | ✅ | állapotgép-egységtesztek, Playwright-átjárási tesztek minden lépésváltásra, újragenerálásra és frissítésre |
 | E1 | EPIC-06: core diagnosztikai modul (bizonyított konfliktusok, többértelműség, keret) | ⏳ | diagnosztikai regressziók (09.4), metamorf: a validátor döntése változatlan |
 | F1 | EPIC-07: tanulói visszajelzés és soronkénti jelölés | ⏳ | böngészőteszt, hozzáférhetőség |
 | F2 | EPIC-08: disclosure policy (szerző / Pages / trusted szerver) és szerveroldali szerzői jogosultság, vagy explicit, dokumentált helyidemó-korlát | ⏳ | negatív szivárgási és jogosultsági tesztek |
@@ -433,7 +433,36 @@ A kézi `class-inventory-ts` modell a konstruktort a mező után, a metódusokat
 - a szerzői API jogosultsága (F2);
 - a nézetek átalakítása (U1).
 
-## U1 – a nézetek és az állapotátmenetek egyszerűsítése – ütemezve
+## U1 – a nézetek és az állapotátmenetek egyszerűsítése – lezárva
+
+**Döntés:** [ADR-022](adr/022-stepwise-author-flow.md); a felület leírása: [UI/UX](ui-ux-workflows.md).
+
+**Megvalósítás:**
+
+- **Két mód:** Feladat készítése (kezdőoldal) és Gyakorlás.
+- **Szerzői lépések:** Forrás → Szabályok → Próba, egy aktív lépéssel. A típusos `flow.ts` dönt a zárolásról, az elavulásról és a landolásról.
+- **Szabályok lépés:** a vizuális szabálytábla (`rule-board.ts`) ívekkel és összekötéssel (egér, toll, érintés, billentyűzet), mellette a D2 panelje, alatta a minősítés. A JSON haladó alnézet.
+- **Példák:** kezdőpontok a Forrás lépésben; a gyakorlásból „Saját feladat ebből a példából”.
+- **Egy szerzői projekt** a feladatonkénti munkaterületek helyett (az ADR-004 ezen része felváltva).
+
+**Kiegészítés (felhasználói kérés):** a próbarendezőben is ott vannak a soronkénti szabálygombok, az ívek (az aktuális elrendezésben, mozgatás után újrarajzolva) és a panel; a szerkesztés azonnal újraértékeli a kitöltést. Bizonyíték: workbench 41/41, `workbench-flow` 7.
+
+**A felhasználó kérdésére:** a drag-and-drop felületen a függőségek ábrázolása és szerkesztése itt készült el. A szabálytábla íveket rajzol, és két sor körgombjának összehúzásával szabályt vesz fel.
+
+**Talált és javított hibák:**
+
+- a „Minősítés” blokk bezárult a JSON-nézetről való visszaváltáskor;
+- a húzás utáni kattintáselnyelés bennragadhatott (Pages-módban reprodukálható volt);
+- újratöltés után a helyi mentés nem lett volna elérhető a kezdőoldalról, ezért a Forrás lépés indulási sorába került.
+
+**Bizonyíték:**
+
+- `workbench-flow` (6) és az átírt `author-workspace` egységtesztek;
+- workbench-böngészőcsomag 39/39;
+- mátrix 32/32, drag 44/44;
+- offline, szerveres v7, TypeScript, engine és Python csomag zöld.
+
+### Az eredeti ütemezés (2026-10-27)
 
 **Felhasználói kérés (2026-10-27):** a „01 · Referencia és szabályok” (Referenciaforrás, Adatmodell) és a „02 · Megoldás és próba” (Rendező, Megoldáskód) tabok között legyen egyértelmű átmenet és funkcionalitás. A felület legyen egyszerűbb és egységesebb. Lehet léptetéses, és egyszerre csak egy állapotban lehessünk, amíg egy kód- vagy tananyagpélda tesztje elkészül. Az oldalsó példalista POC/MVP szempontból zavaró.
 

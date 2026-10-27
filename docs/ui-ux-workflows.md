@@ -2,48 +2,100 @@
 
 ## Cél és megőrzött érték
 
-A műhely programozási sorrendező feladatok készítését és kipróbálását segíti. A nyilvános CodeLine-modell, a tartalmi és függőségi/scope-validálás, a fixed sorok, az exact whitespace, a több beviteli út és az import/export szerződése változatlan. A design a már működő döntéstulajdonosokra épül, nem vezet be második validátort.
+A műhely programozási sorrendező feladatok készítését és kipróbálását segíti. A nyilvános CodeLine-modell, a tartalmi és függőségi/scope-validálás, a fixed sorok, az exact whitespace, a több beviteli út és az import/export szerződése változatlan. A felület a már működő döntéstulajdonosokra épül, nem vezet be második validátort.
 
-A munkafolyamat két szerzői belépési pontja ugyanahhoz az alkalmazott feladathoz vezet:
+## Két mód, három lépés ([ADR-022](adr/022-stepwise-author-flow.md))
 
-- **Referenciaforrás:** JS/MJS/TS/TXT fájl helyi betöltése vagy vágólap → szerkesztés/formázás → Alkalmazás → generált modell és rendezési próba. A fájlbetöltés önmagában nem aktivál új feladatot. Legfeljebb 200 KB fájl és 50000 karakter forrás támogatott; a szerver méretkorlátjai továbbra is érvényesek.
-- **Adatmodell:** teljes CodeLine JSON szerkesztése/beillesztése vagy JSON-fájl betöltése → meglévő Schema/strukturális/szintaktikai admission → ugyanaz a próba. Ez kezdő feladat nélkül is elérhető. A meglévő fájlimport sikeres ellenőrzés után közvetlenül aktivál; a JSON-szerkesztőben végzett módosítás külön alkalmazandó.
+A fejléc módváltója két, egymástól független munkát választ el:
 
-JSON alkalmazásakor a referenciaforrás kitöltődik a modell soraiból. Forrás alkalmazásakor a generált teljes JSON szerkeszthető. A forrás újraalkalmazása új modellt generál, nem egyesíti automatikusan a régi kézi JSON-szabályokat; ezek exportálhatók. A forrássorszám metaadat, nem megoldáspozíció.
+- **Feladat készítése** (kezdőoldal): egyetlen szerzői projekt, három lépésben. Egyszerre egy lépés aktív.
+- **Gyakorlás:** a beépített (trusted) gyakorlófeladatok listája, tanulói rendezővel és megoldáskóddal. A gyakorlás soha nem változtatja a szerzői projektet, és a szerzői munka sem a gyakorlást. Egy gyakorlófeladatból a „Saját feladat ebből a példából” gombbal lehet saját feladatot indítani.
 
-Az Adatmodell külön **Sorfüggőségek újraszámítása** művelete az aktuális JSON sorfüggőségeit frissíti a jelenlegi JS/TS elemzővel, azonos sor-/blokkstruktúra mellett. Kód, sor-ID, fixed, kézi élek és profilok megmaradnak; kompatibilis kitöltés újraértékelődik. A normál import nem hívja. Régi generált modellnél a felület elmagyarázza, hogy a `dependencyHints` nem validátorszabály. [Példa és javított JSON](evaluate-legacy-serial-case.md).
+A szerzői lépések:
 
-A fájl-/vágólap-/hálózati olvasás előtt rögzített közös szerzői kérésgeneráció védi a referenciát: újabb szerzői művelet, szövegmódosítás vagy feladatváltás után a késői eredmény nem aktiválhat modellt. A JSON- és session-fájlok olvasás előtti védelme is ugyanide tartozik; a védelem memóriabeli, nem sessionmező. [ADR-006](adr/006-explicit-dependency-refresh-and-review-guards.md).
+| Lépés | Mit csinál | Mikor érhető el |
+| --- | --- | --- |
+| **1 · Forrás** | A helyes program (forráskód) vagy egy kész CodeLine JSON. Indulás üresen, példából, forrásfájlból, a TS tesztfájlból vagy mentett munkamenetből. A „Modell készítése” után a folyamat a Szabályok lépésre lép. | mindig |
+| **2 · Szabályok** | Vizuális szabálytábla: a referencia sorai modellsorrendben, a szabályok ívekkel rajzolva, a sorok összeköthetők. Mellette a kijelölt sor szabálypanelje (ADR-021), alatta a minősítés. Haladó eszközként a CodeLine JSON, a függőségtábla és az újraszámítás. | ha van alkalmazott modell |
+| **3 · Próba** | Rendező és Megoldáskód, ellenőrzés, tanúsorrend, munkamenet-kezelés, valamint a „Tanulói nézet”. | ha van alkalmazott modell |
 
-## Próba és tanulói preview
+**Egyetlen igazságforrás:** a Szabályok és a Próba lépés mindig az **alkalmazott** modellt mutatja.
 
-A **Próba** a rendezőt és a megoldás kódszerkesztőjét kínálja. A szerző mintát tölthet ki, újrakezdhet, másolhat, beilleszthet és ugyanazzal a kiértékelési mechanizmussal vizsgálhatja a megengedett/tiltott elrendezéseket. A rendező az egyetlen aktív próbálkozásállapot.
+- Ha a forrás vagy a JSON ehhez képest nem alkalmazott változást tartalmaz, a későbbi lépések „Elavult” jelzést és magyarázó sávot kapnak.
+- A forrásváltozásnál a sáv műveletei: „Modell újrakészítése” vagy „Forrásváltozás elvetése”.
+- A JSON-változásnál a sáv művelete: „JSON megnyitása”.
+- Egy sikeres alkalmazás minden származtatott nézetet ugyanabból a modellből frissít: a táblát, a panelt, a JSON-t, a minősítést és a próbát.
+- A kompatibilis kitöltés megmarad, és azonnal újraértékelődik.
 
-A kódszerkesztő külön, még nem alkalmazott munkaváltozat. Más nézetre váltás nem dobja el. Ha közben a rendező módosul, visszatéréskor jelzés figyelmeztet a két változatra. Az alkalmazás az eredeti domainmodulon keresztül történik. Ebben a nézetben nincs félrevezető, az alkalmazás előtt amúgy sem működő Ellenőrzés gomb: a fő művelet az Alkalmazás. Utána a rendezőben lehet értékelni.
+**Hová lép az alkalmazás:**
 
-Az **01 · Referencia és szabályok** és **02 · Megoldás és próba** ugyanahhoz a kiválasztott feladathoz tartozik. A Referenciaforrás a helyes program és a feladat alapja; a Megoldáskód a rendezőben összeállított próbáé. A próba módosítása nem írja át a referenciát. A „Rendezőből újratöltés” explicit módon elveti a megoldásszerkesztő draftját, és a jelenlegi rendezőből tölti vissza.
+| Művelet | Cél |
+| --- | --- |
+| forrásból vagy fájlból készített modell | Szabályok |
+| JSON alkalmazása a Szabályok lépésben | marad |
+| szabályszerkesztés | marad |
+| újraszámítás | marad |
+| munkamenet importja | Próba |
 
-A referencia kézi gépelése is azonnal menti a memóriabeli draftot, és „Nem alkalmazott referencia” jelzést kap. A szerzői source/JSON munkaváltozatok feladatonként megmaradnak nézet- és könyvtárváltáskor; első alkalommal a kiválasztott feladat publikus forrásából indulnak. A gyakorlófeladat szerzői alkalmazása új saját preview-t hoz létre, a szerver trusted szabályait nem módosítja. Alkalmazás csak az aktuális, változatlan munkaváltozatot aktiválhatja; késői válasz nem ír felül újabb szöveget. Ezek memóriabeli draftok, nem új vagy automatikusan mentett session formátum. Döntés: [ADR-004](adr/004-reference-and-attempt-workspaces.md).
+A **Sorfüggőségek újraszámítása** az aktuális JSON generált sorfüggőségeit frissíti a jelenlegi JS/TS elemzővel, azonos sor- és blokkstruktúra mellett. A rögzített importkibocsátással dolgozik. A kód, a sor-ID, a fixed, a szerzői szabályok és a profilok megmaradnak; a jelentés a Minősítés alatt jelenik meg. [Példa és javított JSON](evaluate-legacy-serial-case.md).
 
-A **Tanulói preview** elrejti a könyvtárat, forrás-/JSON-szerzői tabokat, mintakitöltést, mentés-/fájlkezelést és belső tokenmegfeleltetési/keresési részleteket. A feladatleírás, rendező/kódszerkesztő, másolás/beillesztés, újrakezdés és kiértékelési visszajelzés marad. A szerző visszalépési gombja a preview-host navigációja; a visszalépés nem törli a próbálkozást vagy a szerzői munkaváltozatokat. Ez prezentációs elkülönítés, nem bejelentkezés/jogosultságkezelés vagy új hiteles vizsgacsatorna. A Local Demo / Preview / Trusted Server validációs jelölések változatlan jelentésűek.
+**Késői válaszok elleni védelem:** a fájl-, vágólap- és hálózati olvasás előtt rögzített szerzői kérésgeneráció védi a referenciát. Újabb szerzői művelet, szövegmódosítás vagy másik modell után a késői eredmény nem aktiválhat modellt. A módváltás nem szakít meg egy folyamatban lévő szerzői kérést. [ADR-006](adr/006-explicit-dependency-refresh-and-review-guards.md).
 
-A könyvtárban öt referenciafeladat van: négy összetett algoritmus-/osztálypélda és az alternatív profilok példája ([részletek](complex-scope-ordering.md)). A saját alkalmazott előnézet külön csoportot kap. A clipboard közvetlenül az érintett szerkesztőnél/panelnél található; a megoldás Másolás gombja a korábbi két azonos műveletet egyetlen vezérlőre vonja össze. A mentés az oldalsó munkamenet-csoportban van, nem versenyez az elsődleges ellenőrzéssel.
+## Szabályok a táblán
+
+- **Kijelölés:** a sor láncszem gombja kijelöli a sort. Kiemelődnek a közvetlen előzményei (kék) és követői (borostyán), az ívek kirajzolódnak, és megnyílik a panel. A „Minden nem szerkezeti szabály rajzolása” az egész gráfot mutatja.
+- **Összekötés:** egy sor körgombját egy másik sorra húzva (egérrel, tollal vagy érintéssel) a kettő közé szabály kerül. Ugyanez billentyűzettel: az első sor körgombja Enterrel, majd a másiké; Escape megszakít. Az irányt a referencia sorrendje adja, mert kötelező szabály csak azzal összhangban vehető fel (ADR-018).
+- **Döntés:** minden szerkesztés típusos szabályművelet; a megengedhetőségről, a megerősítés szintjéről és az újraminősítésről a core dönt (ADR-018, ADR-021). Egy nem alkalmazott JSON-piszkozat mellett a szabályszerkesztés nem indul el; a nem alkalmazott forráspiszkozat megmarad.
+
+## Próba és tanulói nézet
+
+**Szabályok a próbarendezőn:** a szerző saját előnézetében a Próba lépésben is minden soron ott van a láncszem és a kör gomb, a rendező fölött a jelmagyarázat és a „Minden nem szerkezeti szabály rajzolása” kapcsoló, alatta a szabálypanel.
+
+- Az ívek a szerző aktuális elrendezésében rajzolódnak, és minden mozgatás után újra; egy fordított irányú ív a szabállyal ellentétes jelenlegi sorrendet mutatja.
+- Egy szabályszerkesztés megtartja a kitöltést, és azonnal újraértékeli.
+- A körgombról induló húzás összeköt, nem mozgat sort; a fogantyú továbbra is mozgat.
+- A gyakorló mód és a tanulói nézet ebből semmit nem mutat.
+
+A **Próba** a rendezőt és a megoldás kódszerkesztőjét kínálja. A szerző mintát tölthet ki, újrakezdhet, másolhat, beilleszthet, és ugyanazzal a kiértékeléssel vizsgálhatja a megengedett és a tiltott elrendezéseket.
+
+A kódszerkesztő külön, még nem alkalmazott munkaváltozat. Más nézetre vagy lépésre váltás nem dobja el. Ha közben a rendező módosul, visszatéréskor jelzés figyelmeztet a két változatra. A „Rendezőből újratöltés” explicit módon elveti a szerkesztő piszkozatát.
+
+A **Tanulói nézet** (csak a Próba lépésben) elrejti:
+
+- a módváltót és a lépéseket;
+- a szabálytáblát;
+- a mintakitöltést és a mentést;
+- a belső tanú- és keresési részleteket.
+
+A feladatleírás, a rendező, a kódszerkesztő, a másolás, a beillesztés, az újrakezdés és a kiértékelés marad. Ez prezentációs elkülönítés, nem jogosultságkezelés. A Local Demo / Preview / Trusted Server jelölések változatlan jelentésűek.
 
 ## Interakció és hozzáférhetőség
 
-- Natív button, input/select/textarea, progress, details és list/listitem elemek. A tablist megfelelő selected/controls/labelledby kapcsolatokkal rendelkezik. Bal/jobb/Home/End fókuszt mozgat; Enter/Space aktivál (kézi aktiválás).
-- A fókusz, editor-kijelölés és megnyitott magyarázatok a szükséges DOM-csere után megmaradnak; async ellenőrzés befejezése nem görgeti el a munkát. Ha közben a felhasználó máshova fókuszál, nem lopjuk vissza a fókuszt.
-- Ctrl/Cmd+Enter az aktuális nézet elsődleges műveletét végzi: forrás/JSON/megoldás alkalmazása vagy a rendező ellenőrzése. Foglalt gombot újra nem aktivál.
-- Az async műveletek látható várakozási és aria-busy/disabled állapotot kapnak. A visszajelzések role=status / aria-live útvonalon is elérhetők; az indeterminate nem jelenik meg hibás megoldásként.
-- Elhelyezettségi progress és értékelési eredmény külön fogalom. A kitöltött feladatot is ellenőrizni kell. A bizalmi mód szövegesen is látható, nem csak színnel.
-- Minimum 24 px sorvezérlők, érintéskor 44 px fogantyúk és nagyobb műveletcélok; látható fókusz, reduced-motion támogatás, 320/390/768 px szélességen vízszintes oldal-túlcsordulás nélküli felület. A kód és a táblázatok saját görgetést használnak.
+- **Elemek:** natív button, input/select/textarea, progress, details és list/listitem elemek.
+  - A lépések egy rendezett lista gombjai: `aria-current="step"`, a zárolt lépés `disabled`, okkal.
+  - A Rendező/Megoldáskód és a Vizuális/JSON váltó tablist: Bal/Jobb/Home/End mozgat, Enter vagy Space aktivál.
+- **Folytonosság:** a fókusz, az editor-kijelölés és a megnyitott magyarázatok a DOM-csere után megmaradnak, alnézetenként külön (a Szabályok vizuális és JSON nézete nem írja felül egymást).
+- **Ctrl/Cmd+Enter** az aktuális lépés elsődleges műveletét végzi: modellkészítés, JSON alkalmazása, megoldás alkalmazása vagy ellenőrzés.
+- **Visszajelzés:** az async műveletek aria-busy/disabled állapotot kapnak; a visszajelzések role=status / aria-live úton is elérhetők.
+- **Célméretek:** legalább 24 px vezérlők, érintéskor 44 px fogantyúk, 28 px-es összekötő körgombok. 320/390/768 px szélességen nincs vízszintes oldaltúlcsordulás.
 
 Elsődleges irányelvek: [WAI-ARIA tabs](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/), [WCAG 2.5.8 célméret](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html), [WCAG státuszjelzések](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html), [fókusz láthatósága](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html). A megvalósítás és a célzott automatizált QA nem jelent teljes WCAG-tanúsítást.
 
 ## Forrásgazda és ellenőrzés
 
-A megjelenítési implementáció a src/workbench natív strict TypeScript-forrása. A public/app megfelelő JS-moduljai buildtermékek; a régi importútvonalak megmaradnak. Az architektúrakapu a forrás/emit egyezést is ellenőrzi. Az eredeti üzleti JS-portok átmeneti állapotát az [ADR-001](adr/001-typescript-workbench-and-boundaries.md) nevezi meg; ettől az egész repository még nem vált TypeScriptté.
+A megjelenítés a `src/workbench` natív strict TypeScript-forrása; az állapotgép a `flow.ts`, a szabálytábla a `rule-board.ts`. A `public/app` megfelelő JS-moduljai buildtermékek. Az eredeti üzleti JS-portok átmeneti állapotát az [ADR-001](adr/001-typescript-workbench-and-boundaries.md) nevezi meg.
 
-A `npm run test:browser:workbench` 29 folyamatot vizsgál Node/Pages módban: modellből indítás, source file pending/apply és JSON-fájl, forrás/JSON összekapcsolás, referencia gépelése és feladatváltáskori draft-megőrzés, megoldás/reference szétválasztás, explicit rendezőből újratöltés, learner preview izoláció/visszatérés, tabs/draft, fókusz/details/contextual copy, ismételt async check elkerülése, késői admission-/mintabetöltési/formázási/értékelési válaszok védelme, fixed körüli keresztezés és három mobilméret. A meglévő offline/HTTP/32 esetű mátrix/36 drag kör is megmaradt. A scrolltesztek látható sort választanak a tényleges sormagasságból, így a pixelméret megváltoztatása nem keveredik a scroll megőrzésével.
+**Tesztek:**
 
-A mezők, Tab/behúzás, beszúrás és fixed részletes üzleti jelentése: [működési szerződés](business-technical-contract.md).
+- `tests/workbench-flow.test.mjs`: minden állapotátmenet (zárolás, elavulás, módváltás, landolás, összekötés iránya).
+- `npm run test:browser:workbench`: 41 folyamat Node és Pages módban, többek között:
+  - a zárolt lépések;
+  - az újraépítés és a JSON-alkalmazás után minden későbbi lépés frissül;
+  - egy szerzői projekt a gyakorlás mellett, példák mint kezdőpontok;
+  - szabálypanel és összekötés egérrel és billentyűzettel, a táblán és a próbarendezőn is;
+  - az ívek újrarajzolása rendezés közben és az azonnali újraértékelés;
+  - a piszkozatok megőrzése és a késői válaszok elleni védelem;
+  - tanulói elkülönítés és három mobilméret.
+- A mátrix-, drag-, offline-, HTTP- és TypeScript-kör az új navigációval fut.
+
+A mezők, a Tab/behúzás, a beszúrás és a fixed részletes üzleti jelentése: [működési szerződés](business-technical-contract.md).

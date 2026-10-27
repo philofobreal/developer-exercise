@@ -3,7 +3,7 @@ const views = ['sort', 'edit', 'author', 'model'];
 export function activateView(state, attempt, formatted, next) {
     if (!views.includes(next))
         return;
-    if (next === 'edit' && !attempt.editorDirty) {
+    if (next === 'edit' && attempt && !attempt.editorDirty) {
         attempt.draft = formatted.join('\n');
         attempt.editorGeneration = attempt.generation;
     }
@@ -15,8 +15,8 @@ export function markEditorApplied(attempt) { attempt.editorDirty = false; attemp
 export function reloadEditorFromArrangement(attempt, formatted) { attempt.draft = formatted.join('\n'); markEditorApplied(attempt); }
 /** A late formatter response must still belong to the same untouched draft. */
 export function captureEditorRequest(editor, state, attempt, getAttempt, language) {
-    const text = editor.value, active = state.active, view = state.view, generation = attempt.generation, originalLanguage = language();
-    return () => editor.isConnected && editor.value === text && state.active === active && state.view === view && getAttempt() === attempt && attempt.generation === generation && language() === originalLanguage;
+    const text = editor.value, active = state.active, view = state.view, generation = attempt?.generation, originalLanguage = language();
+    return () => editor.isConnected && editor.value === text && state.active === active && state.view === view && getAttempt() === attempt && attempt?.generation === generation && language() === originalLanguage;
 }
 /** Row buttons target the adjacent movable slot, skipping fixed physical slots. */
 export function adjacentMoveBoundary(position, direction, length, isFixed) {
@@ -36,8 +36,8 @@ export function installWorkbenchKeyboard(root) {
             return;
         }
         if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && !event.altKey) {
-            const active = root.querySelector('[role="tab"][aria-selected="true"]')?.dataset.view;
-            const selector = active === 'author' ? '[data-author-apply]' : active === 'model' ? '[data-model-apply]' : active === 'edit' ? '[data-apply]' : '[data-check]';
+            const active = root.dataset.renderedView;
+            const selector = active === 'author' ? '.step-panel [data-author-apply],[data-model-apply]' : active === 'model' ? '[data-model-apply]' : active === 'edit' ? '[data-apply]' : '[data-check]';
             event.preventDefault();
             root.querySelector(selector)?.click();
         }
@@ -48,7 +48,7 @@ export async function dispatchWorkbenchAction(event, handler, onError) {
     const button = event.target instanceof Element ? event.target.closest('button') : null;
     if (!button || running.has(button))
         return;
-    const busy = button.matches('[data-check],[data-author-apply],[data-model-apply],[data-model-refresh],[data-format],[data-author-format],[data-author-sample],[data-rule-edit]');
+    const busy = button.matches('[data-check],[data-author-apply],[data-model-apply],[data-model-refresh],[data-format],[data-author-format],[data-author-sample],[data-rule-edit],[data-rule-connect]');
     const original = button.innerHTML, disabled = button.disabled, hadFocus = document.activeElement === button, owner = button.closest('#app');
     const context = owner ? { exercise: owner.dataset.renderedExercise, view: owner.dataset.renderedView } : undefined;
     const action = button.getAttributeNames().find(name => name.startsWith('data-'));
@@ -120,7 +120,7 @@ export function installAuthoringFlows(root, state, render) {
         else {
             returnView = state.view;
             state.learnerPreview = true;
-            if (state.view === 'author' || state.view === 'model')
+            if (state.view !== 'edit')
                 state.view = 'sort';
         }
         render();

@@ -1,6 +1,6 @@
 # ADR-004 – Referencia és megoldás, feladatonkénti munkaváltozatok
 
-Állapot: megvalósítva. Az [ADR-001](001-typescript-workbench-and-boundaries.md), [ADR-002](002-fixed-positions.md) és [ADR-003](003-language-ir-and-codeline-v3.md) változatlanul érvényes.
+Állapot: megvalósítva; a feladatonkénti szerzői munkaváltozatokat az [ADR-022](022-stepwise-author-flow.md) egyetlen szerzői projektre cserélte (a gyakorlás külön mód). A referencia és a próba szétválasztása érvényes. Az [ADR-001](001-typescript-workbench-and-boundaries.md), [ADR-002](002-fixed-positions.md) és [ADR-003](003-language-ir-and-codeline-v3.md) változatlanul érvényes.
 
 A referencia gépelése nem frissítette a controller tárolt source mezőjét; nézetváltáskor elveszhetett. Emellett a globális szerzői forrás más feladathoz tartozhatott, mint a kiválasztott próba. A megoldásszerkesztő helyesen külön munkaváltozatot tartott, de a feliratok két hasonló forrásnézetnek láttatták ezeket.
 

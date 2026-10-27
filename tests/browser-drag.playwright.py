@@ -26,7 +26,7 @@ count=0
 def identities(page,zone='solution'):
     return page.locator('.'+zone+'-zone .code-row').evaluate_all('(rows)=>rows.map(r=>r.dataset.lineId)')
 def select(page,url,exercise,fill=False):
-    page.goto(url);expect(page.locator('[data-task]').first).to_be_visible()
+    page.goto(url);page.locator('[data-mode="practice"]').click();expect(page.locator('[data-task]').first).to_be_visible()
     page.locator('[data-task="'+exercise['id']+'"]').click()
     if fill:page.locator('[data-all]').click()
     page.evaluate("window.__drag=[];for(const type of ['dragstart','pointercancel','dragover','drop','dragend'])document.addEventListener(type,e=>window.__drag.push({type,prevented:e.defaultPrevented,caret:!!document.querySelector('.insert-caret')}));")

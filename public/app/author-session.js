@@ -11,6 +11,6 @@ export function installPreview(state,data,{preserveAttempt=false,restoredAttempt
  state.authorModel=structuredClone(m);
  // What the API reported with this draft (ADR-021); presentation data, never a rule source.
  state.authorInsight={rules:data.rules,verification:data.verification,audit:data.audit,refresh:data.refresh,effect:data.effect};
- state.modelDraft=JSON.stringify(m,null,2);state.view='sort';
+ state.modelDraft=JSON.stringify(m,null,2);
  return {compatible:!!compatible,model:m};
 }

@@ -21,17 +21,19 @@ try:
         page=browser.new_page(viewport={'width':1500,'height':950});errors=[]
         page.on('pageerror',lambda err:errors.append(str(err)))
         page.goto(BASE,wait_until='domcontentloaded',timeout=15000)
-        page.locator('[data-task]').first.wait_for()
+        page.locator('[data-step="source"]').wait_for()
         assert abs(page.locator('#app').evaluate('(x)=>x.getBoundingClientRect().width')-1500)<2
-        page.locator('[data-view="author"]').click()
+        page.locator('[data-step="source"]').click()
         page.locator('#author-editor').fill('function calc() {\n const a = 1;\n const b = 2;\n return a + b;\n}')
         page.locator('[data-author-apply]').click()
+        page.locator('[data-step="rules"][aria-current="step"]').wait_for();page.locator('[data-step="try"]').click()
         page.locator('.solution-zone .code-row').first.wait_for()
         assert page.locator('.solution-zone .code-row').count()==5
         # Author can explicitly tighten an automatically independent declaration.
-        page.locator('[data-view="model"]').click()
+        page.locator('[data-step="rules"]').click();page.locator('[data-rules-view="json"]').click()
         strict=json.loads(page.locator('#model-editor').input_value());strict['lines'][2]['dependencies']=[2]
         page.locator('#model-editor').fill(json.dumps(strict));page.locator('[data-model-apply]').click()
+        page.get_by_text('Aktív modell').first.wait_for();page.locator('[data-step="try"]').click()
         page.locator('.solution-zone .code-row').first.wait_for()
         page.locator('[data-all]').click()
         page.locator('[data-check]').click()
@@ -41,7 +43,7 @@ try:
         before=page.locator('.solution-zone .code-text code').all_text_contents()
         assert 'const b' in before[1] and 'const a' in before[2],before
         page.locator('[data-check]').click();page.get_by_text('Hibás',exact=False).first.wait_for()
-        page.locator('[data-view="model"]').click()
+        page.locator('[data-step="rules"]').click();page.locator('[data-rules-view="json"]').click()
         obj=json.loads(page.locator('#model-editor').input_value())
         a=next(x for x in obj['lines'] if 'const a' in x['code'])
         b=next(x for x in obj['lines'] if 'const b' in x['code'])
@@ -50,6 +52,7 @@ try:
         ret['dependencies']=[a['id'],b['id']]
         page.locator('#model-editor').fill(json.dumps(obj,ensure_ascii=False,indent=2))
         page.locator('[data-model-apply]').click()
+        page.get_by_text('Aktív modell').first.wait_for();page.locator('[data-step="try"]').click()
         page.locator('.solution-zone .code-row').first.wait_for()
         after=page.locator('.solution-zone .code-text code').all_text_contents()
         assert after==before,(before,after)
@@ -65,9 +68,10 @@ try:
         assert bg in (None,'rgba(0, 0, 0, 0)','transparent'),bg
         # Scroll large complete solution: record position and reorder without resetting to top.
         sample='function many() {\n'+''.join(f' const v{i} = {i};\n' for i in range(220))+' return 0;\n}'
-        page.locator('[data-view="author"]').click()
+        page.locator('[data-step="source"]').click()
         page.locator('#author-editor').fill(sample)
         page.locator('[data-author-apply]').click()
+        page.locator('[data-step="rules"][aria-current="step"]').wait_for();page.locator('[data-step="try"]').click()
         page.locator('[data-all]').click()
         page.evaluate('document.querySelector(".solution-zone").scrollTop = 3000')
         saved=page.evaluate('document.querySelector(".solution-zone").scrollTop')

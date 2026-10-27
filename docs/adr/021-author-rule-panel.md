@@ -1,6 +1,6 @@
 # ADR-021 – Szerzői szabálypanel a rendezőn
 
-Állapot: implementálva (D2). A validátor, a CodeLine-séma, a tanulói parsermentes értékelés és a bizalmi határ változatlan. A policyverzió nem változik (`scoped-effect-analysis-v11`).
+Állapot: implementálva (D2). Az [ADR-022](022-stepwise-author-flow.md) óta a panel és a kiemelés a Szabályok lépés vizuális szabálytábláján él, nem a próbarendezőn; a minősítés ugyanott jelenik meg. A validátor, a CodeLine-séma, a tanulói parsermentes értékelés és a bizalmi határ változatlan. A policyverzió nem változik (`scoped-effect-analysis-v11`).
 
 ## Kontextus
 

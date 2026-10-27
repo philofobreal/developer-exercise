@@ -1,4 +1,6 @@
-"""Real authoring/learner workflows on Node and Pages, with keyboard and mobile QA."""
+"""Real authoring/learner workflows on Node and Pages, with keyboard and mobile QA.
+ADR-022: two modes (author steps Forrás → Szabályok → Próba, practice), one active step,
+explicit staleness; every transition below checks which model the next view starts from."""
 import json,os,re,socket,subprocess,threading,time,urllib.request
 from http.server import SimpleHTTPRequestHandler
 from playwright.sync_api import sync_playwright,expect
@@ -15,155 +17,129 @@ class Pages(SimpleHTTPRequestHandler):
 static=StaticServer(('127.0.0.1',0),Pages);threading.Thread(target=static.serve_forever,daemon=True).start()
 model=json.loads((ROOT/'docs/evaluate-ordering.generated.json').read_text(encoding='utf-8'))
 source='function typed() {\n const a: number = 10;\n const b: number = 20;\n return a + b;\n}'
+rules_source='function f() {\n  const a = 1;\n  const b = 2;\n  const c = a + 3;\n  g(b, c);\n}'
 count=0
 
 def case(name,action):
     global count
     action();count+=1;print('PASS workbench: '+name,flush=True)
-def reset(page,url):page.goto(url);expect(page.locator('[data-task]').first).to_be_visible()
+def reset(page,url):page.goto(url);expect(page.locator('[data-step="source"]')).to_have_attribute('aria-current','step')
+def current(page,step):expect(page.locator(f'[data-step="{step}"]')).to_have_attribute('aria-current','step')
+def build(page,text):
+    """Forrás → Modell készítése: the flow continues on the rules step."""
+    page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill(text);page.locator('[data-author-apply]').click();current(page,'rules')
+def json_model(page,value):
+    page.locator('[data-step="source"]').click();page.locator('[data-source-kind="json"]').click();expect(page.locator('[data-import-model]')).to_be_visible()
+    page.locator('#model-editor').fill(json.dumps(value));expect(page.locator('[data-model-status]')).to_contain_text('Nem alkalmazott JSON');page.locator('[data-model-apply]').click();current(page,'rules')
+def to_try(page):page.locator('[data-step="try"]').click();current(page,'try');expect(page.locator('.solution-zone')).to_be_visible()
+def rules_json(page):page.locator('[data-step="rules"]').click();page.locator('[data-rules-view="json"]').click();expect(page.locator('#model-editor')).to_be_visible()
+def practice(page):page.locator('[data-mode="practice"]').click();expect(page.locator('[data-task]').first).to_be_visible()
+
+def steps_locked_until_model(page):
+    for step in ['rules','try']:expect(page.locator(f'[data-step="{step}"]')).to_be_disabled()
+    expect(page.locator('[data-author-status]')).to_contain_text('Még nem készült modell')
+    expect(page.locator('.library')).to_have_count(0);expect(page.locator('[data-task]')).to_have_count(0)
+    build(page,rules_source)
+    for step in ['rules','try']:expect(page.locator(f'[data-step="{step}"]')).to_be_enabled()
+    expect(page.locator('[data-board-line]')).to_have_count(6);page.locator('[data-goto="try"]').click();current(page,'try');expect(page.locator('.source-zone .code-row')).to_have_count(6)
+    page.locator('[data-goto="rules"]').click();current(page,'rules');page.locator('[data-goto="source"]').click();current(page,'source')
 def model_first(page):
-    page.locator('[data-view="model"]').click();expect(page.locator('#model-editor')).to_be_visible();expect(page.locator('[data-import-model]')).to_be_visible()
-    page.locator('#model-editor').fill(json.dumps(model));expect(page.locator('[data-model-status]')).to_contain_text('Nem alkalmazott JSON');page.locator('[data-model-apply]').click();expect(page.locator('.solution-zone .code-row')).to_have_count(7)
+    json_model(page,model);to_try(page);expect(page.locator('.solution-zone .code-row')).to_have_count(7)
     page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
 def source_file(page):
-    before=page.locator('.task.selected').get_attribute('data-task');page.locator('[data-view="author"]').click()
     with page.expect_file_chooser() as chooser:page.locator('[data-import-source]').click()
     chooser.value.set_files({'name':'typed.ts','mimeType':'text/plain','buffer':source.encode()})
     expect(page.locator('#author-editor')).to_have_value(source);expect(page.locator('[data-author="language"]')).to_have_value('typescript');expect(page.locator('.author-status')).to_contain_text('még nincs alkalmazva')
-    assert page.locator('.task.selected').get_attribute('data-task')==before
-    page.locator('[data-author-apply]').click();expect(page.locator('.solution-zone .code-row')).to_have_count(5)
+    for step in ['rules','try']:expect(page.locator(f'[data-step="{step}"]')).to_be_disabled()
+    page.locator('[data-author-apply]').click();current(page,'rules');to_try(page);expect(page.locator('.source-zone .code-row')).to_have_count(5)
     page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
-    page.locator('[data-view="model"]').click();generated=json.loads(page.locator('#model-editor').input_value());assert generated['language']=='typescript';assert '\n'.join(line['code'] for line in generated['lines'])==source
+    rules_json(page);generated=json.loads(page.locator('#model-editor').input_value());assert generated['language']=='typescript';assert '\n'.join(line['code'] for line in generated['lines'])==source
 def json_file(page):
-    page.locator('[data-view="model"]').click()
+    page.locator('[data-source-kind="json"]').click()
     with page.expect_file_chooser() as chooser:page.locator('[data-import-model]').click()
     chooser.value.set_files({'name':'exercise.json','mimeType':'application/json','buffer':json.dumps(model).encode()})
-    expect(page.locator('.solution-zone .code-row')).to_have_count(7);expect(page.locator('.task.selected')).to_contain_text('evaluate')
-    page.locator('[data-view="author"]').click();expect(page.locator('#author-editor')).to_have_value('\n'.join(line['code'] for line in model['lines']))
+    current(page,'rules');expect(page.locator('h1')).to_have_text(model['title'])
+    to_try(page);expect(page.locator('.source-zone .code-row')).to_have_count(7)
+    page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();expect(page.locator('#author-editor')).to_have_value('\n'.join(line['code'] for line in model['lines']))
 def fixed_crossing(page):
     fixed_model={'schemaVersion':2,'id':'fixed-only','revision':1,'language':'javascript','title':'Fixed slots','description':'','blocks':[],'lines':[{'id':i,'code':f'const v{i} = {i};','dependencies':[],'fixed':i==3,'functionBlock':0,'scopeId':None} for i in range(1,6)]}
-    page.locator('[data-view="model"]').click();page.locator('#model-editor').fill(json.dumps(fixed_model));page.locator('[data-model-apply]').click();expect(page.locator('.solution-zone .code-row')).to_have_count(5)
+    json_model(page,fixed_model);to_try(page);expect(page.locator('.solution-zone .code-row')).to_have_count(5)
     page.locator('[data-all]').click();page.locator('[data-down="1"]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
-    assert page.locator('.solution-zone .code-row').nth(2).get_attribute('data-line-id')=='3'
     assert [row.get_attribute('data-line-id') for row in page.locator('.solution-zone .code-row').all()]==['1','4','3','2','5']
 
 def learner(page):
-    model_first(page);page.locator('[data-view="model"]').click();draft=page.locator('#model-editor').input_value();page.locator('[data-preview-toggle]').click()
-    expect(page.locator('#app')).to_have_class('learner-preview');expect(page.locator('[data-view="author"]')).to_have_count(0);expect(page.locator('[data-view="model"]')).to_have_count(0);expect(page.locator('[data-all]')).to_have_count(0);expect(page.locator('.library')).to_have_count(0);expect(page.locator('[data-save-local]')).to_have_count(0)
+    model_first(page);rules_json(page);draft=page.locator('#model-editor').input_value();to_try(page);page.locator('[data-preview-toggle]').click()
+    expect(page.locator('#app')).to_have_class(re.compile('learner-preview'))
+    for selector in ['[data-step]','[data-mode]','[data-all]','.library','[data-save-local]','[data-board-line]']:expect(page.locator(selector)).to_have_count(0)
     page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva');expect(page.locator('[data-arrangement-progress]')).to_have_attribute('value','7')
     # Internal token witnesses and author dependency IDs are not learner-facing tools.
     expect(page.locator('[data-validation-witness]')).to_have_count(0);expect(page.locator('.technical-details')).to_have_count(0)
     page.screenshot(path=str(ARTIFACTS/'ux-learner.png'),full_page=True)
-    page.locator('[data-preview-toggle]').click();expect(page.locator('#model-editor')).to_have_value(draft);expect(page.locator('[data-preview-toggle]')).to_be_focused()
-def rule_panel(page):
-    """ADR-021: the author edits rules on the sorter; learner preview shows none of them."""
-    rules='function f() {\n  const a = 1;\n  const b = 2;\n  const c = a + 3;\n  g(b, c);\n}'
-    page.locator('[data-view="author"]').click();page.locator('#author-editor').fill(rules);page.locator('[data-author-apply]').click()
-    expect(page.locator('.solution-zone .code-row')).to_have_count(6);expect(page.locator('[data-rule-hint]')).to_be_visible()
-    page.locator('[data-all]').click()
-    toggle=page.locator('.solution-zone .code-row[data-line-id="3"] [data-rule-line]');toggle.focus();page.keyboard.press('Enter')
-    panel=page.locator('[data-rule-panel]');expect(panel).to_have_attribute('data-rule-panel-line','3');expect(toggle).to_have_attribute('aria-pressed','true')
-    expect(page.locator('.solution-zone .code-row[data-line-id="1"]')).to_have_class(re.compile('rule-before'));expect(page.locator('.solution-zone .code-row[data-line-id="5"]')).to_have_class(re.compile('rule-after'))
-    expect(panel.locator('[data-rule-pair="1-3"] [data-rule-edit="remove"]')).to_have_count(0)
-    expect(panel.locator('[data-verification-status]')).to_have_text('Elemzéssel igazolt')
-    panel.locator('[data-rule-add="before"] select').select_option('2');panel.locator('[data-rule-add="before"] [data-rule-note]').fill('<img src=x onerror=alert(1)>')
-    panel.locator('[data-rule-add="before"] [data-rule-edit="add"]').click()
-    expect(panel.locator('[data-verification-status]')).to_have_text('Szerzői döntéssel módosított');expect(panel.locator('[data-rule-effect]')).to_contain_text('Szigorítás: igen')
-    expect(panel.locator('[data-rule-note-text]')).to_have_text('<img src=x onerror=alert(1)>');expect(page.locator('img[src="x"]')).to_have_count(0)
-    expect(page.locator('.report')).to_contain_text('Elfogadva')
-    # A proven rule needs the acknowledgement the core names; cancelling keeps it.
-    page.locator('.solution-zone .code-row[data-line-id="5"] [data-rule-line]').click();expect(panel).to_have_attribute('data-rule-panel-line','5')
-    panel.locator('[data-rule-edit="remove"][data-before="3"][data-after="5"]').click();expect(panel.locator('[data-rule-confirm]')).to_contain_text('policy-override')
-    panel.locator('[data-rule-cancel]').click();expect(panel.locator('[data-rule-confirm]')).to_have_count(0);expect(panel.locator('[data-rule-pair="3-5"]')).to_have_count(1)
-    panel.locator('[data-rule-edit="remove"][data-before="3"][data-after="5"]').click();panel.locator('[data-rule-confirm] [data-rule-note]').fill('Didaktikai döntés')
-    panel.locator('[data-rule-edit="confirm"]').click();expect(panel.locator('[data-verification-status]')).to_have_text('Nem igazolt');expect(panel.locator('[data-rule-pair="3-5"]')).to_have_count(0)
-    page.locator('[data-view="model"]').click();insight=page.locator('[data-model-insight]')
-    expect(insight.locator('[data-verification-status]')).to_have_text('Nem igazolt');expect(insight.locator('[data-insight-relaxations]')).to_contain_text('Didaktikai döntés')
-    edited=json.loads(page.locator('#model-editor').input_value());assert edited['authoring']['relaxations']==[{'before':3,'after':5,'editability':'proven','note':'Didaktikai döntés'}]
-    page.locator('[data-view="sort"]').click();page.locator('[data-preview-toggle]').click()
-    for selector in ['[data-rule-line]','[data-rule-panel]','[data-rule-hint]','.rule-selected,.rule-before,.rule-after']:expect(page.locator(selector)).to_have_count(0)
-    page.locator('[data-preview-toggle]').click();expect(page.locator('[data-rule-panel]')).to_have_attribute('data-rule-panel-line','5')
-    page.screenshot(path=str(ARTIFACTS/('ux-rule-panel-'+('node' if page.url.startswith(BASE) else 'pages')+'.png')),full_page=True)
-def pending_reference_survives_rule_edit(page):
-    page.locator('[data-view="author"]').click();page.locator('#author-editor').fill('function f() {\n  const a = 1;\n  return a;\n}');page.locator('[data-author-apply]').click()
-    expect(page.locator('.solution-zone .code-row')).to_have_count(4)
-    page.locator('[data-view="author"]').click();page.locator('[data-author="language"]').select_option('typescript');expect(page.locator('[data-author="importEmit"]')).to_have_value('verbatim')
-    unapplied='function f() {\n  const unapplied = 1;\n}'
-    page.locator('#author-editor').fill(unapplied);page.locator('[data-view="sort"]').click()
-    page.locator('.pool-zone .code-row, .source-zone .code-row').first.locator('[data-rule-line]').click();page.locator('[data-rule-edit="fixed"]').click()
-    expect(page.locator('[data-rule-panel] .rule-status')).to_contain_text('érvényes')
-    page.locator('[data-view="author"]').click();expect(page.locator('#author-editor')).to_have_value(unapplied);expect(page.locator('[data-author-status]')).to_contain_text('Nem alkalmazott')
-    # An unapplied JSON draft is never overwritten by a rule edit.
-    page.locator('[data-view="model"]').click();page.locator('#model-editor').fill('{unapplied JSON');page.locator('[data-view="sort"]').click()
-    page.locator('[data-rule-edit="fixed"]').click();expect(page.locator('[data-rule-panel] .rule-status')).to_contain_text('nem alkalmazott JSON')
-    page.locator('[data-view="model"]').click();expect(page.locator('#model-editor')).to_have_value('{unapplied JSON')
-
+    page.locator('[data-preview-toggle]').click();current(page,'try');expect(page.locator('[data-preview-toggle]')).to_be_focused()
+    rules_json(page);expect(page.locator('#model-editor')).to_have_value(draft)
 def keyboard_draft(page):
     model_first(page);page.locator('[data-view="sort"]').focus();page.keyboard.press('ArrowRight');expect(page.locator('[data-view="edit"]')).to_be_focused();expect(page.locator('[data-view="sort"]')).to_have_attribute('aria-selected','true');page.keyboard.press('Enter')
     expect(page.locator('[data-view="edit"]')).to_have_attribute('aria-selected','true');expect(page.locator('[data-check]')).to_have_count(0);page.locator('#code-editor').fill('unfinished local draft');expect(page.locator('[data-editor-status]')).to_contain_text('Nem alkalmazott változat');expect(page.locator('[data-view="edit"] .dirty-dot')).to_have_count(1)
-    page.locator('[data-view="author"]').click();page.locator('[data-view="edit"]').click();expect(page.locator('#code-editor')).to_have_value('unfinished local draft')
+    page.locator('[data-step="source"]').click();page.locator('[data-step="try"]').click();page.locator('[data-view="edit"]').click();expect(page.locator('#code-editor')).to_have_value('unfinished local draft')
     page.locator('[data-view="sort"]').click();page.locator('[data-down="2"]').click();page.locator('[data-view="edit"]').click();expect(page.locator('#code-editor')).to_have_value('unfinished local draft');expect(page.locator('.draft-notice')).to_contain_text('rendező')
     page.screenshot(path=str(ARTIFACTS/'ux-editor.png'),full_page=True)
 def continuity(page):
     model_first(page);page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
     page.locator('.workspace-help summary').click();page.locator('[data-copy-solution]').click();expect(page.locator('.workspace-help')).to_have_attribute('open','');expect(page.locator('[data-copy-solution]')).to_be_focused()
     assert page.locator('[data-copy-solution]').count()==1 and page.locator('[data-copy-arrangement]').count()==1
-    page.locator('[data-view="model"]').click();page.locator('[data-dependency-table] summary').click();page.screenshot(path=str(ARTIFACTS/'ux-model.png'),full_page=True)
+    rules_json(page);page.locator('[data-dependency-table] summary').click();page.screenshot(path=str(ARTIFACTS/'ux-model.png'),full_page=True)
 
 def reference_continuity(page):
-    tasks=page.locator('[data-task]');first=tasks.nth(0).get_attribute('data-task');second=tasks.nth(1).get_attribute('data-task')
+    """One author project: practice selections never touch it; examples are starting points."""
     examples={m['id']:m for m in [json.loads(f.read_text(encoding='utf-8')) for f in (ROOT/'examples').glob('*.json')]}
-    page.locator('[data-view="author"]').click();expect(page.locator('#author-editor')).to_have_value('\n'.join(l['code'] for l in examples[first]['lines']))
-    expect(page.locator('h1')).to_contain_text(examples[first]['title'])
     draft='function changedDraft() {\n     return 21;\n}'
-    page.locator('#author-editor').fill(draft);expect(page.locator('[data-author-status]')).to_contain_text('Nem alkalmazott referencia')
-    page.locator('[data-view="sort"]').click();expect(page.locator('[data-view="author"] .dirty-dot')).to_have_count(1)
-    page.locator('[data-view="author"]').click();expect(page.locator('#author-editor')).to_have_value(draft)
-    page.locator('[data-view="model"]').click();page.locator('#model-editor').fill('{unfinished JSON')
-    page.locator(f'[data-task="{second}"]').click();page.locator('[data-view="author"]').click();expect(page.locator('#author-editor')).to_have_value('\n'.join(l['code'] for l in examples[second]['lines']))
-    page.locator('#author-editor').fill('second unfinished draft')
-    page.locator(f'[data-task="{first}"]').click();page.locator('[data-view="author"]').click();expect(page.locator('#author-editor')).to_have_value(draft)
-    page.locator('[data-view="model"]').click();expect(page.locator('#model-editor')).to_have_value('{unfinished JSON')
-    page.locator('[data-view="author"]').click();page.locator('[data-author-apply]').click();expect(page.locator('.solution-zone .code-row')).to_have_count(3)
-    page.locator('[data-all]').click();page.locator('[data-view="edit"]').click();page.locator('#code-editor').fill('incorrect answer draft')
-    page.locator('[data-view="author"]').click();expect(page.locator('#author-editor')).to_have_value(draft)
-    page.locator('[data-view="edit"]').click();expect(page.locator('#code-editor')).to_have_value('incorrect answer draft')
+    page.locator('#author-editor').fill(draft)
+    practice(page);tasks=page.locator('[data-task]');second=tasks.nth(1).get_attribute('data-task');tasks.nth(1).click()
+    expect(page.locator('h1')).to_have_text(examples[second]['title']);page.locator('[data-all]').click()
+    page.locator('[data-mode="author"]').click();current(page,'source');expect(page.locator('#author-editor')).to_have_value(draft)
+    page.locator('[data-source-kind="json"]').click();page.locator('#model-editor').fill('{unfinished JSON');page.locator('[data-source-kind="code"]').click();page.locator('[data-source-kind="json"]').click();expect(page.locator('#model-editor')).to_have_value('{unfinished JSON')
+    page.locator('[data-source-kind="code"]').click();page.locator('[data-author-apply]').click();current(page,'rules');expect(page.locator('[data-board-line]')).to_have_count(3)
+    to_try(page);page.locator('[data-all]').click();page.locator('[data-view="edit"]').click();page.locator('#code-editor').fill('incorrect answer draft')
+    page.locator('[data-step="source"]').click();expect(page.locator('#author-editor')).to_have_value(draft)
+    page.locator('[data-step="try"]').click();page.locator('[data-view="edit"]').click();expect(page.locator('#code-editor')).to_have_value('incorrect answer draft')
     page.locator('[data-editor-reload]').click();assert 'changedDraft' in page.locator('#code-editor').input_value();expect(page.locator('[data-editor-status]')).to_contain_text('rendező aktuális')
     page.locator('[data-apply]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
-    page.locator('[data-view="author"]').click();expect(page.locator('#author-editor')).to_have_value(draft)
+    # The practice attempt kept its own arrangement.
+    practice(page);expect(page.locator('h1')).to_have_text(examples[second]['title']);expect(page.locator('[data-arrangement-progress]')).to_have_attribute('value',str(len(examples[second]['lines'])))
+    # An example loaded as a starting point makes the applied model stale until rebuilt or discarded.
+    page.locator('[data-mode="author"]').click();current(page,'try');page.locator('[data-step="source"]').click()
+    page.locator('[data-start-example]').select_option(second);page.locator('[data-start-load]').click();expect(page.locator('#author-editor')).to_have_value('\n'.join(l['code'] for l in examples[second]['lines']))
+    expect(page.locator('[data-author-status]')).to_contain_text('Nem alkalmazott referencia');expect(page.locator('[data-step="source"] .dirty-dot')).to_have_count(1)
+    page.locator('[data-step="rules"]').click();expect(page.locator('[data-stale-notice]')).to_contain_text('referenciaforrás');expect(page.locator('[data-step="try"]')).to_contain_text('Elavult')
+    page.locator('[data-stale-notice] [data-author-revert]').click();expect(page.locator('[data-stale-notice]')).to_have_count(0)
+    page.locator('[data-step="source"]').click();expect(page.locator('#author-editor')).to_have_value(draft)
     page.screenshot(path=str(ARTIFACTS/'ux-reference-workspace.png'),full_page=True)
-
-def stale_author_admission(page):
-    page.locator('[data-view="author"]').click();pending=[]
-    def intercept(route):pending.append(route)
-    page.route('**/api/author/compile',intercept)
-    try:
-        for edit_kind in ['source','model']:
-            active=page.locator('.task.selected').get_attribute('data-task')
-            page.locator('#author-editor').fill('const submitted = 1;');page.locator('[data-author-apply]').click();expect(page.locator('[data-author-apply]')).to_be_disabled()
-            newer='const newer = 2;'
-            if edit_kind=='source':page.locator('#author-editor').fill(newer)
-            else:page.locator('[data-view="model"]').click();page.locator('#model-editor').fill('{new unfinished JSON')
-            route=pending.pop();route.fulfill(response=route.fetch())
-            if edit_kind=='source':expect(page.locator('[data-author-apply]')).to_be_enabled();expect(page.locator('#author-editor')).to_have_value(newer)
-            else:
-                expect(page.locator('#model-editor')).to_have_value('{new unfinished JSON');assert page.locator('.task.selected').get_attribute('data-task')==active
-                page.locator('[data-view="author"]').click();expect(page.locator('#author-editor')).to_have_value('const submitted = 1;')
-            expect(page.locator('[data-author-status]')).to_contain_text('Nem alkalmazott referencia')
-    finally:page.unroute('**/api/author/compile',intercept)
-
+def stale_rebuild_updates_every_step(page):
+    """Regenerating from a changed source refreshes rules, JSON and try; nothing keeps the old model."""
+    build(page,rules_source);to_try(page);page.locator('[data-all]').click()
+    page.locator('[data-step="source"]').click();page.locator('#author-editor').fill(rules_source.replace('  g(b, c);\n','  g(b, c);\n  h(c);\n'))
+    page.locator('[data-step="try"]').click();expect(page.locator('[data-stale-notice]')).to_contain_text('referenciaforrás');expect(page.locator('.solution-zone .code-row')).to_have_count(6)
+    page.locator('[data-stale-notice] [data-author-apply]').click();expect(page.locator('[data-stale-notice]')).to_have_count(0)
+    current(page,'rules');expect(page.locator('[data-board-line]')).to_have_count(7)
+    rules_json(page);assert len(json.loads(page.locator('#model-editor').input_value())['lines'])==7
+    to_try(page);expect(page.locator('.source-zone .code-row')).to_have_count(7);expect(page.locator('.solution-zone .code-row:not(.blank-row)')).to_have_count(0)
+    # A JSON edit applied in the rules step is what the try step uses next.
+    rules_json(page);edited=json.loads(page.locator('#model-editor').input_value());edited['title']='Átnevezett feladat';page.locator('#model-editor').fill(json.dumps(edited))
+    page.locator('[data-step="try"]').click();expect(page.locator('[data-stale-notice]')).to_contain_text('JSON');page.locator('[data-open-json]').click()
+    page.locator('[data-model-apply]').click();current(page,'rules');expect(page.locator('h1')).to_have_text('Átnevezett feladat');expect(page.locator('[data-stale-notice]')).to_have_count(0)
 def legacy_dependency_refresh(page):
     legacy=json.loads((ROOT/'tests/fixtures/evaluate-legacy-serial.model.json').read_text(encoding='utf-8'))
-    page.locator('[data-view="model"]').click();page.locator('#model-editor').fill(json.dumps(legacy));page.locator('[data-model-apply]').click()
-    expect(page.locator('.solution-zone .code-row')).to_have_count(7)
+    json_model(page,legacy);to_try(page);expect(page.locator('.source-zone .code-row')).to_have_count(7)
     order=[1,3,5,2,4,6,7];codes={line['id']:line['code'] for line in legacy['lines']}
     page.locator('[data-view="edit"]').click();page.locator('#code-editor').fill('\n'.join(codes[i] for i in order));page.locator('[data-apply]').click()
     page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Hibás')
-    page.locator('[data-view="model"]').click();expect(page.locator('[data-dependency-refresh]')).to_contain_text('Régebbi generált modell')
+    rules_json(page);expect(page.locator('[data-dependency-refresh]')).to_contain_text('Régebbi generált modell')
     before=json.loads(page.locator('#model-editor').input_value());assert [l['dependencies'] for l in before['lines']]==[l['dependencies'] for l in legacy['lines']]
-    page.locator('[data-model-refresh]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
+    page.locator('[data-model-refresh]').click();expect(page.locator('[data-model-status]')).to_contain_text('Aktív modell');current(page,'rules')
+    page.locator('[data-rules-view="visual"]').click();expect(page.locator('[data-insight-refresh]')).to_be_visible()
+    to_try(page);expect(page.locator('.report')).to_contain_text('Elfogadva')
     assert [int(row.get_attribute('data-line-id')) for row in page.locator('.solution-zone .code-row').all()]==order
-    page.locator('[data-view="model"]').click();after=json.loads(page.locator('#model-editor').input_value())
+    rules_json(page);after=json.loads(page.locator('#model-editor').input_value())
     assert [l['dependencies'] for l in after['lines']]==[[],[1],[1],[2,3],[1],[4,5],[6]]
     assert [(l['id'],l['code'],l['fixed']) for l in after['lines']]==[(l['id'],l['code'],l['fixed']) for l in legacy['lines']]
     assert after['authoring']['dependencyPolicy']=='scoped-effect-analysis-v11'
@@ -172,7 +148,6 @@ def legacy_dependency_refresh(page):
 def stale_file_import(page):
     # Hold the actual File.text promise, before either API adapter can start admission.
     for kind in ('model','session'):
-        active=page.locator('.task.selected').get_attribute('data-task')
         payload=model if kind=='model' else page.evaluate('''async model => {
             const {exportSession}=await import('./app/persistence.js');
             const {createAttempt}=await import('./app/attempt.js');
@@ -189,13 +164,117 @@ def stale_file_import(page):
         }''')
         try:
             page.locator(f'[data-{kind}-file]').set_input_files({'name':'delayed-review.json','mimeType':'application/json','buffer':json.dumps(payload).encode()})
-            page.locator('[data-view="author"]').click();newer=f'const keepNewer_{kind} = 42;';page.locator('#author-editor').fill(newer)
+            page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();newer=f'const keepNewer_{kind} = 42;';page.locator('#author-editor').fill(newer)
             page.evaluate('''async () => {await finishReviewFile();await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));}''')
-            expect(page.locator('#author-editor')).to_have_value(newer);assert page.locator('.task.selected').get_attribute('data-task')==active
+            expect(page.locator('#author-editor')).to_have_value(newer);current(page,'source');expect(page.locator('[data-step="rules"]')).to_be_disabled()
         finally:page.evaluate('() => {File.prototype.text=originalFileText;delete globalThis.finishReviewFile;}')
 
+def rule_panel(page):
+    """ADR-021/022: rules are read and edited on the rules step's board; learner preview shows none of them."""
+    build(page,rules_source);expect(page.locator('[data-rule-hint]')).to_be_visible()
+    toggle=page.locator('.board-row[data-board-line="3"] [data-rule-line]');toggle.focus();page.keyboard.press('Enter')
+    panel=page.locator('[data-rule-panel]');expect(panel).to_have_attribute('data-rule-panel-line','3');expect(toggle).to_have_attribute('aria-pressed','true')
+    expect(page.locator('.board-row[data-board-line="1"]')).to_have_class(re.compile('rule-before'));expect(page.locator('.board-row[data-board-line="5"]')).to_have_class(re.compile('rule-after'))
+    expect(page.locator('[data-board-arcs] path.arc')).to_have_count(3);expect(page.locator('[data-board-arcs] path[data-arc="3-5"]')).to_have_class(re.compile('after'))
+    expect(panel.locator('[data-rule-pair="1-3"] [data-rule-edit="remove"]')).to_have_count(0)
+    expect(panel.locator('[data-verification-status]')).to_have_text('Elemzéssel igazolt')
+    panel.locator('[data-rule-add="before"] select').select_option('2');panel.locator('[data-rule-add="before"] [data-rule-note]').fill('<img src=x onerror=alert(1)>')
+    panel.locator('[data-rule-add="before"] [data-rule-edit="add"]').click()
+    expect(panel.locator('[data-verification-status]')).to_have_text('Szerzői döntéssel módosított');expect(page.locator('[data-step-verification]')).to_have_text('Szerzői döntéssel módosított');expect(panel.locator('[data-rule-effect]')).to_contain_text('Szigorítás: igen')
+    expect(panel.locator('[data-rule-note-text]')).to_have_text('<img src=x onerror=alert(1)>');expect(page.locator('img[src="x"]')).to_have_count(0)
+    # A proven rule needs the acknowledgement the core names; cancelling keeps it.
+    page.locator('.board-row[data-board-line="5"] [data-rule-line]').click();expect(panel).to_have_attribute('data-rule-panel-line','5')
+    panel.locator('[data-rule-edit="remove"][data-before="3"][data-after="5"]').click();expect(panel.locator('[data-rule-confirm]')).to_contain_text('policy-override')
+    panel.locator('[data-rule-cancel]').click();expect(panel.locator('[data-rule-confirm]')).to_have_count(0);expect(panel.locator('[data-rule-pair="3-5"]')).to_have_count(1)
+    panel.locator('[data-rule-edit="remove"][data-before="3"][data-after="5"]').click();panel.locator('[data-rule-confirm] [data-rule-note]').fill('Didaktikai döntés')
+    panel.locator('[data-rule-edit="confirm"]').click();expect(panel.locator('[data-verification-status]')).to_have_text('Nem igazolt');expect(panel.locator('[data-rule-pair="3-5"]')).to_have_count(0)
+    insight=page.locator('[data-model-insight]');expect(insight.locator('[data-verification-status]')).to_have_text('Nem igazolt');expect(insight.locator('[data-insight-relaxations]')).to_contain_text('Didaktikai döntés')
+    rules_json(page);edited=json.loads(page.locator('#model-editor').input_value());assert edited['authoring']['relaxations']==[{'before':3,'after':5,'editability':'proven','note':'Didaktikai döntés'}]
+    to_try(page);page.locator('[data-preview-toggle]').click()
+    for selector in ['[data-rule-line]','[data-rule-panel]','[data-rule-hint]','[data-board-line]','.rule-selected,.rule-before,.rule-after']:expect(page.locator(selector)).to_have_count(0)
+    page.locator('[data-preview-toggle]').click();page.locator('[data-step="rules"]').click();page.locator('[data-rules-view="visual"]').click();expect(page.locator('[data-rule-panel]')).to_have_attribute('data-rule-panel-line','5')
+    page.screenshot(path=str(ARTIFACTS/('ux-rule-panel-'+('node' if page.url.startswith(BASE) else 'pages')+'.png')),full_page=True)
+def rule_connect(page):
+    """Drag a line's connector onto another line (pointer) or activate both connectors (keyboard)."""
+    build(page,rules_source);expect(page.locator('[data-board-arcs] path.arc')).to_have_count(0)
+    page.locator('[data-board-all]').check();expect(page.locator('[data-board-arcs] path.arc')).to_have_count(3)
+    source_box=page.locator('[data-rule-connect="4"]').bounding_box();target_box=page.locator('.board-row[data-board-line="3"]').bounding_box()
+    page.mouse.move(source_box['x']+source_box['width']/2,source_box['y']+source_box['height']/2);page.mouse.down()
+    page.mouse.move(target_box['x']+target_box['width']/2,target_box['y']+target_box['height']/2,steps=8);expect(page.locator('.board-row[data-board-line="3"]')).to_have_class(re.compile('connect-target'));page.mouse.up()
+    panel=page.locator('[data-rule-panel]');expect(panel).to_have_attribute('data-rule-panel-line','4')
+    expect(panel.locator('[data-rule-pair="3-4"] .rule-badge')).to_have_text('Szerzői');expect(page.locator('[data-board-arcs] path[data-arc="3-4"]')).to_have_count(1)
+    expect(panel.locator('[data-rule-effect]')).to_contain_text('Szigorítás: igen')
+    page.locator('[data-rule-connect="2"]').focus();page.keyboard.press('Enter');expect(page.locator('.board-connecting')).to_contain_text('#2')
+    page.keyboard.press('Escape');expect(page.locator('.board-connecting')).to_have_count(0)
+    page.locator('[data-rule-connect="2"]').focus();page.keyboard.press('Enter');page.locator('[data-rule-connect="3"]').focus();page.keyboard.press('Enter')
+    expect(panel).to_have_attribute('data-rule-panel-line','3');expect(panel.locator('[data-rule-pair="2-3"] .rule-badge')).to_have_text('Szerzői')
+    to_try(page);page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
+    page.locator('[data-view="edit"]').click();page.locator('#code-editor').fill('\n'.join(rules_source.split('\n')[i] for i in [0,2,1,3,4,5]).replace('  ',''));page.locator('[data-apply]').click()
+    page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Hibás')
+def pending_reference_survives_rule_edit(page):
+    build(page,'function f() {\n  const a = 1;\n  return a;\n}')
+    page.locator('[data-step="source"]').click();page.locator('[data-author="language"]').select_option('typescript');expect(page.locator('[data-author="importEmit"]')).to_have_value('verbatim')
+    unapplied='function f() {\n  const unapplied = 1;\n}'
+    page.locator('#author-editor').fill(unapplied);page.locator('[data-step="rules"]').click();expect(page.locator('[data-stale-notice]')).to_be_visible()
+    page.locator('.board-row').first.locator('[data-rule-line]').click();page.locator('[data-rule-edit="fixed"]').click()
+    expect(page.locator('[data-rule-panel] .rule-status')).to_contain_text('érvényes');expect(page.locator('[data-stale-notice]')).to_be_visible()
+    page.locator('[data-step="source"]').click();expect(page.locator('#author-editor')).to_have_value(unapplied);expect(page.locator('[data-author-status]')).to_contain_text('Nem alkalmazott')
+    # An unapplied JSON draft is never overwritten by a rule edit.
+    rules_json(page);page.locator('#model-editor').fill('{unapplied JSON');page.locator('[data-rules-view="visual"]').click()
+    page.locator('[data-rule-edit="fixed"]').click();expect(page.locator('[data-rule-panel] .rule-status')).to_contain_text('nem alkalmazott JSON')
+    page.locator('[data-rules-view="json"]').click();expect(page.locator('#model-editor')).to_have_value('{unapplied JSON')
+
+def try_rules(page):
+    """ADR-022: the try sorter shows and edits rules while arranging; learners and practice never see them."""
+    build(page,rules_source);to_try(page);expect(page.locator('[data-try-rules]')).to_be_visible()
+    expect(page.locator('.source-zone .code-row[data-line-id="3"] [data-rule-line]')).to_have_count(1)
+    page.locator('[data-all]').click()
+    page.locator('.solution-zone .code-row[data-line-id="4"] [data-rule-line]').click()
+    panel=page.locator('.try-rule-panel [data-rule-panel]');expect(panel).to_have_attribute('data-rule-panel-line','4')
+    expect(page.locator('.solution-zone .code-row[data-line-id="2"]')).to_have_class(re.compile('rule-before'));expect(page.locator('.solution-zone .code-row[data-line-id="5"]')).to_have_class(re.compile('rule-after'))
+    arcs=page.locator('.solution-zone .zone-arcs path.arc');expect(arcs).to_have_count(4);expect(page.locator('.solution-zone .zone-arcs path[data-arc="2-4"]')).to_have_class(re.compile('before'))
+    # Arranging keeps the rules visible: a move redraws the arcs at the new row positions.
+    before=page.locator('.solution-zone .zone-arcs path[data-arc="2-4"]').get_attribute('d')
+    page.locator('[data-down="2"]').click();expect(arcs).to_have_count(4);expect(page.locator('.solution-zone .zone-arcs path[data-arc="2-4"]')).not_to_have_attribute('d',before)
+    expect(panel).to_have_attribute('data-rule-panel-line','4')
+    order=[row.get_attribute('data-line-id') for row in page.locator('.solution-zone .code-row').all()];assert order==['1','2','4','3','5','6'],order
+    # Dragging a connector adds a rule and never moves a row.
+    start=page.locator('.solution-zone [data-rule-connect="3"]').bounding_box();end=page.locator('.solution-zone .code-row[data-line-id="2"] .code-text').bounding_box()
+    page.mouse.move(start['x']+start['width']/2,start['y']+start['height']/2);page.mouse.down()
+    page.mouse.move(end['x']+20,end['y']+end['height']/2,steps=8);expect(page.locator('.solution-zone .code-row[data-line-id="2"]')).to_have_class(re.compile('connect-target'));page.mouse.up()
+    expect(panel).to_have_attribute('data-rule-panel-line','3');expect(panel.locator('[data-rule-pair="2-3"] .rule-badge')).to_have_text('Szerzői')
+    assert [row.get_attribute('data-line-id') for row in page.locator('.solution-zone .code-row').all()]==order
+    expect(page.locator('.report')).to_contain_text('Elfogadva')
+    # Keyboard: two connectors. The new rule 3 → 4 contradicts the arrangement, which is re-evaluated at once.
+    page.locator('.solution-zone [data-rule-connect="4"]').focus();page.keyboard.press('Enter');expect(page.locator('.board-connecting')).to_contain_text('#4')
+    page.locator('.solution-zone [data-rule-connect="3"]').focus();page.keyboard.press('Enter')
+    expect(panel).to_have_attribute('data-rule-panel-line','4');expect(panel.locator('[data-rule-pair="3-4"] .rule-badge')).to_have_text('Szerzői');expect(page.locator('.report')).to_contain_text('Hibás')
+    page.screenshot(path=str(ARTIFACTS/('ux-try-rules-'+('node' if page.url.startswith(BASE) else 'pages')+'.png')),full_page=True)
+    page.locator('[data-preview-toggle]').click()
+    for selector in ['[data-rule-line]','[data-rule-connect]','[data-try-rules]','[data-rule-panel]','.zone-arcs path','.rule-selected,.rule-before,.rule-after']:expect(page.locator(selector)).to_have_count(0)
+    page.locator('[data-preview-toggle]').click();expect(page.locator('.solution-zone .zone-arcs path.arc')).not_to_have_count(0)
+    practice(page);page.locator('[data-all]').click()
+    for selector in ['[data-rule-line]','[data-rule-connect]','[data-try-rules]','.zone-arcs']:expect(page.locator(selector)).to_have_count(0)
+def stale_author_admission(page):
+    pending=[]
+    def intercept(route):pending.append(route)
+    page.route('**/api/author/compile',intercept)
+    try:
+        for edit_kind in ['source','model']:
+            page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill('const submitted = 1;');page.locator('[data-author-apply]').click();expect(page.locator('[data-author-apply]')).to_be_disabled()
+            newer='const newer = 2;'
+            if edit_kind=='source':page.locator('#author-editor').fill(newer)
+            else:page.locator('[data-source-kind="json"]').click();page.locator('#model-editor').fill('{new unfinished JSON')
+            route=pending.pop();route.fulfill(response=route.fetch())
+            current(page,'source');expect(page.locator('[data-step="rules"]')).to_be_disabled()
+            if edit_kind=='source':expect(page.locator('[data-author-apply]')).to_be_enabled();expect(page.locator('#author-editor')).to_have_value(newer)
+            else:
+                expect(page.locator('#model-editor')).to_have_value('{new unfinished JSON')
+                page.locator('[data-source-kind="code"]').click();expect(page.locator('#author-editor')).to_have_value('const submitted = 1;');expect(page.locator('[data-author-apply]')).to_be_enabled()
+    finally:page.unroute('**/api/author/compile',intercept)
+
 def stale_source_sample(page):
-    page.locator('[data-view="author"]').click();pending=[]
+    pending=[]
     def intercept(route):pending.append(route)
     page.route('**/samples/copy-field-utility.service.ts',intercept)
     try:
@@ -214,10 +293,9 @@ def busy(page):
         route=pending.pop();route.fulfill(response=route.fetch());expect(page.locator('.report')).to_contain_text('Elfogadva');expect(page.locator('[data-check]')).to_be_enabled();expect(page.locator('[data-check]')).to_be_focused()
     finally:page.unroute('**/api/author/preview',intercept)
 def stale_format(page,author):
-    if author:
-        page.locator('[data-view="author"]').click();selector='#author-editor';action='[data-author-format]'
+    if author:selector='#author-editor';action='[data-author-format]'
     else:
-        page.locator('[data-all]').click();page.locator('[data-view="edit"]').click();selector='#code-editor';action='[data-format]'
+        practice(page);page.locator('[data-all]').click();page.locator('[data-view="edit"]').click();selector='#code-editor';action='[data-format]'
     pending=[]
     def intercept(route):pending.append(route)
     page.route('**/api/author/format',intercept)
@@ -231,7 +309,7 @@ def stale_format(page,author):
     finally:page.unroute('**/api/author/format',intercept)
 
 def stale_check_failure(page):
-    page.locator('[data-all]').click();pending=[]
+    practice(page);page.locator('[data-all]').click();pending=[]
     def intercept(route):pending.append(route)
     page.route('**/api/evaluate',intercept)
     try:
@@ -248,10 +326,10 @@ try:
         browser=launch(p);context=browser.new_context(viewport={'width':1500,'height':1000},permissions=['clipboard-read','clipboard-write']);context.tracing.start(screenshots=True,snapshots=True,sources=True);page=context.new_page();page.set_default_timeout(10000);errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
         try:
             for mode,url in [('node',BASE),('pages',f'http://127.0.0.1:{static.server_port}/developer-exercise/')]:
-                for name,action in [('model-first creation',model_first),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('reference and solution draft continuity',reference_continuity),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit)]:
+                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('model-first creation',model_first),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit)]:
                     reset(page,url);case(mode+' '+name,lambda:action(page))
-                reset(page,url);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-workspace.png')),full_page=True)
-                page.locator('[data-view="author"]').click();page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-author.png')),full_page=True)
+                reset(page,url);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-author.png')),full_page=True)
+                practice(page);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-practice.png')),full_page=True)
             reset(page,BASE);case('node duplicate-check prevention and async feedback',lambda:busy(page))
             reset(page,BASE);case('node admission preserves newer reference edits',lambda:stale_author_admission(page))
             reset(page,BASE);case('node sample loading preserves newer reference edits',lambda:stale_source_sample(page))
@@ -260,10 +338,12 @@ try:
             for width in [320,390,768]:
                 mobile=browser.new_context(viewport={'width':width,'height':900},is_mobile=True,has_touch=True);target=mobile.new_page();target.on('pageerror',lambda error:errors.append(str(error)))
                 try:
-                    reset(target,BASE);target.locator('[data-all]').click();assert target.evaluate('document.documentElement.scrollWidth')<=width
+                    reset(target,BASE);assert target.evaluate('document.documentElement.scrollWidth')<=width
+                    practice(target);target.locator('[data-all]').click();assert target.evaluate('document.documentElement.scrollWidth')<=width
                     handle=target.locator('.solution-zone .drag-handle[tabindex="0"]').first;assert handle.bounding_box()['width']>=44 and handle.bounding_box()['height']>=44
-                    target.locator('[data-preview-toggle]').click();expect(target.locator('[data-view="author"]')).to_have_count(0);assert target.evaluate('document.documentElement.scrollWidth')<=width
-                    target.screenshot(path=str(ARTIFACTS/f'ux-mobile-{width}.png'),full_page=True);count+=1;print(f'PASS workbench: {width}px touch learner layout',flush=True)
+                    target.locator('[data-mode="author"]').click();build(target,rules_source);assert target.evaluate('document.documentElement.scrollWidth')<=width
+                    connector=target.locator('[data-rule-connect="3"]').bounding_box();assert connector['width']>=28 and connector['height']>=28
+                    target.screenshot(path=str(ARTIFACTS/f'ux-mobile-{width}.png'),full_page=True);count+=1;print(f'PASS workbench: {width}px touch practice and author layout',flush=True)
                 finally:mobile.close()
             assert not errors,errors;context.tracing.stop(path=str(ARTIFACTS/'workbench-trace.zip'));print(f'PASS workbench total: {count} cases',flush=True)
         except Exception:

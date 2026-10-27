@@ -2,18 +2,18 @@
 import type {AttemptSnapshot,ViewName,WorkbenchState} from './contracts.js';
 import {captureAuthorRequest} from './author-workspace.js';
 const views:readonly ViewName[]=['sort','edit','author','model'];
-export function activateView(state:WorkbenchState,attempt:AttemptSnapshot,formatted:string[],next:ViewName):void {
+export function activateView(state:WorkbenchState,attempt:AttemptSnapshot|undefined,formatted:string[],next:ViewName):void {
  if(!views.includes(next))return;
- if(next==='edit'&&!attempt.editorDirty){attempt.draft=formatted.join('\n');attempt.editorGeneration=attempt.generation;}
+ if(next==='edit'&&attempt&&!attempt.editorDirty){attempt.draft=formatted.join('\n');attempt.editorGeneration=attempt.generation;}
  state.view=next;
 }
 export function markEditorDraft(attempt:AttemptSnapshot,text:string):void {if(!attempt.editorDirty)attempt.editorGeneration=attempt.generation;attempt.draft=text;attempt.editorDirty=true;}
 export function markEditorApplied(attempt:AttemptSnapshot):void {attempt.editorDirty=false;attempt.editorGeneration=attempt.generation;}
 export function reloadEditorFromArrangement(attempt:AttemptSnapshot,formatted:string[]):void {attempt.draft=formatted.join('\n');markEditorApplied(attempt);}
 /** A late formatter response must still belong to the same untouched draft. */
-export function captureEditorRequest(editor:HTMLTextAreaElement,state:WorkbenchState,attempt:AttemptSnapshot,getAttempt:()=>AttemptSnapshot,language:()=>string):()=>boolean {
- const text=editor.value,active=state.active,view=state.view,generation=attempt.generation,originalLanguage=language();
- return ()=>editor.isConnected&&editor.value===text&&state.active===active&&state.view===view&&getAttempt()===attempt&&attempt.generation===generation&&language()===originalLanguage;
+export function captureEditorRequest(editor:HTMLTextAreaElement,state:WorkbenchState,attempt:AttemptSnapshot|undefined,getAttempt:()=>AttemptSnapshot|undefined,language:()=>string):()=>boolean {
+ const text=editor.value,active=state.active,view=state.view,generation=attempt?.generation,originalLanguage=language();
+ return ()=>editor.isConnected&&editor.value===text&&state.active===active&&state.view===view&&getAttempt()===attempt&&attempt?.generation===generation&&language()===originalLanguage;
 }
 /** Row buttons target the adjacent movable slot, skipping fixed physical slots. */
 export function adjacentMoveBoundary(position:number,direction:-1|1,length:number,isFixed:(position:number)=>boolean):number {
@@ -29,8 +29,8 @@ export function installWorkbenchKeyboard(root:HTMLElement):void {
    event.preventDefault();tabs[next]?.focus();return;
   }
   if((event.ctrlKey||event.metaKey)&&event.key==='Enter'&&!event.altKey){
-   const active=root.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]')?.dataset.view;
-   const selector=active==='author'?'[data-author-apply]':active==='model'?'[data-model-apply]':active==='edit'?'[data-apply]':'[data-check]';
+   const active=root.dataset.renderedView;
+   const selector=active==='author'?'.step-panel [data-author-apply],[data-model-apply]':active==='model'?'[data-model-apply]':active==='edit'?'[data-apply]':'[data-check]';
    event.preventDefault();root.querySelector<HTMLButtonElement>(selector)?.click();
   }
  });
@@ -38,7 +38,7 @@ export function installWorkbenchKeyboard(root:HTMLElement):void {
 const running=new WeakSet<HTMLButtonElement>();
 export async function dispatchWorkbenchAction(event:MouseEvent,handler:(button:HTMLButtonElement)=>Promise<void>,onError?:(error:unknown)=>void):Promise<void>{
  const button=event.target instanceof Element?event.target.closest<HTMLButtonElement>('button'):null;if(!button||running.has(button))return;
- const busy=button.matches('[data-check],[data-author-apply],[data-model-apply],[data-model-refresh],[data-format],[data-author-format],[data-author-sample],[data-rule-edit]');
+ const busy=button.matches('[data-check],[data-author-apply],[data-model-apply],[data-model-refresh],[data-format],[data-author-format],[data-author-sample],[data-rule-edit],[data-rule-connect]');
  const original=button.innerHTML,disabled=button.disabled,hadFocus=document.activeElement===button,owner=button.closest<HTMLElement>('#app');
  const context=owner?{exercise:owner.dataset.renderedExercise,view:owner.dataset.renderedView}:undefined;
  const action=button.getAttributeNames().find(name=>name.startsWith('data-'));
@@ -67,7 +67,7 @@ export function installAuthoringFlows(root:HTMLElement,state:WorkbenchState,rend
  root.addEventListener('click',event=>{
   if(!(event.target instanceof Element)||!event.target.closest('[data-preview-toggle]'))return;
   if(state.learnerPreview){state.learnerPreview=false;state.view=returnView;}
-  else{returnView=state.view;state.learnerPreview=true;if(state.view==='author'||state.view==='model')state.view='sort';}
+  else{returnView=state.view;state.learnerPreview=true;if(state.view!=='edit')state.view='sort';}
   render();root.querySelector<HTMLButtonElement>('[data-preview-toggle]')?.focus({preventScroll:true});
  });
  root.addEventListener('change',async event=>{

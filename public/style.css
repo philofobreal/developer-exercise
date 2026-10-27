@@ -63,3 +63,55 @@ main {min-width:0;padding:28px 30px 24px;scroll-margin-top:15px}.task-heading {d
 .insight-claims {border-collapse:collapse;width:100%;font-size:11px}.insight-claims td,.insight-claims th {padding:6px 8px;border-bottom:1px solid #354e62;text-align:left;vertical-align:top}
 .basis-refuted {color:#ffb3a7}.basis-checked {color:#b9f0dc}
 @media(max-width:850px) {.rule-columns {grid-template-columns:minmax(0,1fr)}}
+/* U1 (ADR-022): two modes, three author steps, one active step at a time. */
+.mode-switch button.active,.source-kind button.active {background:#263c49;border-color:#426270;color:#e6fff6}
+.author-flow {max-width:1500px;margin:0 auto;width:100%}
+.stepper {margin:0 0 18px}.stepper ol {list-style:none;margin:0;padding:0;display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
+.stepper li {display:flex;align-items:center}.step-arrow {color:#677f91}
+.step {min-height:52px;padding:8px 14px;gap:10px;justify-content:flex-start;text-align:left;border-radius:9px;background:#111c28}
+.step .step-number {display:grid;place-items:center;width:26px;height:26px;border-radius:50%;border:1px solid #4c716e;color:#a3e7d3;font-weight:700;font-size:12px;flex-shrink:0}
+.step-text {display:grid;gap:1px}.step-text b {font-size:13px;color:#e6eef4}.step-text small {color:var(--muted);font-size:10px}
+.step.current {border-color:var(--accent);background:#17342c}.step.current .step-number {background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.step.locked {opacity:.6}.step.stale .step-text small {color:#f3dba7}
+.step-panel {margin-top:4px}
+.stale-notice {display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;border-color:#79613b;background:#2b2418}.stale-notice p {margin:0}.stale-notice div {display:flex;gap:8px;flex-wrap:wrap}
+.step-nav {display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:22px 0 10px}
+.start-row {display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin:0 0 16px;padding:12px;border:1px dashed #3a5265;border-radius:8px}.start-row label {flex:1 1 260px;display:grid;gap:5px;font-size:12px;color:#b1c6d3}
+.start-row select {min-height:36px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:#0f1a26;color:var(--text)}
+.link-action {margin-top:8px}
+.rules-tabs {margin:4px 0 16px;width:max-content}
+.rules-layout {display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,1fr);gap:18px;align-items:start}
+.rules-side {position:sticky;top:12px;max-height:calc(100dvh - 24px);overflow:auto}.rules-side .rule-panel {margin-top:0}.rules-side .rule-hint {margin-top:0}
+.rule-board {border:1px solid #354c5d;border-radius:8px;background:#122030;padding:12px 12px 14px}
+.board-heading {display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.board-heading h3 {margin:0}
+.board-toggle {display:flex;align-items:center;gap:7px;font-size:11px;color:#b1c6d3}
+.board-legend {font-size:11px;color:var(--muted);margin:8px 0 10px}.rule-swatch.selected {background:var(--accent)}
+.board-connecting {font-size:12px;color:#f3dba7;margin:0 0 8px}
+.board-frame {position:relative;padding-left:58px}
+.board-arcs {position:absolute;left:0;top:0;width:58px;overflow:visible;pointer-events:none}
+.board-list {list-style:none;margin:0;padding:0;border:1px solid #2b3a4b;border-radius:6px;overflow:hidden;background:#101a26}
+.board-row {display:flex;align-items:center;min-height:var(--row);border-bottom:1px solid #1d2a38}.board-row:last-child {border-bottom:0}
+.board-row .code-text {flex:1;min-width:0}
+.board-id {flex:0 0 46px;font:11px var(--mono);color:#8fa7bc;text-align:right;padding-right:6px}.board-index {flex:0 0 34px;font:10px var(--mono);color:#61798c}
+.board-connect {width:28px;min-width:28px;height:28px;min-height:28px;padding:0;margin:0 4px;border-radius:50%;background:#16283a;touch-action:none;cursor:grab}
+.board-connect span {width:10px;height:10px;border-radius:50%;border:2px solid #7fb4ff}
+.board-connect[aria-pressed=true] span,.connect-source .board-connect span {background:#e6b86a;border-color:#e6b86a}
+.board-row.connect-target {outline:2px dashed #e6b86a;outline-offset:-2px;background:#2f2a1c}
+.board-row.connect-source {background:#2f2a1c}
+.board-row.rule-selected {box-shadow:inset 3px 0 0 var(--accent);background:#173a33}.board-row.rule-before {box-shadow:inset 3px 0 0 #7fb4ff;background:#172a40}.board-row.rule-after {box-shadow:inset 3px 0 0 #e6b86a;background:#2f2a1c}
+.board-row .row-actions button {width:30px;height:28px;min-height:28px}
+#app .depth-1 {padding-left:18px}#app .depth-2 {padding-left:36px}#app .depth-3 {padding-left:54px}#app .depth-4 {padding-left:72px}#app .depth-5 {padding-left:90px}#app .depth-6 {padding-left:108px}#app .depth-7 {padding-left:126px}#app .depth-8 {padding-left:144px}
+.arc {fill:none;stroke-width:1.6;opacity:.9}.arc.before {stroke:#7fb4ff}.arc.after {stroke:#e6b86a}.arc.other {stroke:#8aa0b3;opacity:.55}
+.arc.other.editability-pedagogical {stroke:#9fb6ff;opacity:.85}.arc.other.editability-conservative {stroke:#d7b56a;opacity:.8}.arc.editability-hard {stroke-dasharray:3 3}
+.arc-head.before {fill:#7fb4ff}.arc-head.after {fill:#e6b86a}.arc-head.other {fill:#8aa0b3}
+.insight-details {margin-top:18px}.insight-details>summary {cursor:pointer;color:#c9e1e9;font-weight:600;margin-bottom:10px}
+.learner-shell {grid-template-columns:minmax(0,1fr)}
+@media(max-width:1200px) {.rules-layout {grid-template-columns:minmax(0,1fr)}.rules-side {position:static;max-height:none}}
+@media(max-width:650px) {.step {min-height:44px;padding:6px 9px}.step-text small {display:none}.step-arrow {display:none}.rules-tabs {width:auto}.board-frame {padding-left:34px}.board-arcs {width:34px}.board-index {display:none}.board-id {flex-basis:36px}}
+.board-toggle input {width:16px;height:16px;min-height:0;margin:0;padding:0;flex:0 0 auto}
+/* Rules on the Try sorter (ADR-022): author preview only. */
+.try-rules {margin:0 0 12px;padding:10px 12px;border:1px solid #354c5d;border-radius:8px;background:#122030}.try-rules .board-legend {margin:6px 0 0}
+.try-rule-panel {margin-top:14px}.try-rule-panel .rule-hint {margin-top:0}
+.zone-arcs {position:absolute;left:0;top:0;pointer-events:none;overflow:visible;z-index:2}
+.code-row.rule-selected {box-shadow:inset 3px 0 0 var(--accent)}.code-row.connect-target {outline:2px dashed #e6b86a;outline-offset:-2px}.code-row.connect-source {background:#2f2a1c}
+.code-row .row-actions .board-connect {width:26px;min-width:26px;height:26px;min-height:26px;border-radius:50%;margin:0}

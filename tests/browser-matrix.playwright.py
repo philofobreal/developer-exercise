@@ -27,16 +27,18 @@ def case(name,fn):
     except Exception:
         page.screenshot(path=str(ARTIFACTS/'matrix-failure.png'));context.tracing.stop(path=str(ARTIFACTS/'matrix-failure-trace.zip'));raise
     count+=1;print('PASS matrix: '+name,flush=True)
+def to_try(page):page.locator('[data-step="try"]').click();expect(page.locator('.solution-zone .code-row').first).to_be_visible()
+def rules_json(page):page.locator('[data-step="rules"]').click();page.locator('[data-rules-view="json"]').click();expect(page.locator('#model-editor')).to_be_visible()
 def author(page,source=JS,language='javascript'):
-    page.locator('[data-view="author"]').click()
+    page.locator('[data-mode="author"]').click();page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click()
     page.locator('[data-author="language"]').select_option(language)
     page.locator('#author-editor').fill(source)
     with page.expect_response(lambda r:'/api/author/compile' in r.url) as response:page.locator('[data-author-apply]').click()
-    data=response.value.json();expect(page.locator('.solution-zone .code-row').first).to_be_visible();return data
+    data=response.value.json();expect(page.locator('[data-step="rules"]')).to_have_attribute('aria-current','step');to_try(page);return data
 def model(page):
-    page.locator('[data-view="model"]').click();return json.loads(page.locator('#model-editor').input_value())
+    rules_json(page);value=json.loads(page.locator('#model-editor').input_value());to_try(page);return value
 def apply_model(page,m):
-    page.locator('#model-editor').fill(json.dumps(m));page.locator('[data-model-apply]').click();expect(page.locator('.solution-zone')).to_be_visible()
+    rules_json(page);page.locator('#model-editor').fill(json.dumps(m));page.locator('[data-model-apply]').click();expect(page.locator('[data-model-status]')).to_contain_text('Aktív modell');to_try(page)
 def values(page):return page.locator('.solution-zone .code-text code').all_text_contents()
 def native(page,origin,target,y_ratio=.1):
     page.evaluate('''({origin,target,ratio})=>{
@@ -59,20 +61,20 @@ try:
         context.tracing.start(screenshots=True,snapshots=True,sources=True)
         page=context.new_page();page.set_default_timeout(10000);errors=[]
         page.on('pageerror',lambda error:errors.append(str(error)))
-        page.goto(BASE);expect(page.locator('[data-task]').first).to_be_visible()
+        page.goto(BASE);expect(page.locator('[data-step="source"]')).to_have_attribute('aria-current','step')
         def format_case(source,language):
-            page.locator('[data-view="author"]').click();page.locator('[data-author="language"]').select_option(language);page.locator('#author-editor').fill(source)
+            page.locator('[data-step="source"]').click();page.locator('[data-author="language"]').select_option(language);page.locator('#author-editor').fill(source)
             page.locator('[data-author-format]').click();expect(page.locator('.author-status')).to_contain_text('Formázva')
             formatted=page.locator('#author-editor').input_value();assert '\n' in formatted
-            page.locator('[data-author-apply]').click();expect(page.locator('.solution-zone')).to_be_visible()
+            page.locator('[data-author-apply]').click();expect(page.locator('[data-step="rules"]')).to_have_attribute('aria-current','step');to_try(page)
             page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
         case('JS formatting, generation and evaluation',lambda:format_case(JS,'javascript'))
         case('TS formatting, generation and evaluation',lambda:format_case(TS,'typescript'))
         def binding_witness(target,language):
             source='\nfunction calc() {\n const a = 1;\n const b = 2;\n const c = a + b;\n const spare = 9;\n return c + spare;\n}'
-            target.locator('[data-view="author"]').click();target.locator('[data-author="language"]').select_option(language);target.locator('#author-editor').fill(source);target.locator('[data-author-apply]').click();expect(target.locator('.solution-zone')).to_be_visible()
-            m=model(target);assert m['lines'][3]['dependencies']==[2,3];assert m['lines'][3]['sourceLine']==5
-            target.locator('[data-dependency-table] summary').click();expect(target.locator('[data-reference-line="4"]')).to_contain_text('#2, #3')
+            target.locator('[data-step="source"]').click();target.locator('[data-author="language"]').select_option(language);target.locator('#author-editor').fill(source);target.locator('[data-author-apply]').click();expect(target.locator('[data-step="rules"]')).to_have_attribute('aria-current','step');to_try(target)
+            rules_json(target);m=json.loads(target.locator('#model-editor').input_value());assert m['lines'][3]['dependencies']==[2,3];assert m['lines'][3]['sourceLine']==5
+            target.locator('[data-dependency-table] summary').click();expect(target.locator('[data-reference-line="4"]')).to_contain_text('#2, #3');to_try(target)
             order=[1,3,2,5,4,6,7];by_id={line['id']:line['code'] for line in m['lines']}
             target.locator('[data-view="edit"]').click();target.locator('#code-editor').fill('\n'.join(by_id[i] for i in order));target.locator('[data-apply]').click();target.locator('[data-check]').click();expect(target.locator('.report')).to_contain_text('Elfogadva')
             target.locator('[data-validation-witness] summary').click();row=target.locator('[data-witness-position="5"]');expect(row).to_contain_text('#4');expect(row).to_contain_text('#2, #3');expect(row.locator('td').nth(2)).to_have_text('5')
@@ -82,7 +84,7 @@ try:
         case('TS binding dependencies, arbitrary gaps and evaluation witness',lambda:binding_witness(page,'typescript'))
         def nested_witness(target,language):
             source='function evaluate() {\n const a = 10;\n const b = 20;\n {\n const note = "outer";\n const sum = a + b;\n {\n const x = sum + 1;\n const y = sum + 2;\n const z = x + y;\n const label = "inner";\n record(z, label);\n }\n record(sum, note);\n }\n return a + b;\n}'
-            target.locator('[data-view="author"]').click();target.locator('[data-author="language"]').select_option(language);target.locator('#author-editor').fill(source);target.locator('[data-author-apply]').click();expect(target.locator('.solution-zone')).to_be_visible()
+            target.locator('[data-step="source"]').click();target.locator('[data-author="language"]').select_option(language);target.locator('#author-editor').fill(source);target.locator('[data-author-apply]').click();expect(target.locator('[data-step="rules"]')).to_have_attribute('aria-current','step');to_try(target)
             m=model(target);assert m['lines'][9]['dependencies']==[8,9];assert len(m['blocks'])==3
             by_id={line['id']:line['code'] for line in m['lines']};order=[1,3,2,4,6,5,7,9,8,11,10,12,13,14,15,16,17]
             target.locator('[data-view="edit"]').click();target.locator('#code-editor').fill('\n'.join(by_id[i] for i in order));target.locator('[data-apply]').click();target.locator('[data-check]').click();expect(target.locator('.report')).to_contain_text('Elfogadva')
@@ -102,8 +104,8 @@ try:
         case('dependency-only edits retain attempt and immediately reevaluate',dependency)
         def invalid_model():
             before=values(page);m=model(page);m['lines'][1]['code']='const a = ;'
-            page.locator('#model-editor').fill(json.dumps(m));page.locator('[data-model-apply]').click();expect(page.locator('.author-status')).to_contain_text('Szintaktikai')
-            page.locator('[data-view="sort"]').click();assert values(page)==before
+            rules_json(page);page.locator('#model-editor').fill(json.dumps(m));page.locator('[data-model-apply]').click();expect(page.locator('.author-status')).to_contain_text('Szintaktikai')
+            page.locator('[data-step="try"]').click();expect(page.locator('[data-stale-notice]')).to_contain_text('JSON');assert values(page)==before
         case('invalid edited reference is rejected atomically',invalid_model)
         def braces():
             author(page,'function calc() {\n if (true) {\n const a = 1;\n run(a);\n }\n done();\n}')
@@ -174,17 +176,17 @@ try:
             colors=page.locator('.solution-zone .code-row').evaluate_all('(rows)=>rows.slice(0,2).map(r=>getComputedStyle(r).backgroundColor)');assert colors[0]!=colors[1]
             assert page.locator('.solution-zone .gutter span').all_text_contents()==['1','2','3','4','5']
             bg=page.locator('.solution-zone .token.operator').first.evaluate('(x)=>getComputedStyle(x).backgroundColor');assert bg=='rgba(0, 0, 0, 0)'
-            page.locator('[data-view="author"]').click();expect(page.locator('.editor-gutter span').first).to_have_text('1')
+            page.locator('[data-step="source"]').click();expect(page.locator('.editor-gutter span').first).to_have_text('1')
         case('actual clipboard and fullscreen, full width, gutters and Prism colors',copy_fullscreen_styles)
         def clipboard_author():
-            author(page);page.locator('[data-view="author"]').click();expected=page.locator('#author-editor').input_value();page.locator('[data-copy-author]').click();expect(page.locator('.author-status')).to_contain_text('másolva');assert page.evaluate('navigator.clipboard.readText()').replace('\r\n','\n')==expected,(repr(expected),repr(page.evaluate('navigator.clipboard.readText()').replace('\r\n','\n')))
+            author(page);page.locator('[data-step="source"]').click();expected=page.locator('#author-editor').input_value();page.locator('[data-copy-author]').click();expect(page.locator('.author-status')).to_contain_text('másolva');assert page.evaluate('navigator.clipboard.readText()').replace('\r\n','\n')==expected,(repr(expected),repr(page.evaluate('navigator.clipboard.readText()').replace('\r\n','\n')))
             assert page.locator('[data-copy-author]').evaluate('(x)=>x===document.activeElement')
             source='function pasted() {\n const text = "<img src=x>";\n return text;\n}'
             page.evaluate('(x)=>navigator.clipboard.writeText(x)',source);page.locator('[data-paste-author]').click();expect(page.locator('#author-editor')).to_have_value(source);expect(page.locator('.author-status')).to_contain_text('még nincs alkalmazva')
         case('author clipboard copy/paste preserves text and waits for Apply',clipboard_author)
         def clipboard_model():
-            author(page);m=model(page);page.locator('[data-copy-model]').click();expect(page.locator('.author-status')).to_contain_text('JSON másolva');assert json.loads(page.evaluate('navigator.clipboard.readText()').replace('\r\n','\n'))==m
-            m['lines'][2]['dependencies']=[1];value=json.dumps(m);page.evaluate('(x)=>navigator.clipboard.writeText(x)',value);page.locator('[data-paste-model]').click();expect(page.locator('#model-editor')).to_have_value(value);expect(page.locator('.author-status')).to_contain_text('Alkalmazás után')
+            author(page);m=model(page);rules_json(page);page.locator('[data-copy-model]').click();expect(page.locator('.author-status')).to_contain_text('JSON másolva');assert json.loads(page.evaluate('navigator.clipboard.readText()').replace('\r\n','\n'))==m
+            m['lines'][2]['dependencies']=[1];value=json.dumps(m);page.evaluate('(x)=>navigator.clipboard.writeText(x)',value);page.locator('[data-paste-model]').click();expect(page.locator('#model-editor')).to_have_value(value);expect(page.locator('.author-status')).to_contain_text('alkalmazás után')
         case('model JSON clipboard copy/paste does not silently activate rules',clipboard_model)
         def clipboard_editor():
             author(page);page.locator('[data-all]').click();old=values(page);page.locator('[data-view="edit"]').click();expected=page.locator('#code-editor').input_value();page.locator('[data-copy-editor]').click();expect(page.locator('.note')).to_contain_text('másolva');assert page.evaluate('navigator.clipboard.readText()').replace('\r\n','\n')==expected,(repr(expected),repr(page.evaluate('navigator.clipboard.readText()').replace('\r\n','\n')))
@@ -197,7 +199,7 @@ try:
             page.locator('[data-reset]').click();pool=page.locator('.source-zone .code-text code').all_text_contents();page.locator('[data-copy-pool]').click();expect(page.locator('.note')).to_contain_text('másolva');assert page.evaluate('navigator.clipboard.readText()').replace('\r\n','\n')=='\n'.join(pool)
         case('sorter/pool clipboard buttons preserve rows and enforce fixed anchors',clipboard_sorter)
         def clipboard_denied():
-            author(page);page.locator('[data-view="author"]').click();before=page.locator('#author-editor').input_value()
+            author(page);page.locator('[data-step="source"]').click();before=page.locator('#author-editor').input_value()
             page.evaluate("window.__clipboardDescriptor=Object.getOwnPropertyDescriptor(navigator,'clipboard');Object.defineProperty(navigator,'clipboard',{configurable:true,value:{readText:async()=>{throw new DOMException('denied','NotAllowedError')}}});")
             try:
                 page.locator('[data-paste-author]').click();expect(page.locator('.author-status')).to_contain_text('Ctrl+V');assert page.locator('#author-editor').input_value()==before
@@ -205,37 +207,38 @@ try:
         case('clipboard permission denial preserves editor content and explains manual paste',clipboard_denied)
         def transfers():
             author(page);page.locator('[data-all]').click();before=values(page);m=model(page)
+            rules_json(page)
             with page.expect_download() as download:page.locator('[data-export-model]').click()
             exported=json.loads(Path(download.value.path()).read_text(encoding='utf-8'));assert exported['lines']==m['lines']
-            page.locator('[data-view="author"]').click();page.locator('[data-model-file]').set_input_files({'name':'model.json','mimeType':'application/json','buffer':json.dumps(exported).encode()});expect(page.locator('.solution-zone')).to_be_visible();page.locator('[data-all]').click()
+            page.locator('[data-step="source"]').click();page.locator('[data-model-file]').set_input_files({'name':'model.json','mimeType':'application/json','buffer':json.dumps(exported).encode()});expect(page.locator('[data-step="rules"]')).to_have_attribute('aria-current','step');to_try(page);page.locator('[data-all]').click()
             with page.expect_download() as download:page.locator('[data-export-session]').click()
             session=json.loads(Path(download.value.path()).read_text(encoding='utf-8'));assert session['kind']=='ngdynamic-session'
             page.locator('[data-reset]').click();page.locator('[data-session-file]').set_input_files({'name':'session.json','mimeType':'application/json','buffer':json.dumps(session).encode()});expect(page.locator('.solution-zone .code-row').last.locator('code')).to_have_text('}')
             expect(page.locator('.solution-zone .code-text code')).to_have_text(before)
             assert values(page)==before  # Preserve exact whitespace after waiting for async admission.
-            page.locator('[data-save-local]').click();page.reload();expect(page.locator('[data-task]').first).to_be_visible();page.locator('[data-load-local]').click();expect(page.locator('.solution-zone .code-row').last.locator('code')).to_have_text('}')
+            page.locator('[data-save-local]').click();page.reload();expect(page.locator('[data-step="source"]')).to_have_attribute('aria-current','step');page.locator('[data-load-local]').click();expect(page.locator('.solution-zone .code-row').last.locator('code')).to_have_text('}')
             # Both the initial exercise and imported preview end in "}"; await the full async restore.
             expect(page.locator('.solution-zone .code-text code')).to_have_text(before)
             assert values(page)==before
         case('model/session files and opt-in local save survive reload',transfers)
         def full_ts():
-            page.locator('[data-view="author"]').click();page.locator('[data-author-sample]').click();expect(page.locator('#author-editor')).to_have_value(__import__('re').compile('CopyFieldUtilityService'))
-            page.locator('[data-author-format]').click();expect(page.locator('.author-status')).to_contain_text('Formázva');page.locator('[data-author-apply]').click();expect(page.locator('.solution-zone .code-row')).to_have_count(436)
+            page.locator('[data-step="source"]').click();page.locator('[data-author-sample]').click();expect(page.locator('#author-editor')).to_have_value(__import__('re').compile('CopyFieldUtilityService'))
+            page.locator('[data-author-format]').click();expect(page.locator('.author-status')).to_contain_text('Formázva');page.locator('[data-author-apply]').click();expect(page.locator('[data-board-line]')).to_have_count(436);to_try(page);expect(page.locator('.solution-zone .code-row')).to_have_count(436)
             page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
             m=model(page);assert len(m['blocks'])>20;assert len([x for x in m['lines'] if x['functionBlock']])>200
-            page.locator('[data-view="sort"]').click();page.locator('.solution-zone').evaluate('(x)=>x.scrollTop=3000');saved=page.locator('.solution-zone').evaluate('(x)=>x.scrollTop');visible_index=page.locator('.solution-zone').evaluate('(zone)=>Math.floor(zone.scrollTop/zone.querySelector(".code-row").getBoundingClientRect().height)+3');page.locator(f'[data-down="{visible_index}"]').click();assert abs(page.locator('.solution-zone').evaluate('(x)=>x.scrollTop')-saved)<2
+            page.locator('.solution-zone').evaluate('(x)=>x.scrollTop=3000');saved=page.locator('.solution-zone').evaluate('(x)=>x.scrollTop');visible_index=page.locator('.solution-zone').evaluate('(zone)=>Math.floor(zone.scrollTop/zone.querySelector(".code-row").getBoundingClientRect().height)+3');page.locator(f'[data-down="{visible_index}"]').click();assert abs(page.locator('.solution-zone').evaluate('(x)=>x.scrollTop')-saved)<2
         case('full TS service, AST hierarchy and long-list scroll',full_ts)
         page.screenshot(path=str(ARTIFACTS/'matrix-node.png'))
         def pages():
             demo=context.new_page();assets=[];demo.on('response',lambda r:assets.append((r.url,r.status)))
             demo.on('pageerror',lambda error:errors.append(str(error)))
             prefix=f'http://127.0.0.1:{static.server_port}/developer-exercise/'
-            demo.goto(prefix);expect(demo.locator('[data-task]').first).to_be_visible();expect(demo.locator('.mode-badge')).to_contain_text('Local Demo / Preview Validation')
+            demo.goto(prefix);expect(demo.locator('[data-step="source"]')).to_have_attribute('aria-current','step');expect(demo.locator('.mode-badge')).to_contain_text('Local Demo / Preview Validation')
             expect(demo.locator('.validation-notice')).to_contain_text('nem hitelesített')
+            demo.locator('[data-mode="practice"]').click();demo.locator('[data-all]').click();demo.locator('[data-check]').click();expect(demo.locator('.report')).to_contain_text('Elfogadva')
+            demo.locator('[data-mode="author"]').click();demo.locator('[data-step="source"]').click();demo.locator('[data-author="language"]').select_option('typescript');demo.locator('#author-editor').fill(TS);demo.locator('[data-author-format]').click();expect(demo.locator('.author-status')).to_contain_text('Formázva');demo.locator('[data-author-apply]').click();expect(demo.locator('[data-step="rules"]')).to_have_attribute('aria-current','step');to_try(demo)
             demo.locator('[data-all]').click();demo.locator('[data-check]').click();expect(demo.locator('.report')).to_contain_text('Elfogadva')
-            demo.locator('[data-view="author"]').click();demo.locator('[data-author="language"]').select_option('typescript');demo.locator('#author-editor').fill(TS);demo.locator('[data-author-format]').click();expect(demo.locator('.author-status')).to_contain_text('Formázva');demo.locator('[data-author-apply]').click();expect(demo.locator('.solution-zone')).to_be_visible()
-            demo.locator('[data-all]').click();demo.locator('[data-check]').click();expect(demo.locator('.report')).to_contain_text('Elfogadva')
-            m=model(demo);m['lines'][1]['code']='const a = ;';demo.locator('#model-editor').fill(json.dumps(m));demo.locator('[data-model-apply]').click();expect(demo.locator('.author-status')).to_contain_text('Szintaktikai')
+            m=model(demo);m['lines'][1]['code']='const a = ;';rules_json(demo);demo.locator('#model-editor').fill(json.dumps(m));demo.locator('[data-model-apply]').click();expect(demo.locator('.author-status')).to_contain_text('Szintaktikai')
             assert all(status<400 for url,status in assets if url.startswith(prefix)),assets
             assert all(url.startswith(prefix) for url,status in assets),assets
             demo.screenshot(path=str(ARTIFACTS/'matrix-pages.png'));demo.close()
@@ -243,21 +246,21 @@ try:
         def pages_bindings(language):
             demo=context.new_page();demo.on('pageerror',lambda error:errors.append(str(error)))
             try:
-                demo.goto(f'http://127.0.0.1:{static.server_port}/developer-exercise/');expect(demo.locator('[data-task]').first).to_be_visible();binding_witness(demo,language)
+                demo.goto(f'http://127.0.0.1:{static.server_port}/developer-exercise/');expect(demo.locator('[data-step="source"]')).to_have_attribute('aria-current','step');binding_witness(demo,language)
             finally:demo.close()
         case('Pages JS binding dependencies and evaluation witness',lambda:pages_bindings('javascript'))
         case('Pages TS binding dependencies and evaluation witness',lambda:pages_bindings('typescript'))
         def pages_nested(language):
             demo=context.new_page();demo.on('pageerror',lambda error:errors.append(str(error)))
             try:
-                demo.goto(f'http://127.0.0.1:{static.server_port}/developer-exercise/');expect(demo.locator('[data-task]').first).to_be_visible();nested_witness(demo,language)
+                demo.goto(f'http://127.0.0.1:{static.server_port}/developer-exercise/');expect(demo.locator('[data-step="source"]')).to_have_attribute('aria-current','step');nested_witness(demo,language)
             finally:demo.close()
         case('Pages JS three-level scope and ancestor binding validation',lambda:pages_nested('javascript'))
         case('Pages TS three-level scope and ancestor binding validation',lambda:pages_nested('typescript'))
         def mobile():
             mobile_context=browser.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True)
             try:
-                mobile_page=mobile_context.new_page();mobile_page.goto(BASE);expect(mobile_page.locator('[data-task]').first).to_be_visible();mobile_page.locator('[data-all]').click()
+                mobile_page=mobile_context.new_page();mobile_page.goto(BASE);expect(mobile_page.locator('[data-step="source"]')).to_have_attribute('aria-current','step');mobile_page.locator('[data-mode="practice"]').click();mobile_page.locator('[data-all]').click()
                 assert abs(mobile_page.locator('#app').bounding_box()['width']-390)<2
                 handle=mobile_page.locator('.solution-zone .drag-handle[tabindex="0"]').first
                 assert handle.bounding_box()['width']>=44 and handle.bounding_box()['height']>=44

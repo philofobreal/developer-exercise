@@ -40,6 +40,7 @@ with sync_playwright() as p:
     page.evaluate('(x)=>window.__fixture=x',[small,large])
     page.add_script_tag(type='importmap',content=json.dumps(import_map()))
     page.evaluate("() => import('app:/ui.js')")
+    page.locator('[data-mode="practice"]').click(timeout=10000)
     page.locator('.solution-zone .code-row').first.wait_for(timeout=10000)
     assert page.locator('.solution-zone .code-row').count()==5
     assert abs(page.locator('#app').evaluate('(e)=>e.getBoundingClientRect().width')-1440)<2

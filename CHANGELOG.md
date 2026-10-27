@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased – 2026-10-27 léptetéses szerzői folyamat és vizuális szabálytábla (ADR-022, U1)
+
+- **Két mód:**
+  - **Feladat készítése** (kezdőoldal): Forrás → Szabályok → Próba, egy aktív lépéssel; a Szabályok és a Próba alkalmazott modellig zárolt.
+  - **Gyakorlás:** a beépített feladatok listája tanulói nézettel. A gyakorlás és a szerzői projekt nem írja egymást; a példák kezdőpontok.
+- **Elavulás:** egy nem alkalmazott forrás- vagy JSON-módosítás után a későbbi lépések „Elavult” jelzést és feloldó sávot kapnak („Modell újrakészítése”, „Forrásváltozás elvetése”, „JSON megnyitása”). Egy sikeres alkalmazás minden nézetet ugyanabból a modellből frissít.
+- **Vizuális szabálytábla:** a referencia sorai blokkmélység szerint, a szabályok ívekkel rajzolva. Két sor összeköthető húzással (egér, toll, érintés) vagy billentyűzettel; ebből típusos `add-rule` lesz, a döntés a core-é. A D2 szabálypanelje ide költözött.
+- **Szabályok a próbarendezőn:** a Próba lépésben is minden soron láncszem- és körgomb, a rendezőben az aktuális elrendezés szerinti ívek (minden mozgatás után újrarajzolva), alatta a szabálypanel. A szerkesztés azonnal újraértékeli a kitöltést; a körgombról induló húzás nem mozgat sort. A gyakorló mód és a tanulói nézet ebből semmit nem lát.
+- **Állapotgép:** a típusos `flow.ts` a zárolásról, az elavulásról, a módváltásról és a landolásról dönt; az `author-workspace.ts` egyetlen projektet kezel (ADR-004 ezen része felváltva).
+- **Javítások:**
+  - a minősítés-blokk nyitott állapota alnézetenként megmarad;
+  - a húzás utáni kattintáselnyelés nem nyel el billentyűzetes aktiválást;
+  - a helyi mentés és a munkamenet-import a Forrás lépésből is elérhető;
+  - a TypeScript-példatár linkje a Forrás lépésben.
+- **Tesztek:**
+  - [workbench-flow.test.mjs](tests/workbench-flow.test.mjs) és az átírt [author-workspace.test.mjs](tests/author-workspace.test.mjs);
+  - a workbench-böngészőcsomag 39 esete;
+  - a mátrix, a drag, az offline, a v7 és a TypeScript kör az új navigációval.
+
 ## Unreleased – 2026-10-27 szerzői szabálypanel a rendezőn (ADR-021, D2)
 
 - **Szabálypanel:** a szerző saját előnézetében minden sornak van láncszem gombja. Megnyomására megjelennek a sor közvetlen előzményei és követői okkal, szerkeszthetőséggel és megjegyzéssel, és a rendezőben kiemelődnek. A panelen szabály vehető fel, távolítható el (a szerkezeti nem), megjegyzés írható, és sor rögzíthető. Megjelenik a hatásjelentés tanúsorrenddel és a gate státusza is. A tanulói preview-ban ebből semmi nem látszik.

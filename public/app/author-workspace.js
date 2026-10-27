@@ -4,75 +4,56 @@ export function authorRequest(author) {
     const { title, description, language, source, importEmit } = author;
     return { title, description, language, source, ...(language === 'typescript' && importEmit ? { importEmit } : {}) };
 }
+/** The reference differs from the one the applied model was built from (or none was built yet). */
 export function authorDraftPending(state) {
     return !!state.authorBaseline && !same(state.author, state.authorBaseline);
 }
 export function refreshAuthorStatus(root, state) {
     const pending = authorDraftPending(state), status = root.querySelector('[data-author-status]');
     if (status) {
-        status.textContent = pending ? 'Nem alkalmazott referencia' : 'A feladat referenciaforrása';
+        status.textContent = !state.authorBaseline ? 'Még nem készült modell' : pending ? 'Nem alkalmazott referencia' : 'A modell ebből a forrásból készült';
         status.classList.toggle('pending', pending);
     }
-    const tab = root.querySelector('[data-view="author"]');
-    if (pending && tab && !tab.querySelector('.dirty-dot')) {
+    const step = root.querySelector('[data-step="source"]');
+    if (pending && step && !step.querySelector('.dirty-dot')) {
         const dot = document.createElement('span');
         dot.className = 'dirty-dot';
         dot.setAttribute('aria-label', 'Nem alkalmazott referencia');
-        tab.append(dot);
+        step.append(dot);
     }
     else if (!pending)
-        tab?.querySelector('.dirty-dot')?.remove();
+        step?.querySelector('.dirty-dot')?.remove();
 }
 const nextRequest = (state) => state.authorRequestGeneration = (state.authorRequestGeneration ?? 0) + 1;
+const previewId = (state) => state.previews.keys().next().value;
 /** Capture at user intent, before file/clipboard/network I/O; the latest reference action wins. */
 export function captureAuthorRequest(state) {
     const generation = nextRequest(state), current = captureAuthorAdmission(state);
     return () => generation === state.authorRequestGeneration && current();
 }
-export function createAuthorWorkspace(state) {
-    const drafts = new Map();
-    let current = null;
-    const key = (exercise) => JSON.stringify([exercise.id, exercise.revision]);
-    const save = () => { if (current)
-        drafts.set(current, structuredClone({ author: state.author, baseline: state.authorBaseline ?? state.author, modelDraft: state.modelDraft, modelMessage: state.modelMessage, authorModel: state.authorModel, authorInsight: state.authorInsight })); };
-    function select(exercise) {
-        nextRequest(state);
-        save();
-        current = key(exercise);
-        let workspace = drafts.get(current);
-        if (!workspace) {
-            const author = { title: exercise.title, description: exercise.description, language: exercise.language, source: exercise.lines.map(l => l.code).join('\n'), message: '' };
-            workspace = { author, baseline: { ...author }, modelDraft: '', modelMessage: '' };
-        }
-        const copy = structuredClone(workspace);
-        state.author = copy.author;
-        state.authorBaseline = copy.baseline;
-        state.modelDraft = copy.modelDraft;
-        state.modelMessage = copy.modelMessage;
-        state.authorModel = copy.authorModel;
-        state.authorInsight = copy.authorInsight;
-        state.active = exercise.id;
-    }
-    /** Call only after installPreview succeeds; save() must precede that atomic admission.
-     * `keepPending`: a rule edit changes no line, so an unapplied reference draft stays pending. */
-    function admit(model, source, { keepPending = false } = {}) {
-        nextRequest(state);
-        const pending = keepPending && authorDraftPending(state) ? state.author : undefined;
-        const importEmit = model.authoring?.evidence?.environment?.importEmit;
-        const author = { title: model.title, description: model.description, language: model.language, source: source ?? model.lines.map(l => l.code).join('\n'), message: '', ...(importEmit ? { importEmit } : {}) };
-        state.author = pending ?? author;
-        state.authorBaseline = { ...author };
-        current = key(model);
-        save();
-        const activeKeys = new Set(state.exercises.map(key));
-        for (const oldKey of drafts.keys())
-            if (!activeKeys.has(oldKey))
-                drafts.delete(oldKey);
-    }
-    return { select, save, admit };
-}
-/** Async admission is for the captured reference, never newer text or a different task. */
+/** Async admission is for the captured reference and model, never newer text or another preview. */
 export function captureAuthorAdmission(state) {
-    const active = state.active, author = { ...state.author }, modelDraft = state.modelDraft;
-    return () => state.active === active && same(author, state.author) && state.modelDraft === modelDraft;
+    const preview = previewId(state), author = { ...state.author }, modelDraft = state.modelDraft;
+    return () => previewId(state) === preview && same(author, state.author) && state.modelDraft === modelDraft;
+}
+/** An example is a starting point: its reference becomes the unapplied draft. */
+export function startFromExample(state, exercise) {
+    nextRequest(state);
+    state.author = { title: exercise.title, description: exercise.description, language: exercise.language, source: exercise.lines.map(line => line.code).join('\n'), message: `A(z) „${exercise.title}” példa referenciája betöltve. A modell a Modell készítése gombbal készül el belőle.` };
+}
+/** Discards unapplied reference edits: the draft returns to what the applied model was built from. */
+export function revertAuthorDraft(state) {
+    if (!state.authorBaseline)
+        return;
+    nextRequest(state);
+    state.author = { ...state.authorBaseline, message: 'A nem alkalmazott változtatásokat elvetettük.' };
+}
+/** Call only after installPreview succeeds: the admitted model becomes the reference baseline.
+ * `keepPending`: a rule edit changes no line, so an unapplied reference draft stays pending. */
+export function admitAuthorModel(state, model, source, { keepPending = false } = {}) {
+    nextRequest(state);
+    const pending = keepPending && authorDraftPending(state) ? state.author : undefined, importEmit = model.authoring?.evidence?.environment?.importEmit;
+    const author = { title: model.title, description: model.description, language: model.language, source: source ?? model.lines.map(l => l.code).join('\n'), message: '', ...(importEmit ? { importEmit } : {}) };
+    state.author = pending ?? author;
+    state.authorBaseline = { ...author };
 }
