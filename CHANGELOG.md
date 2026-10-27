@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased – 2026-10-27 metódusok és felső szintű függvények szabad sorrendje (ADR-020, v11)
+
+- **Döntés:** a felső szintű függvénydeklarációk és az osztálymetódusok, accessorok egymás közti sorrendje szabad; a példánymezők, a static mezők és a `var`-ok sorrendje kötött marad.
+- **Kivétel:** ha a program maga listázhatja a kulcsokat, marad az ADR-010 szerinti teljes sorrend. Ez akkor áll fenn, ha a forrás megnevez egy reflexiós API-t vagy a globális objektumot, illetve szkriptszinten `this`-t használ:
+  - `getOwnPropertyNames`, `ownKeys`, `getOwnPropertyDescriptors`, `Reflect`;
+  - `globalThis`, `window`, `self`, `frames`, `global`, `Function`, `eval`.
+- **Generátor (`scoped-effect-analysis-v11`):**
+  - `observesKeyOrder`, valamint a `reflectedKeys` opció a tag- és az utasításelemzésben;
+  - a sima overload-csoport egyetlen metódusdefiníció.
+- **Orákulum:** a P4 független követése a nem felsorolható kulcsok halmazként való összevetésével, a reflektáló programot külön felismerve.
+- **Könyvtári példák** (revision 2): a `class-inventory-ts` és a `class-accounts-ts` konstruktora és metódusai már nem kötöttek a mezőkhöz. Az engedélyezett sorrendek száma 288 → 5 760, illetve 192 → 20 160, és mind futásidőben ekvivalens.
+- **Tesztek:** [key-order-observation.test.mjs](tests/key-order-observation.test.mjs). A régi P4-tesztek kétfelé bontva: kívülről nézve elfogadott, reflektáló programban elutasított.
+
 ## Unreleased – 2026-10-27 tiszta egység és hatás-barrier kommutációja (ADR-019, v10)
 
 - **Hiba:** a szerzői előnézetben (generált modell) a `binarySearch` `let low = 0;` / `let high = sorted.length - 1;` és az `insertionSort` `const current = values[i];` / `let j = i - 1;` cseréje elutasított volt. A kézi könyvtári modell és a futás szerint mindkettő helyes.

@@ -384,3 +384,19 @@ A generált modell még ekvivalensként elutasítja:
 | `class-inventory-ts`, `class-accounts-ts` | metódus- és konstruktorsorrend, `this.balance` / `this.history` frissítés | P4 prototípus-kulcssorrend, illetve `this`-property írása és hívás |
 
 A kézi `class-inventory-ts` modell a konstruktort a mező után, a metódusokat a konstruktor után köti. Ez a P4-nél is szigorúbb. A kézi `algo-sort-search-js` leírása pedig szabad függvénysorrendet ígér, amit a generált modell a P4 miatt nem tart be.
+
+## Policydöntés: a metódusok és a felső szintű függvények sorrendje szabad (ADR-020, v11)
+
+**A felhasználó döntése (2026-10-27):** a felső szintű függvények és az osztálymetódusok sorrendje legyen szabad, a példánymezőké maradjon kötött.
+
+**Megvalósítás:** [ADR-020](adr/020-unobserved-key-order.md).
+
+- **Generátor:** a kulcslánc és a függvények globális lánca csak akkor érvényes, ha a program maga listázhatja a kulcsokat (`observesKeyOrder`).
+- **Orákulum:** független P4-követés.
+- **Overload-csoport:** egyetlen metódusdefiníció.
+- **A két kézi osztálypélda** revíziója 2 lett, a konstruktor és a metódusok szabadok.
+
+**Talált és kezelt ellenpélda:**
+
+- A `refl-explicit-property-names` program maga hívja az `Object.getOwnPropertyNames`-t. Ott a metóduscsere valódi futásidejű eltérés, ezért a reflektáló program a régi szabályt kapja.
+- Az első implementáció egy szkripthiba miatt (backspace-karakter a regexben) ezt nem ismerte fel; a független orákulum és a korpuszteszt azonnal jelezte.

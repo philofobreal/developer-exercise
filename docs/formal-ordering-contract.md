@@ -15,7 +15,8 @@ Ez a dokumentum a generált sorrendszabályok jelentését, a támogatott részn
 - [ADR-016](adr/016-reference-language-audit.md): a referencia nyelvi auditja;
 - [ADR-017](adr/017-model-verification-gate.md): modellminősítés (Model Verification Gate);
 - [ADR-018](adr/018-typed-rule-editing.md): típusos szerzői szabályműveletek;
-- [ADR-019](adr/019-pure-effect-commutation.md): tiszta egység és hatás-barrier kommutációja, számlálóváltozók.
+- [ADR-019](adr/019-pure-effect-commutation.md): tiszta egység és hatás-barrier kommutációja, számlálóváltozók;
+- [ADR-020](adr/020-unobserved-key-order.md): a metódusok és a felső szintű függvények kulcssorrendje csak reflektáló programban kötött.
 
 ## Végleges állapot (WP1–WP8)
 
@@ -97,12 +98,17 @@ Egy S permutáció akkor egyenértékű P-vel, ha egyszerre teljesül:
 2. **P1 lexikai tulajdonlás:** minden utasítás és osztály-/típustag ugyanabban a listában marad (a listák multihalmazként egyeznek). Egy deklaráció másik scope-ba helyezése akkor sem engedett, ha a futás ugyanaz.
 3. **P2 hatássorrend (ADR-013 és ADR-019 óta pontosítva):** minden utasításlistában minden olyan pár relatív sorrendje megmarad, amelynek legalább egyik tagja kiértékeléskor *külső* hatású (hívás, `new`, nem lokális vagy összetett értékadás, `++/--`, `delete`, `await`, `yield`, `throw`, `return`, `break`, `continue`, property-olvasás, spread, destrukturálás, ciklus, `in`/`instanceof`, `eval`, modulbetöltő import). A függvénylokális `let`/`var`/paraméter írása hatásmentes jobb oldallal *lokális* hatás: csak az ugyanazt a kötést olvasó vagy író tagokhoz képest kötött (RAW, WAR, WAW). Kivétel a pozíciófüggetlen tag: hoistolt függvénydeklaráció függvény/szkript-szinten, törölt TS-típusdeklaráció, illetve az emit által törölt import. **ADR-019 (v10):** függvényszintű listában egy hatásmentes utasítás és egy külső hatású utasítás sorrendje szabad, ha a külső hatású nem hagyhatja el önmagát korán (`return`, `throw`, `yield`, `await`, kifelé ugrás, `using`), a függvény nem használ `arguments`-et vagy `eval`-t, a hatásmentes utasítás csak saját `let`/`const`/osztály kötést ír, amelyre sem beágyazott függvény, sem a külső hatású utasítás nem hivatkozik, és minden olvasott neve a függvényben deklarált, amelyet sem beágyazott függvény, sem a külső hatású utasítás nem ír (név szerint). A függvény- és osztálytörzsek nem kiértékelési idejű hatások.
 4. **P3 megfigyelhető viselkedés:** azonos visszatérési érték, kivétel és hatásnapló.
-5. **P4 reflektálható tulajdonságsorrend (ADR-010):** a következők saját kulcssorrendje és descriptor-fajtája azonos:
+5. **P4 reflektálható tulajdonságsorrend (ADR-010, v11-ben ADR-020):** a következők saját kulcsai és descriptor-fajtája azonos:
    - az osztályok prototípusa és konstruktora;
    - a példánymezők;
    - a klasszikus szkript globális objektuma (`function`/`var`).
 
-   Ezt minden reflexiós API megfigyeli: `Object.getOwnPropertyNames`, `Reflect.ownKeys`, `Object.keys`, `Object.getOwnPropertyDescriptors`.
+   **A sorrendre v11 óta két szabály vonatkozik:**
+
+   - **Felsorolható kulcsok** (példánymezők, static mezők, `var`-globálisok és a TS által `var`-ként kibocsátott deklarációk): a sorrend kötött, mert az `Object.keys`, a `for…in` és a `JSON.stringify` is mutatja.
+   - **Nem felsorolható kulcsok** (metódusok, accessorok) **és a szkriptszintű függvénydeklarációk:** halmazként hasonlítódnak össze.
+
+   **Kivétel:** ha a program maga listázhatja ezeket a kulcsokat, a teljes ADR-010 sorrend érvényes. Ez akkor áll fenn, ha a forrásszöveg megnevez egy reflexiós API-t vagy a globális objektumot (`getOwnPropertyNames`, `ownKeys`, `getOwnPropertyDescriptors`, `Reflect`, `globalThis`, `window`, `self`, `frames`, `global`, `Function`, `eval`), vagy szkriptszinten `this`-t használ.
 
 ### Megfigyelhető állapot
 
@@ -113,7 +119,7 @@ A P3 és a P4 a következőket figyeli. Ugyanezt hasonlítja össze a független
 | eredmény | a rögzített probe visszatérési értéke JSON-szerializálva, az objektumok kulcssorrendjével együtt; aszinkron probe esetén a teljesült érték | `call` |
 | kivétel | a dobott kivétel neve és üzenete; dobáskor az orákulum a hatásnaplót nem veti össze (ismert korlát) | `call` |
 | hatásnapló | a `record(...)` hívások argumentumai, sorrendben (a fixture minden megfigyelt hatást ezen át jelent) | `call.trace` |
-| reflektált szerkezet | az osztályok prototípusának és konstruktorának saját kulcsai sorrendben, kulcsonként a descriptor fajtája (érték/accessor) és az `enumerable`, `configurable`, `writable` jelzők; a beágyazott osztályoké; a klasszikus szkript deklarált globálisainak sorrendje | `reflection` |
+| reflektált szerkezet | az osztályok prototípusának és konstruktorának saját kulcsai, kulcsonként a descriptor fajtája (érték/accessor) és az `enumerable`, `configurable`, `writable` jelzők; a beágyazott osztályoké; a klasszikus szkript deklarált globálisai. v11 óta a nem felsorolható kulcsok és a függvényglobálisok rendezve, a felsoroltak sorrendben; reflektáló programban minden sorrendben (ADR-020) | `reflection` |
 | szerkezet | a listák multihalmaza (P1) és a hatásos egységek sorrendje listánként (P2) | statikus `shape`, `effects` |
 
 **Nem megfigyelt:**
@@ -139,8 +145,11 @@ A `dependencyPolicy` címke a generálási szabályok verziója. Egy modell áll
 | `scoped-effect-analysis-v8` | [ADR-012](adr/012-class-evaluation-phases-and-accessor-pairs.md) | osztálykiértékelési fázisok, accessorpárok |
 | `scoped-effect-analysis-v9` | [ADR-013](adr/013-local-writes-clause-chains-and-imports.md) | **P2 explicit pontosítása:** a függvénylokális írás tiszta jobb oldallal csak RAW/WAR/WAW konfliktusnál kötött; az emit által törölt import pozíciófüggetlen; klauzulaláncok |
 | `scoped-effect-analysis-v10` | [ADR-019](adr/019-pure-effect-commutation.md) | **P2 pontosítása:** egy tiszta, blokkszintű, lokális deklaráció átléphet egy olyan hatás-barriert, amely korán nem hagyja el önmagát, és sem közvetlenül, sem closure-ön át nem éri el a deklaráció kötéseit; a csak `++`/`--` által írt primitív számláló olvasása primitív |
+| `scoped-effect-analysis-v11` | [ADR-020](adr/020-unobserved-key-order.md) | **P4 pontosítása:** a metódusok, az accessorok és a szkriptszintű függvénydeklarációk létrehozási sorrendje csak akkor kötött, ha a program maga listázhatja a kulcsokat; a mezők és a `var`-ok sorrendje változatlan; a sima overload-csoport egyetlen metódusdefiníció |
 
 A v9 P2-je **szigorúan bővebb** a v4–v8 P2-jénél: minden, amit a régi szabály megengedett, az újban is megengedett. Az új szabadságnak két forrása van, és egyiknek sincs megfigyelhető hatása a felcserélt párra nézve (lásd a [megfigyelhető állapotot](#megfigyelhető-állapot)): a lokális írás csak a saját kötését módosítja és nem dob; az emit által törölt import futásidőben nem létezik. Ez nem a régi P2 csendes gyengítése, hanem verziózott újradefiniálás: a régi címkéjű modellek a régi szabállyal maradnak érvényesek, és az orákulum a v9 P2-t saját, független implementációval követi (ADR-013).
+
+A v11 P4-e **szigorúan bővebb** a v10-énél: a nem felsorolható kulcsok és a függvényglobálisok sorrendje csak reflektáló programban számít (ADR-020); minden más változatlan.
 
 A v10 P2-je ugyanígy **szigorúan bővebb** a v9-énél. Az új szabadság: egy tiszta deklaráció és egy hatás-barrier felcserélése, ha a barrier által futtatható kód semmilyen úton nem éri el a deklaráció kötéseit, és a barrier nem viszi el a vezérlést a listából. Ilyenkor sem a kötések értéke, sem a hatásnapló, sem a kivétel nem változik. Az orákulum név szerint, kötésfeloldás nélkül, saját implementációval követi (ADR-019).
 
@@ -230,7 +239,7 @@ Vázlat:
 1. **Lokalitás.** A validátor `Scope` feltétele egy sort csak a saját reprezentált scope-jába enged. Ezen belül a lezárás miatt egyetlen testvér sem kerülhet egy másik egység belsejébe (WP6: ez korábban hiányzott, lásd ADR-009). Így minden egység összefüggő marad és a saját listájában áll, a listák függetlenül vizsgálhatók, és P0/P1 teljesül.
 2. **Barrier-stabilitás.** Bármely két barrier közötti szakaszban a pure egységek által olvasható állapot állandó, mert csak barrier ír, hív vagy ad át vezérlést, és a barrier relatív helye minden rendezett testvérhez képest rögzített. ADR-019: egy pure egység akkor léphet át egy barriert, ha a barrier az egység olvasott kötéseit nem írja, a saját kötéseire nem hivatkozik, és closure sem éri el őket. Ilyenkor a barrier számára az egység láthatatlan, az egység számára a barrier által írt állapot nem bemenet. Ha a barrier dob, a vezérlés elhagyja a blokkot, ahol a blokkszintű kötés closure nélkül nem látható.
 3. **Pure kommutáció.** Két pure egység nem futtat kódot és nem dob, mert minden bemenete garantáltan inicializált (WP6: a más kontextusú TDZ-olvasás és az önhivatkozás kizárva; egy dobó „tiszta” sor helye closure-on és `catch`-en át megfigyelhető volt). Csak a saját, egyedi kötését inicializálja, és a másik kötését csak védett éllel olvashatja. Felcserélésük ezért egyetlen kötés értékét, kivételt vagy hatásnaplót sem változtat meg.
-4. **Pozíciófüggetlenség.** Függvénydeklarációt a FunctionDeclarationInstantiation vagy a GlobalDeclarationInstantiation a lista belépésekor hoz létre; törölt TS-deklarációnak nincs emitje. Egy metódust a ClassDefinitionEvaluation minden mezőinicializáló és static kód előtt telepít. A létrehozási sorrend csak a kulcssorrendben látszik (P4). Ezt a kulcslánc rögzíti: osztályonként és objektumonként, a szkript globális objektumán pedig a függvények és a `var`-ok együttes láncával. A `constructor` kulcs mindig elsőként jön létre, a tömbindex-kulcsok növekvő sorrendben listázódnak, a privát nevek nem reflektálódnak.
+4. **Pozíciófüggetlenség.** Függvénydeklarációt a FunctionDeclarationInstantiation vagy a GlobalDeclarationInstantiation a lista belépésekor hoz létre; törölt TS-deklarációnak nincs emitje. Egy metódust a ClassDefinitionEvaluation minden mezőinicializáló és static kód előtt telepít. A létrehozási sorrend csak a kulcssorrendben látszik (P4). Ezt a kulcslánc rögzíti: osztályonként és objektumonként, a szkript globális objektumán pedig a függvények és a `var`-ok együttes láncával. v11 óta (ADR-020) a nem felsorolható kulcsokra és a függvényglobálisokra a kulcslánc csak akkor vonatkozik, ha a program maga listázhatja őket; különben a sorrendjük a megfigyelt állapotban nem szerepel. A `constructor` kulcs mindig elsőként jön létre, a tömbindex-kulcsok növekvő sorrendben listázódnak, a privát nevek nem reflektálódnak.
 5. **Késleltetett olvasás.** Closure-törzs csak hívásra fut, a hívás pedig barrier.
 6. **Kompozíció.** A blokk összegzése a gyerekek összegzéséből áll, a kifelé mutató olvasások élként továbbadódnak, így az állítás indukcióval terjed a beágyazásra.
 
@@ -569,9 +578,40 @@ Mindkettőt `conservative` státusz jelzi.
 
 **Teljesítmény:** a nagy referenciák generálása és validálása a mérési zajon belül maradt; a két oldal párhuzamos terhelés alatt futott.
 
+### ADR-020: a metódusok és függvények kulcssorrendje
+
+**Módszer:** mindkét oldalon ugyanaz a v11 P4-et követő orákulum fut. Az előtte-oldal a `bd6c460` (v10) generátora, külön munkakönyvtárban.
+
+**Korpusz** (64 fixture):
+
+| Mérőszám | K45 | W9 | R7 | P3 | Összesen |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| hibásan elfogadott | 0 → **0** | 0 → **0** | 0 → **0** | 0 → **0** | 0 → **0** |
+| elfogadott szomszéd | 237 → 237 | 42 → 42 | 123 → 132 | 28 → 28 | 430 → 439 |
+| indokolatlanul elutasított szomszéd | 3 → 3 | 6 → 6 | 33 → 24 | 1 → 1 | 43 → 34 |
+| elfogadott teljes sorrend, A(M) | 2 314 → 11 469 | 64 → 64 | 3 706 → 5 612 | 128 → 128 | 6 212 → 17 273 |
+
+**Generatív kampány** (`--kinds=class,script`, programfajtánként 200 program; a függvénytörzseket a v11 nem érinti):
+
+| Programfajta | Hibás elfogadás | Indokolatlan elutasítás előtte → utána | Elfogadott előtte → utána |
+| --- | ---: | ---: | ---: |
+| JS-osztály | **0 → 0** | 4 276 → 1 198 | 12 159 → 15 804 |
+| TS-osztály | **0 → 0** | 3 601 → 1 596 | 12 886 → 15 122 |
+| JS-szkript | **0 → 0** | 2 567 → 480 | 3 122 → 6 682 |
+| TS-szkript | **0 → 0** | 2 528 → 861 | 4 000 → 6 952 |
+| **Összesen** (800 program, kb. 650 000 sorrend) | **0** | 12 972 → 4 135 | 32 167 → 44 560 |
+
+**Könyvtári példák:** a két osztálypélda kézi modelljének minden teljes sorrendje futásidőben ekvivalens (5 760, illetve 20 160 sorrend, kimerítően).
+
+**Maradó rések:**
+
+- **a példánymezők sorrendje:** szándékos, az `accessor` mezőé is;
+- **az overload-szignatúrák sorrendje:** konzervatív;
+- **a lyukas overload-csoport körüli lezárás:** projekciós veszteség.
+
 ## Ismert korlátok
 
-- **Reflexió (ADR-010):** a különböző nevű metódusok és `accessor` mezők egymáshoz képesti, valamint a szkriptszintű `function`/`var`/`enum`/`namespace` deklarációk sorrendje kötött. Egy namespace csak akkor szabad, ha törzse kizárólag típus- vagy `declare` deklarációkat tartalmaz. A duplikált nevű tag és a számított nevű mező konzervatív. Az accessorpár két fele nem állhat a következő kulcs két oldalán, akkor sem, ha a kulcs az első fél helyén keletkezik (precedenciával nem kifejezhető). A beágyazott osztályokat a probe utáni futásidejű pillanatkép és a szintaktikus P4-szabály ellenőrzi. A forrásszöveg-reflexió kizárt.
+- **Reflexió (ADR-010, ADR-020):** a szkriptszintű `var`/`enum`/`namespace` deklarációk sorrendje kötött. A különböző nevű metódusok, `accessor` mezők és a szkriptszintű függvények egymáshoz képesti sorrendje v11 óta csak reflektáló programban kötött; az `accessor` mező mezőként a mezők között a helyén marad. Egy namespace csak akkor szabad, ha törzse kizárólag típus- vagy `declare` deklarációkat tartalmaz. A duplikált nevű tag és a számított nevű mező konzervatív. Az accessorpár két fele nem állhat a következő kulcs két oldalán, akkor sem, ha a kulcs az első fél helyén keletkezik (precedenciával nem kifejezhető). A beágyazott osztályokat a probe utáni futásidejű pillanatkép és a szintaktikus P4-szabály ellenőrzi. A forrásszöveg-reflexió kizárt.
 
 - **Scope-áthelyezés:** a v2 `scopeId` soronként egyetlen scope-ot enged, ezért egy deklaráció beljebb vagy kijjebb helyezése elutasított (P1 szerint ez szándékos).
 - **Property-olvasás, getter, destrukturálás:** barrier.
@@ -589,7 +629,7 @@ Mindkettőt `conservative` státusz jelzi.
 ## Kompatibilitás és nyelvi határ
 
 - **Régi modellek:** az importált modellek függőségei nem változnak. Újragenerálás csak explicit „Sorfüggőségek újraszámítása” műveletre történik.
-- **Policy-címke:** új generáláskor `scoped-effect-analysis-v10` (ADR-019); a régi enumértékek, köztük a v4–v9, érvényesek maradnak (additív sémabővítés).
+- **Policy-címke:** új generáláskor `scoped-effect-analysis-v11` (ADR-020); a régi enumértékek, köztük a v4–v10, érvényesek maradnak (additív sémabővítés).
 - **Belső szerződés (ADR-011):** az adapter `orderingRelations` metódusa nyelvfüggetlen [`OrderingRelations`](../src/author/ordering-relations.ts) relációt ad: előzmények, védett bemenetek, egységhatárok, megjegyzés, 0-alapú fizikai sorokon. A projekciót a típusos [code-line-projection.ts](../src/author/code-line-projection.ts) végzi (ADR-013), a validátor nem változik.
 - **Proveniencia (ADR-014):** minden előzményhez ok tartozik (kategória és kód), a projekció a saját éleinek okát is rögzíti, és a modell `authoring.provenance` mezőjébe csak a redukció után megmaradt élek okai kerülnek. Ez magyarázat, nem szabály: a validáció nem olvassa. Csak addig érvényes, amíg az `authoring.evidence` digestje egyezik a sorokkal (ADR-015); különben `unbound`.
 - **Python-adapterhez:** natív IR v3 út egységszintű relációkkal; a v2-projekció nem használható. A szerkezeti feladatok: [Python-terv](python-adapter-plan.md#illeszkedés-a-közös-sorrendi-szerződéshez-wp7-adr-011).
