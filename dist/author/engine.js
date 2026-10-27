@@ -1,5 +1,5 @@
 /** Typed author-time entry point. ASTs and parser infrastructure stay inside adapters. */
-import { applyRuleEdits, codeLineDigest, compileCodeLineExercise, compileCodeLineExerciseV3, evidenceStatus, mergeAuthorRules, prepareRenderPlan, upgradeCodeLineExerciseV2, verifyModel } from '../../dist/index.js';
+import { applyRuleEdits, codeLineDigest, compileCodeLineExercise, compileCodeLineExerciseV3, evidenceStatus, explainConstraints, mergeAuthorRules, prepareRenderPlan, upgradeCodeLineExerciseV2, verifyModel } from '../../dist/index.js';
 import { reconcileDependencies } from './dependency-refresh.js';
 export class AdapterContractError extends Error {
     constructor(message) { super(message); this.name = 'AdapterContractError'; }
@@ -67,7 +67,9 @@ export async function refreshAuthorModel(input, ports) {
     if ('status' in initial)
         throw new AdapterContractError(initial.message);
     await ports.audit(snapshot);
-    const generated = await ports.generate({ source: snapshot.lines.map(line => line.code).join('\n'), language: snapshot.language, title: snapshot.title, description: snapshot.description });
+    // The recorded import emit (ADR-013, ADR-015) is part of what the refresh re-derives.
+    const importEmit = snapshot.authoring?.evidence?.environment?.importEmit;
+    const generated = await ports.generate({ source: snapshot.lines.map(line => line.code).join('\n'), language: snapshot.language, title: snapshot.title, description: snapshot.description, ...(importEmit ? { importEmit } : {}) });
     const checked = compileCodeLineExercise(generated);
     if ('status' in checked)
         throw new AdapterContractError(checked.message);
@@ -94,6 +96,13 @@ export async function refreshAuthorModel(input, ports) {
 export async function editAuthorModel(model, edits, ports, input = {}) {
     const result = applyRuleEdits(model, edits);
     return result.ok ? { result, verification: await verifyAuthorModel(result.model, ports, input) } : { result };
+}
+export function authorRuleSheet(model) {
+    const explanation = explainConstraints(model);
+    if ('status' in explanation)
+        throw new AdapterContractError(explanation.message);
+    const { provenance, unexplained, stale, relaxations } = explanation;
+    return { provenance, unexplained, stale, relaxations, constraints: explanation.lines.flatMap(line => line.predecessors) };
 }
 /** Model Verification Gate for a JS/TS v2 model (ADR-017). The generated constraints are
  * re-derived from the model's own source under its recorded import emit: they must equal

@@ -1,4 +1,4 @@
-import type { CodeLineExercise, CodeLineExerciseV3, CompiledRules, IndentPolicy, LanguageIR, ModelVerification, RefreshReport, RenderPlan, RuleEdit, RuleEditResult, VerificationInput } from '../../dist/index.js';
+import type { CodeLineExercise, CodeLineExerciseV3, CompiledRules, ConstraintExplanation, DirectConstraint, IndentPolicy, LanguageIR, ModelVerification, RefreshReport, RenderPlan, RuleEdit, RuleEditResult, VerificationInput } from '../../dist/index.js';
 export interface AuthorSource {
     source: string;
     title?: string;
@@ -61,6 +61,13 @@ export declare function editAuthorModel(model: CodeLineExercise, edits: readonly
     result: RuleEditResult;
     verification?: ModelVerification;
 }>;
+/** What the author rule panel shows (ADR-021): every direct constraint of the explanation
+ * once, without the transitive closure, which grows quadratically (1.1 MB for a 436-line
+ * model). The panel needs no closure: cycles and redundancy are the core's decisions. */
+export interface AuthorRuleSheet extends Pick<ConstraintExplanation, 'provenance' | 'unexplained' | 'stale' | 'relaxations'> {
+    constraints: DirectConstraint[];
+}
+export declare function authorRuleSheet(model: CodeLineExercise): AuthorRuleSheet;
 /** Model Verification Gate for a JS/TS v2 model (ADR-017). The generated constraints are
  * re-derived from the model's own source under its recorded import emit: they must equal
  * the regeneration, less the recorded relaxations (ADR-018), exactly (dependencies per line,

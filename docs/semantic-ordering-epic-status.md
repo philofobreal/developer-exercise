@@ -51,7 +51,8 @@ Jelölés: ✅ kész és ellenőrzött · 🔄 folyamatban · ⏳ következik ·
 | R1 | Referenciaaudit szintjei: szintaktikai; egyfájlos szemantikai (TypeScript `Program`-diagnosztika lib-bel, Node-on); „nem ellenőrizhető”, ha hiányzik a projektkontextus (feloldatlan import). Az eredmény az evidence része; a Pages explicit „nem ellenőrzött” | ✅ | típushibás referencia jelölése; a feloldatlan import nem „helyes”, hanem „nem ellenőrizhető” |
 | V1 | Model Verification Gate: befogadás, referencia-elfogadás, keretalkalmasság (a referencia és a szomszédság a produkciós kereten belül), a proveniencia lefedettsége és frissessége, a konzervatív és reprezentációs fallbackek helye, lazítások, audit, környezet. Ezekből minősítési státusz: elemzéssel igazolt / konzervatív / szerzői döntéssel módosított / nem igazolt. Kis modellnél a projekció kimerítő összevetése az adapter relációival | ✅ | minősítési regressziók; a CopyField és a legacy modellek státusza indokolt |
 | D1 | EPIC-05: típusos szabályműveletek: atomikus befogadás, profilok, fixed, megjegyzések, lazítás megerősítési szintekkel, hatásjelentés tanúsorrenddel. Minden szerkesztés után V1-újraminősítés. A refresh jelentve vezeti össze a szerzői szabályokat, a lazításokat és a megjegyzéseket | ✅ | szabályeditor-regressziók (09.3) |
-| D2 | EPIC-05: vizuális szabálypanel, `importEmit`-választó és a minősítés megjelenítése a szerzői felületen | ⏳ | Playwright-bizonyíték |
+| D2 | EPIC-05: vizuális szabálypanel, `importEmit`-választó és a minősítés megjelenítése a szerzői felületen | ✅ | Playwright-bizonyíték |
+| U1 | A szerzői és a próbanézetek egyszerűsítése: léptetéses folyamat, egyetlen aktív állapottal, egyértelmű állapotkapcsolattal és frissítéssel a nézetek között | ⏳ | állapotgép-egységtesztek, Playwright-átjárási tesztek minden lépésváltásra, újragenerálásra és frissítésre |
 | E1 | EPIC-06: core diagnosztikai modul (bizonyított konfliktusok, többértelműség, keret) | ⏳ | diagnosztikai regressziók (09.4), metamorf: a validátor döntése változatlan |
 | F1 | EPIC-07: tanulói visszajelzés és soronkénti jelölés | ⏳ | böngészőteszt, hozzáférhetőség |
 | F2 | EPIC-08: disclosure policy (szerző / Pages / trusted szerver) és szerveroldali szerzői jogosultság, vagy explicit, dokumentált helyidemó-korlát | ⏳ | negatív szivárgási és jogosultsági tesztek |
@@ -79,7 +80,7 @@ A felhasználó a MASTER EPIC-ről kritikai elemzést adott át. Az alábbi táb
 - **B szakasz:** megfelel az új szempontoknak. A P2 explicit, verziózott továbbfejlesztés lett, nem csendes gyengítés, és az orákulum függetlenül követi.
 - **C1:** a javasolt sorrendnek megfelelően a szerkesztő és a diagnosztika előtt készült el, de életciklus nélkül. Ezt a C2 pótolja, nem újraírással, hanem a meglévő okok verzióhoz kötésével.
 
-**Új sorrend:** A2 → C2 → R1 → V1 → D1 → D2 → E1 → F1 → F2 → G1.
+**Új sorrend:** A2 → C2 → R1 → V1 → D1 → D2 → E1 → F1 → F2 → G1. A D2 után közbeiktatva: D2 → **U1** → E1 → F1 → F2 → G1 (lásd az U1 szakaszt a dokumentum végén).
 
 **A D1 felfüggesztése:** a félkész munka a `stash@{0}` „D1 WIP: typed rule edits…” bejegyzésében van; csak saját fájlok, a felhasználói snapshot nélkül. Tartalma:
 
@@ -400,3 +401,60 @@ A kézi `class-inventory-ts` modell a konstruktort a mező után, a metódusokat
 
 - A `refl-explicit-property-names` program maga hívja az `Object.getOwnPropertyNames`-t. Ott a metóduscsere valódi futásidejű eltérés, ezért a reflektáló program a régi szabályt kapja.
 - Az első implementáció egy szkripthiba miatt (backspace-karakter a regexben) ezt nem ismerte fel; a független orákulum és a korpuszteszt azonnal jelezte.
+
+## D2 – szerzői szabálypanel – lezárva
+
+**Döntés:** [ADR-021](adr/021-author-rule-panel.md).
+
+**Megvalósítás:**
+
+- **Szabálypanel a rendezőn:** csak a szerző saját előnézetében. A sor láncszem gombja megnyitja a panelt, a közvetlen előzmények és követők kiemelődnek. A panel mutatja a szabályok okát, szerkeszthetőségét és megjegyzését. Itt lehet szabályt felvenni és eltávolítani, megjegyzést írni és sort rögzíteni. Megjelenik a hatásjelentés tanúsorrenddel és a gate státusza is.
+- **Megerősítés:** a szükséges szintet a core nevezi meg (`acknowledge`). Indoklás adható, amely a lazítással együtt a modellbe kerül.
+- **Adatmodell:** minősítés, állítások, nyelvi audit, szerzői lazítások és refresh-jelentés.
+- **Referenciaforrás:** `importEmit`-választó TypeScripthez.
+- **API:** `POST /api/author/rules`, illetve Pages-ben `editRules`. A végpont a megbízható draft-másolatot szerkeszti, és a sikeres szerkesztés új draftot ad. Elutasításnál `ok: false` a válasz, és a draft érintetlen.
+
+**Talált és javított hibák:**
+
+- **Redundáns eltávolítás (D1):** egy bizonyított kényszer csak szerzői szabályok miatt számított redundánsnak, így megerősítés nélkül törlődött. A szerzői szabályok ezután szabadon eltávolíthatók voltak.
+- **Refresh:** a refresh elhagyta a rögzített `importEmit`-et, így egy `elide-unused` modellből csendben `verbatim` lett.
+- **Előnézet:** a szerver az előnézetet fix 1-es revízióval értékelte.
+
+**Bizonyíték:**
+
+- [author-rule-panel.test.mjs](../tests/author-rule-panel.test.mjs) (10 eset);
+- Pages-adapter-eset;
+- pontosított `rule-editing` eset;
+- két új Playwright-eset Node és Pages módban; a workbench-csomag 33/33.
+
+**Nyitott:**
+
+- az OR-profilok szerkesztése a panelen (most csak a JSON-ban);
+- a szerzői API jogosultsága (F2);
+- a nézetek átalakítása (U1).
+
+## U1 – a nézetek és az állapotátmenetek egyszerűsítése – ütemezve
+
+**Felhasználói kérés (2026-10-27):** a „01 · Referencia és szabályok” (Referenciaforrás, Adatmodell) és a „02 · Megoldás és próba” (Rendező, Megoldáskód) tabok között legyen egyértelmű átmenet és funkcionalitás. A felület legyen egyszerűbb és egységesebb. Lehet léptetéses, és egyszerre csak egy állapotban lehessünk, amíg egy kód- vagy tananyagpélda tesztje elkészül. Az oldalsó példalista POC/MVP szempontból zavaró.
+
+**A jelenlegi állapot problémái (a kódból):**
+
+- **Négy egyenrangú tab, közös rejtett állapottal:** `state.author`, `authorBaseline`, `modelDraft`, `authorModel`, `authorInsight`, `previews`, valamint feladatonkénti attempt-ek. Nincs explicit állapotgép: az, hogy melyik nézet melyik modellből indul, elszórt feltételeken múlik (`previews.has(active)`, piszkos jelzők).
+- **Az oldalsó feladatkönyvtár és a saját előnézet ugyanabban a listában van:** a választás egyszerre vált referenciát, munkaterületet és próbát.
+- **Átjáráskor nincs érvénytelenítés:** a forrás, a JSON vagy a szabályok változása után a többi nézet nem jelzi, hogy az ő állapota elavult. Ilyen a próba eredménye, az előnézet és a minősítés.
+
+**Terv (ipari mintára: wizard / stepper, egyetlen forrás, explicit érvénytelenítés):**
+
+1. **Állapotgép típusos modulban:** a lépések Forrás → Szabályok → Próba (→ Tanulói preview). A modul minden lépésnél megmondja, mi az aktív modell, és mi elavult. Egy lépés csak akkor érhető el, ha a bemenete érvényes. A visszalépés megmarad, a „piszkos” állapot explicit, és az alkalmazás megerősítést kér.
+2. **Egyetlen igazságforrás:**
+   - forrásszöveg és alkalmazott modell (draft);
+   - minden származtatott állapot (JSON-nézet, szabálylap, minősítés, próba) az alkalmazott modellből és annak revíziójából számolódik;
+   - változáskor a revízió alapján jelölődik elavultnak, nem a nézetek egymást frissítő mellékhatásaival.
+3. **A példák kezdőpontok:** az oldalsó lista helyett az 1. lépésben „Indulás példából” választó. A gyakorlófeladat-mód (tanulói) külön belépési pont.
+4. **A JSON-szerkesztő haladó eszköz a Szabályok lépésben;** a szabálypanel (D2) a Szabályok lépés fő felülete.
+5. **Tesztek:**
+   - állapotgép-egységtesztek minden átmenetre (alkalmazás, újragenerálás, refresh, szabályszerkesztés, import, visszalépés piszkos állapottal, kései válasz);
+   - Playwright-átjárási tesztek Node és Pages módban: minden lépésváltásnál ellenőrzik, hogy a kapcsolódó nézetek a helyes modellrevízióból indulnak, és az elavult eredmények jelölve vannak.
+6. **Megőrzendő szerződések:** a nem alkalmazott piszkozatok soha nem vesznek el, a natív, pointeres, érintéses és billentyűzetes egyenértékűség megmarad, ahogy a tanulói elkülönítés, a munkamenet-export és -import és a vágólap is.
+
+**Ütemezés:** közvetlenül a D2 után, az E1 és az F1 előtt. Így a tanulói visszajelzés (F1) és a diagnosztika megjelenítése már az új lépésszerkezetbe épül. Az E1 core-modul ettől független, akár előbb is mehet.

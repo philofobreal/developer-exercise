@@ -4,7 +4,7 @@ import {compileCodeLineExercise,validateSubmission} from '../dist/index.js';
 import {generateCodeLineExercise} from '../author/generator.mjs';
 import {getLanguageAdapter} from '../author/languages.mjs';
 import {auditReference} from '../author/audit.mjs';
-import {refreshAuthorModel,verifyAuthorModel} from '../dist/author/engine.js';
+import {authorRuleSheet,editAuthorModel,refreshAuthorModel,verifyAuthorModel} from '../dist/author/engine.js';
 import {createReferenceAuditor} from '../dist/author/reference-audit.js';
 
 export const validationMode='local-demo';
@@ -57,8 +57,18 @@ export async function compileDraft(body){
   // No standard library is shipped to the static demo: the language audit reports `not-run` (ADR-016).
   const audit=createReferenceAuditor(getTypeScript()).audit(model.lines.map(l=>l.code).join('\n'),model.language);
   const verification=await verifyAuthorModel(model,{generate:input=>generateCodeLineExercise(input,getTypeScript())},{audit:audit.semantics});
-  drafts.set(draftId,{model,compiled});
-  return {draftId,model,previewOnly:true,mode:'local-demo',audit,verification,...(refresh?{refresh}:{})};
+  drafts.set(draftId,{model,compiled,audit});
+  return {draftId,model,previewOnly:true,mode:'local-demo',audit,verification,rules:authorRuleSheet(model),...(refresh?{refresh}:{})};
+}
+/** Typed rule edits on the demo's own draft copy (ADR-018, ADR-021); a refused edit is `ok: false`. */
+export async function editRules(body){
+  const ref=drafts.get(body?.draftId);
+  if(!ref||!Array.isArray(body.edits))throw Error('Érvénytelen vagy lejárt szerzői előnézet.');
+  const {result,verification}=await editAuthorModel(ref.model,body.edits,{generate:input=>generateCodeLineExercise(input,getTypeScript())},{audit:ref.audit.semantics});
+  if(!result.ok)return result;
+  const draftId='pages-'+nextDraft++,model={...result.model,id:'author-'+draftId},compiled=assertSafeModel(model);
+  drafts.delete(body.draftId);drafts.set(draftId,{model,compiled,audit:ref.audit});
+  return {ok:true,draftId,model,previewOnly:true,mode:'local-demo',audit:ref.audit,verification,effect:result.effect,rules:authorRuleSheet(model)};
 }
 export async function previewDraft(body){
   const ref=drafts.get(body?.draftId);

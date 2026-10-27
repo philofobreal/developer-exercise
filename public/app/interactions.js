@@ -48,7 +48,7 @@ export async function dispatchWorkbenchAction(event, handler, onError) {
     const button = event.target instanceof Element ? event.target.closest('button') : null;
     if (!button || running.has(button))
         return;
-    const busy = button.matches('[data-check],[data-author-apply],[data-model-apply],[data-model-refresh],[data-format],[data-author-format],[data-author-sample]');
+    const busy = button.matches('[data-check],[data-author-apply],[data-model-apply],[data-model-refresh],[data-format],[data-author-format],[data-author-sample],[data-rule-edit]');
     const original = button.innerHTML, disabled = button.disabled, hadFocus = document.activeElement === button, owner = button.closest('#app');
     const context = owner ? { exercise: owner.dataset.renderedExercise, view: owner.dataset.renderedView } : undefined;
     const action = button.getAttributeNames().find(name => name.startsWith('data-'));

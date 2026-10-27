@@ -8,7 +8,7 @@ export type RuleEdit = {
     kind: 'remove-rule';
     before: number;
     after: number;
-    acknowledge?: 'unproven-relaxation' | 'policy-override';
+    acknowledge?: Acknowledgement;
     note?: string;
 } | {
     kind: 'set-note';
@@ -44,17 +44,20 @@ export interface EditEffect {
     stricterWitness?: number[];
     looserWitness?: number[];
 }
+export type Acknowledgement = 'unproven-relaxation' | 'policy-override';
 export type RuleEditResult = {
     ok: true;
     model: CodeLineExercise;
     effect: EditEffect;
 }
-/** `index`: the failing edit, or null when the finished batch failed admission. */
+/** `index`: the failing edit, or null when the finished batch failed admission.
+ * `acknowledge`: with `needs-acknowledgement`, the level that would admit the removal. */
  | {
     ok: false;
     error: RuleEditError;
     message: string;
     index: number | null;
+    acknowledge?: Acknowledgement;
 };
 /** Applies a batch atomically and reports its effect; the input model is never mutated. */
 export declare function applyRuleEdits(model: CodeLineExercise, edits: readonly RuleEdit[]): RuleEditResult;

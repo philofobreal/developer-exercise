@@ -49,17 +49,24 @@ test('transitive consequences are named, not removable as direct rules',()=>{
  assert.equal(applyRuleEdits(model,[{kind:'remove-rule',before:2,after:3}]).error,'not-a-constraint');
 });
 
-test('removing a pedagogical rule is free and loosens; a redundant generated rule goes without acknowledgement',()=>{
+test('removing a pedagogical rule is free and loosens; a generated rule is redundant only through constraints that stay',()=>{
  const tightened=ok(applyRuleEdits(base(),[{kind:'add-rule',before:2,after:3}]));
  const removed=applyRuleEdits(tightened,[{kind:'remove-rule',before:2,after:3}]);
  assert.deepEqual(ok(removed).edges,[]);
  assert.deepEqual([removed.effect.stricter,removed.effect.looser],['no','yes']);
- // Make 2 → 4 redundant with a rule 2 → 3 → 4, then drop the generated 2 → 4: the order set is unchanged.
+ // ADR-021: 2 → 4 implied only by author rules 2 → 3 → 4 is not redundant. The author rules can be
+ // removed freely afterwards, which would drop the proven 2 → 4 without any acknowledgement.
  const chained=ok(applyRuleEdits(base(),[{kind:'add-rule',before:2,after:3},{kind:'add-rule',before:3,after:4}]));
- const dropped=applyRuleEdits(chained,[{kind:'remove-rule',before:2,after:4}]);
+ const refused=applyRuleEdits(chained,[{kind:'remove-rule',before:2,after:4}]);
+ assert.deepEqual([refused.ok,refused.error,refused.acknowledge],[false,'needs-acknowledgement','policy-override']);
+ const overridden=ok(applyRuleEdits(chained,[{kind:'remove-rule',before:2,after:4,acknowledge:'policy-override'}]));
+ assert.deepEqual(overridden.authoring.relaxations,[{before:2,after:4,editability:'proven'}]);
+ // A legacy dependency implied by other legacy dependencies (2 → 4 → 5) goes freely: the order set is unchanged.
+ const legacy=base();delete legacy.authoring;legacy.lines[4].dependencies.push(2);
+ const dropped=applyRuleEdits(legacy,[{kind:'remove-rule',before:2,after:5}]);
  const model=ok(dropped);
  assert.deepEqual([dropped.effect.stricter,dropped.effect.looser],['no','no']);
- assert.equal(model.authoring.relaxations,undefined,'nothing was relaxed');
+ assert.equal(model.authoring?.relaxations,undefined,'nothing was relaxed');
 });
 
 test('relaxation safety: hard never, conservative only acknowledged, proven only as a policy override',()=>{

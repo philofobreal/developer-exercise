@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased – 2026-10-27 szerzői szabálypanel a rendezőn (ADR-021, D2)
+
+- **Szabálypanel:** a szerző saját előnézetében minden sornak van láncszem gombja. Megnyomására megjelennek a sor közvetlen előzményei és követői okkal, szerkeszthetőséggel és megjegyzéssel, és a rendezőben kiemelődnek. A panelen szabály vehető fel, távolítható el (a szerkezeti nem), megjegyzés írható, és sor rögzíthető. Megjelenik a hatásjelentés tanúsorrenddel és a gate státusza is. A tanulói preview-ban ebből semmi nem látszik.
+- **Megerősítés:** a szükséges megerősítési szintet a core nevezi meg (`RuleEditResult.acknowledge`). A panel ezt kéri, és az indoklás a lazítással együtt rögzül.
+- **Adatmodell nézet:** minősítés, publikálhatóság, megállapítások, állítások és alapjuk, nyelvi audit, szerzői lazítások, refresh-jelentés.
+- **Referenciaforrás nézet:** `importEmit`-választó TypeScripthez (`verbatim` / `elide-unused`).
+- **API:** `POST /api/author/rules`, illetve Pages-ben `editRules`. A szerver a saját draft-másolatát szerkeszti, és a gate újraminősít. Elutasításnál `200 {ok: false, …}` a válasz, és a draft érintetlen. A fordítási válasz szabálylapot (`rules`) is ad: a közvetlen kényszereket, lezárás nélkül.
+- **Javítások:**
+  - csak szerzői szabályokból következő redundancia nem teszi szabaddá egy generált kényszer eltávolítását (az ADR-018 pontosítása);
+  - a refresh a rögzített `importEmit`-tel generál újra;
+  - a szerver az előnézetet a draft revíziójával értékeli;
+  - egy szabályszerkesztés nem írja felül a nem alkalmazott referencia- vagy JSON-piszkozatot.
+- **Tesztek:** [author-rule-panel.test.mjs](tests/author-rule-panel.test.mjs), Pages-eset, pontosított `rule-editing` eset, két Playwright-eset Node és Pages módban.
+- **Ütemezve:** U1, a nézetek léptetéses egyszerűsítése ([epic-állapot](docs/semantic-ordering-epic-status.md)).
+
 ## Unreleased – 2026-10-27 metódusok és felső szintű függvények szabad sorrendje (ADR-020, v11)
 
 - **Döntés:** a felső szintű függvénydeklarációk és az osztálymetódusok, accessorok egymás közti sorrendje szabad; a példánymezők, a static mezők és a `var`-ok sorrendje kötött marad.

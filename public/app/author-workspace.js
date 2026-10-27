@@ -1,4 +1,9 @@
-const same = (a, b) => a.source === b.source && a.language === b.language && a.title === b.title && a.description === b.description;
+const same = (a, b) => a.source === b.source && a.language === b.language && a.title === b.title && a.description === b.description && (a.importEmit ?? 'verbatim') === (b.importEmit ?? 'verbatim');
+/** The generation request for the reference; the import emit is a TypeScript-only assumption (ADR-013). */
+export function authorRequest(author) {
+    const { title, description, language, source, importEmit } = author;
+    return { title, description, language, source, ...(language === 'typescript' && importEmit ? { importEmit } : {}) };
+}
 export function authorDraftPending(state) {
     return !!state.authorBaseline && !same(state.author, state.authorBaseline);
 }
@@ -29,7 +34,7 @@ export function createAuthorWorkspace(state) {
     let current = null;
     const key = (exercise) => JSON.stringify([exercise.id, exercise.revision]);
     const save = () => { if (current)
-        drafts.set(current, structuredClone({ author: state.author, baseline: state.authorBaseline ?? state.author, modelDraft: state.modelDraft, modelMessage: state.modelMessage, authorModel: state.authorModel })); };
+        drafts.set(current, structuredClone({ author: state.author, baseline: state.authorBaseline ?? state.author, modelDraft: state.modelDraft, modelMessage: state.modelMessage, authorModel: state.authorModel, authorInsight: state.authorInsight })); };
     function select(exercise) {
         nextRequest(state);
         save();
@@ -45,13 +50,17 @@ export function createAuthorWorkspace(state) {
         state.modelDraft = copy.modelDraft;
         state.modelMessage = copy.modelMessage;
         state.authorModel = copy.authorModel;
+        state.authorInsight = copy.authorInsight;
         state.active = exercise.id;
     }
-    /** Call only after installPreview succeeds; save() must precede that atomic admission. */
-    function admit(model, source) {
+    /** Call only after installPreview succeeds; save() must precede that atomic admission.
+     * `keepPending`: a rule edit changes no line, so an unapplied reference draft stays pending. */
+    function admit(model, source, { keepPending = false } = {}) {
         nextRequest(state);
-        const author = { title: model.title, description: model.description, language: model.language, source: source ?? model.lines.map(l => l.code).join('\n'), message: '' };
-        state.author = author;
+        const pending = keepPending && authorDraftPending(state) ? state.author : undefined;
+        const importEmit = model.authoring?.evidence?.environment?.importEmit;
+        const author = { title: model.title, description: model.description, language: model.language, source: source ?? model.lines.map(l => l.code).join('\n'), message: '', ...(importEmit ? { importEmit } : {}) };
+        state.author = pending ?? author;
         state.authorBaseline = { ...author };
         current = key(model);
         save();

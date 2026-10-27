@@ -75,3 +75,18 @@ test('Pages imports serial legacy rules exactly; dependency refresh requires exp
   await assert.rejects(api.compileDraft({model,refreshDependencies:'yes'}));
  }finally{globalThis.ts=saved;}
 });
+
+test('Pages rule edits (ADR-021): the demo edits its own draft copy, re-qualifies it and refuses without overwriting',async()=>{
+ const saved=globalThis.ts;globalThis.ts={...createRequire(import.meta.url)('typescript'),sys:undefined};
+ try{
+  const api=await import('../_site/app/pages-api.js');
+  const first=await api.compileDraft({source:'function f() {\n  const a = 1;\n  const b = 2;\n  const c = a + 3;\n  g(b, c);\n}',language:'javascript'});
+  assert.ok(first.rules.constraints.some(c=>c.before===2&&c.after===4&&c.editability==='proven'));
+  const refused=await api.editRules({draftId:first.draftId,edits:[{kind:'remove-rule',before:2,after:4}]});
+  assert.deepEqual([refused.ok,refused.acknowledge],[false,'policy-override']);
+  const fixed=await api.editRules({draftId:first.draftId,edits:[{kind:'set-fixed',line:3,fixed:true}]});
+  assert.deepEqual([fixed.ok,fixed.mode,fixed.verification.status,fixed.model.lines[2].fixed],[true,'local-demo','author-modified',true]);
+  assert.equal((await api.previewDraft({draftId:fixed.draftId,lines:fixed.model.lines.map(x=>x.code)})).status,'accepted');
+  await assert.rejects(api.previewDraft({draftId:first.draftId,lines:[]}),/lejárt/,'the edited draft replaced its predecessor');
+ }finally{globalThis.ts=saved;}
+});

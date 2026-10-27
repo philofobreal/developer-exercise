@@ -1,5 +1,6 @@
 import {activateView,markEditorDraft,markEditorApplied,reloadEditorFromArrangement,captureEditorRequest,adjacentMoveBoundary,dispatchWorkbenchAction} from './app/interactions.js';
-import {createAuthorWorkspace,refreshAuthorStatus,captureAuthorRequest} from './app/author-workspace.js';
+import {createAuthorWorkspace,refreshAuthorStatus,captureAuthorRequest,authorRequest} from './app/author-workspace.js';
+import {readRuleEdit,recordRuleRefusal,ruleEditBlocked,settleRuleSelection} from './app/rule-panel.js';
 /** App orchestration and event wiring; business policy lives in attempts and API. */
 import {readClipboard} from './app/clipboard.js';
 import {installPreview} from './app/author-session.js';
@@ -8,7 +9,7 @@ import {createAttempt,createAttemptController} from './app/attempt.js';
 import {createWorkbenchView} from './app/view.js';
 import {createInsertionDrag} from './app/drag-insert.js';
 import {createScrollMemory,updateGutters,copyToClipboard,escapeHtml} from './app/ui-utilities.js';
-import {formatSource,getExercises,compileDraft,previewDraft,evaluate,loadTypeScriptFixture} from './app/api.js';
+import {formatSource,getExercises,compileDraft,editRules,previewDraft,evaluate,loadTypeScriptFixture} from './app/api.js';
 const root=document.querySelector('#app');
 const state={exercises:[],active:null,attempts:new Map(),previews:new Map(),drag:null,view:'sort',author:{title:'Saját kódrendezős feladat',description:'Rendezd sorba a kódsorokat.',language:'javascript',source:`function calculate() {\n     const a = 10;\n     const b = 20;\n     return a + b;\n}`,message:''},modelDraft:'',modelMessage:''};
 const ex=()=>state.exercises.find(x=>x.id===state.active);
@@ -26,13 +27,14 @@ function remove(index){if(attempt.back(index))commit();}
 function applyEditor(){const result=attempt.applyText(root.querySelector('#code-editor').value);if(!result.ok)return commit(result.message);markEditorApplied(at());state.view='sort';commit();}
 /** Commit a newly compiled author model atomically. Compatible attempts survive a
  * dependency-only edit, so the learner can immediately observe the new rules. */
-async function authorApply(body,{preserveAttempt=false,sessionImport,current=captureAuthorRequest(state)}={}){
- let data;try{data=await compileDraft(body);}catch(error){if(!current())return;throw error;}
+async function authorApply(body,{preserveAttempt=false,sessionImport,current=captureAuthorRequest(state),request=compileDraft}={}){
+ let data;try{data=await request(body);}catch(error){if(!current())return;throw error;}
  if(!current())return;
+ if(data.ok===false){if(state.ruleSelection)recordRuleRefusal(state.ruleSelection,data,body.edits);render();return;}
  const restoredAttempt=sessionImport?restoreAttempt(sessionImport,data.model):undefined;
  authorWorkspace.save();
  const {compatible,model:m}=installPreview(state,data,{preserveAttempt,restoredAttempt});
- authorWorkspace.admit(m,body.model?undefined:body.source);
+ authorWorkspace.admit(m,body.model?undefined:body.source,{keepPending:!!body.edits});settleRuleSelection(state,!!body.edits);
  state.modelMessage=compatible?'A módosított szabályok érvényesek. A kitöltés megmaradt; ellenőrizheted az új függőségekkel.':'A módosított modell érvényes. A kitöltést az új szerkezethez visszaállítottuk.';
  state.author.message='A modell elkészült: '+m.lines.length+' sor, '+m.blocks.length+' blokk. '+(m.authoring?.dependencyHints?.length??0)+' deklaráció/használat jelzés. Az egyszerű const deklarációk kötésalapú függőségeket kapnak; teljes szemantikai bizonyítás nincs.'+(m.authoring?.omittedBlocks?' '+m.authoring.omittedBlocks+' közös sorhatárú blokk csak sorrendvédelemmel reprezentált.':'');
  state.view='sort';commit(preserveAttempt?state.modelMessage:state.author.message);
@@ -98,6 +100,11 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
   const current=captureAuthorRequest(state);
   try{const source=await loadTypeScriptFixture();if(!current())return;state.author.source=source;state.author.language='typescript';state.author.title='CopyFieldUtilityService';state.author.description='Mellékelt TypeScript service, 31 osztálytag';state.author.message='A 31 metódusos TypeScript minta betöltve.';render();}catch(err){if(current()){state.author.message=err.message;render();}}return;
  }
+ if(b.dataset.ruleLine){const line=+b.dataset.ruleLine,row=b.closest('.code-row');state.ruleSelection=row&&state.ruleSelection?.line===line?undefined:{line,message:''};render();if(!row)root.querySelector('#rule-panel-title')?.focus({preventScroll:true});return;}
+ if(b.hasAttribute('data-rule-close')){const line=state.ruleSelection?.line;state.ruleSelection=undefined;render();root.querySelector(`.code-row [data-rule-line="${line}"]`)?.focus({preventScroll:true});return;}
+ if(b.hasAttribute('data-rule-cancel')){if(state.ruleSelection){delete state.ruleSelection.pending;state.ruleSelection.message='Az eltávolítás elmaradt; a szabály megmaradt.';}render();return;}
+ if(b.dataset.ruleEdit){const selection=state.ruleSelection,draftId=state.previews.get(state.active);if(!selection||!draftId)return;const blocked=ruleEditBlocked(state),edit=readRuleEdit(b,selection);if(blocked||!edit){selection.message=blocked||'Válaszd ki a szabály másik sorát.';render();return;}
+  await authorApply({draftId,edits:[edit]},{preserveAttempt:true,request:editRules});return;}
  if(b.dataset.task){authorWorkspace.select(state.exercises.find(e=>e.id===b.dataset.task));state.view='sort';render();return;}
  if(b.dataset.view){activateView(state,a,formattedAnswer(),b.dataset.view);render();return;}
  if(b.hasAttribute('data-reset')){state.attempts.set(state.active,createAttempt(ex()));render();return;}
@@ -118,7 +125,7 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
    try{const result=await formatSource(ed.value,state.author.language);if(!current())return;state.author.source=result.code;state.author.message=`Formázva: ${result.formatter} (${result.indentSize??5} szóköz).`;render();}
    catch(err){if(current()){state.author.message=err.message;render();}}return;
  }
- if(b.hasAttribute('data-author-apply')){state.author.source=root.querySelector('#author-editor').value;b.disabled=true;try{await authorApply({...state.author,source:state.author.source});}catch(err){state.author.message=err.message;render();}return;}
+ if(b.hasAttribute('data-author-apply')){state.author.source=root.querySelector('#author-editor').value;b.disabled=true;try{await authorApply(authorRequest(state.author));}catch(err){state.author.message=err.message;render();}return;}
  if(b.hasAttribute('data-model-apply')){state.modelDraft=root.querySelector('#model-editor').value;b.disabled=true;try{await authorApply({model:JSON.parse(state.modelDraft)},{preserveAttempt:true});}catch(err){state.modelMessage=err.message;render();}return;}
  if(b.hasAttribute('data-model-refresh')){state.modelDraft=root.querySelector('#model-editor').value;try{await authorApply({model:JSON.parse(state.modelDraft),refreshDependencies:true},{preserveAttempt:true});}catch(err){state.modelMessage=err.message;render();}return;}
  if(b.hasAttribute('data-check')){if(state.view!=='sort'){a.feedback='Előbb alkalmazd a szerkesztő változtatásait.';render();return;}
@@ -131,7 +138,7 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
 root.addEventListener('input',ev=>{const el=ev.target; if(el.closest('.editor-frame'))updateGutters(root);if(el.id==='code-editor')markEditorDraft(at(),el.value);else if(el.id==='model-editor')state.modelDraft=el.value;else if(el.id==='author-editor')state.author.source=el.value;else if(el.dataset.author)state.author[el.dataset.author]=el.value;refreshAuthorStatus(root,state);});
 root.addEventListener('scroll',ev=>{if(ev.target.matches('.editor-frame textarea'))updateGutters(root);},true);
 root.addEventListener('keydown',ev=>{if(ev.key==='Tab'&&ev.target.matches('.editor-frame textarea')){ev.preventDefault();const el=ev.target,i=el.selectionStart,j=el.selectionEnd;el.setRangeText('     ',i,j,'end');el.dispatchEvent(new Event('input',{bubbles:true}));}});
-root.addEventListener('change',ev=>{if(ev.target.dataset.author)state.author[ev.target.dataset.author]=ev.target.value;});
+root.addEventListener('change',ev=>{if(ev.target.dataset.author){state.author[ev.target.dataset.author]=ev.target.value;refreshAuthorStatus(root,state);if(ev.target.dataset.author==='language')render();}});
 createInsertionDrag({root,
   onInsert:(d,boundary)=>d.from==='pool'?movePoolToBoundary(d.index,boundary):moveAnswerToBoundary(d.index,boundary),
   onReturn:index=>remove(index)

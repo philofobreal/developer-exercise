@@ -31,6 +31,7 @@
     "src/workbench/fields.ts": "public/app/fields.js",
     "src/workbench/icons.ts": "public/app/icons.js",
     "src/workbench/interactions.ts": "public/app/interactions.js",
+    "src/workbench/rule-panel.ts": "public/app/rule-panel.js",
     "src/workbench/ui-utilities.ts": "public/app/ui-utilities.js",
     "src/workbench/view.ts": "public/app/view.js"
   }

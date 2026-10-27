@@ -41,7 +41,7 @@ A `remove-rule` biztonsági szabályai (ADR-014 osztályai, ADR-015 kötése):
 | Osztály | Eltávolítás |
 | --- | --- |
 | `pedagogical` (szerzői szabály) | szabad. Ha ugyanazon a páron generált ok is van, csak a szerzői réteg törlődik |
-| redundáns (a pár más úton is rendezett) | szabad, a sorrendhalmaz változatlan |
+| redundáns (a pár más úton is rendezett) | szabad, a sorrendhalmaz változatlan. [ADR-021](021-author-rule-panel.md) óta csak a megmaradó, nem szerzői kényszereken át számít redundánsnak; a csak szerzői szabályokból következő pár megerősítést kér |
 | `hard` (szerkezet, egység, blokktagság) | tiltott |
 | `conservative` | csak `acknowledge: 'unproven-relaxation'` megerősítéssel |
 | `proven`, `legacy` | csak `acknowledge: 'policy-override'` megerősítéssel |

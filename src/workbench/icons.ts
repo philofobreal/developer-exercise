@@ -18,7 +18,9 @@ const paths={
  arrow:'<path d="M5 12h14m-6-6 6 6-6 6"/>',
  save:'<path d="M4 3h14l3 3v15H3V3zm3 0v6h10V3M7 21v-8h10v8"/>',
  download:'<path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/>',
- upload:'<path d="M12 16V4m-5 5 5-5 5 5M4 16v5h16v-5"/>'
+ upload:'<path d="M12 16V4m-5 5 5-5 5 5M4 16v5h16v-5"/>',
+ link:'<path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1m2 4a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"/>',
+ close:'<path d="M6 6l12 12M18 6 6 18"/>'
 } as const;
 export type IconName=keyof typeof paths;
 export const icon=(name:IconName):string=>`<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths[name]}</svg>`;

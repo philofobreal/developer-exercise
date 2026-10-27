@@ -10,7 +10,7 @@ import {generateCodeLineExercise,AuthoringError} from '../author/generator.mjs';
 import {getLanguageAdapter} from '../author/languages.mjs';
 import {auditReference} from '../author/audit.mjs';
 import {compileCodeLineExercise,validateSubmission} from '../../dist/index.js';
-import {refreshAuthorModel,verifyAuthorModel} from '../../dist/author/engine.js';
+import {authorRuleSheet,editAuthorModel,refreshAuthorModel,verifyAuthorModel} from '../../dist/author/engine.js';
 import {createReferenceAuditor} from '../../dist/author/reference-audit.js';
 export class ServiceError extends Error{constructor(code,message){super(message);this.statusCode=code;}}
 export class ExerciseCatalog{
@@ -58,12 +58,27 @@ export class ExerciseCatalog{
     // Model Verification Gate (ADR-017): re-derived here, never taken from the request.
     const verification=await verifyAuthorModel(model,{generate:input=>generateCodeLineExercise(input,parser)},{audit:audit.semantics});
     this.drafts.set(draftId,{created:Date.now(),model,compiled:result.compiled,audit,verification});
-    return {draftId,model,previewOnly:true,mode:'preview-validation',audit,verification,...(refresh?{refresh}:{})};
+    return {draftId,model,previewOnly:true,mode:'preview-validation',audit,verification,rules:authorRuleSheet(model),...(refresh?{refresh}:{})};
+  }
+  /** Typed rule edits on an admitted draft (ADR-018, ADR-021). The server edits its own copy,
+   * never a model taken from the request, and re-qualifies the result. A refused edit is a
+   * domain answer (`ok: false`), not a transport error, and leaves the draft as it was. */
+  async editDraft(body){
+    this.prune();if(typeof body?.draftId!=='string'||!Array.isArray(body?.edits))throw new ServiceError(400,'Invalid rule edit');
+    const item=this.drafts.get(body.draftId);if(!item)throw new ServiceError(404,'Preview not found or expired');
+    const parser=await this.parser();
+    const {result,verification}=await editAuthorModel(item.model,body.edits,{generate:input=>generateCodeLineExercise(input,parser)},{audit:item.audit.semantics});
+    if(!result.ok)return result;
+    const draftId=randomUUID(),model={...result.model,id:`author-${draftId}`},compiled=compileCodeLineExercise(model);
+    if('status' in compiled)throw new ServiceError(422,compiled.message);
+    // The edited draft replaces its predecessor, so editing never exhausts the preview limit.
+    this.drafts.delete(body.draftId);this.drafts.set(draftId,{created:Date.now(),model,compiled:compiled.compiled,audit:item.audit,verification});
+    return {ok:true,draftId,model,previewOnly:true,mode:'preview-validation',audit:item.audit,verification,effect:result.effect,rules:authorRuleSheet(model)};
   }
   preview(body){
     this.prune();if(typeof body?.draftId!=='string'||!Array.isArray(body?.lines)||body.lines.length>500)throw new ServiceError(400,'Invalid draft submission');
     const item=this.drafts.get(body.draftId);if(!item)throw new ServiceError(404,'Preview not found or expired');
-    return validateSubmission(item.compiled,{exerciseId:item.model.id,revision:1,lines:body.lines},{maxStates:30_000});
+    return validateSubmission(item.compiled,{exerciseId:item.model.id,revision:item.model.revision,lines:body.lines},{maxStates:30_000});
   }
   evaluate(body){
     if(!body||typeof body.exerciseId!=='string'||!Array.isArray(body.lines)||body.lines.length>500)throw new ServiceError(400,'Invalid submission');

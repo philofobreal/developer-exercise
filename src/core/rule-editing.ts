@@ -23,7 +23,7 @@ import { evidenceStatus } from './evidence.js';
 
 export type RuleEdit =
   | { kind: 'add-rule'; before: number; after: number; note?: string }
-  | { kind: 'remove-rule'; before: number; after: number; acknowledge?: 'unproven-relaxation' | 'policy-override'; note?: string }
+  | { kind: 'remove-rule'; before: number; after: number; acknowledge?: Acknowledgement; note?: string }
   | { kind: 'set-note'; before: number; after: number; note: string }
   | { kind: 'set-fixed'; line: number; fixed: boolean }
   | { kind: 'add-profile'; id: string }
@@ -33,18 +33,20 @@ export type RuleEdit =
 export type RuleEditError = 'invalid-model' | 'invalid-edit' | 'unknown-line' | 'unknown-profile' | 'duplicate-profile' | 'not-a-constraint' | 'transitive-only' | 'hard-constraint' | 'needs-acknowledgement' | 'cycle' | 'against-reference' | 'admission';
 /** `no`: impossible by constraint inclusion; `yes`: shown by the witness (line IDs in order); `maybe`: undecided. */
 export interface EditEffect { stricter: 'no' | 'yes' | 'maybe'; looser: 'no' | 'yes' | 'maybe'; stricterWitness?: number[]; looserWitness?: number[]; }
+export type Acknowledgement = 'unproven-relaxation' | 'policy-override';
 export type RuleEditResult =
   | { ok: true; model: CodeLineExercise; effect: EditEffect }
-  /** `index`: the failing edit, or null when the finished batch failed admission. */
-  | { ok: false; error: RuleEditError; message: string; index: number | null };
+  /** `index`: the failing edit, or null when the finished batch failed admission.
+   * `acknowledge`: with `needs-acknowledgement`, the level that would admit the removal. */
+  | { ok: false; error: RuleEditError; message: string; index: number | null; acknowledge?: Acknowledgement };
 
 const AUTHOR_RULE = 'author-rule';
-const fail = (error: RuleEditError, message: string, index: number | null): RuleEditResult => ({ ok: false, error, message, index });
+const fail = (error: RuleEditError, message: string, index: number | null, acknowledge?: Acknowledgement): RuleEditResult => ({ ok: false, error, message, index, ...(acknowledge ? { acknowledge } : {}) });
 const isId = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0;
 const pairOf = (entry: { before: number; after: number }, before: number, after: number): boolean => entry.before === before && entry.after === after;
 
 class EditFailure extends Error {
-  constructor(readonly error: RuleEditError, message: string) { super(message); }
+  constructor(readonly error: RuleEditError, message: string, readonly acknowledge?: Acknowledgement) { super(message); }
 }
 
 /** Applies a batch atomically and reports its effect; the input model is never mutated. */
@@ -56,7 +58,7 @@ export function applyRuleEdits(model: CodeLineExercise, edits: readonly RuleEdit
   let explanation: ConstraintExplanation = initial;
   for (let index = 0; index < edits.length; index++) {
     try { apply(draft, explanation, edits[index]!); }
-    catch (error) { if (error instanceof EditFailure) return fail(error.error, error.message, index); throw error; }
+    catch (error) { if (error instanceof EditFailure) return fail(error.error, error.message, index, error.acknowledge); throw error; }
     const next = explainConstraints(draft);
     if ('status' in next) return fail('admission', next.message, index);
     explanation = next;
@@ -134,14 +136,17 @@ function apply(draft: CodeLineExercise, explanation: ConstraintExplanation, edit
         return;
       }
       if (constraint.editability === 'hard') throw new EditFailure('hard-constraint', `A(z) ${before} → ${after} szerkezeti szabály (${constraint.reasons.map(reason => reason.code).join(', ')}); nem távolítható el.`);
-      const target = draft.lines[position.get(after)!]!;
-      const rest = { ...draft, lines: draft.lines.map(item => item === target ? { ...item, dependencies: item.dependencies.filter(id => id !== before) } : item), edges: (draft.edges ?? []).filter(edge => !pairOf(edge, before, after)) };
+      // Redundant only through constraints that stay: author rules may be removed freely later,
+      // so a generated constraint implied by them alone still needs its acknowledgement (ADR-021).
+      const authorOnly = new Set(explanation.lines.flatMap(item => item.predecessors).filter(item => item.reasons.every(reason => reason.category === 'author')).map(item => item.before + ':' + item.after));
+      const stays = (from: number, to: number): boolean => !(from === before && to === after) && !authorOnly.has(from + ':' + to);
+      const rest = { ...draft, lines: draft.lines.map(item => ({ ...item, dependencies: item.dependencies.filter(id => stays(id, item.id)) })), edges: (draft.edges ?? []).filter(edge => stays(edge.before, edge.after)) };
       const redundant = reaches(rest, before, after);
       if (!redundant) {
         const editability = constraint.editability as RuleRelaxation['editability'];
         if (editability === 'conservative' ? !edit.acknowledge : edit.acknowledge !== 'policy-override') throw new EditFailure('needs-acknowledgement', editability === 'conservative'
           ? 'Konzervatív szabály: a lazítás helyessége nem bizonyított; csak kifejezett szerzői megerősítéssel (unproven-relaxation) távolítható el.'
-          : `${editability === 'proven' ? 'Bizonyított' : 'Ismeretlen eredetű'} szabály: eltávolítása eltér a sorrendpolitikától, csak kifejezett policy-felülírással (policy-override) lehetséges.`);
+          : `${editability === 'proven' ? 'Bizonyított' : 'Ismeretlen eredetű'} szabály: eltávolítása eltér a sorrendpolitikától, csak kifejezett policy-felülírással (policy-override) lehetséges.`, editability === 'conservative' ? 'unproven-relaxation' : 'policy-override');
         authoring.relaxations = [...(authoring.relaxations ?? []).filter(entry => !pairOf(entry, before, after)), { before, after, editability, ...(note ? { note } : {}) }];
       }
       dropPair(before, after);

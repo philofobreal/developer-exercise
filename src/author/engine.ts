@@ -1,7 +1,7 @@
 /** Typed author-time entry point. ASTs and parser infrastructure stay inside adapters. */
-import { applyRuleEdits, codeLineDigest, compileCodeLineExercise, compileCodeLineExerciseV3, evidenceStatus, mergeAuthorRules, prepareRenderPlan, upgradeCodeLineExerciseV2, verifyModel } from '../../dist/index.js';
+import { applyRuleEdits, codeLineDigest, compileCodeLineExercise, compileCodeLineExerciseV3, evidenceStatus, explainConstraints, mergeAuthorRules, prepareRenderPlan, upgradeCodeLineExerciseV2, verifyModel } from '../../dist/index.js';
 import {reconcileDependencies} from './dependency-refresh.js';
-import type { CodeLineExercise, CodeLineExerciseV3, CompiledRules, IndentPolicy, LanguageIR, ModelVerification, RefreshReport, RenderPlan, RuleEdit, RuleEditResult, VerificationInput } from '../../dist/index.js';
+import type { CodeLineExercise, CodeLineExerciseV3, CompiledRules, ConstraintExplanation, DirectConstraint, IndentPolicy, LanguageIR, ModelVerification, RefreshReport, RenderPlan, RuleEdit, RuleEditResult, VerificationInput } from '../../dist/index.js';
 
 export interface AuthorSource { source: string; title?: string; description?: string; }
 export interface FormatResult { code: string; }
@@ -83,7 +83,9 @@ export async function refreshAuthorModel(input: CodeLineExercise, ports: Pick<Le
  const snapshot = structuredClone(input), initial = compileCodeLineExercise(snapshot);
  if ('status' in initial) throw new AdapterContractError(initial.message);
  await ports.audit(snapshot);
- const generated = await ports.generate({source: snapshot.lines.map(line => line.code).join('\n'), language: snapshot.language, title: snapshot.title, description: snapshot.description});
+ // The recorded import emit (ADR-013, ADR-015) is part of what the refresh re-derives.
+ const importEmit = snapshot.authoring?.evidence?.environment?.importEmit;
+ const generated = await ports.generate({source: snapshot.lines.map(line => line.code).join('\n'), language: snapshot.language, title: snapshot.title, description: snapshot.description, ...(importEmit ? {importEmit} : {})});
  const checked = compileCodeLineExercise(generated);
  if ('status' in checked) throw new AdapterContractError(checked.message);
  await ports.audit(generated);
@@ -103,6 +105,17 @@ export async function refreshAuthorModel(input: CodeLineExercise, ports: Pick<Le
 export async function editAuthorModel(model: CodeLineExercise, edits: readonly RuleEdit[], ports: Pick<LegacyJSTSPorts, 'generate'>, input: Pick<VerificationInput, 'audit' | 'maxStates' | 'neighbours'> = {}): Promise<{result: RuleEditResult; verification?: ModelVerification}> {
  const result = applyRuleEdits(model, edits);
  return result.ok ? {result, verification: await verifyAuthorModel(result.model, ports, input)} : {result};
+}
+
+/** What the author rule panel shows (ADR-021): every direct constraint of the explanation
+ * once, without the transitive closure, which grows quadratically (1.1 MB for a 436-line
+ * model). The panel needs no closure: cycles and redundancy are the core's decisions. */
+export interface AuthorRuleSheet extends Pick<ConstraintExplanation, 'provenance' | 'unexplained' | 'stale' | 'relaxations'> { constraints: DirectConstraint[]; }
+export function authorRuleSheet(model: CodeLineExercise): AuthorRuleSheet {
+ const explanation = explainConstraints(model);
+ if ('status' in explanation) throw new AdapterContractError(explanation.message);
+ const {provenance, unexplained, stale, relaxations} = explanation;
+ return {provenance, unexplained, stale, relaxations, constraints: explanation.lines.flatMap(line => line.predecessors)};
 }
 
 /** Model Verification Gate for a JS/TS v2 model (ADR-017). The generated constraints are
