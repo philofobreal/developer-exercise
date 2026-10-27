@@ -351,3 +351,36 @@ Az epic címadó, látható része (vizuális szabályszerkesztő, magyarázhat�
 - `_site/`, `dist-tools/`, `test-results/`, `.venv/`, `node_modules/`.
 
 Ezek nem ennek a munkának a termékei, ezért nem töröltem őket. A `*.log` fájlok nyugodtan törölhetők.
+
+## Javítás a lezárás után: tiszta egység és hatás-barrier (ADR-019, v10)
+
+**Bejelentés:** a felhasználói képen a `binarySearch` két első sorának cseréje (`let high = sorted.length - 1;` ↔ `let low = 0;`) „Hibás” lett, holott a két sor sorrendje közömbös.
+
+**Diagnózis:**
+
+- A könyvtári, kézzel hangolt modell (`examples/algo-sort-search-js.json`) és a futás is elfogadja a cserét: a core validátor, a szerver és az élesített Pages is.
+- A hiba a szerzői „Alkalmazás → Rendezés” útján jön elő, amely a forrásból **generált** modellt használja. A v9 P2 minden tiszta egységet minden barrierhez kötött, a `sorted.length` pedig property-olvasás (getter lehet), tehát barrier.
+- Ugyanez okozta az `insertionSort` `current`/`j` cseréjének elutasítását; ott ráadásul az `i - 1` sem számított tisztának.
+
+**Javítás:** [ADR-019](adr/019-pure-effect-commutation.md).
+
+- **Generátor:** a pontosított P2 a [statement-ordering.ts](../src/author/statement-ordering.ts) fájlban.
+- **Orákulum:** független követés a [semantic-oracle.mjs](../tests/support/semantic-oracle.mjs) fájlban.
+- **Tesztek:** [pure-effect-commutation.test.mjs](../tests/pure-effect-commutation.test.mjs) (9 eset, mindegyik a generátorral és az orákulummal is).
+- **Ellenőrzés:** böngészőben, helyben, szerzői előnézettel: a képen látható sorrend elfogadott.
+
+**A mintapéldák teljes átvizsgálása:**
+
+- **Módszer:** minden testvérlista minden permutációja, legfeljebb 6 egységig, futásidejű orákulummal, a kézi és a generált modellel.
+- **Eredmény:** egyik modell sem fogad el hibás sorrendet.
+
+A generált modell még ekvivalensként elutasítja:
+
+| Példa | Elutasított, de ekvivalens | Ok |
+| --- | --- | --- |
+| `algo-sort-search-js` | a két függvény sorrendje | P4: szkriptszintű globális kulcssorrend (`Object.keys(globalThis)`) |
+| `algo-sort-search-js` | a két `if` cseréje | a `return`-t tartalmazó ág vezérlésátadás (a kézi modell is elutasítja) |
+| `algo-bfs-js` | a deklarációk egy része, a célellenőrzés a szomszédok után | paraméter-property olvasása (`grid.length`, `start.join`) |
+| `class-inventory-ts`, `class-accounts-ts` | metódus- és konstruktorsorrend, `this.balance` / `this.history` frissítés | P4 prototípus-kulcssorrend, illetve `this`-property írása és hívás |
+
+A kézi `class-inventory-ts` modell a konstruktort a mező után, a metódusokat a konstruktor után köti. Ez a P4-nél is szigorúbb. A kézi `algo-sort-search-js` leírása pedig szabad függvénysorrendet ígér, amit a generált modell a P4 miatt nem tart be.

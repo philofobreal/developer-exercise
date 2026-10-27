@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased – 2026-10-27 tiszta egység és hatás-barrier kommutációja (ADR-019, v10)
+
+- **Hiba:** a szerzői előnézetben (generált modell) a `binarySearch` `let low = 0;` / `let high = sorted.length - 1;` és az `insertionSort` `const current = values[i];` / `let j = i - 1;` cseréje elutasított volt. A kézi könyvtári modell és a futás szerint mindkettő helyes.
+- **P2 pontosítása (`scoped-effect-analysis-v10`):** egy tiszta, blokkszintű, lokális deklaráció átléphet egy hatás-barriert, ha:
+  - a barrier nem hagyja el korán önmagát (`return`/`throw`/`yield`/`await`/kifelé ugrás/`using`);
+  - sem a barrier, sem closure nem hivatkozik a deklaráció kötéseire, és nem írja az olvasott kötéseit (kötés és név szerint);
+  - a függvény nem használ `arguments`-et.
+- **Számláló:** a csak `++`/`--` által írt, primitív kezdőértékű `let`/`var` (a `for` fejléc változója is) olvasása primitív.
+- **Orákulum:** a független P2-orákulum saját, név alapú implementációval követi; az `ordering-semantics` teszt ugyanezt használja.
+- **Mérés (azonos v10-orákulummal):**
+  - korpusz: 0 hibás elfogadás, 417 → 430 elfogadott szomszéd, a rések száma 42 → 29;
+  - kampány (1 000 program): 0 hibás elfogadás, 36 716 → 40 693 elfogadott sorrend, a rések száma 6 067 → 4 363.
+
+  Részletek a [formális szerződésben](docs/formal-ordering-contract.md#adr-019-tiszta-egység-és-hatás-barrier-kommutációja).
+- **Változatlan:** P4 (a függvények és metódusok kulcssorrendje), a paraméterek property-olvasása. A régi modellek a saját címkéjükkel érvényesek; a gate a v9-et `outdated`-ként jelzi.
+- **Tesztek:** [pure-effect-commutation.test.mjs](tests/pure-effect-commutation.test.mjs).
+
 ## Unreleased – 2026-10-26 típusos szerzői szabályműveletek (ADR-018, epic D1)
 
 - **Műveletek:** [rule-editing.ts](src/core/rule-editing.ts), `applyRuleEdits`. Szerzői szabály, megjegyzés, `fixed`, OR-profil és profilszabály. Kötegelt, atomikus; minden lépés befogadott, a referenciát el kell fogadni, a bemenet nem változik, a revízió nő.
