@@ -2,7 +2,7 @@
  * steps after the source need an applied model and turn stale on unapplied reference or JSON edits. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {authorPreviewId,blockedReason,enterMode,enterView,flowSteps,jsonPending,landAfterAdmission,staleReason,stepOf} from '../public/app/flow.js';
+import {authorPreviewId,blockedReason,continuityKey,enterMode,enterView,flowSteps,jsonPending,landAfterAdmission,staleReason,stepOf} from '../public/app/flow.js';
 import {admitAuthorModel} from '../public/app/author-workspace.js';
 import {connection} from '../public/app/rule-board.js';
 
@@ -80,4 +80,11 @@ test('try step: rule controls and the rule bar exist only for the author preview
  state.learnerPreview=true;assert.equal(tryRowRuleControls(state,1),'');assert.equal(renderTryRules(state),'');
  state.learnerPreview=false;enterMode(state,'practice');assert.equal(tryRowRuleControls(state,1),'');assert.equal(renderTryRules(state),'');
  assert.ok(model);
+});
+
+test('continuity: every admission is the same author project; practice exercises are their own identity',()=>{
+ const state=make();admit(state,'try');const first=continuityKey(state);
+ state.previews.clear();state.previews.set('author-draft-2','draft-2');state.exercises[0]={...state.exercises[0],id:'author-draft-2'};state.active='author-draft-2';
+ assert.equal(continuityKey(state),first,'a rule edit or refresh installs a new preview id, not a new scroll identity');
+ enterMode(state,'practice');assert.equal(continuityKey(state),'trusted:practice');assert.notEqual(continuityKey(state),first);
 });

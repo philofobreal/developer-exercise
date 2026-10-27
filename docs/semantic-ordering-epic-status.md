@@ -53,7 +53,7 @@ Jelölés: ✅ kész és ellenőrzött · 🔄 folyamatban · ⏳ következik ·
 | D1 | EPIC-05: típusos szabályműveletek: atomikus befogadás, profilok, fixed, megjegyzések, lazítás megerősítési szintekkel, hatásjelentés tanúsorrenddel. Minden szerkesztés után V1-újraminősítés. A refresh jelentve vezeti össze a szerzői szabályokat, a lazításokat és a megjegyzéseket | ✅ | szabályeditor-regressziók (09.3) |
 | D2 | EPIC-05: vizuális szabálypanel, `importEmit`-választó és a minősítés megjelenítése a szerzői felületen | ✅ | Playwright-bizonyíték |
 | U1 | A szerzői és a próbanézetek egyszerűsítése: léptetéses folyamat, egyetlen aktív állapottal, egyértelmű állapotkapcsolattal és frissítéssel a nézetek között | ✅ | állapotgép-egységtesztek, Playwright-átjárási tesztek minden lépésváltásra, újragenerálásra és frissítésre |
-| E1 | EPIC-06: core diagnosztikai modul (bizonyított konfliktusok, többértelműség, keret) | ⏳ | diagnosztikai regressziók (09.4), metamorf: a validátor döntése változatlan |
+| E1 | EPIC-06: core diagnosztikai modul (bizonyított konfliktusok, többértelműség, keret) | ✅ | diagnosztikai regressziók (09.4), metamorf: a validátor döntése változatlan |
 | F1 | EPIC-07: tanulói visszajelzés és soronkénti jelölés | ⏳ | böngészőteszt, hozzáférhetőség |
 | F2 | EPIC-08: disclosure policy (szerző / Pages / trusted szerver) és szerveroldali szerzői jogosultság, vagy explicit, dokumentált helyidemó-korlát | ⏳ | negatív szivárgási és jogosultsági tesztek |
 | G1 | EPIC-09/12: teljes regresszió, kampány, böngésző; forráshűségi round-trip (forrás → modell → render → export/import); a szerzői elemzés idő- és memóriakerete; dokumentáció, végső jelentés | ⏳ | `check:all`, `test:browser:all`, `git diff --check` |
@@ -487,3 +487,32 @@ A kézi `class-inventory-ts` modell a konstruktort a mező után, a metódusokat
 6. **Megőrzendő szerződések:** a nem alkalmazott piszkozatok soha nem vesznek el, a natív, pointeres, érintéses és billentyűzetes egyenértékűség megmarad, ahogy a tanulói elkülönítés, a munkamenet-export és -import és a vágólap is.
 
 **Ütemezés:** közvetlenül a D2 után, az E1 és az F1 előtt. Így a tanulói visszajelzés (F1) és a diagnosztika megjelenítése már az új lépésszerkezetbe épül. Az E1 core-modul ettől független, akár előbb is mehet.
+
+## E1 – core diagnosztikai modul – lezárva
+
+**Döntés:** [ADR-023](adr/023-explainable-validation-diagnostics.md).
+
+**Megvalósítás:**
+
+- **`diagnoseSubmission`:** maga hívja a validátort, és a jelentésben változatlanul visszaadja az ítéletét. A diagnosztika csak magyaráz.
+- **Közös tartalmi illesztés:** a `content-match.ts` modul. Ebből dolgozik a validátor és a diagnosztika is; a validátor viselkedése nem változott.
+- **Bizonyítás:** egy konfliktus akkor bizonyított, ha minden tartalomkonzisztens hozzárendelésben igaz. Sorrendnél ez a jelöltpozíciók szélső értékeiből dönthető el (`min P(a) > max P(b)`), így duplikált tartalomnál sem kell egyetlen sort kiválasztani. A blokk- és egységhibákhoz minden érintett sornak egyértelmű helyűnek kell lennie.
+- **Kategóriák:** ismeretlen tartalom, többlet- vagy hiányzó sor, előfordulási szám, rögzített hely, közvetlen és tranzitív sorrend, szerzői és szerkezeti szabály, blokk- és konténerhatár, v3-egység, profilkonfliktus (csak ha minden profil sérül), `indeterminate`, érvénytelen referencia, általános (nem bizonyítható) elutasítás, diagnosztikai keret.
+- **Szövegek:** determinisztikus magyar sablonok. Szemantikai ok csak kötött provenienciából jelenik meg.
+- **Javaslatok:** `verified` csak validátor által elfogadott mozgatásra; `partial`, ha csak az adott ütközés szűnik meg; egyébként `guidance`. A mozgatás a rendező beszúrási szemantikáját követi.
+- **Keret és felfedés:** explicit lépéskeret, részleges jelentés jelöléssel. Minden diagnosztikának van felfedési szintje az F2 számára.
+
+**Bizonyíték:**
+
+- [diagnostics.test.mjs](../tests/diagnostics.test.mjs) (17 eset) a 09.4 és 09.5 pontjaira;
+- metamorf ellenőrzés a három példa összes (illetve 400) permutációján: verdikt-azonosság, brute-force bijekciós igazolás, ellenőrzött javítások;
+- 500 soros lánc 14 ms, 500 soros duplikált modell 55 ms (helyi mérés).
+- `check:all` 689/689; a validátort a böngészőben is futtató offline és szerveres böngészőcsomag zöld; `git diff --check` tiszta.
+
+**Nyitott:**
+
+- a megjelenítés, a soronkénti jelölés és az elavult aszinkron diagnózis érvénytelenítése (F1);
+- a felfedési szabályozás és a negatív szivárgási tesztek (F2);
+- a szerver és a Pages ezért még nem küld diagnosztikát.
+
+**Javítás a felhasználó jelzésére (2026-10-27):** a Próba lépésben a szabályszerkesztés után a rendező a tetejére ugrott, mert a görgetési memória az előnézet minden befogadáskor változó azonosítójához volt kötve. Most a szerzői projekt állandó kulcsához kötött (ADR-022, `continuityKey`). Bizonyíték: `workbench-flow` 8 eset, workbench-böngészőcsomag 43 eset.

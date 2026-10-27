@@ -50,6 +50,7 @@ A szerző a Próba lépésben, rendezés közben és után is látja és szerkes
 - **Ívek a rendezőben:** a sorok a szerző *aktuális* elrendezésében állnak. Az ívek a sorok vezérlőitől balra, a zónán belül, a jelenlegi pozíciók között rajzolódnak, és minden mozgatás után újra. Egy fordított irányú ív azt mutatja, hogy a jelenlegi azonosítók szerint a sorrend ellentétes a szabállyal; az ítélet továbbra is a validátoré (az azonos tartalmú sorok azonosítója cserélődhet). A két zóna közötti kapcsolatot a sorkiemelés jelzi.
 - **Panel:** a D2-panel a rendező alatt jelenik meg.
 - **Azonnali újraértékelés:** egy szabályszerkesztés megtartja a kitöltést (kompatibilis modell), és azonnal újraértékeli.
+- **Görgetés és fókusz:** minden befogadás (szabályszerkesztés, refresh, újraépítés) új előnézet-azonosítót ad, de ugyanaz a szerzői projekt marad. A görgetés, a fókusz és a nyitott részletek memóriája ezért egy állandó kulcshoz kötött (`continuityKey` a `flow.ts`-ben), nem az előnézet azonosítójához. A rendező görgetése így egy szabályszerkesztés után is megmarad, mint egy húzás után; a szabálypanel saját görgetése is (`data-scroll-memory`). Javított hiba (2026-10-27, felhasználói jelzés): korábban minden szabályszerkesztés után a megoldás panel a tetejére ugrott.
 - **Húzás:** a sorok natívan húzhatók, ezért a körgombról induló húzás elnyomja a natív sormozgatást (`dragstart` a capture fázisban). A fogantyúval történő rendezés változatlan.
 - **Tanulói elkülönítés:** a gyakorló mód és a tanulói nézet nem kap gombot, ívet, panelt vagy sávot (`rulesAvailable`).
 
@@ -64,9 +65,9 @@ A szerző a Próba lépésben, rendezés közben és után is látja és szerkes
 - **Új modulok:** `flow.ts`, `rule-board.ts`; az `author-workspace.ts` egyetlen projektet kezel. Mindhárom szerepel az architektúra-szabály generált listájában.
 - **Új teszthorgok:** `data-mode`, `data-step`, `data-goto`, `data-rules-view`, `data-source-kind`, `data-rule-connect`, `data-board-line`. A böngészős tesztek ugyanazokat az utakat az új navigációval járják be.
 - **Új tesztek:**
-  - [workbench-flow.test.mjs](../../tests/workbench-flow.test.mjs) (7 eset, köztük a próbarendező vezérlőinek elszigetelése);
+  - [workbench-flow.test.mjs](../../tests/workbench-flow.test.mjs) (8 eset, köztük a próbarendező vezérlőinek elszigetelése és az állandó folytonossági kulcs);
   - az átírt [author-workspace.test.mjs](../../tests/author-workspace.test.mjs);
-  - a workbench-böngészőcsomag 41 esete, köztük: zárolás, újraépítés és JSON utáni frissülés minden lépésben, projekt a gyakorlás mellett, összekötés egérrel és billentyűzettel a táblán és a próbarendezőn, ívek újrarajzolása mozgatás után, azonnali újraértékelés.
+  - a workbench-böngészőcsomag 43 esete, köztük: zárolás, újraépítés és JSON utáni frissülés minden lépésben, projekt a gyakorlás mellett, összekötés egérrel és billentyűzettel a táblán és a próbarendezőn, ívek újrarajzolása mozgatás után, azonnali újraértékelés, megmaradó görgetés szabályszerkesztés után.
 - **Javított hibák:**
   - a nyitott „Minősítés” blokk bezárult, ha a Szabályok lépésben JSON-ról visszaváltottunk a vizuális nézetre (a folytonosság kulcsa alnézetenként külön);
   - a húzás utáni kattintáselnyelés bennragadhatott.

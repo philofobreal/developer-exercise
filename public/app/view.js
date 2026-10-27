@@ -9,7 +9,7 @@ import { installWorkbenchKeyboard, installAuthoringFlows } from './interactions.
 import { authorDraftPending, refreshAuthorStatus } from './author-workspace.js';
 import { createRuleMarks, renderModelInsight, renderRulePanel } from './rule-panel.js';
 import { drawRuleArcs, renderRuleBoard, renderTryRules, tryRowRuleControls } from './rule-board.js';
-import { authorPreviewId, flowSteps, jsonPending, staleReason, stepOf } from './flow.js';
+import { authorPreviewId, continuityKey, flowSteps, jsonPending, staleReason, stepOf } from './flow.js';
 const tool = (attribute, label, name, extra = '') => `<button type="button" ${attribute} ${extra}>${icon(name)}<span>${label}</span></button>`;
 const languageName = (language) => language === 'typescript' ? 'TypeScript' : 'JavaScript';
 export function createWorkbenchView({ root, state, ex, at, attempt, scroll }) {
@@ -77,7 +77,7 @@ export function createWorkbenchView({ root, state, ex, at, attempt, scroll }) {
     function rulesStep() {
         const m = state.authorModel, v = state.rulesView === 'json' ? 'json' : 'visual', verification = state.authorInsight?.verification;
         const tab = (value, label, name) => `<button type="button" role="tab" id="rules-tab-${value}" data-rules-view="${value}" aria-controls="rules-panel" aria-selected="${v === value}" tabindex="${v === value ? 0 : -1}" class="${v === value ? 'active' : ''}">${icon(name)}<span>${label}</span>${value === 'json' && jsonPending(state) ? '<span class="dirty-dot" aria-label="Nem alkalmazott JSON"></span>' : ''}</button>`;
-        const visual = `<div class="rules-layout"><div class="rules-main">${renderRuleBoard(state, code => syntax(code, m?.language))}</div><aside class="rules-side" aria-label="A kijelölt sor szabályai">${renderRulePanel(state)}</aside></div><details class="insight-details" data-memory="model-insight" open><summary>Minősítés és ellenőrzések</summary>${renderModelInsight(state.authorInsight)}</details>`;
+        const visual = `<div class="rules-layout"><div class="rules-main">${renderRuleBoard(state, code => syntax(code, m?.language))}</div><aside class="rules-side" data-scroll-memory="rules-side" aria-label="A kijelölt sor szabályai">${renderRulePanel(state)}</aside></div><details class="insight-details" data-memory="model-insight" open><summary>Minősítés és ellenőrzések</summary>${renderModelInsight(state.authorInsight)}</details>`;
         return `<section class="author step-panel" aria-labelledby="step-title"><div class="section-heading"><div><span class="eyebrow">2. LÉPÉS</span><h2 id="step-title">Szabályok</h2><p>A szabály részleges rend: az előzménynek bárhol előbb kell állnia, közé más sorok kerülhetnek. Itt látod, miért köt egy szabály, és itt módosíthatod.</p></div>${verification ? `<span class="verification-badge status-${verification.status}" data-step-verification>${{ 'analysis-verified': 'Elemzéssel igazolt', conservative: 'Konzervatív', 'author-modified': 'Szerzői döntéssel módosított', unverified: 'Nem igazolt' }[verification.status]}</span>` : ''}</div><div class="model-overview"><span><b>${m?.lines.length ?? 0}</b> kódsor</span><span><b>${m?.blocks.length ?? 0}</b> blokk</span><span><b>${state.authorInsight?.rules?.constraints.filter(c => c.editability !== 'hard').length ?? 0}</b> nem szerkezeti szabály</span><p>${esc(state.modelMessage || 'A módosítás azonnal érvényes; a Próba lépés kitöltése kompatibilis soroknál megmarad.')}</p></div>${m?.authoring?.note ? `<p class="draft-notice" data-ordering-policy>${esc(m.authoring.note)}</p>` : ''}<div class="segment rules-tabs" role="tablist" aria-label="Szabályszerkesztő">${tab('visual', 'Vizuális szerkesztő', 'link')}${tab('json', 'CodeLine JSON', 'settings')}</div><div id="rules-panel" role="tabpanel" aria-labelledby="rules-tab-${v}">${v === 'json' ? jsonBlock('rules') : visual}</div><div class="step-nav">${tool('data-goto="source"', 'Vissza a forráshoz', 'back')}${tool('data-goto="try"', 'Tovább a próbához', 'arrow', 'class="primary"')}</div></section>`;
     }
     // ── Shells ──
@@ -111,7 +111,7 @@ export function createWorkbenchView({ root, state, ex, at, attempt, scroll }) {
         return `<div class="shell learner-shell"><main id="workbench-main" tabindex="-1"><div class="task-heading"><div><div class="meta"><span class="language-pill ${e.language === 'typescript' ? 'ts' : 'js'}">${languageName(e.language)}</span><span>${e.lines.length} sor</span></div><h1>${esc(e.title)}</h1><p class="description">${esc(e.description)}</p></div>${progress(e, a)}</div>${notice(true)}${tryPanel(e, a)}${help(e.language)}</main></div>`;
     }
     function render() {
-        const v = state.view, learner = !!state.learnerPreview, key = (state.active ?? 'author-project') + ':' + state.mode;
+        const v = state.view, learner = !!state.learnerPreview, key = continuityKey(state);
         continuity.capture();
         scroll.capture();
         root.classList.toggle('learner-preview', learner);

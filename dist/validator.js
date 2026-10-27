@@ -1,4 +1,4 @@
-import { normalizeLine } from './normalize.js';
+import { matchContent } from './content-match.js';
 import { compileDefinition, isModelError } from './model.js';
 import { createUnitChecks } from './unit-structure.js';
 const result = (status, reason, message, exploredStates, positions) => ({ status, accepted: status === 'accepted', reason, message, exploredStates, ...(positions ? { positions } : {}) });
@@ -24,20 +24,11 @@ export function validateSubmission(compiledOrRaw, submission, opts = {}) {
     if (submission.lines.some(x => typeof x !== 'string' || Array.from(x).length > 2048 || /[\r\n\u2028\u2029]/.test(x)))
         return result('rejected', 'unknown_content', 'Érvénytelen kódsor szerepel a beküldésben.', 0);
     const tokens = def.tokens;
-    const tokenKeys = tokens.map(t => `${t.normalization ?? 'indent'}\u0000${normalizeLine(t.code, t.normalization ?? 'indent')}`);
-    const index = new Map();
-    tokenKeys.forEach((key, i) => { const items = index.get(key) ?? []; items.push(i); index.set(key, items); });
-    const candidates = submission.lines.map(line => [
-        ...(index.get(`indent\u0000${normalizeLine(line, 'indent')}`) ?? []),
-        ...(index.get(`exact\u0000${line}`) ?? [])
-    ].sort((a, b) => a - b));
-    const impossible = candidates.flatMap((a, i) => a.length ? [] : [i]);
+    const { tokenKeys, candidates, unknown: impossible, pinnedMismatch } = matchContent(tokens, submission.lines);
     if (impossible.length)
         return result('rejected', 'unknown_content', 'A feladatban nem engedélyezett sor található.', 0, impossible);
-    const pinnedMismatch = tokens.flatMap(token => token.fixedPosition !== undefined && normalizeLine(submission.lines[token.fixedPosition], token.normalization ?? 'indent') !== normalizeLine(token.code, token.normalization ?? 'indent') ? [token.fixedPosition] : []);
     if (pinnedMismatch.length)
         return result('rejected', 'rule_violation', 'A rögzített sor tartalma nem a kötelező sorhelyen áll.', 0, pinnedMismatch);
-    candidates.forEach((items, position) => { candidates[position] = items.filter(index => tokens[index].fixedPosition === undefined || tokens[index].fixedPosition === position); });
     const counts = new Map();
     for (const key of tokenKeys) {
         counts.set(key, (counts.get(key) ?? 0) + 1);

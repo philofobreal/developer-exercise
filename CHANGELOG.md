@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased – 2026-10-27 magyarázható validáció a core-ban (ADR-023, E1)
+
+- **`diagnoseSubmission`:** a validátor változatlan ítéletét bizonyított okokkal magyarázza. Egy konfliktus csak akkor kerül megnevezésre, ha minden tartalomkonzisztens hozzárendelésben igaz; azonos tartalmú sorok, egyetlen sérült OR-profil vagy elfogyott keret esetén általános, korrekt magyarázat jön.
+- **Kategóriák:** ismeretlen, többlet- és hiányzó sor, előfordulási szám, rögzített hely, közvetlen és tranzitív sorrend (lánccal), szerzői és szerkezeti szabály, blokk- és konténerhatár, v3-egység, profilkonfliktus, `indeterminate`, érvénytelen referencia.
+- **Javaslatok:** `verified` (a validátor elfogadja), `partial` (csak ez az ütközés szűnik meg), `guidance`; a mozgatás a rendező beszúrási szemantikáját követi (`moveLine`).
+- **Keret és felfedés:** explicit lépéskeret részleges jelentéssel; minden diagnosztikának felfedési szintje van (`verdict` … `provenance`) az F2 számára. Szemantikai ok csak kötött provenienciából.
+- **Közös tartalmi illesztés:** `content-match.ts`; a validátor ezt használja, a viselkedése nem változott.
+- **Tesztek:** [diagnostics.test.mjs](tests/diagnostics.test.mjs), 17 eset, köztük brute-force bijekciós metamorf ellenőrzés és 500 soros mérés.
+- **Még nem látható:** a tanulói megjelenítés az F1, a felfedési szabályozás az F2 feladata.
+
+## Unreleased – 2026-10-27 javítás: a szabályszerkesztés nem görgeti a rendezőt a tetejére (ADR-022)
+
+- **Hiba:** a Próba lépésben egy szabály hozzáadása vagy eltávolítása után a megoldás panel a tetejére ugrott. Ok: minden szabályszerkesztés új előnézet-azonosítót ad, a görgetési és fókuszmemória pedig ehhez az azonosítóhoz volt kötve.
+- **Javítás:** a memória kulcsa a szerzői projekt (`continuityKey`); a gyakorlófeladatok külön kulcsot kapnak. A szabálypanel saját görgetése is megmarad. A szerkesztés így ugyanúgy viselkedik, mint egy húzás.
+- **Tesztek:** `workbench-flow` egységteszt és új Playwright-eset Node és Pages módban (hozzáadás és eltávolítás után változatlan görgetés).
+
 ## Unreleased – 2026-10-27 léptetéses szerzői folyamat és vizuális szabálytábla (ADR-022, U1)
 
 - **Két mód:**

@@ -16,17 +16,19 @@ export function updateGutters(root) {
         gutter.style.height = `${textarea.clientHeight}px`;
     });
 }
+/** Scroll positions of the sorter zones and other marked scroll boxes, per continuity key. */
 export function createScrollMemory(root) {
     const cache = new Map();
     let previous = '';
+    const boxes = () => [...root.querySelectorAll('.drop-zone[data-zone],[data-scroll-memory]')].map(box => [box.dataset.zone ?? box.dataset.scrollMemory ?? '', box]);
     return { capture() { if (previous)
-            for (const zone of root.querySelectorAll('.drop-zone[data-zone]'))
-                cache.set(previous + ':' + zone.dataset.zone, { top: zone.scrollTop, left: zone.scrollLeft }); },
-        restore(id) { previous = id; for (const zone of root.querySelectorAll('.drop-zone[data-zone]')) {
-            const saved = cache.get(id + ':' + zone.dataset.zone);
+            for (const [name, box] of boxes())
+                cache.set(previous + ':' + name, { top: box.scrollTop, left: box.scrollLeft }); },
+        restore(id) { previous = id; for (const [name, box] of boxes()) {
+            const saved = cache.get(id + ':' + name);
             if (saved) {
-                zone.scrollTop = saved.top;
-                zone.scrollLeft = saved.left;
+                box.scrollTop = saved.top;
+                box.scrollLeft = saved.left;
             }
         } } };
 }

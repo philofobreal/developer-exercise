@@ -11,9 +11,11 @@ export function updateGutters(root:HTMLElement):void {
   gutter.scrollTop=textarea.scrollTop;gutter.style.height=`${textarea.clientHeight}px`;
  });
 }
+/** Scroll positions of the sorter zones and other marked scroll boxes, per continuity key. */
 export function createScrollMemory(root:HTMLElement){
  const cache=new Map<string,{top:number;left:number}>();let previous='';
- return {capture(){if(previous)for(const zone of root.querySelectorAll<HTMLElement>('.drop-zone[data-zone]'))cache.set(previous+':'+zone.dataset.zone,{top:zone.scrollTop,left:zone.scrollLeft});},
- restore(id:string){previous=id;for(const zone of root.querySelectorAll<HTMLElement>('.drop-zone[data-zone]')){const saved=cache.get(id+':'+zone.dataset.zone);if(saved){zone.scrollTop=saved.top;zone.scrollLeft=saved.left;}}}};
+ const boxes=():[string,HTMLElement][]=>[...root.querySelectorAll<HTMLElement>('.drop-zone[data-zone],[data-scroll-memory]')].map(box=>[box.dataset.zone??box.dataset.scrollMemory??'',box]);
+ return {capture(){if(previous)for(const [name,box] of boxes())cache.set(previous+':'+name,{top:box.scrollTop,left:box.scrollLeft});},
+ restore(id:string){previous=id;for(const [name,box] of boxes()){const saved=cache.get(id+':'+name);if(saved){box.scrollTop=saved.top;box.scrollLeft=saved.left;}}}};
 }
 export {copyToClipboard} from './clipboard.js';

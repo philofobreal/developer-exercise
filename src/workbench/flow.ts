@@ -16,6 +16,10 @@ const NEEDS_MODEL='Előbb készíts modellt a Forrás lépésben.';
 
 /** The applied author model's preview exercise id; there is at most one. */
 export const authorPreviewId=(state:WorkbenchState):string|null=>state.previews.keys().next().value??null;
+/** Whose scroll, focus and open details a render restores. Every admission (a rule edit, a refresh,
+ * a rebuild) yields a new preview id, but it is still the one author project; a practice exercise
+ * is its own identity. */
+export const continuityKey=(state:WorkbenchState):string=>(state.mode==='author'?'author-project':state.active??'none')+':'+state.mode;
 export function jsonPending(state:WorkbenchState):boolean {
  const model=authorPreviewId(state)?state.authorModel:undefined;
  return !!state.modelDraft&&(!model||state.modelDraft!==JSON.stringify(model,null,2));

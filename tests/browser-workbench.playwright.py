@@ -255,6 +255,22 @@ def try_rules(page):
     page.locator('[data-preview-toggle]').click();expect(page.locator('.solution-zone .zone-arcs path.arc')).not_to_have_count(0)
     practice(page);page.locator('[data-all]').click()
     for selector in ['[data-rule-line]','[data-rule-connect]','[data-try-rules]','.zone-arcs']:expect(page.locator(selector)).to_have_count(0)
+def rule_edit_keeps_scroll(page):
+    """A rule edit yields a new draft id, but it is the same project: the sorter keeps its scroll like after a drag."""
+    source='\n'.join(['function f() {',*[f'  const v{i} = {i};' for i in range(38)],'  g(v0, v37);','}'])
+    build(page,source);to_try(page);page.locator('[data-all]').click()
+    zone=page.locator('.solution-zone');zone.evaluate('z=>{z.scrollTop=z.scrollHeight}');top=zone.evaluate('z=>z.scrollTop');assert top>200,top
+    page.locator('.solution-zone .code-row[data-line-id="40"] [data-rule-line]').click()
+    panel=page.locator('.try-rule-panel [data-rule-panel]');expect(panel).to_have_attribute('data-rule-panel-line','40')
+    draft=page.locator('.solution-zone').evaluate('()=>document.querySelector("#app").dataset.renderedExercise')
+    panel.locator('[data-rule-add="before"] select').select_option('30');panel.locator('[data-rule-add="before"] [data-rule-edit="add"]').click()
+    expect(panel.locator('[data-rule-pair="30-40"] .rule-badge')).to_have_text('Szerzői');expect(page.locator('.report')).to_contain_text('Elfogadva')
+    assert page.evaluate('document.querySelector("#app").dataset.renderedExercise')!=draft,'the edit installs a new draft'
+    assert abs(zone.evaluate('z=>z.scrollTop')-top)<=1,(zone.evaluate('z=>z.scrollTop'),top)
+    panel.locator('[data-rule-edit="remove"][data-before="30"][data-after="40"]').click();expect(panel.locator('[data-rule-pair="30-40"]')).to_have_count(0)
+    expect(page.locator('.report')).to_contain_text('Elfogadva');assert abs(zone.evaluate('z=>z.scrollTop')-top)<=1
+    # Practice exercises keep their own scroll identity.
+    practice(page);page.locator('[data-all]').click();assert page.locator('.solution-zone').evaluate('z=>z.scrollTop')==0
 def stale_author_admission(page):
     pending=[]
     def intercept(route):pending.append(route)
@@ -326,7 +342,7 @@ try:
         browser=launch(p);context=browser.new_context(viewport={'width':1500,'height':1000},permissions=['clipboard-read','clipboard-write']);context.tracing.start(screenshots=True,snapshots=True,sources=True);page=context.new_page();page.set_default_timeout(10000);errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
         try:
             for mode,url in [('node',BASE),('pages',f'http://127.0.0.1:{static.server_port}/developer-exercise/')]:
-                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('model-first creation',model_first),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit)]:
+                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('model-first creation',model_first),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll)]:
                     reset(page,url);case(mode+' '+name,lambda:action(page))
                 reset(page,url);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-author.png')),full_page=True)
                 practice(page);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-practice.png')),full_page=True)

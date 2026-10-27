@@ -52,7 +52,7 @@ A **Sorfüggőségek újraszámítása** az aktuális JSON generált sorfüggős
 **Szabályok a próbarendezőn:** a szerző saját előnézetében a Próba lépésben is minden soron ott van a láncszem és a kör gomb, a rendező fölött a jelmagyarázat és a „Minden nem szerkezeti szabály rajzolása” kapcsoló, alatta a szabálypanel.
 
 - Az ívek a szerző aktuális elrendezésében rajzolódnak, és minden mozgatás után újra; egy fordított irányú ív a szabállyal ellentétes jelenlegi sorrendet mutatja.
-- Egy szabályszerkesztés megtartja a kitöltést, és azonnal újraértékeli.
+- Egy szabályszerkesztés megtartja a kitöltést, és azonnal újraértékeli; a rendező görgetési helyzete, a fókusz és a nyitott részletek ugyanúgy megmaradnak, mint egy húzás után.
 - A körgombról induló húzás összeköt, nem mozgat sort; a fogantyú továbbra is mozgat.
 - A gyakorló mód és a tanulói nézet ebből semmit nem mutat.
 
@@ -88,12 +88,13 @@ A megjelenítés a `src/workbench` natív strict TypeScript-forrása; az állapo
 **Tesztek:**
 
 - `tests/workbench-flow.test.mjs`: minden állapotátmenet (zárolás, elavulás, módváltás, landolás, összekötés iránya).
-- `npm run test:browser:workbench`: 41 folyamat Node és Pages módban, többek között:
+- `npm run test:browser:workbench`: 43 folyamat Node és Pages módban, többek között:
   - a zárolt lépések;
   - az újraépítés és a JSON-alkalmazás után minden későbbi lépés frissül;
   - egy szerzői projekt a gyakorlás mellett, példák mint kezdőpontok;
   - szabálypanel és összekötés egérrel és billentyűzettel, a táblán és a próbarendezőn is;
   - az ívek újrarajzolása rendezés közben és az azonnali újraértékelés;
+  - a görgetés megmaradása szabály hozzáadása és eltávolítása után;
   - a piszkozatok megőrzése és a késői válaszok elleni védelem;
   - tanulói elkülönítés és három mobilméret.
 - A mátrix-, drag-, offline-, HTTP- és TypeScript-kör az új navigációval fut.

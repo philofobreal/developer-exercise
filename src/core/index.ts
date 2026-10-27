@@ -8,6 +8,8 @@ export * from './constraint-explanation.js';
 export * from './evidence.js';
 export * from './model-verification.js';
 export * from './rule-editing.js';
+export * from './content-match.js';
+export * from './diagnostics.js';
 export * from './language-ir.js';
 export * from './code-line-v3.js';
 export * from './render-plan.js';
