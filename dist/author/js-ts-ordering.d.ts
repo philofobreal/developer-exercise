@@ -15,5 +15,10 @@ export declare function jsTsStructure(file: ts.SourceFile, compiler: typeof ts):
  * analysed it, the TypeScript import emit, script or module semantics (as the global-order
  * rule decides it) and class-field-mode independence (ADR-012 holds in both modes). */
 export declare function jsTsEnvironment(file: ts.SourceFile, compiler: typeof ts, options?: OrderingOptions): AnalysisEnvironment;
+/** ADR-020: whether the program itself may observe the creation order of method,
+ * accessor or top-level function keys: it names a reflection API or the global
+ * object (also inside strings, which only makes it stricter), or uses `this` at
+ * script level, where it is the global object. */
+export declare function observesKeyOrder(file: ts.SourceFile, compiler: typeof ts): boolean;
 /** `options.imports` describes the TypeScript emit (ADR-013); JavaScript imports always load their module. */
 export declare function jsTsOrderingRelations(file: ts.SourceFile, compiler: typeof ts, options?: OrderingOptions): OrderingRelations;

@@ -1,5 +1,6 @@
 import { mergeOrderingEntries } from './ordering-relations.js';
-export function typeMemberOrdering(file, compiler) {
+/** `reflectedKeys` (ADR-020): the program may list non-enumerable keys, so the ADR-010 key chain applies. */
+export function typeMemberOrdering(file, compiler, options = {}) {
     const physical = file.text.split('\n'), entries = [], spans = [];
     /** `row` follows every row of `after` for the same reason. */
     const order = (row, after, category, code) => { entries.push({ row, after, reasons: after.map(before => ({ before, category, code })) }); };
@@ -82,18 +83,28 @@ export function typeMemberOrdering(file, compiler) {
                         : compiler.isClassStaticBlockDeclaration(member) ? ['static']
                             : (compiler.isMethodDeclaration(member) || compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member)) && !!member.body && !plainName ? ['key'] : undefined;
                 // A declare field emits nothing in either class-field mode: it is position-free in a class body.
-                return { first: row, last: end, pure, free: definition || isClass && pure, ...(reflected ? { reflect: isStatic(member) ? 'static' : 'prototype' } : {}), ...(phases ? { phases } : {}), ...(definition && paired ? { pair: key } : {}) };
+                // A plain method row: a candidate overload signature or implementation (ADR-020).
+                const plain = isClass && compiler.isMethodDeclaration(member) && !decorated && !leadingComment && (modifiers ?? []).every(modifier => definitionModifiers.has(modifier.kind)) && (member.body ? definitionRows(member) : row === end && physical[row]?.trim() === member.getText(file).trim());
+                return { first: row, last: end, pure, plain, free: definition || isClass && pure, ...(reflected ? { reflect: isStatic(member) ? 'static' : 'prototype' } : {}), ...(phases ? { phases } : {}), ...(definition && paired ? { pair: key } : {}) };
             });
             // An overload signature must directly precede the next signature or the
-            // implementation (TS2389/TS2391): the whole group is one ordered unit.
+            // implementation (TS2389/TS2391): the whole group is one unit. Its signatures are
+            // erased, so a group of plain rows whose name occurs nowhere else is one method
+            // definition, free like any other (ADR-020); otherwise the group stays ordered.
             const signature = (member) => (compiler.isMethodDeclaration(member) || compiler.isConstructorDeclaration(member)) && !member.body && !compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.AbstractKeyword);
-            const grouped = [];
+            const grouped = [], sizes = [];
             members.forEach((member, i) => {
                 const previous = node.members[i - 1];
-                if (isClass && previous && signature(previous) && name(previous) === name(node.members[i]))
-                    grouped.push({ first: grouped.pop().first, last: member.last, pure: false, ...(member.reflect ? { reflect: member.reflect } : {}) });
-                else
+                if (isClass && previous && signature(previous) && name(previous) === name(node.members[i])) {
+                    const head = grouped.pop(), size = sizes.pop() + 1, key = name(node.members[i]);
+                    const definition = !!head.plain && !!member.plain && !!node.members[i].body && key !== undefined && counts.get(key) === size;
+                    grouped.push({ first: head.first, last: member.last, pure: false, plain: !!head.plain && !!member.plain, ...(definition ? { free: true } : {}), ...(member.reflect ? { reflect: member.reflect } : {}) });
+                    sizes.push(size);
+                }
+                else {
                     grouped.push(member);
+                    sizes.push(1);
+                }
             });
             // No edits on shared physical boundaries. Comments remain opaque barriers.
             if (open && close && grouped.every((member, i) => member.first > first(open) && member.last < first(close) && (!i || grouped[i - 1].last < member.first))) {
@@ -159,21 +170,22 @@ export function typeMemberOrdering(file, compiler) {
                 // key at the earlier half and form one group: both follow the previous group and
                 // precede the next one, in either order between themselves (ADR-012).
                 const chains = new Map();
-                for (const member of grouped)
-                    if (member.reflect) {
-                        const chain = chains.get(member.reflect) ?? { last: [], before: [] };
-                        const joins = !!member.pair && chain.last.length === 1 && chain.last[0].pair === member.pair;
-                        const predecessors = joins ? chain.before : chain.last;
-                        if (predecessors.length)
-                            order(member.first, predecessors.map(unit => unit.last), 'policy', 'reflected-key-order');
-                        chains.set(member.reflect, joins ? { last: [...chain.last, member], before: chain.before } : { last: [member], before: chain.last });
-                    }
+                if (options.reflectedKeys)
+                    for (const member of grouped)
+                        if (member.reflect) {
+                            const chain = chains.get(member.reflect) ?? { last: [], before: [] };
+                            const joins = !!member.pair && chain.last.length === 1 && chain.last[0].pair === member.pair;
+                            const predecessors = joins ? chain.before : chain.last;
+                            if (predecessors.length)
+                                order(member.first, predecessors.map(unit => unit.last), 'policy', 'reflected-key-order');
+                            chains.set(member.reflect, joins ? { last: [...chain.last, member], before: chain.before } : { last: [member], before: chain.last });
+                        }
             }
         }
         compiler.forEachChild(node, visit);
     }
     visit(file);
     // Several constraints on one row are a conjunction.
-    return { entries: mergeOrderingEntries(entries), spans, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor, a declare mezők, a privát (#) és a tömbindex nevű metódusok bárhol állhatnak az osztálytörzsben. A többi metódus és accessor a mezőkhöz képest szabad, de egymáshoz képest megtartja a sorrendjét, mert a prototípus (static esetén a konstruktor) kulcssorrendje reflexióval megfigyelhető; az accessor mező ebben a láncban és a mezők között is a helyén marad. Egy azonos nevű getter és setter egy tulajdonság: egymással felcserélhetők. A példány- és a static mezők egymáshoz képest szabadok, mert más fázisban futnak, de csoportjukon belül megtartják a sorrendet; a számított nevű metódus a mezőkhöz képest szabad. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : '' };
+    return { entries: mergeOrderingEntries(entries), spans, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor, a declare mezők, a privát (#) és a tömbindex nevű metódusok bárhol állhatnak az osztálytörzsben. A többi metódus és accessor a mezőkhöz és egymáshoz képest is szabad; csak ha a program maga listázza a kulcsokat (getOwnPropertyNames, Reflect.ownKeys, getOwnPropertyDescriptors), akkor tartják meg egymáshoz képesti sorrendjüket, mert akkor a prototípus (static esetén a konstruktor) kulcssorrendje megfigyelhető, és az accessor mező akkor ebben a láncban is a helyén marad. Egy azonos nevű getter és setter egy tulajdonság: egymással felcserélhetők. A példány- és a static mezők egymáshoz képest szabadok, mert más fázisban futnak, de csoportjukon belül megtartják a sorrendet; a számított nevű metódus a mezőkhöz képest szabad. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : '' };
 }
 //# sourceMappingURL=type-member-ordering.js.map

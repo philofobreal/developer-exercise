@@ -114,11 +114,12 @@ for(const {name,make,seeds,thin=1} of generative)test(`generative: ${seeds} seed
 });
 test('block moves express the multi-row member move behind the ADR-010 v7 accessor fix',()=>{
  const fixture=corpus.get('refl-ts-accessor-fields'),model=generate(fixture),orders=blockMoves(model).map(order=>order.join(','));
- // read() (rows 2–4) moved below `accessor level` (row 6): rejected and not equivalent.
+ // read() (rows 2–4) moved below `accessor level` (row 6): a block move; since v11 (ADR-020)
+ // accepted and equivalent, as the program does not list the prototype keys.
  const methodAfterAccessor=[1,5,6,2,3,4,...Array.from({length:17},(_,i)=>7+i)];
  assert.ok(orders.includes(methodAfterAccessor.join(',')));
- assert.equal(grade(compiled(model),model,codesOf(model,methodAfterAccessor)).status,'rejected');
- assert.equal(createOracle(fixture)(codesOf(model,methodAfterAccessor)).ok,false);
+ assert.equal(grade(compiled(model),model,codesOf(model,methodAfterAccessor)).status,'accepted');
+ assert.equal(createOracle(fixture)(codesOf(model,methodAfterAccessor)).ok,true);
 });
 test('oracle: nested classes get a runtime key snapshot after the probe ran',()=>{
  // Same key order, different descriptor: only the runtime snapshot of the nested class sees it.

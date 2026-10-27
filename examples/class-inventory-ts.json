@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "id": "class-inventory-ts",
-  "revision": 1,
+  "revision": 2,
   "title": "Raktárkészlet – interface és generikus osztály",
   "description": "Interface, generikus megszorítás, privát Map, paraméterproperty és három metódus beágyazott ciklusokkal. Az interface-mezők és a metódusok sorrendje szabad, a típus (interface) az osztály után is állhat; a ciklusmagok és az értékadások sorrendje kötött.",
   "language": "typescript",
@@ -97,7 +97,7 @@
       "id": 9,
       "code": "constructor(private readonly lowStockLimit: number) {}",
       "dependencies": [
-        8
+        7
       ],
       "fixed": false,
       "functionBlock": 0,
@@ -108,7 +108,7 @@
       "id": 10,
       "code": "add(item: T): void {",
       "dependencies": [
-        9
+        7
       ],
       "fixed": false,
       "functionBlock": 1,
@@ -196,7 +196,7 @@
       "id": 18,
       "code": "totalValue(): number {",
       "dependencies": [
-        9
+        7
       ],
       "fixed": false,
       "functionBlock": 2,
@@ -273,7 +273,7 @@
       "id": 25,
       "code": "lowStock(): string[] {",
       "dependencies": [
-        9
+        7
       ],
       "fixed": false,
       "functionBlock": 3,

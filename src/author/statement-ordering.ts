@@ -16,7 +16,9 @@
  * pure and the barrier provably cannot observe it), or (ADR-010) both create
  * global-object properties in a classic script (function and var declarations,
  * and the TypeScript enums, namespaces and import aliases emitted as var):
- * Object.keys(globalThis) reflects their creation order. The specification creates function bindings
+ * Object.keys(globalThis) reflects their creation order. Since v11 (ADR-020)
+ * a hoisted function declaration is in that chain only when the program itself
+ * can list global keys (options.reflectedKeys). The specification creates function bindings
  * before var bindings, V8 interleaves them in source order, so all such units
  * keep their mutual source order. Every evaluation-time read of
  * a binding whose initialisation has a TDZ/value position in the same function
@@ -54,7 +56,8 @@ export function bindingChecker(file: ts.SourceFile, compiler: Compiler): ts.Type
  * verbatimModuleSyntax; `elide-unused` is TypeScript's default emit, which drops an
  * import none of whose bindings is used as a value. */
 export type ImportEmit = 'verbatim' | 'elide-unused';
-export interface OrderingOptions {imports?: ImportEmit;}
+/** `reflectedKeys` (ADR-020): the program may list global keys, so function declarations keep their global order. */
+export interface OrderingOptions {imports?: ImportEmit; reflectedKeys?: boolean;}
 
 export function statementOrdering(file: ts.SourceFile, compiler: Compiler, options: OrderingOptions = {}): StatementOrdering {
  const empty: StatementOrdering = {entries: [], protectedInputs: new Map(), units: []};
@@ -413,11 +416,13 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
  /** Why units a < b of one list are ordered (ADR-014); empty when they commute. A comment
   * orders only conservatively; otherwise each barrier side, a shared global creation order
   * and each RAW/WAR/WAW conflict is a reason of its own. */
+ const hoisted = (unit: Summary): boolean => unit.kind === 'position-free' && unit.reason === 'hoisted-function-declaration';
  const pairReasons = (a: Summary, b: Summary): [OrderingReason['category'], string][] => {
   if (a.kind === 'opaque' || b.kind === 'opaque') return [['conservative', 'opaque-row']];
   const found: [OrderingReason['category'], string][] = [];
   if (a.kind !== 'position-free' && b.kind !== 'position-free' && !commutes(a, b) && !commutes(b, a)) for (const unit of [a, b]) if (unit.kind === 'barrier') found.push([barrierCategory(unit.reason), unit.reason]);
-  if (a.global && b.global) found.push(['policy', 'script-global-order']);
+  // v11 (ADR-020): a hoisted function's global key counts only if the program reflects keys; vars and emitted vars keep their order.
+  if (a.global && b.global && (options.reflectedKeys || !hoisted(a) && !hoisted(b))) found.push(['policy', 'script-global-order']);
   if (meets(a.writeSet, b.readSet)) found.push(['data', 'read-after-write']);
   if (meets(a.readSet, b.writeSet)) found.push(['data', 'write-after-read']);
   if (meets(a.writeSet, b.writeSet)) found.push(['data', 'write-after-write']);

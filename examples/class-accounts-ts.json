@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "id": "class-accounts-ts",
-  "revision": 1,
+  "revision": 2,
   "title": "Számlák – absztrakt osztály és öröklés",
   "description": "Absztrakt ősosztály, védett mezők, paraméterproperty, super-hívás és felüldefiniált metódus. A metódusok egymás közti sorrendje és a független állapotfrissítések felcserélhetők; a mezőinicializálás sorrendje és a leszármazott osztály az ős után kötött.",
   "language": "typescript",
@@ -41,7 +41,7 @@
       "id": 4,
       "code": "constructor(readonly owner: string) {}",
       "dependencies": [
-        3
+        1
       ],
       "fixed": false,
       "functionBlock": 0,
@@ -52,7 +52,7 @@
       "id": 5,
       "code": "deposit(amount: number): void {",
       "dependencies": [
-        4
+        1
       ],
       "fixed": false,
       "functionBlock": 1,
@@ -93,7 +93,7 @@
       "id": 9,
       "code": "withdraw(amount: number): boolean {",
       "dependencies": [
-        4
+        1
       ],
       "fixed": false,
       "functionBlock": 2,
@@ -182,7 +182,7 @@
       "id": 17,
       "code": "statement(): string {",
       "dependencies": [
-        4
+        1
       ],
       "fixed": false,
       "functionBlock": 3,
@@ -215,7 +215,7 @@
       "id": 20,
       "code": "protected abstract limit(): number;",
       "dependencies": [
-        4
+        1
       ],
       "fixed": false,
       "functionBlock": 0,

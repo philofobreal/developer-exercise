@@ -29,9 +29,9 @@ for(const language of ['javascript','typescript'])test(`R1 accessor pair (${lang
  check({id:'pair-'+language,language,source:['class Box {',"  size = record('size') ?? 1;",`  get label()${typed?': string':''} { return 'b' + this.size; }`,`  set label(value${typed?': string':''}) { record('label', value); }`,`  area()${typed?': number':''} { return this.size * 2; }`,'}','function evaluate() {',"  const box = new Box();","  box.label = 'n';",'  return [box.label, box.area()];','}']},[
   ['getter and setter swapped',[1,2,4,3,...range(5,11)],'accepted',true],
   ['pair above the field',[1,3,4,2,...range(5,11)],'accepted',true],
-  ['method above the pair changes the prototype key order',[1,2,5,3,4,...range(6,11)],'rejected',false],
-  // Conservative: the key stays at the getter, but both halves must precede the next key.
-  ['setter below the method',[1,2,3,5,4,...range(6,11)],'rejected',true]]);
+  // v11 (ADR-020): the prototype key order is not observed by a program that does not list it.
+  ['method above the pair',[1,2,5,3,4,...range(6,11)],'accepted',true],
+  ['setter below the method',[1,2,3,5,4,...range(6,11)],'accepted',true]]);
 });
 
 for(const language of ['javascript','typescript'])test(`R2 static and instance phases (${language}): free relative to each other, ordered within`,()=>{

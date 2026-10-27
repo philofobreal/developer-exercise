@@ -6,10 +6,12 @@
  * Phases (ADR-012): computed method keys are evaluated while the class elements
  * are defined, static initialisers and blocks run after that, instance
  * initialisers at construction; units of different phases commute.
- * Their relative order is still reflectable (ADR-010): OrdinaryOwnPropertyKeys
- * lists string keys in creation order, so every member that creates a string
- * key on the prototype (or, if static, on the constructor) keeps its order
- * relative to the other such members. Free of that order are: the constructor
+ * Their relative order is reflectable (ADR-010): OrdinaryOwnPropertyKeys lists
+ * string keys in creation order. These keys are non-enumerable, so only an
+ * explicit getOwnPropertyNames/Reflect.ownKeys can see it; since v11 (ADR-020)
+ * the key chain applies only when the program can (options.reflectedKeys). Then
+ * every member that creates a string key on the prototype (or, if static, on the
+ * constructor) keeps its order relative to the other such members. Free of that order are: the constructor
  * (`constructor` is created first), array-index keys (listed ascending),
  * private names (not reflected) and erased members. An `accessor` field is in
  * that key chain and keeps its field order too. TypeScript emits parameter
@@ -29,5 +31,8 @@ export interface TypeMemberOrdering {
     }[];
     note: string;
 }
-export declare function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler): TypeMemberOrdering;
+/** `reflectedKeys` (ADR-020): the program may list non-enumerable keys, so the ADR-010 key chain applies. */
+export declare function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, options?: {
+    reflectedKeys?: boolean;
+}): TypeMemberOrdering;
 export {};

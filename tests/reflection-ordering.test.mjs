@@ -1,5 +1,7 @@
 /** ADR-010 reproductions: reflectable property order of classes and of the
- * script global object. Each case builds the CodeLine model, grades the
+ * script global object. Since v11 (ADR-020) the creation order of method,
+ * accessor and top-level function keys counts only when the program itself
+ * can list them; each case shows both sides. Each case builds the CodeLine model, grades the
  * reordering with the real structural validator and compares reference and
  * reordering with an observation written independently of the generator and
  * of the oracle (vm execution of FIXED fixtures only). TypeScript cases keep
@@ -49,7 +51,7 @@ test('JS reproduction: swapping two method definitions keeps every call result b
  assert.deepEqual(createOracle(callsOnly)(codesOf(model,swapped)),{ok:false,reason:'reflection'});
 });
 
-test('TS reproduction: parser, full type check and both emit modes; only the reflected order differs',()=>{
+test('TS reproduction: parser, full type check and both emit modes; only an outside reflection sees the order (v11: accepted)',()=>{
  const source=['class Example {','  first(): number {','    return 1;','  }','  second(): number {','    return 2;','  }','}','function evaluate(): Array<number | string[]> {','  const example = new Example();','  return [example.first(), example.second()];','}'];
  const fixture={id:'refl-ts-minimal',language:'typescript',source},model=generate(fixture),grade=grader(model);
  const reference=range(1,12),swapped=[1,5,6,7,2,3,4,...range(8,12)];
@@ -60,10 +62,14 @@ test('TS reproduction: parser, full type check and both emit modes; only the ref
   assert.deepEqual(observe(before,'typescript','Reflect.ownKeys(Example.prototype)',define),['constructor','first','second']);
   assert.deepEqual(observe(after,'typescript','Reflect.ownKeys(Example.prototype)',define),['constructor','second','first']);
  }
- assert.equal(grade(reference),'accepted');assert.equal(grade(swapped),'rejected');
+ assert.equal(grade(reference),'accepted');assert.equal(grade(swapped),'accepted','v11: only an outside reflection could tell');
+ // The same swap when the program lists the prototype keys itself.
+ const reflective=[...source.slice(0,10),'  return [example.first(), example.second(), Reflect.ownKeys(Example.prototype)];',source[11]];
+ const reflectiveModel=generate({id:'refl-ts-minimal-reflective',language:'typescript',source:reflective});
+ assert.equal(grader(reflectiveModel)(swapped),'rejected');
 });
 
-test('script globals: function and var order is reflected by Object.keys(globalThis); const is not',()=>{
+test('script globals: var order is reflected by Object.keys(globalThis); functions only when the program lists globals (v11); const is not',()=>{
  const fixture=corpus.get('refl-script-globals'),model=generate(fixture),grade=grader(model);
  const keys="Object.keys(globalThis).filter(k => ['alpha', 'beta', 'one', 'two', 'local'].includes(k))";
  const reference=range(1,12);
@@ -71,13 +77,16 @@ test('script globals: function and var order is reflected by Object.keys(globalT
  const functionsSwapped=[4,5,6,1,2,3,...range(7,12)],varsSwapped=[1,2,3,4,5,6,8,7,...range(9,12)],constMoved=[9,...range(1,8),...range(10,12)];
  assert.deepEqual(observe(codesOf(model,functionsSwapped).join('\n'),'javascript',keys),['beta','alpha','one','two']);
  assert.deepEqual(observe(codesOf(model,varsSwapped).join('\n'),'javascript',keys),['alpha','beta','two','one']);
- assert.equal(grade(functionsSwapped),'rejected');assert.equal(grade(varsSwapped),'rejected');
+ assert.equal(grade(functionsSwapped),'accepted');assert.equal(grade(varsSwapped),'rejected');
+ const listing=generate({...fixture,source:fixture.source.map(line=>line.replace('return','return globalThis.alpha &&'))});
+ assert.notDeepEqual(listing.lines.map(line=>line.code),model.lines.map(line=>line.code),'the variant names the global object');
+ assert.equal(grader(listing)(functionsSwapped),'rejected');
  // A script-level const is a global lexical binding, not a global-object property.
  assert.deepEqual(observe(codesOf(model,constMoved).join('\n'),'javascript',keys),['alpha','beta','one','two']);
  assert.equal(grade(constMoved),'accepted');
 });
 
-test('TS accessor field: its get/set pair is created among the methods, in both emit modes',()=>{
+test('TS accessor field: its get/set pair is created among the methods, in both emit modes; the order counts only for a reflecting program (v11)',()=>{
  const fixture=corpus.get('refl-ts-accessor-fields'),model=generate(fixture),grade=grader(model),judge=createOracle(fixture);
  const reference=range(1,23),methodAfterAccessor=[1,5,6,2,3,4,...range(7,23)],staticAccessorFirst=[...range(1,6),10,7,8,9,...range(11,23)],methodAfterField=[1,5,2,3,4,...range(6,23)];
  const code=order=>codesOf(model,order).join('\n');
@@ -89,13 +98,18 @@ test('TS accessor field: its get/set pair is created among the methods, in both 
   assert.deepEqual(observe(code(staticAccessorFirst),'typescript','Reflect.ownKeys(Gauge)',define),['length','name','prototype','unit','make']);
  }
  assert.equal(grade(reference),'accepted');
- assert.equal(grade(methodAfterAccessor),'rejected');assert.equal(grade(staticAccessorFirst),'rejected');
- assert.deepEqual(judge(codesOf(model,methodAfterAccessor)),{ok:false,reason:'reflection'});
+ assert.equal(grade(methodAfterAccessor),'accepted');assert.equal(grade(staticAccessorFirst),'accepted');
+ assert.deepEqual(judge(codesOf(model,methodAfterAccessor)),{ok:true,reason:'equivalent'});
+ const listing={...fixture,id:'refl-ts-accessor-fields-listing',source:fixture.source.map(line=>line.replace('return [','return [Reflect.ownKeys(Gauge.prototype), '))};
+ assert.notDeepEqual(listing.source,fixture.source);
+ const listingModel=generate(listing);
+ assert.equal(grader(listingModel)(methodAfterAccessor),'rejected');assert.equal(grader(listingModel)(staticAccessorFirst),'rejected');
+ assert.deepEqual(createOracle(listing)(codesOf(listingModel,methodAfterAccessor)).ok,false);
  // A method still moves freely across a plain field.
  assert.equal(grade(methodAfterField),'accepted');assert.deepEqual(judge(codesOf(model,methodAfterField)),{ok:true,reason:'equivalent'});
 });
 
-test('TS script globals: enums, instantiated namespaces and import aliases are emitted as var, type-only namespaces are not',()=>{
+test('TS script globals: enums, instantiated namespaces and import aliases are emitted as var, type-only namespaces are not; a function crosses them unless globals are listed (v11)',()=>{
  const fixture=corpus.get('refl-ts-emitted-globals'),model=generate(fixture),grade=grader(model),judge=createOracle(fixture);
  const keys="Object.keys(globalThis).filter(k => ['Shapes', 'alpha', 'Color', 'Tools', 'double', 'evaluate'].includes(k))";
  const reference=range(1,20),functionAfterEnum=[...range(1,5),...range(9,12),6,7,8,...range(13,20)],functionBeforeTypes=[6,7,8,...range(1,5),...range(9,20)];
@@ -104,8 +118,13 @@ test('TS script globals: enums, instantiated namespaces and import aliases are e
  assert.deepEqual(observe(code(reference),'typescript',keys),['alpha','Color','Tools','double','evaluate']);
  assert.deepEqual(observe(code(functionAfterEnum),'typescript','evaluate()'),observe(code(reference),'typescript','evaluate()'));
  assert.deepEqual(observe(code(functionAfterEnum),'typescript',keys),['Color','alpha','Tools','double','evaluate']);
- assert.equal(grade(reference),'accepted');assert.equal(grade(functionAfterEnum),'rejected');
- assert.deepEqual(judge(codesOf(model,functionAfterEnum)),{ok:false,reason:'reflection'});
+ assert.equal(grade(reference),'accepted');assert.equal(grade(functionAfterEnum),'accepted');
+ assert.deepEqual(judge(codesOf(model,functionAfterEnum)),{ok:true,reason:'equivalent'});
+ const listing={...fixture,id:'refl-ts-emitted-globals-listing',source:fixture.source.map(line=>line.replace(/return \[/,'return [globalThis.Color && '))};
+ assert.notDeepEqual(listing.source,fixture.source);
+ const listingModel=generate(listing);
+ assert.equal(grader(listingModel)(functionAfterEnum),'rejected');
+ assert.deepEqual(createOracle(listing)(codesOf(listingModel,functionAfterEnum)).ok,false);
  // The type-only namespace emits nothing, so a function may move across it.
  assert.deepEqual(observe(code(functionBeforeTypes),'typescript',keys),['alpha','Color','Tools','double','evaluate']);
  assert.equal(grade(functionBeforeTypes),'accepted');assert.deepEqual(judge(codesOf(model,functionBeforeTypes)),{ok:true,reason:'equivalent'});
@@ -118,7 +137,9 @@ function memberBlocks(fixture){
  visit(file);return classes;
 }
 const permutations=items=>items.length<2?[items]:items.flatMap((value,i)=>permutations(items.filter((_,j)=>i!==j)).map(rest=>[value,...rest]));
-for(const [id,exact] of [['refl-prototype-and-static-methods',true],['refl-ts-accessor-fields',false],['refl-index-private-accessor-duplicate',false],['refl-ts-erased-and-overloads',true],['class-accounts-ts',false],['class-inventory-ts',true]])test('member-block permutations are sound under the reflective oracle: '+id,t=>{
+// refl-ts-erased-and-overloads is not exact since v11: the overload group is a free method for the
+// analysis, but the projection's closure (ADR-009) pins the multi-row group (projection loss, ADR-017).
+for(const [id,exact] of [['refl-prototype-and-static-methods',true],['refl-ts-accessor-fields',false],['refl-index-private-accessor-duplicate',false],['refl-ts-erased-and-overloads',false],['class-accounts-ts',false],['class-inventory-ts',true]])test('member-block permutations are sound under the reflective oracle: '+id,t=>{
  const fixture=corpus.get(id),model=generate(fixture),grade=grader(model),judge=createOracle(fixture),rng=random(id.length*7919);
  let accepted=0,equivalent=0,checked=0;
  for(const block of memberBlocks(fixture)){

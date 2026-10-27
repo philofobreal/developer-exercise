@@ -480,6 +480,7 @@ export function statementOrdering(file, compiler, options = {}) {
     /** Why units a < b of one list are ordered (ADR-014); empty when they commute. A comment
      * orders only conservatively; otherwise each barrier side, a shared global creation order
      * and each RAW/WAR/WAW conflict is a reason of its own. */
+    const hoisted = (unit) => unit.kind === 'position-free' && unit.reason === 'hoisted-function-declaration';
     const pairReasons = (a, b) => {
         if (a.kind === 'opaque' || b.kind === 'opaque')
             return [['conservative', 'opaque-row']];
@@ -488,7 +489,8 @@ export function statementOrdering(file, compiler, options = {}) {
             for (const unit of [a, b])
                 if (unit.kind === 'barrier')
                     found.push([barrierCategory(unit.reason), unit.reason]);
-        if (a.global && b.global)
+        // v11 (ADR-020): a hoisted function's global key counts only if the program reflects keys; vars and emitted vars keep their order.
+        if (a.global && b.global && (options.reflectedKeys || !hoisted(a) && !hoisted(b)))
             found.push(['policy', 'script-global-order']);
         if (meets(a.writeSet, b.readSet))
             found.push(['data', 'read-after-write']);

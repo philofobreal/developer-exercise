@@ -40,7 +40,9 @@ test('statement reasons: binding inputs, RAW/WAR/WAW conflicts, barriers, commen
  assert.deepEqual(reasons(script,3,4),['structure/block-open']);
  assert.ok(reasons(script,1,3).length===0,'implied by the comment chain, removed by reduction');
  const globals=generate(['var a = 1;','function g() {','  return a;','}']);
- assert.deepEqual(reasons(globals,1,2),['policy/script-global-order']);
+ assert.deepEqual(reasons(globals,1,2),[],'v11: a function key is not observed');
+ const listing=generate(['var a = 1;','function g() {','  return globalThis.a;','}']);
+ assert.deepEqual(reasons(listing,1,2),['policy/script-global-order'],'the program reads the global object');
 });
 
 test('projection reasons: clause chains, continued rows and sealed units',()=>{
@@ -59,7 +61,9 @@ test('class members: definitions, evaluation phases, reflected key order and era
  assert.deepEqual(reasons(model,2,3),['effect/class-evaluation-order']);
  assert.deepEqual(reasons(model,1,4),['structure/block-open'],'a static field shares no phase with instance fields');
  assert.deepEqual(reasons(model,1,5),['structure/block-open']);
- assert.deepEqual(reasons(model,5,6),['policy/reflected-key-order']);
+ assert.deepEqual(reasons(model,5,6),[],'v11: the methods commute');
+ const listing=generate(['class A {','  x = 1;','  y = 2;','  static s = 3;','  m() { return Reflect.ownKeys(A.prototype); }','  n() {}','}']);
+ assert.deepEqual(reasons(listing,5,6),['policy/reflected-key-order'],'the program lists the prototype keys');
  const shape=generate(['interface I {','  a: number;','  b: string;','  m(): void;','}'],'typescript');
  assert.deepEqual(reasons(shape,3,4),['conservative/type-member-barrier']);
 });

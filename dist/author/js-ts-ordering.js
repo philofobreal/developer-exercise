@@ -26,9 +26,33 @@ export function jsTsStructure(file, compiler) {
 export function jsTsEnvironment(file, compiler, options = {}) {
     return { typescript: compiler.version, ...(file.fileName.endsWith('.ts') ? { importEmit: options.imports ?? 'verbatim' } : {}), sourceKind: compiler.isExternalModule(file) ? 'module' : 'script', classFields: 'either' };
 }
+/** Names through which a program can list non-enumerable or global keys in creation order. */
+const keyReflection = /\b(?:getOwnPropertyNames|ownKeys|getOwnPropertyDescriptors|Reflect|globalThis|window|self|frames|global|Function|eval)\b/;
+/** ADR-020: whether the program itself may observe the creation order of method,
+ * accessor or top-level function keys: it names a reflection API or the global
+ * object (also inside strings, which only makes it stricter), or uses `this` at
+ * script level, where it is the global object. */
+export function observesKeyOrder(file, compiler) {
+    if (keyReflection.test(file.text))
+        return true;
+    let found = false;
+    const visit = (node) => {
+        if (found || compiler.isClassLike(node) || compiler.isFunctionLike(node) && !compiler.isArrowFunction(node))
+            return;
+        if (node.kind === compiler.SyntaxKind.ThisKeyword) {
+            found = true;
+            return;
+        }
+        compiler.forEachChild(node, visit);
+    };
+    if (!compiler.isExternalModule(file))
+        visit(file);
+    return found;
+}
 /** `options.imports` describes the TypeScript emit (ADR-013); JavaScript imports always load their module. */
 export function jsTsOrderingRelations(file, compiler, options = {}) {
-    const statements = statementOrdering(file, compiler, file.fileName.endsWith('.ts') ? options : {}), members = typeMemberOrdering(file, compiler);
+    const reflectedKeys = observesKeyOrder(file, compiler);
+    const statements = statementOrdering(file, compiler, { ...(file.fileName.endsWith('.ts') ? options : {}), reflectedKeys }), members = typeMemberOrdering(file, compiler, { reflectedKeys });
     return combineOrderingRelations([
         { entries: statements.entries, protectedInputs: statements.protectedInputs, spans: statements.units.map(({ first, last }) => ({ first, last })), note: '' },
         { entries: members.entries, protectedInputs: new Map(), spans: members.spans, note: members.note }

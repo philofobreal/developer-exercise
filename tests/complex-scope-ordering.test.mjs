@@ -76,10 +76,11 @@ const scenarios=[
    {name:'return a hoistolt függvénydeklaráció elé',order:o=>moveBefore(o,9,6),status:'accepted',equivalent:true},
    {name:'var count a ciklus után',order:o=>moveBefore(o,2,9),status:'rejected',equivalent:false},
    {name:'var count a ciklusmagba',order:o=>moveBefore(o,2,4),status:'rejected',equivalent:false}]},
- // ADR-010: the probes also read the reflected key order (global object, prototype).
- {name:'felső szintű függvények',language:'javascript',source:corpus.get('top-level-functions').source,probe:"[evaluate(), Object.keys(globalThis).filter(key => ['double', 'evaluate'].includes(key))]",
+ // v11 (ADR-020): an outside observer no longer reads the creation order of function and
+ // method keys; a program that reflects itself is covered by refl-explicit-property-names.
+ {name:'felső szintű függvények',language:'javascript',source:corpus.get('top-level-functions').source,
   variants:[
-   {name:'a két függvénydeklaráció cseréje',order:o=>moveBefore(o,range(4,6),1),status:'rejected',equivalent:false},
+   {name:'a két függvénydeklaráció cseréje',order:o=>moveBefore(o,range(4,6),1),status:'accepted',equivalent:true},
    {name:'a két függvénytörzs cseréje',order:o=>swap(o,2,5),status:'rejected',equivalent:false}]},
  {name:'closure és késleltetett olvasás',language:'javascript',source:corpus.get('closure-deferred-read').source,
   variants:[
@@ -111,10 +112,10 @@ const scenarios=[
    {name:'primitív konstans és destrukturálás cseréje',order:o=>swap(o,3,4),status:'accepted',equivalent:true},
    {name:'template a destrukturálás elé',order:o=>swap(o,4,5),status:'rejected',equivalent:false},
    {name:'scale a return után',order:o=>moveAfter(o,3,6),status:'rejected',equivalent:false}]},
- {name:'JavaScript osztály: mezők és metódusok',language:'javascript',source:corpus.get('js-class-fields-methods').source,probe:'[evaluate(), Object.getOwnPropertyNames(Counter.prototype)]',
+ {name:'JavaScript osztály: mezők és metódusok',language:'javascript',source:corpus.get('js-class-fields-methods').source,
   variants:[
    {name:'egymásra hivatkozó mezőinicializálók cseréje',order:o=>swap(o,2,3),status:'rejected',equivalent:false},
-   {name:'metódusok cseréje',order:o=>moveBefore(o,range(8,10),4),status:'rejected',equivalent:false},
+   {name:'metódusok cseréje',order:o=>moveBefore(o,range(8,10),4),status:'accepted',equivalent:true},
    {name:'metódus a mezők elé',order:o=>moveBefore(o,range(4,7),2),status:'accepted',equivalent:true},
    {name:'osztálydeklaráció a később hívott függvény után',order:o=>moveAfter(o,range(1,11),18),status:'accepted',equivalent:true},
    {name:'reset a második increment elé',order:o=>swap(o,15,16),status:'rejected',equivalent:false}]},
@@ -127,10 +128,10 @@ const scenarios=[
    {name:'tag áthelyezése a másik típusba',order:o=>moveBefore(o,3,8),status:'rejected',equivalent:true},
    {name:'egymásra hivatkozó konstansok cseréje',order:o=>swap(o,11,12),status:'rejected',equivalent:false}]},
  // The emitted `var Level` is a global-object property beside `evaluate` (ADR-010 review).
- {name:'TypeScript enum',language:'typescript',source:corpus.get('ts-enum').source,probe:"[evaluate(), Object.keys(globalThis).filter(key => ['Level', 'evaluate'].includes(key))]",
+ {name:'TypeScript enum',language:'typescript',source:corpus.get('ts-enum').source,
   variants:[
    {name:'automatikus értékű enum-tagok cseréje',order:o=>swap(o,2,3),status:'rejected',equivalent:false},
-   {name:'függvény az enum elé',order:o=>moveBefore(o,range(6,8),1),status:'rejected',equivalent:false}]},
+   {name:'függvény az enum elé',order:o=>moveBefore(o,range(6,8),1),status:'accepted',equivalent:true}]},
  {name:'TypeScript mezők, declare, paraméterproperty',language:'typescript',source:corpus.get('ts-fields-declare-parameter-property').source,
   variants:[
    {name:'egymásra hivatkozó mezők cseréje',order:o=>swap(o,2,3),status:'rejected',equivalent:false},
@@ -216,7 +217,7 @@ const library={
    {name:'low és high kezdőérték cseréje',order:o=>swap(o,15,16),status:'accepted',equivalent:true},
    {name:'else-ág és if-ág törzsének cseréje',order:o=>swap(o,23,25),status:'rejected',equivalent:false},
    {name:'mid kiemelése a while elé',order:o=>moveBefore(o,18,17),status:'rejected',equivalent:false}]},
- 'class-inventory-ts':{probe:"(() => { const inventory = new Inventory(3); inventory.add({ sku: 'a', name: 'alma', quantity: 2, price: 100 }); inventory.add({ sku: 'b', name: 'barack', quantity: 5, price: 40 }); inventory.add({ sku: 'a', name: 'alma', quantity: 4, price: 100 }); inventory.add({ sku: 'c', name: 'citrom', quantity: 1, price: 70 }); return [inventory.totalValue(), inventory.lowStock(), Object.keys(inventory)]; })()",extensions:288,
+ 'class-inventory-ts':{probe:"(() => { const inventory = new Inventory(3); inventory.add({ sku: 'a', name: 'alma', quantity: 2, price: 100 }); inventory.add({ sku: 'b', name: 'barack', quantity: 5, price: 40 }); inventory.add({ sku: 'a', name: 'alma', quantity: 4, price: 100 }); inventory.add({ sku: 'c', name: 'citrom', quantity: 1, price: 70 }); return [inventory.totalValue(), inventory.lowStock(), Object.keys(inventory)]; })()",extensions:5760,
   scope:[
    {name:'osztály az interface elé',order:o=>moveBefore(o,range(7,34),1),status:'accepted',equivalent:true},
    {name:'metódusok fordított sorrendje',order:o=>moveAfter(moveAfter(o,range(18,24),33),range(10,17),24),status:'accepted',equivalent:true},
@@ -224,7 +225,7 @@ const library={
    {name:'const names a for ciklusba',order:o=>moveBefore(o,26,28),status:'rejected',equivalent:false},
    {name:'interface-tag az osztálytörzsbe',order:o=>moveBefore(o,5,8),status:'rejected',equivalent:false},
    {name:'korai return a feltétel után',order:o=>swap(o,13,14),status:'rejected',equivalent:false}]},
- 'class-accounts-ts':{probe:"(() => { const account = new CreditAccount('Ana', 50); account.deposit(100); const results = [account.withdraw(120), account.withdraw(40), account.withdraw(5)]; account.deposit(7); return [results, account.statement(), Object.keys(account), account instanceof Account]; })()",extensions:192,
+ 'class-accounts-ts':{probe:"(() => { const account = new CreditAccount('Ana', 50); account.deposit(100); const results = [account.withdraw(120), account.withdraw(40), account.withdraw(5)]; account.deposit(7); return [results, account.statement(), Object.keys(account), account instanceof Account]; })()",extensions:20160,
   scope:[
    {name:'leszármazott osztály az ős elé',order:o=>moveBefore(o,range(22,29),1),status:'rejected',equivalent:false},
    {name:'mezők cseréje',order:o=>swap(o,2,3),status:'rejected',equivalent:false},
@@ -254,7 +255,11 @@ for(const [id,spec] of Object.entries(library))test('bal oldali feladatkönyvtá
  const model=JSON.parse(await readFile(new URL(`../examples/${id}.json`,import.meta.url),'utf8'));
  auditReference(model,ts);const compiled=compile(model),equivalent=oracle(model,spec.probe),reference=model.lines.map(line=>line.id);
  const extensions=linearExtensions(model);assert.equal(extensions.length,spec.extensions);
- for(const order of extensions){const lines=codes(model,order);assert.equal(grade(compiled,lines).status,'accepted',JSON.stringify(order));assert.ok(equivalent(lines),'UNSOUND reference model:\n'+lines.join('\n'));}
+ // Every extension is graded. Its runtime run is exhaustive up to 1 000 extensions and a fixed
+ // stride sample above (the v11 class examples have 5 760 and 20 160, all once verified
+ // equivalent exhaustively); ORACLE_EXHAUSTIVE=1 runs them all again.
+ const stride=process.env.ORACLE_EXHAUSTIVE||extensions.length<=1000?1:Math.ceil(extensions.length/1000);
+ extensions.forEach((order,index)=>{const lines=codes(model,order);assert.equal(grade(compiled,lines).status,'accepted',JSON.stringify(order));if(index%stride===0)assert.ok(equivalent(lines),'UNSOUND reference model:\n'+lines.join('\n'));});
  const allowed=new Set(extensions.map(order=>codes(model,order).join('\n')));
  for(const order of neighbourhood(reference)){const lines=codes(model,order);assert.equal(grade(compiled,lines).status,allowed.has(lines.join('\n'))?'accepted':'rejected',JSON.stringify(order));}
  for(const variant of spec.scope){

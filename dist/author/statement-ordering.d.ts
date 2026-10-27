@@ -16,7 +16,9 @@
  * pure and the barrier provably cannot observe it), or (ADR-010) both create
  * global-object properties in a classic script (function and var declarations,
  * and the TypeScript enums, namespaces and import aliases emitted as var):
- * Object.keys(globalThis) reflects their creation order. The specification creates function bindings
+ * Object.keys(globalThis) reflects their creation order. Since v11 (ADR-020)
+ * a hoisted function declaration is in that chain only when the program itself
+ * can list global keys (options.reflectedKeys). The specification creates function bindings
  * before var bindings, V8 interleaves them in source order, so all such units
  * keep their mutual source order. Every evaluation-time read of
  * a binding whose initialisation has a TDZ/value position in the same function
@@ -48,8 +50,10 @@ export declare function bindingChecker(file: ts.SourceFile, compiler: Compiler):
  * verbatimModuleSyntax; `elide-unused` is TypeScript's default emit, which drops an
  * import none of whose bindings is used as a value. */
 export type ImportEmit = 'verbatim' | 'elide-unused';
+/** `reflectedKeys` (ADR-020): the program may list global keys, so function declarations keep their global order. */
 export interface OrderingOptions {
     imports?: ImportEmit;
+    reflectedKeys?: boolean;
 }
 export declare function statementOrdering(file: ts.SourceFile, compiler: Compiler, options?: OrderingOptions): StatementOrdering;
 export {};

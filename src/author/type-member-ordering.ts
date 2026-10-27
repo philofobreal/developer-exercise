@@ -6,10 +6,12 @@
  * Phases (ADR-012): computed method keys are evaluated while the class elements
  * are defined, static initialisers and blocks run after that, instance
  * initialisers at construction; units of different phases commute.
- * Their relative order is still reflectable (ADR-010): OrdinaryOwnPropertyKeys
- * lists string keys in creation order, so every member that creates a string
- * key on the prototype (or, if static, on the constructor) keeps its order
- * relative to the other such members. Free of that order are: the constructor
+ * Their relative order is reflectable (ADR-010): OrdinaryOwnPropertyKeys lists
+ * string keys in creation order. These keys are non-enumerable, so only an
+ * explicit getOwnPropertyNames/Reflect.ownKeys can see it; since v11 (ADR-020)
+ * the key chain applies only when the program can (options.reflectedKeys). Then
+ * every member that creates a string key on the prototype (or, if static, on the
+ * constructor) keeps its order relative to the other such members. Free of that order are: the constructor
  * (`constructor` is created first), array-index keys (listed ascending),
  * private names (not reflected) and erased members. An `accessor` field is in
  * that key chain and keeps its field order too. TypeScript emits parameter
@@ -27,12 +29,13 @@ type Compiler = typeof ts;
  * and other shapes) stay ordered relative to every unit. `pair`: the accessor
  * pair key (ADR-012). */
 type Phase = 'key' | 'static' | 'instance';
-interface Unit {first: number; last: number; pure: boolean; free?: boolean; reflect?: 'prototype' | 'static'; phases?: Phase[]; pair?: string;}
+interface Unit {first: number; last: number; pure: boolean; free?: boolean; reflect?: 'prototype' | 'static'; phases?: Phase[]; pair?: string; plain?: boolean;}
 /** `spans` lists every ordered member/comment unit (0-based physical rows) so the
  * generator can keep same-scope siblings out of a multi-row unit's interior. */
 export interface TypeMemberOrdering {entries: OrderingEntry[]; spans: {first: number; last: number}[]; note: string;}
 
-export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler): TypeMemberOrdering {
+/** `reflectedKeys` (ADR-020): the program may list non-enumerable keys, so the ADR-010 key chain applies. */
+export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, options: {reflectedKeys?: boolean} = {}): TypeMemberOrdering {
  const physical = file.text.split('\n'), entries: OrderingEntry[] = [], spans: {first: number; last: number}[] = [];
  /** `row` follows every row of `after` for the same reason. */
  const order = (row: number, after: number[], category: OrderingReason['category'], code: string): void => {entries.push({row, after, reasons: after.map(before => ({before, category, code}))});};
@@ -100,16 +103,23 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler): Typ
      : compiler.isClassStaticBlockDeclaration(member) ? ['static']
      : (compiler.isMethodDeclaration(member) || compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member)) && !!member.body && !plainName ? ['key'] : undefined;
     // A declare field emits nothing in either class-field mode: it is position-free in a class body.
-    return {first: row, last: end, pure, free: definition || isClass && pure, ...(reflected ? {reflect: isStatic(member) ? 'static' as const : 'prototype' as const} : {}), ...(phases ? {phases} : {}), ...(definition && paired ? {pair: key} : {})};
+    // A plain method row: a candidate overload signature or implementation (ADR-020).
+    const plain = isClass && compiler.isMethodDeclaration(member) && !decorated && !leadingComment && (modifiers ?? []).every(modifier => definitionModifiers.has(modifier.kind)) && (member.body ? definitionRows(member) : row === end && physical[row]?.trim() === member.getText(file).trim());
+    return {first: row, last: end, pure, plain, free: definition || isClass && pure, ...(reflected ? {reflect: isStatic(member) ? 'static' as const : 'prototype' as const} : {}), ...(phases ? {phases} : {}), ...(definition && paired ? {pair: key} : {})};
    });
    // An overload signature must directly precede the next signature or the
-   // implementation (TS2389/TS2391): the whole group is one ordered unit.
+   // implementation (TS2389/TS2391): the whole group is one unit. Its signatures are
+   // erased, so a group of plain rows whose name occurs nowhere else is one method
+   // definition, free like any other (ADR-020); otherwise the group stays ordered.
    const signature = (member: ts.Node): boolean => (compiler.isMethodDeclaration(member) || compiler.isConstructorDeclaration(member)) && !member.body && !compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.AbstractKeyword);
-   const grouped: Unit[] = [];
+   const grouped: Unit[] = [], sizes: number[] = [];
    members.forEach((member, i) => {
     const previous = node.members[i - 1];
-    if (isClass && previous && signature(previous) && name(previous) === name(node.members[i]!)) grouped.push({first: grouped.pop()!.first, last: member.last, pure: false, ...(member.reflect ? {reflect: member.reflect} : {})});
-    else grouped.push(member);
+    if (isClass && previous && signature(previous) && name(previous) === name(node.members[i]!)) {
+     const head = grouped.pop()!, size = sizes.pop()! + 1, key = name(node.members[i]!);
+     const definition = !!head.plain && !!member.plain && !!(node.members[i] as ts.MethodDeclaration).body && key !== undefined && counts.get(key) === size;
+     grouped.push({first: head.first, last: member.last, pure: false, plain: !!head.plain && !!member.plain, ...(definition ? {free: true} : {}), ...(member.reflect ? {reflect: member.reflect} : {})}); sizes.push(size);
+    } else {grouped.push(member); sizes.push(1);}
    });
    // No edits on shared physical boundaries. Comments remain opaque barriers.
    if (open && close && grouped.every((member, i) => member.first > first(open) && member.last < first(close) && (!i || grouped[i - 1]!.last < member.first))) {
@@ -152,7 +162,7 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler): Typ
     // key at the earlier half and form one group: both follow the previous group and
     // precede the next one, in either order between themselves (ADR-012).
     const chains = new Map<string, {last: Unit[]; before: Unit[]}>();
-    for (const member of grouped) if (member.reflect) {
+    if (options.reflectedKeys) for (const member of grouped) if (member.reflect) {
      const chain = chains.get(member.reflect) ?? {last: [], before: []};
      const joins = !!member.pair && chain.last.length === 1 && chain.last[0]!.pair === member.pair;
      const predecessors = joins ? chain.before : chain.last;
@@ -165,5 +175,5 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler): Typ
  }
  visit(file);
  // Several constraints on one row are a conjunction.
- return {entries: mergeOrderingEntries(entries), spans, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor, a declare mezők, a privát (#) és a tömbindex nevű metódusok bárhol állhatnak az osztálytörzsben. A többi metódus és accessor a mezőkhöz képest szabad, de egymáshoz képest megtartja a sorrendjét, mert a prototípus (static esetén a konstruktor) kulcssorrendje reflexióval megfigyelhető; az accessor mező ebben a láncban és a mezők között is a helyén marad. Egy azonos nevű getter és setter egy tulajdonság: egymással felcserélhetők. A példány- és a static mezők egymáshoz képest szabadok, mert más fázisban futnak, de csoportjukon belül megtartják a sorrendet; a számított nevű metódus a mezőkhöz képest szabad. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : ''};
+ return {entries: mergeOrderingEntries(entries), spans, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor, a declare mezők, a privát (#) és a tömbindex nevű metódusok bárhol állhatnak az osztálytörzsben. A többi metódus és accessor a mezőkhöz és egymáshoz képest is szabad; csak ha a program maga listázza a kulcsokat (getOwnPropertyNames, Reflect.ownKeys, getOwnPropertyDescriptors), akkor tartják meg egymáshoz képesti sorrendjüket, mert akkor a prototípus (static esetén a konstruktor) kulcssorrendje megfigyelhető, és az accessor mező akkor ebben a láncban is a helyén marad. Egy azonos nevű getter és setter egy tulajdonság: egymással felcserélhetők. A példány- és a static mezők egymáshoz képest szabadok, mert más fázisban futnak, de csoportjukon belül megtartják a sorrendet; a számított nevű metódus a mezőkhöz képest szabad. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : ''};
 }
