@@ -74,7 +74,7 @@ test('refresh rebinds the regenerated provenance to the original line IDs',async
  const refreshed=await refreshLegacyDependencies(original,ports);
  assert.equal(evidenceStatus(refreshed),'current');
  assert.equal(explained(refreshed).provenance,'complete');
- assert.equal(refreshed.authoring.evidence.analyzer,'scoped-effect-analysis-v9');
+ assert.equal(refreshed.authoring.evidence.analyzer,'scoped-effect-analysis-v10');
 });
 
 test('architecture: only the projection may call the core digest from typed author code',()=>{

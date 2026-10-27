@@ -49,9 +49,9 @@
  },
  "destructuring-object-template": {
   "neighbours": 51,
-  "accepted": 1,
+  "accepted": 3,
   "completenessGaps": 0,
-  "justifiedRejections": 50
+  "justifiedRejections": 48
  },
  "js-class-fields-methods": {
   "neighbours": 420,
@@ -121,15 +121,15 @@
  },
  "ch-aliasing": {
   "neighbours": 70,
-  "accepted": 2,
+  "accepted": 4,
   "completenessGaps": 0,
-  "justifiedRejections": 68
+  "justifiedRejections": 66
  },
  "ch-getter": {
   "neighbours": 176,
-  "accepted": 1,
+  "accepted": 2,
   "completenessGaps": 0,
-  "justifiedRejections": 175
+  "justifiedRejections": 174
  },
  "ch-async-await": {
   "neighbours": 51,
@@ -169,9 +169,9 @@
  },
  "ch-multiline-closure": {
   "neighbours": 117,
-  "accepted": 5,
+  "accepted": 6,
   "completenessGaps": 0,
-  "justifiedRejections": 112
+  "justifiedRejections": 111
  },
  "ch-hoisted-helpers": {
   "neighbours": 245,
@@ -205,8 +205,8 @@
  },
  "ch-template-coercion": {
   "neighbours": 176,
-  "accepted": 1,
-  "completenessGaps": 1,
+  "accepted": 2,
+  "completenessGaps": 0,
   "justifiedRejections": 174
  },
  "ch-block-function-declaration": {
@@ -242,8 +242,8 @@
  "wp6-hoisted-into-continued-call": {
   "neighbours": 70,
   "accepted": 2,
-  "completenessGaps": 1,
-  "justifiedRejections": 67
+  "completenessGaps": 2,
+  "justifiedRejections": 66
  },
  "wp6-hoisted-into-shared-boundaries": {
   "neighbours": 285,
@@ -361,15 +361,15 @@
  },
  "algo-bfs-js": {
   "neighbours": 803,
-  "accepted": 1,
+  "accepted": 5,
   "completenessGaps": 2,
-  "justifiedRejections": 800
+  "justifiedRejections": 796
  },
  "algo-sort-search-js": {
   "neighbours": 1078,
-  "accepted": 1,
+  "accepted": 3,
   "completenessGaps": 0,
-  "justifiedRejections": 1077
+  "justifiedRejections": 1075
  },
  "class-inventory-ts": {
   "neighbours": 1458,

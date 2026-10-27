@@ -12,7 +12,8 @@
  *    transfer, unknown syntax, multi-row shapes without block delimiters);
  *  - opaque: comment and other non-statement rows.
  * For units i < j an edge i.last → j.first exists iff one is opaque, or neither
- * is position-free and at least one is a barrier, or (ADR-010) both create
+ * is position-free and at least one is a barrier (unless, ADR-019, the other is
+ * pure and the barrier provably cannot observe it), or (ADR-010) both create
  * global-object properties in a classic script (function and var declarations,
  * and the TypeScript enums, namespaces and import aliases emitted as var):
  * Object.keys(globalThis) reflects their creation order. The specification creates function bindings

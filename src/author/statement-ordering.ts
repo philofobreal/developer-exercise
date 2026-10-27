@@ -12,7 +12,8 @@
  *    transfer, unknown syntax, multi-row shapes without block delimiters);
  *  - opaque: comment and other non-statement rows.
  * For units i < j an edge i.last → j.first exists iff one is opaque, or neither
- * is position-free and at least one is a barrier, or (ADR-010) both create
+ * is position-free and at least one is a barrier (unless, ADR-019, the other is
+ * pure and the barrier provably cannot observe it), or (ADR-010) both create
  * global-object properties in a classic script (function and var declarations,
  * and the TypeScript enums, namespaces and import aliases emitted as var):
  * Object.keys(globalThis) reflects their creation order. The specification creates function bindings
@@ -34,7 +35,7 @@ export interface StatementUnit {first: number; last: number; kind: UnitKind; rea
 export interface StatementOrdering {entries: OrderingEntry[]; protectedInputs: Map<number, Set<number>>; units: StatementUnit[];}
 /** `readSet`/`writeSet`: bindings a pure or local-write unit reads or writes when it runs
  * (may-sets, unions over branches); two such units conflict on RAW, WAR or WAW. */
-interface Summary extends StatementUnit {reads: Set<number>; start: number; global?: boolean; readSet: Set<ts.Symbol>; writeSet: Set<ts.Symbol>;}
+interface Summary extends StatementUnit {reads: Set<number>; start: number; global?: boolean; readSet: Set<ts.Symbol>; writeSet: Set<ts.Symbol>; node?: ts.Statement;}
 interface Binding {row: number | null; primitiveInitializer: ts.Expression | null;}
 
 /** Barrier reasons that name an unsupported shape rather than an effect (ADR-014). */
@@ -119,6 +120,25 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
   compiler.forEachChild(node, collectWrites);
  };
  collectWrites(file);
+ /** Every identifier use of a binding, and whether it declares or writes it; the function
+  * contexts that use `arguments`, which aliases parameters in sloppy mode (ADR-019). */
+ const uses = new Map<ts.Symbol, {node: ts.Identifier; write: boolean}[]>(), names = new Map<string, ts.Identifier[]>(), withArguments = new Set<ts.Node>();
+ const declarationName = (node: ts.Identifier): boolean => {
+  const parent = node.parent;
+  return (compiler.isVariableDeclaration(parent) || compiler.isParameter(parent) || compiler.isBindingElement(parent) || compiler.isFunctionDeclaration(parent) || compiler.isClassDeclaration(parent)) && parent.name === node;
+ };
+ const collectUses = (node: ts.Node): void => {
+  if (compiler.isIdentifier(node)) {
+   if (node.text === 'arguments') for (let scope = context(node); ; scope = context(scope)) {withArguments.add(scope); if (scope === file) break;}
+   const key = (compiler.isPropertyAccessExpression(node.parent) || compiler.isPropertyAssignment(node.parent) || compiler.isPropertyDeclaration(node.parent) || compiler.isMethodDeclaration(node.parent) || compiler.isAccessor(node.parent) || compiler.isPropertySignature(node.parent)) && node.parent.name === node;
+   if (!key) {if (!names.has(node.text)) names.set(node.text, []); names.get(node.text)!.push(node);}
+   const symbol = compiler.isShorthandPropertyAssignment(node.parent) && node.parent.name === node ? checker.getShorthandAssignmentValueSymbol(node.parent) : checker.getSymbolAtLocation(node);
+   if (symbol) {if (!uses.has(symbol)) uses.set(symbol, []); uses.get(symbol)!.push({node, write: declarationName(node) || writeTarget(node)});}
+   return;
+  }
+  compiler.forEachChild(node, collectUses);
+ };
+ collectUses(file);
 
  /** Resolves an evaluation-time identifier read to a binding that is initialised whenever the read runs. */
  function binding(identifier: ts.Identifier, symbol: ts.Symbol | undefined): Binding | null {
@@ -132,7 +152,9 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
    if (compiler.isCatchClause(list)) return within(list.block, identifier) ? {row: null, primitiveInitializer: null} : null;
    if (!compiler.isVariableDeclarationList(list) || disposable(list)) return null;
    const owner = list.parent;
-   if ((compiler.isForStatement(owner) || compiler.isForOfStatement(owner) || compiler.isForInStatement(owner)) && owner.initializer === list) return within(owner.statement, identifier) ? {row: null, primitiveInitializer: null} : null;
+   // ADR-019: ++/-- keep a primitive number a number, so a counter whose only writes are updates stays primitive.
+   const counter = (): boolean => !!symbol && context(owner) !== file && (uses.get(symbol) ?? []).every(use => !use.write || declarationName(use.node) || compiler.isPrefixUnaryExpression(use.node.parent) || compiler.isPostfixUnaryExpression(use.node.parent));
+   if ((compiler.isForStatement(owner) || compiler.isForOfStatement(owner) || compiler.isForInStatement(owner)) && owner.initializer === list) return within(owner.statement, identifier) ? {row: null, primitiveInitializer: compiler.isForStatement(owner) && list.declarations.length === 1 && declaration.initializer && counter() ? declaration.initializer : null} : null;
    // The read must follow the whole declaration: `const a = a` throws.
    if (!compiler.isVariableStatement(owner) || modifiers(owner).length || list.declarations.length !== 1 || declaration.end > identifier.getStart(file) || caseClause(owner)) return null;
    const lexical = (list.flags & compiler.NodeFlags.BlockScoped) !== 0, row = sameContext(owner);
@@ -140,7 +162,7 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
    if (lexical && row === null) return null;
    // Never-written let/var behave like const; script-level ones stay writable through the global scope.
    const constant = (list.flags & compiler.NodeFlags.BlockScoped) === compiler.NodeFlags.Const || !!symbol && !written.has(symbol) && context(owner) !== file;
-   return {row, primitiveInitializer: constant && declaration.initializer ? declaration.initializer : null};
+   return {row, primitiveInitializer: (constant || counter()) && declaration.initializer ? declaration.initializer : null};
   }
   if (compiler.isParameter(declaration) && compiler.isIdentifier(declaration.name)) {
    const body = (declaration.parent as ts.SignatureDeclaration & {body?: ts.Node}).body;
@@ -274,7 +296,7 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
   return new Set([symbol]);
  }
  function summary(node: ts.Statement, list: ts.Node): Summary {
-  const reads = new Set<number>(), readSet = new Set<ts.Symbol>(), writeSet = new Set<ts.Symbol>(), base = {first: line(node), last: end(node), start: node.getStart(file), reads, readSet, writeSet};
+  const reads = new Set<number>(), readSet = new Set<ts.Symbol>(), writeSet = new Set<ts.Symbol>(), base = {first: line(node), last: end(node), start: node.getStart(file), reads, readSet, writeSet, node};
   const barrier = (reason: string): Summary => ({...base, kind: 'barrier', reason});
   /** Pure or local-write children compose; the unit reads and may write their unions. */
   const compose = (children: Summary[], kind: string): Summary | null => {
@@ -342,13 +364,59 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
  }
  /** RAW, WAR or WAW on a binding between two units that run code (ADR-013). */
  const meets = (a: Set<ts.Symbol>, b: Set<ts.Symbol>): boolean => [...a].some(symbol => b.has(symbol));
+ /** Whether running `root` may leave it by return, throw, yield, await or a jump to a target outside it, or registers a disposal. */
+ const transfers = (root: ts.Node): boolean => {
+  const internal = (jump: ts.BreakOrContinueStatement): boolean => {
+   for (let current: ts.Node = jump.parent; ; current = current.parent) {
+    const loop = compiler.isForStatement(current) || compiler.isForInStatement(current) || compiler.isForOfStatement(current) || compiler.isWhileStatement(current) || compiler.isDoStatement(current);
+    if (jump.label ? compiler.isLabeledStatement(current) && current.label.text === jump.label.text : loop || compiler.isBreakStatement(jump) && compiler.isSwitchStatement(current)) return true;
+    if (current === root) return false;
+   }
+  };
+  let found = false;
+  const visit = (node: ts.Node): void => {
+   if (found || functionLike(node) || compiler.isClassLike(node)) return;
+   // A using declaration registers a disposal (an await at block exit for await using).
+   if (compiler.isReturnStatement(node) || compiler.isThrowStatement(node) || compiler.isYieldExpression(node) || compiler.isAwaitExpression(node) || compiler.isForOfStatement(node) && !!node.awaitModifier || compiler.isVariableDeclarationList(node) && disposable(node) || (compiler.isBreakStatement(node) || compiler.isContinueStatement(node)) && !internal(node)) {found = true; return;}
+   compiler.forEachChild(node, visit);
+  };
+  visit(root);
+  return found;
+ };
+ /** ADR-019: a pure unit and an effect barrier of one function-context list commute when no code
+  * the barrier can run observes their order. The barrier never leaves its statement early; the
+  * unit's own bindings are block-scoped, captured by no closure and not used by the barrier; every
+  * binding it reads belongs to this context and is written neither by a closure nor by the barrier;
+  * and the context does not use `arguments`. A throwing barrier exits the block, after which only a
+  * closure could observe a block-scoped binding. */
+ const commutes = (unit: Summary, barrier: Summary): boolean => {
+  const own = unit.node, other = barrier.node;
+  if (unit.kind !== 'pure' || barrier.kind !== 'barrier' || !(barrierCategory(barrier.reason) === 'effect' || barrier.reason === 'declaration-shape' || barrier.reason === 'shared-or-continued-rows') || !own || !other) return false;
+  const scope = context(own);
+  if (scope === file || withArguments.has(scope) || transfers(other)) return false;
+  // Uses are matched by binding and, like the independent oracle, also by name: a shadowing
+  // name only forbids a commutation.
+  const named = (root: ts.Node, name: string, writesOnly: boolean, nestedOnly: boolean): boolean => (names.get(name) ?? []).some(use => within(root, use) && (!writesOnly || declarationName(use) || writeTarget(use)) && (!nestedOnly || context(use) !== scope));
+  const usedBy = (symbol: ts.Symbol, writesOnly: boolean): boolean => (uses.get(symbol) ?? []).some(use => within(other, use.node) && (!writesOnly || use.write)) || named(other, symbol.name, writesOnly, false);
+  for (const symbol of unit.writeSet) {
+   const declaration = unique(symbol);
+   if (!declaration || !within(own, declaration)) return false;
+   const blockScoped = compiler.isVariableDeclaration(declaration) && compiler.isVariableDeclarationList(declaration.parent) && (declaration.parent.flags & compiler.NodeFlags.BlockScoped) !== 0 && !disposable(declaration.parent) || compiler.isClassDeclaration(declaration);
+   if (!blockScoped || (uses.get(symbol) ?? []).some(use => context(use.node) !== context(declaration)) || named(scope, symbol.name, false, true) || usedBy(symbol, false)) return false;
+  }
+  for (const symbol of unit.readSet) {
+   const declaration = unique(symbol);
+   if (!declaration || context(declaration) !== scope || (uses.get(symbol) ?? []).some(use => use.write && context(use.node) !== scope) || named(scope, symbol.name, true, true) || usedBy(symbol, true)) return false;
+  }
+  return true;
+ };
  /** Why units a < b of one list are ordered (ADR-014); empty when they commute. A comment
   * orders only conservatively; otherwise each barrier side, a shared global creation order
   * and each RAW/WAR/WAW conflict is a reason of its own. */
  const pairReasons = (a: Summary, b: Summary): [OrderingReason['category'], string][] => {
   if (a.kind === 'opaque' || b.kind === 'opaque') return [['conservative', 'opaque-row']];
   const found: [OrderingReason['category'], string][] = [];
-  if (a.kind !== 'position-free' && b.kind !== 'position-free') for (const unit of [a, b]) if (unit.kind === 'barrier') found.push([barrierCategory(unit.reason), unit.reason]);
+  if (a.kind !== 'position-free' && b.kind !== 'position-free' && !commutes(a, b) && !commutes(b, a)) for (const unit of [a, b]) if (unit.kind === 'barrier') found.push([barrierCategory(unit.reason), unit.reason]);
   if (a.global && b.global) found.push(['policy', 'script-global-order']);
   if (meets(a.writeSet, b.readSet)) found.push(['data', 'read-after-write']);
   if (meets(a.readSet, b.writeSet)) found.push(['data', 'write-after-read']);

@@ -289,7 +289,7 @@
     ],
     "evidence": {
       "sourceDigest": "b3adab2637be05fd",
-      "analyzer": "scoped-effect-analysis-v9",
+      "analyzer": "scoped-effect-analysis-v10",
       "environment": {
         "typescript": "5.8.3",
         "importEmit": "verbatim",

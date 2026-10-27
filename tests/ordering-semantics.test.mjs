@@ -6,6 +6,7 @@ import {Script,createContext} from 'node:vm';
 import {parse} from 'acorn';
 import ts from 'typescript';
 import {generateCodeLineExercise} from '../src/author/generator.mjs';
+import {createOracle} from './support/semantic-oracle.mjs';
 import {compileCodeLineExercise,compileDefinition,validateSubmission} from '../dist/index.js';
 const source=(await readFile(new URL('./fixtures/evaluate-ordering.js',import.meta.url),'utf8')).replace(/\r\n?/g,'\n');
 const reference=JSON.parse(await readFile(new URL('./fixtures/evaluate-ordering.model.json',import.meta.url),'utf8'));
@@ -20,16 +21,11 @@ function shape(value,key=''){
  return value;
 }
 function syntaxShape(code){return JSON.stringify(shape(parse(code,{ecmaVersion:'latest',sourceType:'script'})));}
-// Additional author contract: opaque calls/control transfers keep their
-// original order relative to sibling statements, even when this one execution
-// cannot distinguish the rearrangement. This is separate from the JS oracle.
-function effectOrder(code){
- const out=[],tree=parse(code,{ecmaVersion:'latest'});
- const hasEffect=node=>{if(!node||typeof node!=='object')return false;if(['CallExpression','NewExpression','ReturnStatement','ThrowStatement','AssignmentExpression','UpdateExpression'].includes(node.type))return true;return Object.values(node).some(value=>Array.isArray(value)?value.some(hasEffect):hasEffect(value));};
- const key=node=>JSON.stringify(shape(node));
- const visit=node=>{if(!node||typeof node!=='object')return;if(Array.isArray(node.body)){const units=node.body;for(let i=0;i<units.length;i++)for(let j=i+1;j<units.length;j++)if(hasEffect(units[i])||hasEffect(units[j]))out.push([key(units[i]),key(units[j])]);}for(const value of Object.values(node))if(Array.isArray(value))value.forEach(visit);else if(value&&typeof value==='object')visit(value);};
- visit(tree);return JSON.stringify(out.sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b))));
-}
+// Additional author contract: opaque calls/control transfers keep their order
+// relative to sibling statements, even when this one execution cannot
+// distinguish the rearrangement, except where the P2 policy proves that the
+// effect cannot observe the move (ADR-019). The policy oracle decides that,
+// separately from the runtime check below.
 function execute(code){const context=createContext({trace:[]});return new Script('"use strict";function record(...args) { trace.push(args); }\n'+code+'\nJSON.stringify({value:evaluate(),trace});').runInContext(context,{timeout:1000});}
 function oracle(baseline,code){try{return syntaxShape(code)===syntaxShape(baseline)&&execute(code)===execute(baseline);}catch(error){if(error?.code==='ERR_SCRIPT_EXECUTION_TIMEOUT')throw error;return false;}}
 
@@ -69,10 +65,11 @@ test('three lexical levels: all inner-statement permutations agree with an indep
 
 test('nested scope: every single-row relocation rejects scope escape, early return and altered effects',()=>{
  const model=generateCodeLineExercise({source:threeLevels,language:'javascript'},ts),compiled=compile(model),original=threeLevels.split('\n');let cases=0;
+ const policy=createOracle({id:'three-levels',language:'javascript',probe:'evaluate()',source:threeLevels});
  for(let from=0;from<original.length;from++)for(let to=0;to<original.length;to++){
   const lines=[...original],row=lines.splice(from,1)[0];lines.splice(to,0,row);const expected=oracle(threeLevels,lines.join('\n'));
   const actual=grade(compiled,lines);if(actual.accepted)assert.equal(expected,true,'accepted code must preserve JS result/effects');
-  const permitted=expected&&effectOrder(threeLevels)===effectOrder(lines.join('\n'));assert.equal(actual.status,permitted?'accepted':'rejected',JSON.stringify({from,to,expected,permitted,actual}));cases++;
+  const permitted=expected&&policy(lines).ok===true;assert.equal(actual.status,permitted?'accepted':'rejected',JSON.stringify({from,to,expected,permitted,actual}));cases++;
  }
  assert.equal(cases,289);
 });

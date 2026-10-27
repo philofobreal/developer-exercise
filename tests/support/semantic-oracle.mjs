@@ -13,6 +13,9 @@
  *                   function-local let/var/parameter with an effect-free right
  *                   side is a local effect, ordered only against statements
  *                   that read or write the same name (RAW/WAR/WAW, ADR-013);
+ *                   in a function-level list an effect-free statement may
+ *                   cross an external one that cannot observe it (ADR-019,
+ *                   by name: see commutation());
  *   P3 runtime    – value, thrown exception and record() trace agree with the
  *                   reference on the fixture probe (TS: both class-field modes).
  * P3 is empirical evidence on finite inputs, not an equivalence proof.
@@ -95,6 +98,78 @@ function jsClassify(statement,chain){
  return {external,reads,writes};
 }
 const jsPositionFree=(statement,hoisting)=>hoisting&&statement.type==='FunctionDeclaration';
+/* P2 pure/effect commutation (ADR-019), by name: shadowing only merges bindings,
+ * which forbids more commutations (the safe direction). In a function-level list a
+ * statement without external effect and an external one commute when the external
+ * one never leaves itself early (return, throw, yield, await, outward jump), the
+ * function uses neither `arguments` nor `eval`, every name the statement writes is a
+ * let/const/class it declares itself, used by no nested function and not at all by
+ * the external statement, and every name it reads is declared at the function's
+ * level, written by no nested function and not by the external statement. */
+function jsRefs(root){
+ const out=[];
+ const visit=(node,nested,target,kind)=>{
+  if(!node||typeof node!=='object')return;
+  if(Array.isArray(node)){node.forEach(item=>visit(item,nested,target,kind));return;}
+  switch(node.type){
+   case 'Identifier':out.push({name:node.name,write:target,kind,nested,at:node.start});return;
+   case 'FunctionDeclaration':case 'FunctionExpression':case 'ArrowFunctionExpression':{
+    if(node!==root&&node.id)visit(node.id,node.type==='FunctionDeclaration'?nested:true,true,'function');
+    const level=node===root?nested:true;visit(node.params,level,true,'param');visit(node.body,level,false,null);return;}
+   case 'ClassDeclaration':case 'ClassExpression':visit(node.id,node.type==='ClassDeclaration'?nested:true,true,'class');visit(node.superClass,nested,false,null);visit(node.body,nested,false,null);return;
+   case 'MethodDefinition':if(node.computed)visit(node.key,nested,false,null);visit(node.value,nested,false,null);return;
+   case 'PropertyDefinition':if(node.computed)visit(node.key,nested,false,null);visit(node.value,true,false,null);return;
+   case 'StaticBlock':visit(node.body,true,false,null);return;
+   case 'VariableDeclaration':node.declarations.forEach(d=>{visit(d.id,nested,true,node.kind);visit(d.init,nested,false,null);});return;
+   case 'AssignmentExpression':visit(node.left,nested,true,null);visit(node.right,nested,false,null);return;
+   case 'UpdateExpression':visit(node.argument,nested,true,null);return;
+   case 'ForInStatement':case 'ForOfStatement':visit(node.left,nested,true,null);visit(node.right,nested,false,null);visit(node.body,nested,false,null);return;
+   case 'CatchClause':visit(node.param,nested,true,'catch');visit(node.body,nested,false,null);return;
+   case 'AssignmentPattern':visit(node.left,nested,target,kind);visit(node.right,nested,false,null);return;
+   case 'ArrayPattern':visit(node.elements,nested,target,kind);return;
+   case 'ObjectPattern':visit(node.properties,nested,target,kind);return;
+   case 'RestElement':visit(node.argument,nested,target,kind);return;
+   case 'Property':if(node.computed)visit(node.key,nested,false,null);visit(node.value,nested,target,kind);return;
+   case 'MemberExpression':visit(node.object,nested,false,null);if(node.computed)visit(node.property,nested,false,null);return;
+   case 'LabeledStatement':visit(node.body,nested,false,null);return;
+   case 'BreakStatement':case 'ContinueStatement':case 'MetaProperty':return;
+  }
+  for(const [key,value] of Object.entries(node))if(key!=='type'&&value&&typeof value==='object')visit(value,nested,false,null);
+ };
+ visit(root,false,false,null);return out;
+}
+const jsLoop=new Set(['ForStatement','ForInStatement','ForOfStatement','WhileStatement','DoWhileStatement']);
+function jsTransfers(root){
+ let found=false;
+ const visit=(node,targets)=>{
+  if(found||!node||typeof node!=='object')return;
+  if(Array.isArray(node)){node.forEach(item=>visit(item,targets));return;}
+  if(jsFunction.has(node.type)||node.type==='ClassDeclaration'||node.type==='ClassExpression')return;
+  if(['ReturnStatement','ThrowStatement','YieldExpression','AwaitExpression'].includes(node.type)||node.type==='ForOfStatement'&&node.await){found=true;return;}
+  if(node.type==='BreakStatement'||node.type==='ContinueStatement'){if(!(node.label?targets.labels.includes(node.label.name):targets.loop||node.type==='BreakStatement'&&targets.switch))found=true;return;}
+  const next={loop:targets.loop||jsLoop.has(node.type),switch:targets.switch||node.type==='SwitchStatement',labels:node.type==='LabeledStatement'?[...targets.labels,node.label.name]:targets.labels};
+  for(const [key,value] of Object.entries(node))if(key!=='type'&&value&&typeof value==='object')visit(value,next);
+ };
+ visit(root,{loop:false,switch:false,labels:[]});return found;
+}
+/** The shared commutation decision over name references (jsRefs / tsRefs). */
+function commutation(refs,transfers,isFunction,classify){
+ return (statement,effect,chain)=>{
+  const fn=chain[0];
+  if(!fn||!isFunction(fn)||isFunction(statement)||transfers(effect))return false;
+  const own=classify(statement,chain);
+  if(own.external)return false;
+  const inside=refs(fn),other=refs(effect),mine=refs(statement);
+  // A block-level function declaration assigns an outer binding where it stands (Annex B).
+  if(inside.some(ref=>ref.name==='arguments'||ref.name==='eval')||mine.some(ref=>ref.kind==='function'&&!ref.nested))return false;
+  const declared=new Set(mine.filter(ref=>!ref.nested&&['let','const','class'].includes(ref.kind)).map(ref=>ref.name));
+  const local=new Set(inside.filter(ref=>!ref.nested&&ref.kind).map(ref=>ref.name));
+  for(const name of own.writes)if(!declared.has(name)||inside.some(ref=>ref.nested&&ref.name===name)||other.some(ref=>ref.name===name))return false;
+  for(const name of own.reads)if(!local.has(name)||inside.some(ref=>ref.nested&&ref.write&&ref.name===name)||other.some(ref=>ref.write&&ref.name===name))return false;
+  return true;
+ };
+}
+const jsCommutes=commutation(jsRefs,jsTransfers,node=>jsFunction.has(node.type),(statement,chain)=>jsClassify(statement,chain));
 
 /* ------------------------- TypeScript (compiler AST walk) -------------------- */
 const tsFunction=node=>ts.isFunctionDeclaration(node)||ts.isFunctionExpression(node)||ts.isArrowFunction(node)||ts.isMethodDeclaration(node)||ts.isConstructorDeclaration(node)||ts.isGetAccessorDeclaration(node)||ts.isSetAccessorDeclaration(node);
@@ -169,6 +244,57 @@ function tsClassify(statement,chain){
  return {external,reads,writes};
 }
 const tsPositionFree=(statement,hoisting)=>erased(statement)||hoisting&&ts.isFunctionDeclaration(statement)&&!!statement.body;
+/** tsRefs: name references as in jsRefs, over the TypeScript AST; types are not references. */
+function tsRefs(root){
+ const out=[],S=ts.SyntaxKind;
+ const visit=(node,nested,target,kind)=>{
+  if(!node||ts.isTypeNode(node)||erased(node))return;
+  if(ts.isIdentifier(node)){out.push({name:node.text,write:target,kind,nested,at:node.getStart()});return;}
+  if(tsFunction(node)){
+   if(node!==root&&node.name&&ts.isIdentifier(node.name)&&(ts.isFunctionDeclaration(node)||ts.isFunctionExpression(node)))visit(node.name,ts.isFunctionDeclaration(node)?nested:true,true,'function');
+   if(node.name&&ts.isComputedPropertyName(node.name))visit(node.name.expression,nested,false,null);
+   const level=node===root?nested:true;node.parameters.forEach(p=>visit(p,level,true,'param'));visit(node.body,level,false,null);return;
+  }
+  if(ts.isParameter(node)){visit(node.name,nested,target,kind);visit(node.initializer,nested,false,null);return;}
+  if(ts.isClassLike(node)){
+   if(node.name)visit(node.name,ts.isClassDeclaration(node)?nested:true,true,'class');
+   node.heritageClauses?.forEach(clause=>clause.types.forEach(type=>visit(type.expression,nested,false,null)));
+   node.members.forEach(member=>{
+    if(member.name&&ts.isComputedPropertyName(member.name))visit(member.name.expression,nested,false,null);
+    if(ts.isPropertyDeclaration(member))visit(member.initializer,true,false,null);
+    else if(ts.isClassStaticBlockDeclaration(member))visit(member.body,true,false,null);
+    else if(tsFunction(member))visit(member,nested,false,null);
+   });
+   return;
+  }
+  if(ts.isVariableDeclarationList(node)){const flags=node.flags&ts.NodeFlags.BlockScoped,declared=flags===ts.NodeFlags.Const?'const':flags===ts.NodeFlags.Let?'let':flags?'using':'var';node.declarations.forEach(d=>{visit(d.name,nested,true,declared);visit(d.initializer,nested,false,null);});return;}
+  if(ts.isBinaryExpression(node)&&assignment.has(node.operatorToken.kind)&&node.operatorToken.kind!==S.InKeyword&&node.operatorToken.kind!==S.InstanceOfKeyword){visit(node.left,nested,true,null);visit(node.right,nested,false,null);return;}
+  if((ts.isPrefixUnaryExpression(node)||ts.isPostfixUnaryExpression(node))&&[S.PlusPlusToken,S.MinusMinusToken].includes(node.operator)){visit(node.operand,nested,true,null);return;}
+  if(ts.isForInStatement(node)||ts.isForOfStatement(node)){visit(node.initializer,nested,true,null);visit(node.expression,nested,false,null);visit(node.statement,nested,false,null);return;}
+  if(ts.isCatchClause(node)){if(node.variableDeclaration)visit(node.variableDeclaration.name,nested,true,'catch');visit(node.block,nested,false,null);return;}
+  if(ts.isBindingElement(node)){if(node.propertyName&&ts.isComputedPropertyName(node.propertyName))visit(node.propertyName.expression,nested,false,null);visit(node.name,nested,target,kind);visit(node.initializer,nested,false,null);return;}
+  if(ts.isObjectBindingPattern(node)||ts.isArrayBindingPattern(node)||ts.isArrayLiteralExpression(node)||ts.isObjectLiteralExpression(node)||ts.isSpreadElement(node)||ts.isSpreadAssignment(node)||ts.isParenthesizedExpression(node)||ts.isNonNullExpression(node)||ts.isAsExpression(node)||ts.isSatisfiesExpression(node)||ts.isTypeAssertionExpression(node)){ts.forEachChild(node,child=>visit(child,nested,target,kind));return;}
+  if(ts.isPropertyAssignment(node)){if(ts.isComputedPropertyName(node.name))visit(node.name.expression,nested,false,null);visit(node.initializer,nested,target,kind);return;}
+  if(ts.isShorthandPropertyAssignment(node)){visit(node.name,nested,target,kind);visit(node.objectAssignmentInitializer,nested,false,null);return;}
+  if(ts.isPropertyAccessExpression(node)){visit(node.expression,nested,false,null);return;}
+  if(ts.isLabeledStatement(node)){visit(node.statement,nested,false,null);return;}
+  if(ts.isBreakOrContinueStatement(node))return;
+  ts.forEachChild(node,child=>visit(child,nested,false,null));
+ };
+ visit(root,false,false,null);return out;
+}
+function tsTransfers(root){
+ let found=false;
+ const visit=(node,targets)=>{
+  if(found||tsFunction(node)||ts.isClassLike(node))return;
+  if(ts.isReturnStatement(node)||ts.isThrowStatement(node)||ts.isYieldExpression(node)||ts.isAwaitExpression(node)||ts.isForOfStatement(node)&&!!node.awaitModifier||ts.isVariableDeclarationList(node)&&(node.flags&ts.NodeFlags.Using)!==0){found=true;return;}
+  if(ts.isBreakOrContinueStatement(node)){if(!(node.label?targets.labels.includes(node.label.text):targets.loop||ts.isBreakStatement(node)&&targets.switch))found=true;return;}
+  const next={loop:targets.loop||ts.isIterationStatement(node,false),switch:targets.switch||ts.isSwitchStatement(node),labels:ts.isLabeledStatement(node)?[...targets.labels,node.label.text]:targets.labels};
+  ts.forEachChild(node,child=>visit(child,next));
+ };
+ visit(root,{loop:false,switch:false,labels:[]});return found;
+}
+const tsCommutes=commutation(tsRefs,tsTransfers,tsFunction,(statement,chain)=>tsClassify(statement,chain));
 /** TS2389/TS2391: an overload signature must be directly followed by the next
  * signature or the implementation of the same name. transpileModule does not
  * report this checker error, so P0 tests it explicitly. */
@@ -191,13 +317,15 @@ function tsOverloadsAdjacent(file){
 /* ------------------------------- shared policy ------------------------------- */
 const meets=(x,y)=>[...x].some(v=>y.has(v));
 /** Ordered pairs of P2: an external effect on either side, or a RAW/WAR/WAW conflict. */
-function effectPairs(lists,key,classify,positionFree){
+function effectPairs(lists,key,classify,positionFree,commutes){
  const pairs=[];
  for(const {items,hoisting,chain} of lists){
   const classes=items.map(item=>classify(item,chain));
   for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++){
    const a=items[i],b=items[j],ca=classes[i],cb=classes[j];
    if(positionFree(a,hoisting)||positionFree(b,hoisting))continue;
+   // ADR-019: an effect-free statement may cross an external one that cannot observe it.
+   if(ca.external!==cb.external&&(ca.external?commutes(b,a,chain):commutes(a,b,chain)))continue;
    if(ca.external||cb.external||meets(ca.writes,cb.reads)||meets(ca.writes,cb.writes)||meets(ca.reads,cb.writes))pairs.push(key(a)+'\u0000'+key(b));
   }
  }
@@ -296,10 +424,10 @@ function analyse(code,language){
   // Global-object properties are what the emitted script declares; a module declares none.
   let globals=[];
   if(!ts.isExternalModule(file)){try{globals=jsReflection(parseScript(ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,{ecmaVersion:'latest',sourceType:'script'})).globals;}catch{return null;}}
-  return {shape:tsShape(file),effects:effectPairs(tsLists(file),tsShape,tsClassify,tsPositionFree),reflection:tsReflection(file,globals),nested:nestedClasses(code,language)};
+  return {shape:tsShape(file),effects:effectPairs(tsLists(file),tsShape,tsClassify,tsPositionFree,tsCommutes),reflection:tsReflection(file,globals),nested:nestedClasses(code,language)};
  }
  let tree;try{tree=parseScript(code,{ecmaVersion:'latest',sourceType:'script'});}catch{return null;}
- return {shape:jsShape(tree),effects:effectPairs(jsLists(tree),node=>jsShape(node),jsClassify,jsPositionFree),reflection:jsReflection(tree),nested:nestedClasses(code,language)};
+ return {shape:jsShape(tree),effects:effectPairs(jsLists(tree),node=>jsShape(node),jsClassify,jsPositionFree,jsCommutes),reflection:jsReflection(tree),nested:nestedClasses(code,language)};
 }
 /** Runs a fixed fixture. `call`: probe value, exception and record() trace.
  * `reflection`: own keys and descriptor kinds of the top-level classes'

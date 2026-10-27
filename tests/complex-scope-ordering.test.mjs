@@ -108,7 +108,7 @@ const scenarios=[
  {name:'destrukturálás, objektum és template literál',language:'javascript',source:corpus.get('destructuring-object-template').source,
   variants:[
    {name:'objektumliterál és primitív konstans cseréje',order:o=>swap(o,2,3),status:'accepted',equivalent:true},
-   {name:'primitív konstans és destrukturálás cseréje',order:o=>swap(o,3,4),status:'rejected',equivalent:true},
+   {name:'primitív konstans és destrukturálás cseréje',order:o=>swap(o,3,4),status:'accepted',equivalent:true},
    {name:'template a destrukturálás elé',order:o=>swap(o,4,5),status:'rejected',equivalent:false},
    {name:'scale a return után',order:o=>moveAfter(o,3,6),status:'rejected',equivalent:false}]},
  {name:'JavaScript osztály: mezők és metódusok',language:'javascript',source:corpus.get('js-class-fields-methods').source,probe:'[evaluate(), Object.getOwnPropertyNames(Counter.prototype)]',

@@ -40,17 +40,19 @@ test('conservative fallbacks and projection loss lower the status to conservativ
  assert.ok(commented.checks.fallbacks.codes['opaque-row']>0);
  const fixture=corpus.get('wp6-hoisted-into-continued-call');
  const lossy=await verify(generate(fixture.source,fixture.language));
- assert.equal(lossy.checks.projectionLoss,1);
+ // v10 (ADR-019): `size` may also cross the continued call, which the closure pins as well.
+ assert.equal(lossy.checks.projectionLoss,2);
  assert.equal(lossy.status,'conservative');
  assert.equal(claim(lossy,'A kezelt esetekben'),'not-established');
 });
 
-test('CopyFieldUtilityService: conservative, publishable, language unverifiable, no projection loss',async()=>{
+test('CopyFieldUtilityService: conservative, publishable, language unverifiable, closure-bound projection loss',async()=>{
  const model=generate(await readFile(new URL('./fixtures/copy-field-utility.service.ts',import.meta.url),'utf8'),'typescript');
  const result=await verify(model);
  assert.equal(result.status,'conservative');
  assert.equal(result.publishable,true);
- assert.deepEqual([result.checks.rederivation,result.checks.audit,result.checks.projectionLoss,result.checks.budget.probed,result.checks.budget.indeterminate],['match','unverifiable',0,100,0]);
+ assert.deepEqual([result.checks.rederivation,result.checks.audit,result.checks.projectionLoss,result.checks.budget.probed,result.checks.budget.indeterminate],['match','unverifiable',3,100,0]);
+ // ADR-019: the pure arrow `isSourceField` may cross the continued `isTargetField = (` unit, which the closure pins (ADR-009).
  assert.equal(claim(result,'A referencia nyelvileg'),'not-established');
 });
 

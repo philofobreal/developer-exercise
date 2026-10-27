@@ -6,7 +6,7 @@ import {getLanguageAdapter} from './languages.mjs';
 import {projectCodeLine,projectedRows} from '../../dist/author/code-line-projection.js';
 export {AuthoringError} from './errors.mjs';
 /** The generation-rule version (formal contract, policy versions); provenance is bound to it (ADR-015). */
-const POLICY='scoped-effect-analysis-v9';
+const POLICY='scoped-effect-analysis-v10';
 /** `importEmit` (TypeScript only, ADR-013): 'verbatim' (default; unknown build) keeps every
  * non-`import type` import in order, 'elide-unused' is TypeScript's default emit. */
 export function generateCodeLineExercise({source,language='javascript',title='Saját feladat',description='Rendezd sorba a programkódot.',importEmit='verbatim'},ts){
