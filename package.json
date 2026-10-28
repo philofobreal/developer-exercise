@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Framework-free programming line-order exercise engine with verified constraints",
   "scripts": {
-    "build": "node scripts/sync-vendor.mjs && node scripts/sync-schema.mjs && tsc -p tsconfig.json && tsc -p tsconfig.author.json && tsc -p tsconfig.python.json && tsc -p tsconfig.workbench.json && tsc -p tsconfig.governance.json && node dist-tools/build-typescript-samples.js",
+    "build": "node scripts/sync-vendor.mjs && node scripts/sync-schema.mjs && tsc -p tsconfig.json && tsc -p tsconfig.author.json && tsc -p tsconfig.python.json && tsc -p tsconfig.server.json &&tsc -p tsconfig.workbench.json && tsc -p tsconfig.governance.json && node dist-tools/build-typescript-samples.js",
     "test": "npm run build:pages && node --test tests/*.test.mjs",
     "start": "npm run build && node server.mjs",
     "check": "npm run test && node dist-tools/verify-architecture.js && node scripts/verify-models.mjs && node scripts/verify-docs.mjs",

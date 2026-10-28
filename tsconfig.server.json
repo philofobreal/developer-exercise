@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", "module": "ES2022", "moduleResolution": "Bundler",
+    "lib": ["ES2022"], "types": ["node"], "rootDir": "src/server", "outDir": "dist/server",
+    "strict": true, "declaration": true, "sourceMap": true, "noEmitOnError": true,
+    "noUncheckedIndexedAccess": true, "noFallthroughCasesInSwitch": true, "noImplicitOverride": true, "skipLibCheck": true
+  },
+  "include": ["src/server/**/*.ts"]
+}

@@ -4,6 +4,7 @@ import {readFile,stat} from 'node:fs/promises';
 import path from 'node:path';
 import {ServiceError} from './catalog.mjs';
 import {AuthoringError} from '../author/generator.mjs';
+import {authorRefusal} from '../../dist/server/author-gate.js';
 const mime={'.txt':'text/plain; charset=utf-8','.ts':'text/plain; charset=utf-8','.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.map':'application/json; charset=utf-8'};
 const headers={
   'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer',
@@ -13,7 +14,8 @@ function json(res,status,data){res.writeHead(status,{'Content-Type':'application
 async function readJson(req,limit){const parts=[];let size=0;
   for await(const chunk of req){size+=chunk.length;if(size>limit)throw new ServiceError(413,'Payload too large');parts.push(chunk);}
   try{return JSON.parse(Buffer.concat(parts).toString('utf8'));}catch{throw new ServiceError(400,'Invalid JSON');}}
-export function createApplication({catalog,staticRoot}){
+/** `authorToken`: when set, the author API requires it as a bearer token; otherwise it is loopback-only (ADR-027). */
+export function createApplication({catalog,staticRoot,authorToken}){
   const rate=new Map();
   const server=createServer(async(req,res)=>{
     for(const [name,value] of Object.entries(headers))res.setHeader(name,value);
@@ -28,6 +30,7 @@ export function createApplication({catalog,staticRoot}){
       if(req.method==='GET'&&route==='/api/exercises')return json(res,200,{exercises:catalog.list()});
       if(req.method==='POST'&&route==='/api/evaluate')return json(res,200,catalog.evaluate(await readJson(req,1024*1024)));
       if(req.method==='POST'&&route.startsWith('/api/author/')){
+        const refusal=authorRefusal(req,{token:authorToken});if(refusal)return json(res,refusal.status,{error:refusal.error});
         // A 436-line TypeScript service generates a >64KiB CodeLine JSON model.
         // Keep payload bounded, but do not prevent editing the documented 500-line models.
         const body=await readJson(req,1024*1024);

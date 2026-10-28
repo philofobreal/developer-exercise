@@ -543,3 +543,16 @@ A felhasználó két nagy feladatot kért az F1, F2 és G1 előtt. Az epic terve
 - **Bizonyíték:** `discloseReport` egységteszt; negatív szivárgási API-teszt; böngészős eset Node és Pages módban.
 
 **Következik:** F2 (a felfedési politika, a tanulói szint emelése, szerveroldali szerzői jogosultság), majd G1.
+
+## F2 – felfedési politika és szerzői jogosultság – folyamatban
+
+A felhasználó kérésére (2026-10-28, kevés token) kis részfeladatokra bontva, részfeladatonként külön committal:
+
+| # | Részfeladat | Állapot |
+| --- | --- | --- |
+| F2.1 | Szerveroldali szerzői kapu (`src/server/author-gate.ts`, natív TypeScript, saját `tsconfig.server.json`): token nélkül csak loopback kliens loopback hosztnévvel (DNS-rebinding ellen), cross-site és idegen `Origin` mindig tiltott, `CODELINE_AUTHOR_TOKEN` esetén kötelező `Bearer` token; a tanulói végpontok nyitottak maradnak | ✅ `author-gate.test.mjs` |
+| F2.2 | A felfedési politika egy helyen (szerző / Pages / trusted szerver), a tanulói szint döntése | ⏳ |
+| F2.3 | A katalógus politikája a nem igazolt (`unverified`) modellekre, a régi modellek csendes átírása nélkül | ⏳ |
+| F2.4 | ADR-027, CHANGELOG, `check:all`, böngészőcsomagok, lezárás | ⏳ |
+
+**F2.1 korlátja:** a beépített böngészős felület tokent nem küld; token módban a szerzői API csak API-kliensből használható, a felület szerzői része helyi gépen működik.
