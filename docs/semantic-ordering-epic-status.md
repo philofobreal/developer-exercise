@@ -331,7 +331,7 @@ Az epic címadó, látható része (vizuális szabályszerkesztő, magyarázhat�
 2. **A minősítés csak tájékoztató.** A katalógus `unverified` modellt is kiszolgál. Mind az 5 `examples/` modell `unverified` (proveniencia nélküli, régi modellek), de publikálható. A szabályaik csendes átírása tilos, csak explicit refresh köti őket (F2).
 3. **Egyfájlos referenciaaudit.** Valódi projektfájl (pl. CopyField: 11 feloldatlan import) soha nem kap `ok`-t, csak `unverifiable`-t. Saját `tsconfig`, `node_modules` és path mapping nem adható meg. A Pages-ben az audit `not-run`.
 4. ~~**`23-parameter-property` minta.**~~ Megoldva (G1.1): az osztály neve `Point`, a minta szkript maradt; a modell függőségei és sorrendje változatlan, csak a kódszöveg és a forráskivonat.
-5. **Mátrix drag-and-drop flake.** A valódi egeres és érintéses beszúrás terhelés alatt időnként elbukik. Ez a D1 előtt is így volt (`e8e5694`: 5 futásból 4 hiba). A teszt nincs gyengítve, a hiba nincs kivizsgálva.
+5. ~~**Mátrix drag-and-drop flake.**~~ Megoldva (G1.2): a teszt a beszúrási határra, a sor középvonalára célzott. A valódi egeres és érintéses beszúrás terhelés alatt időnként elbukik. Ez a D1 előtt is így volt (`e8e5694`: 5 futásból 4 hiba). A teszt nincs gyengítve, a hiba nincs kivizsgálva.
 6. **Proveniencia-plafon.** 10 000 oknál nagyobb modellnél a generátor nem ment provenienciát. Ilyenkor a magyarázat `absent`, a gate `unverified`-et ad, és minden generált szabály törlése policy-felülírást kér. Ez biztonságos irányú, de nincs jelezve a szerzőnek (D2).
 7. **Régi, evidence nélküli modellek.** A proveniencia `unbound`, ezért szerzői szabály eltávolításához is policy-felülírás kell, amíg egy refresh meg nem köti a modellt. Ez helyes, de a felületen még nincs megmagyarázva (D2).
 8. **A hatásjelentés korlátos.** A `maybe` őszinte eldöntetlenség: a tanúkeresés alternatívánként legfeljebb 17 célzott sorrendet próbál.
@@ -568,7 +568,7 @@ A felhasználó kérésére kis részfeladatokra bontva, mindegyik után megáll
 | # | Részfeladat | Állapot |
 | --- | --- | --- |
 | G1.1 | A `23-parameter-property` minta fordíthatósága: átnevezés (`Parameters` → `Point`), mert modullá alakítás új sort hozna; előtte TS2300 ×2 és TS2693, utána 0 diagnosztika (`lib.es2022`, strict); a regenerált modellben csak a kódszöveg, a név és a kivonat változott | ✅ |
-| G1.2 | A mátrix drag-and-drop flake kivizsgálása | ⏳ |
+| G1.2 | A mátrix drag-and-drop flake: **tesztoldali ok**. Az egeres és az érintéses gesztus pontosan a célsor középvonalára (`y+22`, sormagasság 44) ejtett, a beszúrási határ pedig épp a középvonal; az egész pointerkoordináta a tört elrendezéshez képest döntötte el az oldalt (rögzített hiba: 953 < 953,016 → a sor elé). A termék helyes, sor nem veszett el és nem duplázódott. A gesztus most a sor ¾-ére céloz, és új ellenpróba ellenőrzi a ¼-et (a sor elé); az állítások nem gyengültek. Terhelés alatt (4 párhuzamos futás): előtte 8-ból 2 és 12-ből 1 hiba, utána 16/16 zöld | ✅ |
 | G1.3 | Forráshűségi round-trip (forrás → modell → render → export/import) | ⏳ |
 | G1.4 | A szerzői elemzés idő- és memóriakerete | ⏳ |
 | G1.5 | Teljes regresszió, kampány, böngészőcsomagok, végső jelentés | ⏳ |

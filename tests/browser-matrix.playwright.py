@@ -125,16 +125,26 @@ try:
             assert page.locator('.solution-zone .code-row').last.locator('.drag-handle').evaluate('(x)=>x===document.activeElement')
             before=values(page);page.keyboard.press('Space');page.keyboard.press('Home');page.keyboard.press('Escape');assert values(page)==before
         case('keyboard insertion, focus, announcement and cancellation',keyboard)
-        def pointer():
+        # The insertion boundary is a row's midpoint (drag-insert.js). A gesture aimed exactly at it is
+        # ambiguous: integer pointer coordinates against fractional layout decided the side (G1.2).
+        # Aim at a quarter of the row height, so each gesture names one side; both sides are checked.
+        def pointer_drop(fraction):
             author(page);page.locator('[data-all]').click();old=values(page)
             start=page.locator('.solution-zone .code-row[data-index="1"] .drag-handle').bounding_box();dest=page.locator('.solution-zone .code-row[data-index="4"] .gutter').bounding_box()
-            page.mouse.move(start['x']+8,start['y']+12);page.mouse.down();page.mouse.move(dest['x']+6,dest['y']+22,steps=12);page.mouse.up()
-            assert values(page)[-1].strip()==old[1].strip();assert sorted(x.strip() for x in values(page))==sorted(x.strip() for x in old)
+            page.mouse.move(start['x']+8,start['y']+12);page.mouse.down();page.mouse.move(dest['x']+6,dest['y']+dest['height']*fraction,steps=12);page.mouse.up()
+            got=values(page);status=page.locator('[data-move-status]').text_content()
+            assert sorted(x.strip() for x in got)==sorted(x.strip() for x in old),('loss or duplication',old,got)
+            return [x.strip() for x in old],[x.strip() for x in got],status
+        def pointer():
+            old,got,status=pointer_drop(.75)
+            assert got==[old[i] for i in [0,2,3,4,1]],('lower half: after the last row',old,got,status)
+            old,got,status=pointer_drop(.25)
+            assert got==[old[i] for i in [0,2,3,1,4]],('upper half: before the last row',old,got,status)
         case('real mouse pointer insertion has no loss or duplication',pointer)
         def touch():
             author(page);page.locator('[data-all]').click();old=values(page)
             start=page.locator('.solution-zone .code-row[data-index="1"] .drag-handle').bounding_box();end=page.locator('.solution-zone .code-row[data-index="4"] .gutter').bounding_box()
-            cdp=context.new_cdp_session(page);x=start['x']+8;y=start['y']+12;tx=end['x']+5;ty=end['y']+22
+            cdp=context.new_cdp_session(page);x=start['x']+8;y=start['y']+12;tx=end['x']+5;ty=end['y']+end['height']*.75
             cdp.send('Input.dispatchTouchEvent',{'type':'touchStart','touchPoints':[{'x':x,'y':y,'id':1}]})
             for step in range(1,11):cdp.send('Input.dispatchTouchEvent',{'type':'touchMove','touchPoints':[{'x':x+(tx-x)*step/10,'y':y+(ty-y)*step/10,'id':1}]})
             cdp.send('Input.dispatchTouchEvent',{'type':'touchEnd','touchPoints':[]});cdp.detach()
