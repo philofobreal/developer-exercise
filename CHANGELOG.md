@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-10-28 felfedési politika, szerzői jogosultság és publikálás (ADR-027, F2)
+
+- **Szerzői kapu a szerveren:** token nélkül csak a helyi gépről, loopback hosztnévvel (DNS-rebinding ellen); `CODELINE_AUTHOR_TOKEN` mellett kötelező a Bearer token; cross-site és idegen origin mindig tiltott. A tanulói végpontok változatlanok.
+- **Egy felfedési politika** (`channelFeedback`) a szervernek és a Pages-nek. A szerző feladatonként `learnerFeedback: "rules"`-ra emelheti a tanulót: a megsértett pár látszik, az indoklás és a kategória nem. Az indoklás a diagnosztika külön, csak szerzői része (`reasons`).
+- **Publikálási szabály** (`publicationRefusal`): a keretben el nem dönthető modellt a katalógus nem szolgálja ki; `CODELINE_PUBLICATION=verified-only` mellett a nem igazoltat sem. A kihagyott fájl érintetlen, a lista megadja a minősítést.
+- **Tesztek:** `author-gate`, `catalog-publication`, bővített `diagnostics` és `trust-boundary`.
+
 ## Unreleased – 2026-10-28 visszajelzés és soronkénti jelölés (ADR-026, F1)
 
 - **Rövid és részletes magyarázat:** az értékelősáv a legfontosabb bizonyított okot mondja ki. A „Részletes magyarázat” minden diagnosztikát felsorol a javítás bizonyossági szintjével, a szerzőnek a bizonyítékkal és a korláttal.

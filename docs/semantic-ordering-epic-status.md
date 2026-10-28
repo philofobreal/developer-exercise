@@ -55,7 +55,7 @@ Jelölés: ✅ kész és ellenőrzött · 🔄 folyamatban · ⏳ következik ·
 | U1 | A szerzői és a próbanézetek egyszerűsítése: léptetéses folyamat, egyetlen aktív állapottal, egyértelmű állapotkapcsolattal és frissítéssel a nézetek között | ✅ | állapotgép-egységtesztek, Playwright-átjárási tesztek minden lépésváltásra, újragenerálásra és frissítésre |
 | E1 | EPIC-06: core diagnosztikai modul (bizonyított konfliktusok, többértelműség, keret) | ✅ | diagnosztikai regressziók (09.4), metamorf: a validátor döntése változatlan |
 | F1 | EPIC-07: tanulói visszajelzés és soronkénti jelölés | ✅ | böngészőteszt, hozzáférhetőség |
-| F2 | EPIC-08: disclosure policy (szerző / Pages / trusted szerver) és szerveroldali szerzői jogosultság, vagy explicit, dokumentált helyidemó-korlát | ⏳ | negatív szivárgási és jogosultsági tesztek |
+| F2 | EPIC-08: disclosure policy (szerző / Pages / trusted szerver) és szerveroldali szerzői jogosultság, vagy explicit, dokumentált helyidemó-korlát | ✅ | negatív szivárgási és jogosultsági tesztek |
 | G1 | EPIC-09/12: teljes regresszió, kampány, böngésző; forráshűségi round-trip (forrás → modell → render → export/import); a szerzői elemzés idő- és memóriakerete; dokumentáció, végső jelentés | ⏳ | `check:all`, `test:browser:all`, `git diff --check` |
 
 ## Kritikai felülvizsgálat és újratervezés (2026-10-26)
@@ -544,7 +544,9 @@ A felhasználó két nagy feladatot kért az F1, F2 és G1 előtt. Az epic terve
 
 **Következik:** F2 (a felfedési politika, a tanulói szint emelése, szerveroldali szerzői jogosultság), majd G1.
 
-## F2 – felfedési politika és szerzői jogosultság – folyamatban
+## F2 – felfedési politika és szerzői jogosultság – lezárva
+
+Döntés: [ADR-027](adr/027-disclosure-and-author-authorization.md).
 
 A felhasználó kérésére (2026-10-28, kevés token) kis részfeladatokra bontva, részfeladatonként külön committal:
 
@@ -553,6 +555,8 @@ A felhasználó kérésére (2026-10-28, kevés token) kis részfeladatokra bont
 | F2.1 | Szerveroldali szerzői kapu (`src/server/author-gate.ts`, natív TypeScript, saját `tsconfig.server.json`): token nélkül csak loopback kliens loopback hosztnévvel (DNS-rebinding ellen), cross-site és idegen `Origin` mindig tiltott, `CODELINE_AUTHOR_TOKEN` esetén kötelező `Bearer` token; a tanulói végpontok nyitottak maradnak | ✅ `author-gate.test.mjs` |
 | F2.2 | Egyetlen politika (`channelFeedback`) a szervernek és a Pages-nek: a szerzői előnézet mindent lát; a tanuló alapból `positions`, a szerző feladatonként `learnerFeedback: "rules"`-ra emelheti (a megsértett pár, indoklás és kategória nélkül; a provenienciából származó kód `order-direct` lesz). Az indoklás a diagnosztika külön, csak `provenance` szinten látható része (`reasons`) | ✅ `diagnostics`, `trust-boundary` |
 | F2.3 | Egyetlen publikálási szabály (`publicationRefusal`): a keretben el nem dönthető modellt a katalógus soha nem szolgálja ki; `CODELINE_PUBLICATION=verified-only` mellett a nem igazoltat sem. A kihagyott modell a `skipped` listába kerül és a szerver indításkor kiírja, a fájl érintetlen. A lista minden feladatnál megadja a minősítést (`verification`). Az alapértelmezés a régi példákat továbbra is kiszolgálja | ✅ `catalog-publication` |
-| F2.4 | ADR-027, CHANGELOG, `check:all`, böngészőcsomagok, lezárás | ⏳ |
+| F2.4 | ADR-027, CHANGELOG, `check:all`, böngészőcsomagok, lezárás | ✅ |
 
-**F2.1 korlátja:** a beépített böngészős felület tokent nem küld; token módban a szerzői API csak API-kliensből használható, a felület szerzői része helyi gépen működik.
+**Korlátok:** a felület tokent nem küld (token módban a szerzői API csak API-kliensből érhető el); a `learnerFeedback` csak JSON-ban állítható; a lista minősítéséhez nincs jelvény; a token egyetlen közös titok.
+
+**Következik:** G1.
