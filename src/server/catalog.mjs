@@ -9,13 +9,14 @@ import path from 'node:path';
 import {generateCodeLineExercise,AuthoringError} from '../author/generator.mjs';
 import {getLanguageAdapter} from '../author/languages.mjs';
 import {auditReference} from '../author/audit.mjs';
-import {compileCodeLineExercise,validateSubmission,diagnoseSubmission,channelFeedback,codeLineDiagnosticReasons} from '../../dist/index.js';
+import {compileCodeLineExercise,validateSubmission,diagnoseSubmission,channelFeedback,codeLineDiagnosticReasons,publicationRefusal} from '../../dist/index.js';
 import {authorRuleSheet,editAuthorModel,refreshAuthorModel,verifyAuthorModel} from '../../dist/author/engine.js';
 import {createReferenceAuditor} from '../../dist/author/reference-audit.js';
 export class ServiceError extends Error{constructor(code,message){super(message);this.statusCode=code;}}
 export class ExerciseCatalog{
-  constructor(records){this.trusted=records;this.drafts=new Map();this.ts=null;}
-  static async open(examplesDir){
+  constructor(records){this.trusted=records;this.drafts=new Map();this.ts=null;this.skipped=[];}
+  /** `publication` (ADR-027): which qualified models are served; a refused one is listed in `skipped`, its file untouched. */
+  static async open(examplesDir,{publication='publishable'}={}){
     const records=new Map(),catalog=new ExerciseCatalog(records);
     for(const filename of (await readdir(examplesDir)).filter(x=>x.endsWith('.json')).sort()){
       const model=JSON.parse(await readFile(path.join(examplesDir,filename),'utf8'));
@@ -27,12 +28,15 @@ export class ExerciseCatalog{
       if(records.has(model.id))throw Error(`Duplicate exercise ${model.id}`);
       const audit=(await catalog.auditor()).audit(model.lines.map(x=>x.code).join('\n'),model.language),parser=await catalog.parser();
       // Trusted references are graded as published; the gate only records what they can claim (ADR-017).
-      records.set(model.id,{model,compiled:result.compiled,audit,verification:await verifyAuthorModel(model,{generate:input=>generateCodeLineExercise(input,parser)},{audit:audit.semantics})});
+      const verification=await verifyAuthorModel(model,{generate:input=>generateCodeLineExercise(input,parser)},{audit:audit.semantics});
+      const refusal=publicationRefusal(verification,publication);
+      if(refusal){catalog.skipped.push({id:model.id,file:filename,status:verification.status,reason:refusal});continue;}
+      records.set(model.id,{model,compiled:result.compiled,audit,verification});
     }
-    if(!records.size)throw Error('No JSON exercises in examples/');
+    if(!records.size)throw Error(`No publishable JSON exercises in examples/ (policy: ${publication})`);
     return catalog;
   }
-  list(){return [...this.trusted.values()].map(({model:d})=>({id:d.id,revision:d.revision,language:d.language,title:d.title,description:d.description,
+  list(){return [...this.trusted.values()].map(({model:d,verification})=>({id:d.id,revision:d.revision,language:d.language,title:d.title,description:d.description,...(verification?{verification:verification.status}:{}),
     lines:d.lines.map(l=>({id:l.id,code:l.code,fixed:l.fixed,normalization:l.normalization??'indent',functionBlock:l.functionBlock}))}));}
   async parser(){return this.ts??=(await import('typescript')).default;}
   /** Language audit beyond syntax (ADR-016): the installed compiler's standard library, read by base name only. */

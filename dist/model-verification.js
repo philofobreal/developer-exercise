@@ -120,4 +120,11 @@ export function verifyModel(model, input = {}) {
     ];
     return { status, publishable, checks, findings, claims };
 }
+export function publicationRefusal(verification, policy = 'publishable') {
+    if (!verification.publishable)
+        return 'A referencia vagy a szomszédos cserék nem dönthetők el a keretben.';
+    if (policy === 'verified-only' && verification.status === 'unverified')
+        return 'A modell nem igazolt; explicit frissítés (refresh) után publikálható.';
+    return null;
+}
 //# sourceMappingURL=model-verification.js.map

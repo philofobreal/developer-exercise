@@ -139,3 +139,13 @@ export function verifyModel(model: CodeLineExercise, input: VerificationInput = 
   ];
   return { status, publishable, checks, findings, claims };
 }
+
+/** What a trusted catalog serves (ADR-027). `publishable` (default): every model whose reference
+ * and adjacent swaps are decided within the production budget, whatever its qualification.
+ * `verified-only`: additionally no `unverified` model. A refused model is skipped, never rewritten. */
+export type PublicationPolicy = 'publishable' | 'verified-only';
+export function publicationRefusal(verification: ModelVerification, policy: PublicationPolicy = 'publishable'): string | null {
+  if (!verification.publishable) return 'A referencia vagy a szomszédos cserék nem dönthetők el a keretben.';
+  if (policy === 'verified-only' && verification.status === 'unverified') return 'A modell nem igazolt; explicit frissítés (refresh) után publikálható.';
+  return null;
+}
