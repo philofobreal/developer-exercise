@@ -9,7 +9,7 @@
     {
       "id": 1,
       "sourceLine": 1,
-      "code": "class Parameters {",
+      "code": "class Point {",
       "dependencies": [],
       "fixed": false,
       "functionBlock": 0,
@@ -91,7 +91,7 @@
     {
       "id": 8,
       "sourceLine": 8,
-      "code": "const value = new Parameters(1);",
+      "code": "const value = new Point(1);",
       "dependencies": [
         7
       ],
@@ -171,7 +171,7 @@
       }
     ],
     "evidence": {
-      "sourceDigest": "3ee1892f78c7167f",
+      "sourceDigest": "cda7c6bff49f100b",
       "analyzer": "scoped-effect-analysis-v12",
       "environment": {
         "typescript": "5.8.3",
@@ -202,7 +202,7 @@
         "usageLine": 5
       },
       {
-        "name": "Parameters",
+        "name": "Point",
         "declarationLine": 1,
         "usageLine": 8
       }
