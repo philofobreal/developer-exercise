@@ -107,6 +107,8 @@ export interface CodeLineExercise {
             after: number;
         }[];
     }[];
+    /** ADR-027: the learner's disclosure level, an explicit author decision; absent means `positions`. */
+    learnerFeedback?: 'positions' | 'rules';
     authoring?: {
         strategy?: string;
         reason?: string;

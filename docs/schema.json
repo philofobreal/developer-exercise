@@ -90,6 +90,10 @@
         }
       }
     },
+    "learnerFeedback": {
+      "description": "ADR-027: how much a learner is told about a rejection. 'positions' (default): only facts about the submission. 'rules': also the violated line pairs, never their reasons. An explicit author decision.",
+      "enum": ["positions", "rules"]
+    },
     "authoring": {
       "type": "object",
       "additionalProperties": false,

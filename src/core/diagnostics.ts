@@ -64,6 +64,9 @@ export interface Diagnostic {
   rule?: DiagnosticRule;
   summary: string;
   detail: string;
+  /** Why the rule holds, from bound provenance (ADR-027): shown only at `provenance`, together
+   * with `rule.categories`; below it both are removed, the rest of the diagnostic stays. */
+  reasons?: string[];
   fix?: DiagnosticFix;
   evidence: string;
   limits?: string;
@@ -109,9 +112,25 @@ const reasonText: Record<ConstraintCategory, string> = {
 export interface Feedback {level: DisclosureLevel; diagnostics: Diagnostic[]; explained: boolean; withheld: number;}
 export function discloseReport(report: DiagnosticReport, level: DisclosureLevel): Feedback {
  const rank = disclosureLevels.indexOf(level);
- const shown = report.diagnostics.filter(d => disclosureLevels.indexOf(d.disclosure) <= rank), withheld = report.diagnostics.length - shown.length;
+ const redact = (d: Diagnostic): Diagnostic => {
+  if (rank >= disclosureLevels.indexOf('provenance')) return d;
+  // The reason-derived codes name a provenance category, so below `provenance` they read as a plain order rule.
+  const { reasons: _reasons, ...rest } = d, code: DiagnosticCode = d.code === 'pedagogical-rule' || d.code === 'structural-placement' ? 'order-direct' : d.code;
+  return rest.rule ? { ...rest, code, rule: { ...rest.rule, categories: [] } } : rest;
+ };
+ const shown = report.diagnostics.filter(d => disclosureLevels.indexOf(d.disclosure) <= rank).map(redact), withheld = report.diagnostics.length - shown.length;
  if (withheld && report.verdict.status === 'rejected' && !shown.some(d => d.severity === 'error')) shown.unshift({...base('withheld', 'error', 'general', 'verdict'), summary: report.verdict.message, detail: 'A megoldás nem fogadható el; a pontos ok ebben a nézetben nem jelenik meg.', evidence: 'A validátor döntése.'});
  return {level, diagnostics: shown, explained: report.verdict.accepted || shown.some(d => d.certainty === 'proven' && d.code !== 'diagnostic-budget'), withheld};
+}
+/** Who asks for an evaluation (ADR-027). */
+export type FeedbackChannel = 'author-preview' | 'learner';
+/** The single disclosure policy (ADR-027), used alike by the trusted server and the Pages demo:
+ * the author preview sees everything and the learner level beside it; a learner gets the level
+ * the exercise's author chose (`learnerFeedback`, default `positions`), never reasons or
+ * provenance. An unknown stored value falls back to `positions`. */
+export function channelFeedback(report: DiagnosticReport, channel: FeedbackChannel, learnerFeedback?: string): { author?: Feedback; learner: Feedback } {
+ const learner = discloseReport(report, learnerFeedback === 'rules' ? 'rules' : 'positions');
+ return channel === 'author-preview' ? { author: discloseReport(report, 'provenance'), learner } : { learner };
 }
 
 /** Bound provenance of a CodeLine v2 model as diagnostic reasons; empty when unbound or absent. */
@@ -371,10 +390,11 @@ function ruleDiagnostic(v: Violation, compiled: CompiledRules, lines: readonly s
     : v.transitive ? `A szabály közvetett: ${chain!.length - 2} köztes soron keresztül következik a feladat közvetlen szabályaiból.`
     : code === 'scope-boundary' ? 'Egy blokk sorainak a nyitó és a záró sora között kell állniuk.'
     : code === 'unit-split' ? 'A két sor egy többsoros egység része.'
-    : reason.length ? '' : 'Ezt a feladat egyik sorrendi szabálya köti.';
-  const detail = [where, rule, ...reason].filter(Boolean).join(' ');
+    : 'Ezt a feladat egyik sorrendi szabálya köti.';
+  const detail = [where, rule].filter(Boolean).join(' ');
   return {
-    ...base(code, 'error', 'proven', reason.length ? 'provenance' : 'rules'),
+    ...base(code, 'error', 'proven', 'rules'),
+    ...(reason.length ? { reasons: reason } : {}),
     positions: [...new Set([...posA, ...posB])].sort((x, y) => x - y), positionScope: exact ? 'all' : 'some', references: [...(posA.length === 1 ? [a.id] : []), ...(posB.length === 1 ? [b.id] : [])],
     rule: { before: a.id, after: b.id, origins: v.transitive ? [] : origins, categories, ...(v.profile ? { profile: v.profile } : {}), ...(chain ? { path: chain } : {}) },
     summary, detail,

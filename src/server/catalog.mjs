@@ -9,7 +9,7 @@ import path from 'node:path';
 import {generateCodeLineExercise,AuthoringError} from '../author/generator.mjs';
 import {getLanguageAdapter} from '../author/languages.mjs';
 import {auditReference} from '../author/audit.mjs';
-import {compileCodeLineExercise,validateSubmission,diagnoseSubmission,discloseReport,codeLineDiagnosticReasons} from '../../dist/index.js';
+import {compileCodeLineExercise,validateSubmission,diagnoseSubmission,channelFeedback,codeLineDiagnosticReasons} from '../../dist/index.js';
 import {authorRuleSheet,editAuthorModel,refreshAuthorModel,verifyAuthorModel} from '../../dist/author/engine.js';
 import {createReferenceAuditor} from '../../dist/author/reference-audit.js';
 export class ServiceError extends Error{constructor(code,message){super(message);this.statusCode=code;}}
@@ -80,13 +80,13 @@ export class ExerciseCatalog{
     const item=this.drafts.get(body.draftId);if(!item)throw new ServiceError(404,'Preview not found or expired');
     // F1 (ADR-026): the verdict, plus feedback for the author and for the learner view of the draft.
     const report=diagnoseSubmission(item.compiled,{exerciseId:item.model.id,revision:item.model.revision,lines:body.lines},{maxStates:30_000,reasons:item.reasons??=codeLineDiagnosticReasons(item.model)});
-    return {...report.verdict,feedback:{author:discloseReport(report,'provenance'),learner:discloseReport(report,'positions')}};
+    return {...report.verdict,feedback:channelFeedback(report,'author-preview',item.model.learnerFeedback)};
   }
   evaluate(body){
     if(!body||typeof body.exerciseId!=='string'||!Array.isArray(body.lines)||body.lines.length>500)throw new ServiceError(400,'Invalid submission');
     const item=this.trusted.get(body.exerciseId);if(!item)throw new ServiceError(404,'Exercise not found');
-    // A trusted exercise answers its learner only up to the positions level until F2 decides more.
+    // ADR-027: the learner level is the exercise author's explicit choice, never provenance.
     const report=diagnoseSubmission(item.compiled,body,{maxStates:50_000});
-    return {...report.verdict,feedback:{learner:discloseReport(report,'positions')}};
+    return {...report.verdict,feedback:channelFeedback(report,'learner',item.model.learnerFeedback)};
   }
 }

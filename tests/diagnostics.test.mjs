@@ -3,7 +3,7 @@
  * to a general explanation (epic 06, regressions 09.4, metamorphic checks 09.5). */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {examples,compileDefinition,compileCodeLineExercise,compileCodeLineExerciseV3,diagnoseSubmission,validateSubmission,moveLine,codeLineDiagnosticReasons,ruleKey,disclosureLevels,discloseReport} from '../dist/index.js';
+import {examples,compileDefinition,compileCodeLineExercise,compileCodeLineExerciseV3,diagnoseSubmission,validateSubmission,moveLine,codeLineDiagnosticReasons,ruleKey,disclosureLevels,discloseReport,channelFeedback} from '../dist/index.js';
 import {suiteExercise,permutations} from './fixtures/language-ir.mjs';
 
 const def=(tokens,extra={})=>({schemaVersion:1,id:'d',revision:1,language:'javascript',title:'',description:'',tokens,blocks:[],...extra});
@@ -163,8 +163,21 @@ test('provenance: a reason appears only from bound provenance, and it never chan
  const told=diagnoseSubmission(compiled,sub(compiled.definition,lines),{reasons});
  assert.deepEqual(told.verdict,plain.verdict);
  assert.deepEqual([plain.diagnostics[0].code,told.diagnostics[0].code],['order-direct','pedagogical-rule']);
- assert.match(told.diagnostics[0].detail,/feladat készítője/);assert.equal(told.diagnostics[0].disclosure,'provenance');
+ // ADR-027: the reason is a separate, provenance-only part of a rules-level diagnostic.
+ assert.match(told.diagnostics[0].reasons.join(' '),/feladat készítője/);assert.doesNotMatch(told.diagnostics[0].detail,/feladat készítője/);assert.equal(told.diagnostics[0].disclosure,'rules');
  assert.deepEqual(disclosureLevels,['verdict','positions','rules','provenance']);
+ const author=discloseReport(told,'provenance').diagnostics[0],learner=discloseReport(told,'rules').diagnostics[0];
+ assert.deepEqual(author,told.diagnostics[0],'the author sees the reason unchanged');
+ assert.deepEqual([learner.code,learner.reasons,learner.rule.categories,learner.summary,learner.positions],['order-direct',undefined,[],author.summary,author.positions],'the rules level names the pair, never why');
+ assert.ok(!/author|feladat készítője/.test(JSON.stringify(learner)),'no provenance in the rules level');
+});
+test('channel policy (ADR-027): one rule for server and Pages; the author opts a learner into rules, never above',()=>{
+ const report=diagnose(chain,['const b = a + 1;','const a = 1;','log(b);']);
+ const preview=channelFeedback(report,'author-preview'),learner=channelFeedback(report,'learner');
+ assert.deepEqual([preview.author.level,preview.learner.level,learner.author,learner.learner.level],['provenance','positions',undefined,'positions']);
+ const raised=channelFeedback(report,'learner','rules').learner;
+ assert.equal(raised.level,'rules');assert.ok(raised.diagnostics.some(d=>d.code==='order-direct'&&d.rule),'the violated pair is named');
+ assert.equal(channelFeedback(report,'learner','provenance').learner.level,'positions','an unknown or too high stored level falls back to positions');
 });
 
 /** Every content-consistent bijection of a small submission: the ground truth a proof must hold in. */

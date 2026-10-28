@@ -41,4 +41,12 @@ test('F1 disclosure (ADR-026): a trusted evaluation explains only up to position
  const preview=catalog.preview({draftId:draft.draftId,lines:swapped});
  assert.ok(preview.feedback.author.diagnostics.some(d=>d.rule&&d.certainty==='proven'),JSON.stringify(preview.feedback.author.diagnostics.map(d=>d.code)));
  assert.equal(preview.feedback.author.level,'provenance');assert.equal(preview.feedback.learner.level,'positions');
+ // ADR-027: an author who opts in raises the learner to the rules level: the violated pair, never why, never the rest of the graph.
+ const opted={...structuredClone(model),learnerFeedback:'rules'},raisedCatalog=new ExerciseCatalog(new Map([[opted.id,{model:opted,compiled:compileCodeLineExercise(opted).compiled}]]));
+ const raised=raisedCatalog.evaluate({exerciseId:opted.id,revision:opted.revision,lines:swapped}).feedback.learner;
+ assert.equal(raised.level,'rules');
+ const named=raised.diagnostics.filter(d=>d.rule);assert.ok(named.length>0);
+ assert.ok(named.length<=compiled.compiled.definition.tokens.length,'only violated pairs, not the dependency graph');
+ for(const d of named){assert.deepEqual(d.rule.categories,[]);assert.equal(d.reasons,undefined);}
+ assert.doesNotMatch(JSON.stringify(raised),/"(data|effect|policy|conservative|author|structure)"/,'no provenance category travels');
 });

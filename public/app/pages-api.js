@@ -1,6 +1,6 @@
 /** GitHub Pages static demo adapter. All evaluation is local and demonstrative.
  * This is NEVER an authoritative server-grade grading endpoint. */
-import {compileCodeLineExercise,validateSubmission,diagnoseSubmission,discloseReport,codeLineDiagnosticReasons} from '../dist/index.js';
+import {compileCodeLineExercise,validateSubmission,diagnoseSubmission,channelFeedback,codeLineDiagnosticReasons} from '../dist/index.js';
 import {generateCodeLineExercise} from '../author/generator.mjs';
 import {getLanguageAdapter} from '../author/languages.mjs';
 import {auditReference} from '../author/audit.mjs';
@@ -74,13 +74,14 @@ export async function previewDraft(body){
   const ref=drafts.get(body?.draftId);
   if(!ref||!Array.isArray(body.lines))throw Error('Érvénytelen vagy lejárt szerzői előnézet.');
   const report=diagnoseSubmission(ref.compiled,{exerciseId:ref.model.id,revision:ref.model.revision,lines:body.lines},{maxStates:30_000,reasons:ref.reasons??=codeLineDiagnosticReasons(ref.model)});
-  return {...report.verdict,feedback:{author:discloseReport(report,'provenance'),learner:discloseReport(report,'positions')}};
+  return {...report.verdict,feedback:channelFeedback(report,'author-preview',ref.model.learnerFeedback)};
 }
 export async function evaluate(body){
   const ref=records.get(body?.exerciseId);
   if(!ref)throw Error('Ismeretlen referenciafeladat.');
+  // ADR-027: the learner level is the exercise author's explicit choice, never provenance.
   const report=diagnoseSubmission(ref.compiled,body,{maxStates:50_000});
-  return {...report.verdict,feedback:{learner:discloseReport(report,'positions')}};
+  return {...report.verdict,feedback:channelFeedback(report,'learner',ref.model.learnerFeedback)};
 }
 export async function loadTypeScriptFixture(){
   const res=await fetch(new URL('../samples/copy-field-utility.service.ts',import.meta.url));

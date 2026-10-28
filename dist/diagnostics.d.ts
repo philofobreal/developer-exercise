@@ -61,6 +61,9 @@ export interface Diagnostic {
     rule?: DiagnosticRule;
     summary: string;
     detail: string;
+    /** Why the rule holds, from bound provenance (ADR-027): shown only at `provenance`, together
+     * with `rule.categories`; below it both are removed, the rest of the diagnostic stays. */
+    reasons?: string[];
     fix?: DiagnosticFix;
     evidence: string;
     limits?: string;
@@ -99,6 +102,16 @@ export interface Feedback {
     withheld: number;
 }
 export declare function discloseReport(report: DiagnosticReport, level: DisclosureLevel): Feedback;
+/** Who asks for an evaluation (ADR-027). */
+export type FeedbackChannel = 'author-preview' | 'learner';
+/** The single disclosure policy (ADR-027), used alike by the trusted server and the Pages demo:
+ * the author preview sees everything and the learner level beside it; a learner gets the level
+ * the exercise's author chose (`learnerFeedback`, default `positions`), never reasons or
+ * provenance. An unknown stored value falls back to `positions`. */
+export declare function channelFeedback(report: DiagnosticReport, channel: FeedbackChannel, learnerFeedback?: string): {
+    author?: Feedback;
+    learner: Feedback;
+};
 /** Bound provenance of a CodeLine v2 model as diagnostic reasons; empty when unbound or absent. */
 export declare function codeLineDiagnosticReasons(model: CodeLineExercise): Map<string, ConstraintCategory[]>;
 /** Diagnose one submission. The verdict is computed by `validateSubmission` with the same options. */
