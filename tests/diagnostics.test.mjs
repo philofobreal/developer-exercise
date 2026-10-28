@@ -57,9 +57,12 @@ test('several consistent bijections: a general explanation, no arbitrary culprit
  const d=def([{id:'x1',code:'x = 1;',scope:null},{id:'x2',code:'x = 1;',scope:null},{id:'u',code:'use(x);',scope:null,after:['x1','x2']},{id:'e',code:'end();',scope:null}]);
  const r=diagnose(d,['x = 1;','use(x);','end();','x = 1;']);
  assert.equal(r.verdict.status,'rejected');
- assert.deepEqual(codes(r),['unexplained-rejection']);
- const [g]=r.diagnostics;
+ // ADR-030: a verified single move joins the general explanation; it names no culprit.
+ assert.deepEqual(codes(r),['unexplained-rejection','single-move-repair']);
+ const [g,m]=r.diagnostics;
  assert.deepEqual([g.certainty,g.positions,g.references],['general',[],[]]);
+ assert.deepEqual([m.certainty,m.severity,m.references,m.positionScope,m.fix.level],['general','notice',[],'some','verified']);
+ assert.equal(validateSubmission(d,sub(d,moveLine(['x = 1;','use(x);','end();','x = 1;'],new Set(),m.fix.move.from,m.fix.move.to))).status,'accepted');
  assert.match(g.detail,/azonos tartalmú/);assert.equal(r.explained,false);
 });
 
@@ -74,7 +77,7 @@ test('OR profiles: a conflict in one profile is not a global proof; all profiles
  const amb=def([{id:'x1',code:'x = 1;',scope:null},{id:'x2',code:'x = 1;',scope:null},{id:'u',code:'use(x);',scope:null},{id:'e',code:'end();',scope:null}],
   {profiles:[{id:'p1',edges:[{before:'e',after:'u'}]},{id:'p2',edges:[{before:'x1',after:'u'},{before:'x2',after:'u'}]}]});
  const m=diagnose(amb,['x = 1;','use(x);','end();','x = 1;']);
- assert.equal(m.verdict.status,'rejected');assert.deepEqual(proven(m),[]);assert.deepEqual(codes(m),['unexplained-rejection']);
+ assert.equal(m.verdict.status,'rejected');assert.deepEqual(proven(m),[]);assert.deepEqual(codes(m),['unexplained-rejection','single-move-repair']);
 });
 
 test('fixed slots: a fixed line moved away, and content that may stand only at its fixed slot',()=>{

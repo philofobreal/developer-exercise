@@ -21,6 +21,11 @@ export function discloseReport(report, level) {
     const redact = (d) => {
         if (rank >= disclosureLevels.indexOf('provenance'))
             return d;
+        // ADR-030: where a line belongs is rule-level knowledge; below `rules` a moving fix is withheld.
+        if (d.fix?.move && rank < disclosureLevels.indexOf('rules')) {
+            const { fix: _fix, ...unfixed } = d;
+            d = unfixed;
+        }
         // The reason-derived codes name a provenance category, so below `provenance` they read as a plain order rule.
         const { reasons: _reasons, ...rest } = d, code = d.code === 'pedagogical-rule' || d.code === 'structural-placement' ? 'order-direct' : d.code;
         return rest.rule ? { ...rest, code, rule: { ...rest.rule, categories: [] } } : rest;
@@ -208,14 +213,18 @@ function orderingDiagnostics(compiled, lines, candidates, options, budget) {
             continue;
         out.push(ruleDiagnostic(violation, compiled, lines, candidates, lo, hi, origins.get(key) ?? [], options, common));
     }
-    out.push(...units, ...scopeDiagnostics(def, lines, byId, lo, forced, new Set(shared.flatMap(v => [v.a, v.b])), budget));
+    out.push(...units, ...scopeDiagnostics(def, lines, byId, candidates, lo, hi, forced, new Set(shared.flatMap(v => [v.a, v.b])), budget));
     if (!out.length && compiled.profiles.length > 1) {
         const perProfile = compiled.profiles.map((profile, i) => conflicts(edgeSets[i], n, lo, hi, budget).filter(v => v.transitive || !commonKeys.has(keyOf([v.a, v.b]))).map(v => ({ ...v, profile: profile.id })));
         if (perProfile.every(list => list.length))
             perProfile.forEach((list, i) => out.push(ruleDiagnostic(list[0], compiled, lines, candidates, lo, hi, origins.get(keyOf([list[0].a, list[0].b])) ?? ['profile'], options, edgeSets[i])));
     }
-    if (!out.length)
-        return budget.used > budget.limit ? [] : [unexplained(def, compiled)];
+    if (!out.length) {
+        if (budget.used > budget.limit)
+            return [];
+        const move = singleMove(compiled, lines, candidates, common, options);
+        return move ? [unexplained(def, compiled), move] : [unexplained(def, compiled)];
+    }
     const ranked = out.sort((x, y) => Math.min(...x.positions, Infinity) - Math.min(...y.positions, Infinity)).slice(0, MAX_REPORTED);
     let repaired = 0;
     for (const diagnostic of ranked) {
@@ -399,7 +408,7 @@ function unitDiagnostics(def, lines, byId, lo, forced, budget) {
 }
 /** Block membership by the forced positions of the block's boundaries: a line inside a block it
  * does not belong to, or outside the block it belongs to. */
-function scopeDiagnostics(def, lines, byId, lo, forced, reported, budget) {
+function scopeDiagnostics(def, lines, byId, candidates, lo, hi, forced, reported, budget) {
     const containers = [], parent = new Map();
     if (def.structure) {
         for (const c of def.structure.containers)
@@ -420,21 +429,33 @@ function scopeDiagnostics(def, lines, byId, lo, forced, reported, budget) {
             return true; return false; };
     const out = [], seen = new Set(reported);
     for (const c of containers) {
-        if (!forced(c.open) || !forced(c.close))
+        if (!Number.isFinite(lo[c.open]) || !Number.isFinite(lo[c.close]))
             continue;
-        const start = lo[c.open] + (c.openPhase === 'after' ? 1 : 0), end = lo[c.close] - (c.closePhase === 'before' ? 1 : 0);
-        if (start > end + 1)
-            continue; // reversed boundaries are an ordering conflict
+        // ADR-030: a boundary with interchangeable content may stand at any of its candidate positions.
+        // A line is inside in every assignment when it follows the latest possible opener and precedes
+        // the earliest possible closer; outside when it precedes every opener or follows every closer.
+        // A block closes after it opens; an assignment with reversed boundaries breaks that rule
+        // instead. So a forced opener bounds its closer from below, a forced closer its opener from above.
+        const places = (t) => candidates.flatMap((items, position) => items.includes(t) ? [position] : []);
+        const closeLo = forced(c.open) ? places(c.close).find(p => p > lo[c.open]) ?? Infinity : lo[c.close];
+        const openHi = forced(c.close) ? places(c.open).filter(p => p < lo[c.close]).at(-1) ?? -Infinity : hi[c.open];
+        const shift = c.openPhase === 'after' ? 1 : 0, back = c.closePhase === 'before' ? 1 : 0;
+        const surelyIn = [openHi + shift, closeLo - back], surelyOut = [lo[c.open] + shift, hi[c.close] - back];
+        const exact = forced(c.open) && forced(c.close);
+        // No well-formed reading (reversed boundaries): that is an ordering conflict, not a block claim.
+        if (!Number.isFinite(closeLo) || !Number.isFinite(openHi) || exact && surelyIn[0] > surelyIn[1] + 1)
+            continue;
         if (!budget.spend(def.tokens.length))
             break;
         def.tokens.forEach((token, t) => {
-            if (!forced(t) || seen.has(t) || t === c.open && c.openPhase === 'after' || t === c.close && c.closePhase === 'before')
+            if (!forced(t) || seen.has(t) || t === c.open || t === c.close)
                 return;
-            const inside = lo[t] >= start && lo[t] <= end, member = within(token.scope, c.id);
-            if (inside === member)
+            const p = lo[t], member = within(token.scope, c.id);
+            const inside = p >= surelyIn[0] && p <= surelyIn[1], outside = p < surelyOut[0] || p > surelyOut[1];
+            if (!(inside && !member || outside && member))
                 return;
-            const position = lo[t], opener = lines[lo[c.open]];
-            out.push({ ...base('scope-boundary', 'error', 'proven', 'rules'), positions: [position], positionScope: 'all', references: [token.id], summary: inside ? `A(z) ${row(position)} nem tartozhat ebbe a blokkba.` : `A(z) ${row(position)} a(z) ${quote(opener)} blokkhoz tartozik, de kívül áll rajta.`, detail: inside ? `A(z) ${row(position)} (${quote(lines[position])}) a(z) ${quote(opener)} kezdetű blokkon belül áll, pedig nem annak a része.` : `A(z) ${row(position)} (${quote(lines[position])}) helye a(z) ${quote(opener)} kezdetű blokkon belül van.`, evidence: 'A sor és a blokkhatárok tartalma egyértelmű, így a helyük minden lehetséges hozzárendelésben ez.', fix: { level: 'guidance', text: inside ? 'Vidd ki a sort ebből a blokkból.' : 'Vidd be a sort a blokkba.' } });
+            const position = p, opener = lines[lo[c.open]];
+            out.push({ ...base('scope-boundary', 'error', 'proven', 'rules'), positions: [position], positionScope: 'all', references: [token.id], summary: inside ? `A(z) ${row(position)} nem tartozhat ebbe a blokkba.` : `A(z) ${row(position)} a(z) ${quote(opener)} blokkhoz tartozik, de kívül áll rajta.`, detail: inside ? `A(z) ${row(position)} (${quote(lines[position])}) a(z) ${quote(opener)} kezdetű blokkon belül áll, pedig nem annak a része.` : `A(z) ${row(position)} (${quote(lines[position])}) helye a(z) ${quote(opener)} kezdetű blokkon belül van.`, evidence: exact ? 'A sor és a blokkhatárok tartalma egyértelmű, így a helyük minden lehetséges hozzárendelésben ez.' : 'A sor helye egyértelmű, és a blokk azonos tartalmú határsorainak minden olyan lehetséges helye mellett, ahol a blokk a nyitó sora után zárul, ugyanígy áll a blokkhoz képest.', fix: { level: 'guidance', text: inside ? 'Vidd ki a sort ebből a blokkból.' : 'Vidd be a sort a blokkba.' } });
             seen.add(t);
         });
     }
@@ -450,6 +471,97 @@ export function moveLine(lines, fixedSlots, from, to) {
     const out = [...lines];
     slots.forEach((slot, i) => { out[slot] = values[i]; });
     return out;
+}
+/** ADR-030: when no cause is proven, a single-line move the validator accepts. It is a verified way
+ * out, not a proven culprit: another move may fix the arrangement as well.
+ * Candidates first: the lines are aligned with the reference (equal content in order), the longest
+ * run in reference order stays, and each line outside it is tried only between its nearest
+ * neighbours of that run. Then the remaining moves by increasing distance. One state allowance
+ * bounds both phases apart from the diagnostic budget; `null` when no move is accepted within it. */
+function singleMove(compiled, lines, candidates, common, options) {
+    const def = compiled.definition, n = lines.length;
+    const fixedSlots = new Set(def.tokens.flatMap(t => t.fixedPosition === undefined ? [] : [t.fixedPosition]));
+    const states = clampInt(options.repairStates, 5_000, 200_000);
+    let allowance = clampInt(options.moveSearchStates, 400_000, 50_000_000);
+    const tried = new Set();
+    const attempt = (from, to) => {
+        const moved = moveLine(lines, fixedSlots, from, to);
+        if (!moved || tried.has(from * n + to))
+            return undefined;
+        tried.add(from * n + to);
+        if (allowance <= 0)
+            return null;
+        // A rule broken in every assignment rejects the move without a search. The lines' candidate
+        // rows move with them; a fixed row's candidate kept at another position only widens the
+        // bounds, so nothing acceptable is ever skipped.
+        allowance -= n + common.length;
+        const lo = new Array(def.tokens.length).fill(Infinity), hi = new Array(def.tokens.length).fill(-Infinity);
+        moveLine(candidates, fixedSlots, from, to).forEach((items, position) => { for (const t of items) {
+            if (position < lo[t])
+                lo[t] = position;
+            if (position > hi[t])
+                hi[t] = position;
+        } });
+        if (common.some(([a, b]) => lo[a] > hi[b]))
+            return undefined;
+        // A validation re-matches every line: its cost grows with the rows, not only the states.
+        allowance -= 4 * n;
+        const check = validateSubmission(compiled, { exerciseId: def.id, revision: def.revision, lines: moved }, { maxStates: Math.min(states, allowance) });
+        allowance -= check.exploredStates + n;
+        if (!check.accepted)
+            return undefined;
+        return { ...base('single-move-repair', 'notice', 'general', 'positions'), positions: [from], positionScope: 'some', summary: `Egyetlen sor áthelyezése elég: a(z) ${row(from)} (${quote(lines[from])}) máshová kerülve elfogadható megoldást ad.`, detail: 'Ez nem bizonyítja, hogy éppen ez a sor a hibás: más áthelyezés is javíthatja az elrendezést.', evidence: 'A validátor az áthelyezett elrendezést elfogadta.', limits: 'Ellenőrzött kiút, nem bizonyított ok.', fix: { level: 'verified', move: { from, to }, text: `Ha a(z) ${row(from)}t a(z) ${row(to)} helyére teszed, a megoldás elfogadott.` } };
+    };
+    // Alignment: every line takes the first unused reference row of its content, in submission order.
+    const used = new Set(), seq = candidates.map(items => { const t = items.find(i => !used.has(i)) ?? -1; used.add(t); return t; });
+    // Longest strictly increasing run of reference rows (patience sorting), as positions.
+    const tails = [], back = new Array(n).fill(-1);
+    seq.forEach((t, p) => {
+        if (t < 0)
+            return;
+        let lo = 0, hi = tails.length;
+        while (lo < hi) {
+            const mid = (lo + hi) >> 1;
+            if (seq[tails[mid]] < t)
+                lo = mid + 1;
+            else
+                hi = mid;
+        }
+        back[p] = lo ? tails[lo - 1] : -1;
+        tails[lo] = p;
+    });
+    const kept = [];
+    for (let p = tails.at(-1) ?? -1; p >= 0; p = back[p])
+        kept.unshift(p);
+    const inRun = new Set(kept);
+    // Lines of equal content are interchangeable: the window an out-of-run line belongs to may be
+    // filled by any line of its content (a misplaced `}` shifts the alignment of all later ones).
+    const content = candidates.map(items => items.join(','));
+    for (let displaced = 0; displaced < n; displaced++) {
+        if (inRun.has(displaced) || seq[displaced] < 0)
+            continue;
+        // Between the run's nearest rows below and above this line's reference row.
+        const t = seq[displaced], below = kept.filter(p => seq[p] < t).at(-1), above = kept.find(p => seq[p] > t);
+        const sources = content.flatMap((key, p) => key === content[displaced] ? [p] : []).sort((x, y) => Math.abs(x - displaced) - Math.abs(y - displaced));
+        for (const from of sources) {
+            const shift = (p) => p > from ? p - 1 : p;
+            const first = below === undefined ? 0 : shift(below) + 1, last = above === undefined ? n - 1 : shift(above);
+            for (let to = first; to <= last; to++) {
+                const found = attempt(from, to);
+                if (found !== undefined)
+                    return found;
+            }
+        }
+    }
+    for (let distance = 1; distance < n; distance++)
+        for (let from = 0; from < n; from++) {
+            for (const to of [from - distance, from + distance]) {
+                const found = attempt(from, to);
+                if (found !== undefined)
+                    return found;
+            }
+        }
+    return null;
 }
 /** Move one of the two forced lines next to the other; verified only if the validator accepts. */
 function repair(compiled, lines, candidates, diagnostic, options, budget) {

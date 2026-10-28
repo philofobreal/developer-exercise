@@ -584,3 +584,5 @@ A G1 után a felhasználó a futásidejű mesterpromptot saját bemenettel (`run
 A v12 túlkötött: a mintán 328 futásidőben azonos sorrendet utasított el. Négy okát javítottuk: mezőszint, listaszintű `if/else`, string-metódusok, egyetlen kivétel ([ADR-028](adr/028-runtime-precise-object-footprints.md)). A v13 lezárt sorrendi relációja azonos a kézi modellével.
 
 A következő kérdés a `state` és a `score` mező cseréje volt: ez csak a kulcssorrendet változtatja. A felhasználó döntése szerint a példánymezők kulcssorrendje csak kulcsokat listázó programban számít ([ADR-029](adr/029-unobserved-instance-field-order.md), v14).
+
+A hibás elrendezés okát a kiértékelő eddig nem nevezte meg, ha egy blokk záró `}` sora több helyen is állhatott. Ezt a blokkhatár-becslés és az ellenőrzött egylépéses javítás oldja meg ([ADR-030](adr/030-block-bounds-and-verified-single-move.md)): a 46 soros példán 51%-ról 87%-ra nőtt a bizonyított okok aránya, a maradék ellenőrzött javaslatot kap, és 500 soron a legrosszabb eset 0,15 s alatt marad.

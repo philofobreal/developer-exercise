@@ -1,6 +1,6 @@
 # ADR-023 – Magyarázható validáció: bizonyítás alapú diagnosztika a core-ban
 
-Állapot: implementálva (E1). A validátor döntése, a CodeLine-séma, a policyverzió (`scoped-effect-analysis-v11`) és a bizalmi határ változatlan. A tanulói felület (F1) és a részletességi szabályozás (F2) erre épül, de ebben a lépésben nem változik.
+Állapot: implementálva (E1). A validátor döntése, a CodeLine-séma, a policyverzió (`scoped-effect-analysis-v11`) és a bizalmi határ változatlan. A tanulói felület (F1) és a részletességi szabályozás (F2) erre épül, de ebben a lépésben nem változik. Kiterjesztette: [ADR-030](030-block-bounds-and-verified-single-move.md) (blokkhatár-becslés, ellenőrzött egylépéses javítás).
 
 ## Kontextus
 

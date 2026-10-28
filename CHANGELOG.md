@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased – 2026-10-28 pontosabb hibaazonosítás (ADR-030)
+
+- **Kérdés:** a setter törzsébe tett `score = 0;` mezőre a kiértékelő csak annyit mondott, hogy „a pontos ok nem nevezhető meg”. Az ok: a blokk záró `}` sora több helyen is állhatott, és az ilyen blokkot a diagnosztika kihagyta.
+- **Blokkhatár-becslés:** a határsorok lehetséges helyeinek tartományával számol, és feltételezi, hogy a blokk a nyitó sora után zárul. A 46 soros példa összes egysoros áthelyezésén a bizonyított okok aránya 51%-ról 87%-ra nőtt.
+- **Ellenőrzött egylépéses javítás:** ahol bizonyított ok nincs, a kiértékelő egy olyan egysoros áthelyezést javasol, amelyet a validátor elfogad. Nem nevez meg bűnöst, és saját kerete van. 500 soron a tipikus hiba 8 ms, a legrosszabb eset 0,15 s alatt van (Node és Chrome). A tanuló a sort látja, a célhelyet csak `rules` szinttől.
+- **Tesztek:**
+  - új `diagnostics-localization` (10 eset, nyers erős helyesség-ellenőrzéssel és időkerettel);
+  - frissített `diagnostics`;
+  - kézi mérőeszköz: `tests/support/move-search-scale.mjs`.
+
 ## Unreleased – 2026-10-28 példánymezők szabad sorrendje (ADR-029, v14)
 
 - **Kérdés:** miért hibás a `state` és a `score` mező felcserélése? Mérés: 0 fordítási hiba, azonos értékek, csak az `Object.keys`/`JSON.stringify` kulcssorrend tér el.

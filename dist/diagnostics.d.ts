@@ -17,7 +17,7 @@
 import type { ExerciseDefinition, Submission, ValidationOptions, ValidationResult } from './types.js';
 import type { CodeLineExercise, ConstraintCategory } from './code-line.js';
 import { type CompiledRules } from './model.js';
-export type DiagnosticCode = 'invalid-reference' | 'invalid-submission' | 'search-budget' | 'unknown-content' | 'extra-line' | 'missing-line' | 'wrong-multiplicity' | 'fixed-position' | 'order-direct' | 'order-transitive' | 'pedagogical-rule' | 'structural-placement' | 'scope-boundary' | 'unit-split' | 'profile-conflict' | 'unexplained-rejection' | 'diagnostic-budget' | 'withheld';
+export type DiagnosticCode = 'invalid-reference' | 'invalid-submission' | 'search-budget' | 'unknown-content' | 'extra-line' | 'missing-line' | 'wrong-multiplicity' | 'fixed-position' | 'order-direct' | 'order-transitive' | 'pedagogical-rule' | 'structural-placement' | 'scope-boundary' | 'unit-split' | 'profile-conflict' | 'unexplained-rejection' | 'single-move-repair' | 'diagnostic-budget' | 'withheld';
 /** `proven`: true under every content-consistent assignment, and enough to explain the
  * verdict. `general`: correct but names no cause. */
 export type DiagnosticCertainty = 'proven' | 'general';
@@ -87,6 +87,8 @@ export interface DiagnosticOptions extends ValidationOptions {
     maxSteps?: number;
     /** Validator states per checked fix. */
     repairStates?: number;
+    /** ADR-030: validator states in all for the single-move search of an unexplained rejection. */
+    moveSearchStates?: number;
     /** Bound provenance per rule, keyed by `ruleKey`; see `codeLineDiagnosticReasons`. */
     reasons?: ReadonlyMap<string, readonly ConstraintCategory[]>;
 }
@@ -117,4 +119,4 @@ export declare function codeLineDiagnosticReasons(model: CodeLineExercise): Map<
 /** Diagnose one submission. The verdict is computed by `validateSubmission` with the same options. */
 export declare function diagnoseSubmission(compiledOrRaw: CompiledRules | ExerciseDefinition, submission: Submission, options?: DiagnosticOptions): DiagnosticReport;
 /** Fixed slots stay; the moved line takes `to`, movable neighbours shift (insert, never swap). */
-export declare function moveLine(lines: readonly string[], fixedSlots: ReadonlySet<number>, from: number, to: number): string[] | null;
+export declare function moveLine<T>(lines: readonly T[], fixedSlots: ReadonlySet<number>, from: number, to: number): T[] | null;
