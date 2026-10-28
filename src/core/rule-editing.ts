@@ -11,6 +11,8 @@
  * in `authoring.relaxations`, so the model states that it left the ordering policy.
  * Author rules are mandatory `edges` with `author` provenance; they survive a
  * dependency refresh (see `mergeAuthorRules`). OR alternatives use profiles.
+ * Adding a pair the author relaxed restores the removed constraint with its reasons, origin
+ * and note and drops the relaxation, so removing and re-adding is a round trip (ADR-024).
  *
  * The effect report never overstates: `no` is proven by constraint inclusion, `yes`
  * by a witness order that the real validator accepts under one model and rejects
@@ -114,6 +116,24 @@ function apply(draft: CodeLineExercise, explanation: ConstraintExplanation, edit
       const note = edit.note === undefined ? '' : noteText(edit.note);
       if (explained(before).ancestors.includes(after)) throw new EditFailure('cycle', `A(z) ${after}. sornak már meg kell előznie a(z) ${before}. sort; a szabály kört okozna.`);
       if (position.get(before)! > position.get(after)!) throw new EditFailure('against-reference', 'Kötelező szabály csak a referencia sorrendjével összhangban adható hozzá; eltérő sorrendhez használj profilt.');
+      const relaxed = authoring.relaxations?.find(entry => pairOf(entry, before, after));
+      if (relaxed) {
+        // The pair is ordered again, so the relaxation no longer holds; what it removed comes back.
+        const rest = authoring.relaxations!.filter(entry => entry !== relaxed);
+        if (rest.length) authoring.relaxations = rest; else delete authoring.relaxations;
+        if (relaxed.removed) {
+          const target = draft.lines[position.get(after)!]!;
+          if (relaxed.removed.origins.includes('dependency') && !target.dependencies.includes(before)) target.dependencies = [...target.dependencies, before].sort((a, b) => position.get(a)! - position.get(b)!);
+          if (relaxed.removed.origins.includes('edge') && !(draft.edges ?? []).some(edge => pairOf(edge, before, after))) (draft.edges ??= []).push({ before, after });
+          if (relaxed.removed.reasons.length) {
+            // Back in place: generated provenance is ordered by the later line, then the earlier one.
+            const list = authoring.provenance ??= [], at = list.findIndex(entry => position.get(entry.after)! > position.get(after)! || entry.after === after && position.get(entry.before)! > position.get(before)!);
+            list.splice(at < 0 ? list.length : at, 0, ...relaxed.removed.reasons.map(reason => ({ before, after, ...reason })));
+          }
+          setNote(before, after, note || relaxed.removed.note || '');
+          return;
+        }
+      }
       if (!(draft.edges ?? []).some(edge => pairOf(edge, before, after))) (draft.edges ??= []).push({ before, after });
       const provenance = authoring.provenance ??= [];
       if (!provenance.some(entry => pairOf(entry, before, after) && entry.category === 'author')) provenance.push({ before, after, category: 'author', code: AUTHOR_RULE });
@@ -147,7 +167,11 @@ function apply(draft: CodeLineExercise, explanation: ConstraintExplanation, edit
         if (editability === 'conservative' ? !edit.acknowledge : edit.acknowledge !== 'policy-override') throw new EditFailure('needs-acknowledgement', editability === 'conservative'
           ? 'Konzervatív szabály: a lazítás helyessége nem bizonyított; csak kifejezett szerzői megerősítéssel (unproven-relaxation) távolítható el.'
           : `${editability === 'proven' ? 'Bizonyított' : 'Ismeretlen eredetű'} szabály: eltávolítása eltér a sorrendpolitikától, csak kifejezett policy-felülírással (policy-override) lehetséges.`, editability === 'conservative' ? 'unproven-relaxation' : 'policy-override');
-        authoring.relaxations = [...(authoring.relaxations ?? []).filter(entry => !pairOf(entry, before, after)), { before, after, editability, ...(note ? { note } : {}) }];
+        const origins = constraint.origins.filter((origin): origin is 'dependency' | 'edge' => origin !== 'block');
+        const reasons = (authoring.provenance ?? []).filter(entry => pairOf(entry, before, after) && entry.category !== 'author').map(({ category, code }) => ({ category, code }));
+        const ruleNote = authoring.ruleNotes?.find(entry => pairOf(entry, before, after))?.note;
+        const removed = origins.length ? { removed: { origins, reasons, ...(ruleNote ? { note: ruleNote } : {}) } } : {};
+        authoring.relaxations = [...(authoring.relaxations ?? []).filter(entry => !pairOf(entry, before, after)), { before, after, editability, ...(note ? { note } : {}), ...removed }];
       }
       dropPair(before, after);
       return;
@@ -334,10 +358,14 @@ export function mergeAuthorRules(original: CodeLineExercise, regenerated: CodeLi
     const current = constraint.editability;
     if (current === 'hard' || current === 'pedagogical' || editabilityOrder.indexOf(current) > editabilityOrder.indexOf(relaxation.editability)) { report.relaxations.push({ before, after, outcome: 'revoked' }); continue; }
     const target = model.lines.find(item => item.id === after)!;
+    // The regenerated analysis says what a later restore must bring back.
+    const origins = constraint.origins.filter((origin): origin is 'dependency' | 'edge' => origin !== 'block');
+    const reasons = authoring.provenance!.filter(entry => pairOf(entry, before, after) && entry.category !== 'author').map(({ category, code }) => ({ category, code }));
     target.dependencies = target.dependencies.filter(id => id !== before);
     model.edges = model.edges!.filter(edge => !pairOf(edge, before, after));
     authoring.provenance = authoring.provenance!.filter(entry => !pairOf(entry, before, after));
-    relaxations.push({ ...relaxation, editability: current });
+    const { removed: previous, ...kept } = relaxation;
+    relaxations.push({ ...kept, editability: current, ...(origins.length ? { removed: { origins, reasons, ...(previous?.note ? { note: previous.note } : {}) } } : {}) });
     report.relaxations.push({ before, after, outcome: 'reapplied' });
     explanation = admitted();
   }

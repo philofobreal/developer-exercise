@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-10-28 kapcsolatkapcsoló és pontos visszaállítás (ADR-024)
+
+- **A kör kapcsoló:** egy sor körére kattintva a vele kapcsolatban álló sorok kipipálódnak, a kapcsolat színével (kék: előtte, borostyán: utána, lakat: szerkezeti). Pipára kattintva a kapcsolat megszűnik, üres körre kattintva létrejön; a húzás ugyanez. Ugyanúgy működik a Szabályok tábláján és a Próba lépés mindkét zónájában; a gyakorló mód és a tanulói nézet nem látja.
+- **Pontos visszaállítás:** a lazítás rögzíti, mit vett ki (`removed`: eredet, okok, megjegyzés), így egy megszüntetett generált kapcsolat újbóli felvétele az eredetit hozza vissza, és a minősítés is visszaáll. Séma: `relaxations[].removed`.
+- **Tesztek:** core oda-vissza út, a kapcsoló állapotai, új böngészős eset Node és Pages módban.
+
 ## Unreleased – 2026-10-27 magyarázható validáció a core-ban (ADR-023, E1)
 
 - **`diagnoseSubmission`:** a validátor változatlan ítéletét bizonyított okokkal magyarázza. Egy konfliktus csak akkor kerül megnevezésre, ha minden tartalomkonzisztens hozzárendelésben igaz; azonos tartalmú sorok, egyetlen sérült OR-profil vagy elfogyott keret esetén általános, korrekt magyarázat jön.

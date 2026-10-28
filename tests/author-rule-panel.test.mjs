@@ -53,7 +53,8 @@ test('server: a refused edit is a domain answer naming the acknowledgement, and 
  assert.deepEqual([hard.ok,hard.error,hard.acknowledge],[false,'hard-constraint',undefined]);
  const relaxed=await catalog.editDraft({draftId:first.draftId,edits:[{kind:'remove-rule',before:2,after:4,acknowledge:'policy-override',note:'Didaktikai lazítás'}]});
  assert.equal(relaxed.verification.status,'unverified');
- assert.deepEqual(relaxed.rules.relaxations,[{before:2,after:4,editability:'proven',note:'Didaktikai lazítás'}]);
+ assert.deepEqual(relaxed.rules.relaxations.map(({removed,...entry})=>entry),[{before:2,after:4,editability:'proven',note:'Didaktikai lazítás'}]);
+ assert.deepEqual(relaxed.rules.relaxations[0].removed.origins,['dependency'],'the record says what a restore brings back (ADR-024)');
  assert.equal(relaxed.effect.looser,'yes');
  await assert.rejects(catalog.editDraft({draftId:first.draftId,edits:[]}),error=>error.statusCode===404,'the relaxed draft replaced the original');
  await assert.rejects(catalog.editDraft({draftId:relaxed.draftId}),error=>error.statusCode===400);

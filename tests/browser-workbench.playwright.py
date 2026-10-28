@@ -189,7 +189,7 @@ def rule_panel(page):
     panel.locator('[data-rule-edit="remove"][data-before="3"][data-after="5"]').click();panel.locator('[data-rule-confirm] [data-rule-note]').fill('Didaktikai döntés')
     panel.locator('[data-rule-edit="confirm"]').click();expect(panel.locator('[data-verification-status]')).to_have_text('Nem igazolt');expect(panel.locator('[data-rule-pair="3-5"]')).to_have_count(0)
     insight=page.locator('[data-model-insight]');expect(insight.locator('[data-verification-status]')).to_have_text('Nem igazolt');expect(insight.locator('[data-insight-relaxations]')).to_contain_text('Didaktikai döntés')
-    rules_json(page);edited=json.loads(page.locator('#model-editor').input_value());assert edited['authoring']['relaxations']==[{'before':3,'after':5,'editability':'proven','note':'Didaktikai döntés'}]
+    rules_json(page);edited=json.loads(page.locator('#model-editor').input_value());[relaxed]=edited['authoring']['relaxations'];removed=relaxed.pop('removed');assert relaxed=={'before':3,'after':5,'editability':'proven','note':'Didaktikai döntés'},relaxed;assert removed['origins']==['dependency'] and removed['reasons'],removed
     to_try(page);page.locator('[data-preview-toggle]').click()
     for selector in ['[data-rule-line]','[data-rule-panel]','[data-rule-hint]','[data-board-line]','.rule-selected,.rule-before,.rule-after']:expect(page.locator(selector)).to_have_count(0)
     page.locator('[data-preview-toggle]').click();page.locator('[data-step="rules"]').click();page.locator('[data-rules-view="visual"]').click();expect(page.locator('[data-rule-panel]')).to_have_attribute('data-rule-panel-line','5')
@@ -207,7 +207,7 @@ def rule_connect(page):
     page.locator('[data-rule-connect="2"]').focus();page.keyboard.press('Enter');expect(page.locator('.board-connecting')).to_contain_text('#2')
     page.keyboard.press('Escape');expect(page.locator('.board-connecting')).to_have_count(0)
     page.locator('[data-rule-connect="2"]').focus();page.keyboard.press('Enter');page.locator('[data-rule-connect="3"]').focus();page.keyboard.press('Enter')
-    expect(panel).to_have_attribute('data-rule-panel-line','3');expect(panel.locator('[data-rule-pair="2-3"] .rule-badge')).to_have_text('Szerzői')
+    expect(panel).to_have_attribute('data-rule-panel-line','2');expect(panel.locator('[data-rule-pair="2-3"] .rule-badge')).to_have_text('Szerzői')
     to_try(page);page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
     page.locator('[data-view="edit"]').click();page.locator('#code-editor').fill('\n'.join(rules_source.split('\n')[i] for i in [0,2,1,3,4,5]).replace('  ',''));page.locator('[data-apply]').click()
     page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Hibás')
@@ -271,6 +271,45 @@ def rule_edit_keeps_scroll(page):
     expect(page.locator('.report')).to_contain_text('Elfogadva');assert abs(zone.evaluate('z=>z.scrollTop')-top)<=1
     # Practice exercises keep their own scroll identity.
     practice(page);page.locator('[data-all]').click();assert page.locator('.solution-zone').evaluate('z=>z.scrollTop')==0
+def link_toggle(page):
+    """ADR-024: the circle is a link toggle on the board and on both sorter zones. The anchor's links
+    show as checks in their colour; a check removes the link, an empty circle adds it, and the same
+    clicks restore a removed generated link exactly (status and badge included)."""
+    build(page,rules_source);panel=page.locator('[data-rule-panel]');status=page.locator('[data-model-insight] [data-verification-status]')
+    toggle=lambda line:page.locator(f'.board-row[data-board-line="{line}"] [data-rule-connect]')
+    expect(status).to_have_text('Elemzéssel igazolt')
+    toggle(4).click();expect(toggle(4)).to_have_attribute('data-link','anchor');expect(page.locator('.board-connecting')).to_contain_text('#4')
+    for line,kind,pressed in [(1,'before','true'),(2,'before','true'),(5,'after','true'),(6,'after','true'),(3,'none','false')]:
+        expect(toggle(line)).to_have_attribute('data-link',kind);expect(toggle(line)).to_have_attribute('aria-pressed',pressed)
+    expect(toggle(1)).to_have_class(re.compile('link-locked'));expect(toggle(2)).to_have_attribute('aria-label',re.compile('megszünteted'))
+    page.locator('.rule-board').screenshot(path=str(ARTIFACTS/('ux-link-toggle-'+('node' if page.url.startswith(BASE) else 'pages')+'.png')))
+    # A structural link stays and says why; the checks disappear after any choice.
+    toggle(1).click();expect(panel.locator('.rule-status')).to_contain_text('szerkezeti kapcsolat');expect(page.locator('[data-link]')).to_have_count(0)
+    # An empty circle adds an author link; the same two clicks remove it, and again restore it.
+    toggle(4).click();toggle(3).click();expect(panel).to_have_attribute('data-rule-panel-line','4');expect(panel.locator('[data-rule-pair="3-4"] .rule-badge')).to_have_text('Szerzői')
+    expect(page.locator('[data-link]')).to_have_count(0)
+    toggle(4).click();expect(toggle(3)).to_have_attribute('data-link','before');toggle(3).click();expect(panel.locator('[data-rule-pair="3-4"]')).to_have_count(0);expect(status).to_have_text('Elemzéssel igazolt')
+    # A proven link asks for the acknowledgement the core names; the same clicks bring it back as it was.
+    toggle(4).focus();page.keyboard.press('Enter');toggle(2).focus();page.keyboard.press('Enter')
+    expect(panel.locator('[data-rule-confirm]')).to_contain_text('policy-override');panel.locator('[data-rule-edit="confirm"]').click()
+    expect(panel.locator('[data-rule-pair="2-4"]')).to_have_count(0);expect(status).to_have_text('Nem igazolt')
+    toggle(4).click();expect(toggle(2)).to_have_attribute('data-link','none');toggle(2).click()
+    expect(panel.locator('[data-rule-pair="2-4"] .rule-badge')).to_have_text('Bizonyított');expect(status).to_have_text('Elemzéssel igazolt')
+    rules_json(page);assert 'relaxations' not in json.loads(page.locator('#model-editor').input_value()).get('authoring',{})
+    # The sorter: the same toggle on the solution rows; a drag onto a linked row removes, onto an unlinked one adds.
+    to_try(page);page.locator('[data-all]').click()
+    row=lambda line:page.locator(f'.solution-zone .code-row[data-line-id="{line}"]')
+    row(4).locator('[data-rule-connect]').click();expect(row(2).locator('[data-rule-connect]')).to_have_attribute('data-link','before');expect(row(5).locator('[data-rule-connect]')).to_have_attribute('data-link','after')
+    page.keyboard.press('Escape');expect(page.locator('[data-link]')).to_have_count(0)
+    def drag(source,target):
+        start=row(source).locator('[data-rule-connect]').bounding_box();end=row(target).locator('.code-text').bounding_box()
+        page.mouse.move(start['x']+start['width']/2,start['y']+start['height']/2);page.mouse.down()
+        page.mouse.move(end['x']+20,end['y']+end['height']/2,steps=8);page.mouse.up()
+    order=[item.get_attribute('data-line-id') for item in page.locator('.solution-zone .code-row').all()]
+    drag(3,4);expect(page.locator('.try-rule-panel [data-rule-panel] [data-rule-pair="3-4"] .rule-badge')).to_have_text('Szerzői')
+    drag(3,4);expect(page.locator('.try-rule-panel [data-rule-panel] [data-rule-pair="3-4"]')).to_have_count(0)
+    assert [item.get_attribute('data-line-id') for item in page.locator('.solution-zone .code-row').all()]==order,'a link drag never moves a row'
+    expect(page.locator('.report')).to_contain_text('Elfogadva')
 def stale_author_admission(page):
     pending=[]
     def intercept(route):pending.append(route)
@@ -342,7 +381,7 @@ try:
         browser=launch(p);context=browser.new_context(viewport={'width':1500,'height':1000},permissions=['clipboard-read','clipboard-write']);context.tracing.start(screenshots=True,snapshots=True,sources=True);page=context.new_page();page.set_default_timeout(10000);errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
         try:
             for mode,url in [('node',BASE),('pages',f'http://127.0.0.1:{static.server_port}/developer-exercise/')]:
-                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('model-first creation',model_first),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll)]:
+                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('model-first creation',model_first),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll),('circles toggle links: checks, removal and exact restore',link_toggle)]:
                     reset(page,url);case(mode+' '+name,lambda:action(page))
                 reset(page,url);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-author.png')),full_page=True)
                 practice(page);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-practice.png')),full_page=True)

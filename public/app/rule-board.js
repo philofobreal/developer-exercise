@@ -1,4 +1,5 @@
 import { createRuleMarks, ruleButton, rulesAvailable } from './rule-panel.js';
+import { icon } from './icons.js';
 const SVG = 'http://www.w3.org/2000/svg';
 /** Nesting depth for indentation only: the number of enclosing blocks. */
 function depths(model) {
@@ -6,10 +7,28 @@ function depths(model) {
         count++; return count; };
     return new Map(model.lines.map(line => [line.id, depth(line.scopeId)]));
 }
-export const connectButton = (state, id) => `<button type="button" class="board-connect" data-rule-connect="${id}" aria-pressed="${state.ruleConnect === id}" aria-label="A(z) #${id} sor összekötése egy másik sorral" title="Húzd egy másik sorra, vagy válaszd ki itt, majd a másik soron: a kettő közé szabály kerül"><span aria-hidden="true"></span></button>`;
-const legend = '<p class="board-legend"><span class="rule-swatch before" aria-hidden="true"></span>előtte kell állnia <span class="rule-swatch selected" aria-hidden="true"></span>kijelölt <span class="rule-swatch after" aria-hidden="true"></span>utána kell állnia · Láncszem: a sor szabályai. Kör: egy másik sorra húzva szabályt veszel fel köztük.</p>';
+/** The anchor's direct constraint with `id`, in either direction. */
+export function linkWith(state, anchor, id) {
+    return (state.authorInsight?.rules?.constraints ?? []).find(c => c.before === anchor && c.after === id || c.before === id && c.after === anchor);
+}
+/** A row's link toggle: a plain circle without an anchor; with one, a check for a linked row
+ * (blue: must stand before the anchor, amber: after it; a lock for a structural link) or an
+ * empty circle for an unlinked one. */
+export function connectButton(state, id) {
+    const anchor = state.ruleConnect, button = (kind, pressed, label, title, content) => `<button type="button" class="board-connect${kind ? ' link-' + kind : ''}" data-rule-connect="${id}"${kind ? ` data-link="${kind.split(' ')[0]}"` : ''} aria-pressed="${pressed}" aria-label="${label}" title="${title}">${content}</button>`;
+    if (anchor === undefined)
+        return button('', false, `A(z) #${id} sor kapcsolatai`, 'Kattints: kipipálja a sor kapcsolatait. Húzd egy másik sorra: létrehozza vagy megszünteti köztük a kapcsolatot.', '<span aria-hidden="true"></span>');
+    if (anchor === id)
+        return button('anchor', true, `A(z) #${id} sor a kiinduló sor; megnyomva befejezed`, 'Kiinduló sor. Kattints ide vagy nyomj Escape-et a befejezéshez.', '<span aria-hidden="true"></span>');
+    const link = linkWith(state, anchor, id);
+    if (!link)
+        return button('none', false, `Kapcsolat létrehozása: #${id} és #${anchor}`, 'Nincs közvetlen kapcsolat a kiinduló sorral; kattintva létrehozod.', '<span aria-hidden="true"></span>');
+    const side = link.after === anchor ? 'before' : 'after', where = side === 'before' ? 'előtt' : 'után', hard = link.editability === 'hard';
+    return button(side + (hard ? ' link-locked' : ''), true, `A(z) #${id} sornak a(z) #${anchor} sor ${where} kell állnia; ${hard ? 'szerkezeti kapcsolat, nem szüntethető meg' : 'megnyomva megszünteted'}`, hard ? 'Szerkezeti kapcsolat: nem szüntethető meg.' : 'Közvetlen kapcsolat a kiinduló sorral; kattintva megszünteted.', icon(hard ? 'lock' : 'check'));
+}
+const legend = '<p class="board-legend"><span class="rule-swatch before" aria-hidden="true"></span>előtte kell állnia <span class="rule-swatch selected" aria-hidden="true"></span>kijelölt <span class="rule-swatch after" aria-hidden="true"></span>utána kell állnia · Láncszem: a sor szabályai. Kör: kipipálja a sor kapcsolatait; pipára kattintva megszünteted, üres körre kattintva létrehozod a kapcsolatot.</p>';
 const toggle = (state) => `<label class="board-toggle"><input type="checkbox" data-board-all ${state.boardAll ? 'checked' : ''}> Minden nem szerkezeti szabály rajzolása</label>`;
-const connecting = (state) => state.ruleConnect !== undefined ? `<p class="board-connecting" role="status">A(z) #${state.ruleConnect} sorból indított összekötés: válaszd ki a másik sor körgombját. Escape: megszakítás.</p>` : '';
+const connecting = (state) => state.ruleConnect !== undefined ? `<p class="board-connecting" role="status">A(z) #${state.ruleConnect} sor kapcsolatai kipipálva: kék – előtte kell állnia, borostyán – utána, lakat – szerkezeti. Pipára kattintva megszünteted, üres körre kattintva létrehozod a kapcsolatot. Escape vagy a kiinduló kör: befejezés.</p>` : '';
 export function renderRuleBoard(state, highlight) {
     const model = state.authorModel;
     if (!model || !rulesAvailable(state))
@@ -92,7 +111,7 @@ export function connection(model, a, b) {
     return x < y ? { before: a, after: b } : { before: b, after: a };
 }
 const lineOf = (row) => Number(row.dataset.boardLine ?? row.dataset.lineId);
-/** Pointer drag between a connector and another line's row. On the sorter the rows are natively
+/** Pointer drag from a link toggle onto another line's row toggles their link. On the sorter the rows are natively
  * draggable, so a drag that starts on a connector cancels the native row drag. The click that
  * may follow a drag is swallowed only briefly and only from a pointer (`detail > 0`): when the
  * edit re-renders first, that click never fires, and a keyboard activation is never mistaken for it. */

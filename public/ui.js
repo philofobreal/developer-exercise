@@ -1,7 +1,7 @@
 import {markEditorDraft,markEditorApplied,reloadEditorFromArrangement,captureEditorRequest,adjacentMoveBoundary,dispatchWorkbenchAction} from './app/interactions.js';
 import {refreshAuthorStatus,captureAuthorRequest,authorRequest,startFromExample,revertAuthorDraft,admitAuthorModel} from './app/author-workspace.js';
 import {readRuleEdit,recordRuleRefusal,ruleEditBlocked,settleRuleSelection} from './app/rule-panel.js';
-import {connection,installRuleBoard} from './app/rule-board.js';
+import {connection,installRuleBoard,linkWith} from './app/rule-board.js';
 import {blockedReason,enterMode,enterView,landAfterAdmission} from './app/flow.js';
 /** App orchestration and event wiring; modes, steps and staleness live in the typed flow (ADR-022). */
 import {readClipboard} from './app/clipboard.js';
@@ -45,13 +45,17 @@ async function authorApply(body,{preserveAttempt=false,sessionImport,current=cap
  landAfterAdmission(state,land);commit(state.modelMessage);
  if(compatible){const id=state.active,a=at(),generation=a.generation;let report;try{report=await previewDraft({draftId:data.draftId,lines:a.answer.filter(x=>x!==null).map(text)});}catch{report={status:'indeterminate',message:'Az előnézet értékelése nem érhető el.',exploredStates:0};}if(state.active===id&&at()===a&&a.generation===generation){a.report=report;render();}}
 }
-/** Two lines connected on the rule board become one typed rule in reference order. */
-async function connect(from,to){
- const pair=state.authorModel&&connection(state.authorModel,from,to),draftId=state.previews.get(state.active);
- if(!pair||!draftId)return;
- state.ruleSelection={line:pair.after,message:''};delete state.ruleConnect;
+/** The link between the anchor and another line toggles (ADR-024): a direct link is removed (the
+ * core asks for its acknowledgement where needed), a missing one is added in reference order, and
+ * adding a removed generated link restores it. The panel stays on the anchor. */
+async function toggleLink(anchor,line){
+ const draftId=state.previews.get(state.active),link=linkWith(state,anchor,line),pair=link??(state.authorModel&&connection(state.authorModel,anchor,line));
+ delete state.ruleConnect;
+ if(!pair||!draftId){render();return;}
+ state.ruleSelection={line:anchor,message:''};
+ if(link?.editability==='hard'){state.ruleSelection.message=`A(z) #${link.before} → #${link.after} szerkezeti kapcsolat (blokk vagy egység); nem szüntethető meg.`;render();return;}
  const blocked=ruleEditBlocked(state);if(blocked){state.ruleSelection.message=blocked;render();return;}
- await authorApply({draftId,edits:[{kind:'add-rule',...pair}]},{preserveAttempt:true,request:editRules});
+ await authorApply({draftId,edits:[{kind:link?'remove-rule':'add-rule',before:pair.before,after:pair.after}]},{preserveAttempt:true,request:editRules});
 }
 
 root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=at();
@@ -122,11 +126,11 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  if(b.hasAttribute('data-edit-example')){const e=ex();if(!e)return;startFromExample(state,e);enterMode(state,'author');state.view='author';state.sourceKind='code';render();return;}
  if(b.hasAttribute('data-author-revert')){revertAuthorDraft(state);render();return;}
  if(b.dataset.ruleConnect){
-  const line=+b.dataset.ruleConnect;
-  if(state.ruleConnect===undefined){state.ruleConnect=line;state.ruleSelection={line,message:''};render();root.querySelector(`[data-rule-connect="${line}"]`)?.focus({preventScroll:true});return;}
-  const from=state.ruleConnect;delete state.ruleConnect;
-  if(from===line){render();return;}
-  await connect(from,line);return;
+  const line=+b.dataset.ruleConnect,anchor=state.ruleConnect;
+  if(anchor===undefined){state.ruleConnect=line;state.ruleSelection={line,message:''};render();root.querySelector(`[data-rule-connect="${line}"]`)?.focus({preventScroll:true});return;}
+  delete state.ruleConnect;
+  if(anchor===line){render();root.querySelector(`[data-rule-connect="${line}"]`)?.focus({preventScroll:true});return;}
+  await toggleLink(anchor,line);return;
  }
  if(b.dataset.ruleLine){const line=+b.dataset.ruleLine,row=b.closest('.code-row,.board-row');state.ruleSelection=row&&state.ruleSelection?.line===line?undefined:{line,message:''};render();if(!row)root.querySelector('#rule-panel-title')?.focus({preventScroll:true});return;}
  if(b.hasAttribute('data-rule-close')){const line=state.ruleSelection?.line;state.ruleSelection=undefined;render();root.querySelector(`:is(.board-row,.code-row) [data-rule-line="${line}"]`)?.focus({preventScroll:true});return;}
@@ -174,7 +178,7 @@ createInsertionDrag({root,
   onInsert:(d,boundary)=>d.from==='pool'?movePoolToBoundary(d.index,boundary):moveAnswerToBoundary(d.index,boundary),
   onReturn:index=>remove(index)
 });
-installRuleBoard(root,(from,to)=>{connect(from,to).catch(err=>notify(err instanceof Error?err.message:'Az összekötés nem sikerült.'));},()=>{delete state.ruleConnect;render();});
+installRuleBoard(root,(from,to)=>{toggleLink(from,to).catch(err=>notify(err instanceof Error?err.message:'A kapcsolat módosítása nem sikerült.'));},()=>{delete state.ruleConnect;render();});
 
 const snapshot=()=>exportSession(ex(),at(),state.previews.has(state.active)?state.authorModel:undefined);
 async function importSession(session,{current=captureAuthorRequest(state)}={}){

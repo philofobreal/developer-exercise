@@ -44,16 +44,16 @@ A **Sorfüggőségek újraszámítása** az aktuális JSON generált sorfüggős
 ## Szabályok a táblán
 
 - **Kijelölés:** a sor láncszem gombja kijelöli a sort. Kiemelődnek a közvetlen előzményei (kék) és követői (borostyán), az ívek kirajzolódnak, és megnyílik a panel. A „Minden nem szerkezeti szabály rajzolása” az egész gráfot mutatja.
-- **Összekötés:** egy sor körgombját egy másik sorra húzva (egérrel, tollal vagy érintéssel) a kettő közé szabály kerül. Ugyanez billentyűzettel: az első sor körgombja Enterrel, majd a másiké; Escape megszakít. Az irányt a referencia sorrendje adja, mert kötelező szabály csak azzal összhangban vehető fel (ADR-018).
+- **Kapcsolatkapcsoló ([ADR-024](adr/024-link-toggle-and-exact-restore.md)):** egy sor körére kattintva az lesz a kiinduló sor, és a többi sor köre a vele való közvetlen kapcsolatot mutatja: kék pipa (előtte kell állnia), borostyán pipa (utána), lakat (szerkezeti, nem szüntethető meg), üres kör (nincs kapcsolat). Pipára kattintva a kapcsolat megszűnik, üres körre kattintva létrejön; ugyanazok a kattintások egy megszüntetett generált kapcsolatot pontosan visszaállítanak. Egy körről egy másik sorra húzás (egér, toll, érintés) ugyanez a kapcsoló. Billentyűzettel: Enter a kiinduló körön, majd a másikon; Escape vagy a kiinduló kör befejezi. Új kapcsolat iránya a referencia sorrendje, mert kötelező szabály csak azzal összhangban vehető fel (ADR-018); a megerősítést igénylő megszüntetést a panel kéri.
 - **Döntés:** minden szerkesztés típusos szabályművelet; a megengedhetőségről, a megerősítés szintjéről és az újraminősítésről a core dönt (ADR-018, ADR-021). Egy nem alkalmazott JSON-piszkozat mellett a szabályszerkesztés nem indul el; a nem alkalmazott forráspiszkozat megmarad.
 
 ## Próba és tanulói nézet
 
-**Szabályok a próbarendezőn:** a szerző saját előnézetében a Próba lépésben is minden soron ott van a láncszem és a kör gomb, a rendező fölött a jelmagyarázat és a „Minden nem szerkezeti szabály rajzolása” kapcsoló, alatta a szabálypanel.
+**Szabályok a próbarendezőn:** a szerző saját előnézetében a Próba lépésben is minden soron ott van a láncszem és a kör (kapcsolatkapcsoló), a rendező fölött a jelmagyarázat és a „Minden nem szerkezeti szabály rajzolása” kapcsoló, alatta a szabálypanel.
 
 - Az ívek a szerző aktuális elrendezésében rajzolódnak, és minden mozgatás után újra; egy fordított irányú ív a szabállyal ellentétes jelenlegi sorrendet mutatja.
 - Egy szabályszerkesztés megtartja a kitöltést, és azonnal újraértékeli; a rendező görgetési helyzete, a fókusz és a nyitott részletek ugyanúgy megmaradnak, mint egy húzás után.
-- A körgombról induló húzás összeköt, nem mozgat sort; a fogantyú továbbra is mozgat.
+- A körről induló húzás kapcsolatot hoz létre vagy szüntet meg, sort nem mozgat; a fogantyú továbbra is mozgat.
 - A gyakorló mód és a tanulói nézet ebből semmit nem mutat.
 
 A **Próba** a rendezőt és a megoldás kódszerkesztőjét kínálja. A szerző mintát tölthet ki, újrakezdhet, másolhat, beilleszthet, és ugyanazzal a kiértékeléssel vizsgálhatja a megengedett és a tiltott elrendezéseket.
@@ -88,11 +88,11 @@ A megjelenítés a `src/workbench` natív strict TypeScript-forrása; az állapo
 **Tesztek:**
 
 - `tests/workbench-flow.test.mjs`: minden állapotátmenet (zárolás, elavulás, módváltás, landolás, összekötés iránya).
-- `npm run test:browser:workbench`: 43 folyamat Node és Pages módban, többek között:
+- `npm run test:browser:workbench`: 45 folyamat Node és Pages módban, többek között:
   - a zárolt lépések;
   - az újraépítés és a JSON-alkalmazás után minden későbbi lépés frissül;
   - egy szerzői projekt a gyakorlás mellett, példák mint kezdőpontok;
-  - szabálypanel és összekötés egérrel és billentyűzettel, a táblán és a próbarendezőn is;
+  - szabálypanel és kapcsolatkapcsoló egérrel, húzással és billentyűzettel, a táblán és a próbarendezőn is (létrehozás, megszüntetés, pontos visszaállítás);
   - az ívek újrarajzolása rendezés közben és az azonnali újraértékelés;
   - a görgetés megmaradása szabály hozzáadása és eltávolítása után;
   - a piszkozatok megőrzése és a késői válaszok elleni védelem;

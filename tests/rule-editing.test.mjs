@@ -60,7 +60,7 @@ test('removing a pedagogical rule is free and loosens; a generated rule is redun
  const refused=applyRuleEdits(chained,[{kind:'remove-rule',before:2,after:4}]);
  assert.deepEqual([refused.ok,refused.error,refused.acknowledge],[false,'needs-acknowledgement','policy-override']);
  const overridden=ok(applyRuleEdits(chained,[{kind:'remove-rule',before:2,after:4,acknowledge:'policy-override'}]));
- assert.deepEqual(overridden.authoring.relaxations,[{before:2,after:4,editability:'proven'}]);
+ assert.deepEqual(overridden.authoring.relaxations,[{before:2,after:4,editability:'proven',removed:{origins:['dependency'],reasons:direct(base(),2,4).reasons}}]);
  // A legacy dependency implied by other legacy dependencies (2 → 4 → 5) goes freely: the order set is unchanged.
  const legacy=base();delete legacy.authoring;legacy.lines[4].dependencies.push(2);
  const dropped=applyRuleEdits(legacy,[{kind:'remove-rule',before:2,after:5}]);
@@ -75,13 +75,13 @@ test('relaxation safety: hard never, conservative only acknowledged, proven only
  assert.equal(conservative.editability,'conservative');
  assert.equal(applyRuleEdits(commented,[{kind:'remove-rule',before:3,after:4}]).error,'needs-acknowledgement');
  const relaxed=applyRuleEdits(commented,[{kind:'remove-rule',before:3,after:4,acknowledge:'unproven-relaxation',note:'A komment szabadon mozoghat.'}]);
- assert.deepEqual(ok(relaxed).authoring.relaxations,[{before:3,after:4,editability:'conservative',note:'A komment szabadon mozoghat.'}]);
+ assert.deepEqual(ok(relaxed).authoring.relaxations.map(({removed,...entry})=>entry),[{before:3,after:4,editability:'conservative',note:'A komment szabadon mozoghat.'}]);assert.ok(ok(relaxed).authoring.relaxations[0].removed.reasons.every(reason=>reason.category==='conservative'));
  assert.equal(relaxed.effect.looser,'yes');
  const model=base();
  assert.equal(direct(model,2,4).editability,'proven');
  assert.equal(applyRuleEdits(model,[{kind:'remove-rule',before:2,after:4,acknowledge:'unproven-relaxation'}]).error,'needs-acknowledgement');
  const override=ok(applyRuleEdits(model,[{kind:'remove-rule',before:2,after:4,acknowledge:'policy-override'}]));
- assert.deepEqual(override.authoring.relaxations,[{before:2,after:4,editability:'proven'}]);
+ assert.deepEqual(override.authoring.relaxations.map(({removed,...entry})=>entry),[{before:2,after:4,editability:'proven'}]);
  const continued=generate(['function f() {','  const a = g(','    1);','  return a;','}']);
  assert.equal(applyRuleEdits(continued,[{kind:'remove-rule',before:2,after:3,acknowledge:'policy-override'}]).error,'hard-constraint');
 });
@@ -90,7 +90,7 @@ test('unbound provenance makes every rule legacy: removal needs a policy overrid
  const model=base();model.lines[2].code='  const b = 9;';
  assert.equal(explainConstraints(model).provenance,'unbound');
  assert.equal(applyRuleEdits(model,[{kind:'remove-rule',before:2,after:4,acknowledge:'unproven-relaxation'}]).error,'needs-acknowledgement');
- assert.deepEqual(ok(applyRuleEdits(model,[{kind:'remove-rule',before:2,after:4,acknowledge:'policy-override'}])).authoring.relaxations,[{before:2,after:4,editability:'legacy'}]);
+ assert.deepEqual(ok(applyRuleEdits(model,[{kind:'remove-rule',before:2,after:4,acknowledge:'policy-override'}])).authoring.relaxations,[{before:2,after:4,editability:'legacy',removed:{origins:['dependency'],reasons:model.authoring.provenance.filter(entry=>entry.before===2&&entry.after===4).map(({category,code})=>({category,code}))}}],'the record keeps the stored entries as they were, bound or not, so a restore is exact');
 });
 
 test('fixed slots and OR profiles: fixing tightens, a contradicting profile is allowed beside one that accepts the reference',()=>{
@@ -134,6 +134,23 @@ test('the gate requalifies every edit: author rules are author-modified, any rel
  assert.equal(relaxed.verification.claims.find(item=>item.claim.startsWith('Az elfogadott sorrendek')).basis,'not-established');
  const failed=await editAuthorModel(base(),[{kind:'add-rule',before:4,after:2}],ports);
  assert.deepEqual([failed.result.ok,failed.verification],[false,undefined]);
+});
+
+test('removing and re-adding a generated rule is a round trip: the constraint, its reasons and its note return (ADR-024)',async()=>{
+ const noted=ok(applyRuleEdits(base(),[{kind:'set-note',before:2,after:4,note:'a c az a-t olvassa'}]));
+ const removed=ok(applyRuleEdits(noted,[{kind:'remove-rule',before:2,after:4,acknowledge:'policy-override',note:'didaktika'}]));
+ const [relaxation]=removed.authoring.relaxations;
+ assert.deepEqual(relaxation.removed.origins,['dependency']);assert.equal(relaxation.removed.note,'a c az a-t olvassa');
+ assert.deepEqual(relaxation.removed.reasons,direct(noted,2,4).reasons);
+ const restored=ok(applyRuleEdits(removed,[{kind:'add-rule',before:2,after:4}]));
+ assert.deepEqual({...restored,revision:noted.revision},noted,'the model is exactly the one before the removal');
+ assert.equal(direct(restored,2,4).editability,'proven');
+ const checked=await editAuthorModel(removed,[{kind:'add-rule',before:2,after:4}],ports);
+ assert.equal(checked.verification.status,(await editAuthorModel(base(),[{kind:'set-note',before:2,after:4,note:'x'}],ports)).verification.status,'the gate sees no relaxation any more');
+ // A relaxation recorded before ADR-024 has nothing to restore: the pair becomes an author rule and the relaxation goes.
+ const old=structuredClone(removed);delete old.authoring.relaxations[0].removed;
+ const author=ok(applyRuleEdits(old,[{kind:'add-rule',before:2,after:4}]));
+ assert.equal(author.authoring.relaxations,undefined);assert.deepEqual(direct(author,2,4).reasons,[{category:'author',code:'author-rule'}]);
 });
 
 test('refresh carries author rules, relaxations and notes over and reports what it could not',async()=>{

@@ -1,6 +1,6 @@
 # ADR-022 – Léptetéses szerzői folyamat, külön gyakorló mód és vizuális szabálytábla
 
-Állapot: implementálva (U1). A validátor, a CodeLine-séma, a szerzői API, a tanulói parsermentes értékelés és a bizalmi határ változatlan. Az [ADR-004](004-reference-and-attempt-workspaces.md) feladatonkénti szerzői munkaterületét felváltja; a próbálkozás és a referencia szétválasztása megmarad.
+Állapot: implementálva (U1). A kör összekötőből kapcsolatkapcsoló lett: [ADR-024](024-link-toggle-and-exact-restore.md). A validátor, a CodeLine-séma, a szerzői API, a tanulói parsermentes értékelés és a bizalmi határ változatlan. Az [ADR-004](004-reference-and-attempt-workspaces.md) feladatonkénti szerzői munkaterületét felváltja; a próbálkozás és a referencia szétválasztása megmarad.
 
 ## Kontextus
 

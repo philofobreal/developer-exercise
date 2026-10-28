@@ -516,3 +516,10 @@ A kézi `class-inventory-ts` modell a konstruktort a mező után, a metódusokat
 - a szerver és a Pages ezért még nem küld diagnosztikát.
 
 **Javítás a felhasználó jelzésére (2026-10-27):** a Próba lépésben a szabályszerkesztés után a rendező a tetejére ugrott, mert a görgetési memória az előnézet minden befogadáskor változó azonosítójához volt kötve. Most a szerzői projekt állandó kulcsához kötött (ADR-022, `continuityKey`). Bizonyíték: `workbench-flow` 8 eset, workbench-böngészőcsomag 43 eset.
+
+## Közbeiktatott feladatok (2026-10-28)
+
+A felhasználó két nagy feladatot kért az F1, F2 és G1 előtt. Az epic terve változatlanul megmarad, és utánuk folytatódik.
+
+1. **Kapcsolatkapcsoló ([ADR-024](adr/024-link-toggle-and-exact-restore.md)) – kész:** a kör kipipálja a kiinduló sor közvetlen kapcsolatait a kapcsolat színével; pipára kattintva megszűnik, üres körre kattintva létrejön a kapcsolat, és a megszüntetett generált kapcsolat pontosan visszaállítható. Bizonyíték: `rule-editing` oda-vissza út, `workbench-flow` 9 eset, workbench-böngészőcsomag 45/45.
+2. **A függőségi gráf a mesterprompt szerint – folyamatban:** a generátor soronként, minden sor szemszögéből határozza meg a szükséges megelőző sorokat, se fölösleges, se hiányzó kapcsolat nélkül, úgy, hogy az elrendezés pontosan ott romoljon el, ahol a program viselkedése is megváltozna.

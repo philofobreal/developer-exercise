@@ -88,3 +88,18 @@ test('continuity: every admission is the same author project; practice exercises
  assert.equal(continuityKey(state),first,'a rule edit or refresh installs a new preview id, not a new scroll identity');
  enterMode(state,'practice');assert.equal(continuityKey(state),'trusted:practice');assert.notEqual(continuityKey(state),first);
 });
+
+test('link toggle (ADR-024): with an anchor every row shows its direct link as a coloured check, a lock or an empty circle',async()=>{
+ const {connectButton,linkWith}=await import('../public/app/rule-board.js');
+ const state=make();admit(state,'try');
+ const c=(before,after,editability)=>({before,after,editability,origins:['dependency'],reasons:[]});
+ state.authorInsight={rules:{provenance:'complete',unexplained:0,stale:0,relaxations:[],constraints:[c(1,4,'hard'),c(2,4,'proven'),c(4,5,'pedagogical')]}};
+ assert.match(connectButton(state,4),/aria-pressed="false"/);assert.doesNotMatch(connectButton(state,4),/data-link/,'no anchor: a plain circle');
+ state.ruleConnect=4;
+ const kind=id=>connectButton(state,id).match(/data-link="(\w+)"/)?.[1];
+ assert.deepEqual([4,1,2,5,3].map(kind),['anchor','before','before','after','none']);
+ assert.match(connectButton(state,1),/link-locked[\s\S]*nem szüntethető meg/);
+ assert.match(connectButton(state,2),/aria-pressed="true"[\s\S]*megnyomva megszünteted/);
+ assert.match(connectButton(state,3),/aria-pressed="false"[\s\S]*létrehozása/);
+ assert.equal(linkWith(state,4,5).after,5);assert.equal(linkWith(state,5,4).before,4,'a link is found from either end');assert.equal(linkWith(state,4,3),undefined);
+});

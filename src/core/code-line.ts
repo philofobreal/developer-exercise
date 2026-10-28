@@ -45,8 +45,10 @@ export interface ModelEvidence { sourceDigest: string; analyzer: DependencyPolic
 /** An author's note on one direct constraint (ADR-018); untrusted text, escaped wherever shown. */
 export interface RuleNote { before: number; after: number; note: string; }
 /** A generated constraint the author removed (ADR-018). `editability` records how strong it
- * was: `conservative` is an unproven author judgement, `proven` and `legacy` a policy override. */
-export interface RuleRelaxation { before: number; after: number; editability: 'conservative' | 'proven' | 'legacy'; note?: string; }
+ * was: `conservative` is an unproven author judgement, `proven` and `legacy` a policy override.
+ * `removed` (ADR-024): what the removal took out of the model (where it stated the constraint,
+ * its generated reasons, its rule note), so adding the pair again restores it exactly. */
+export interface RuleRelaxation { before: number; after: number; editability: 'conservative' | 'proven' | 'legacy'; note?: string; removed?: { origins: ('dependency' | 'edge')[]; reasons: { category: ConstraintCategory; code: string }[]; note?: string }; }
 export interface CodeLineExercise {
   schemaVersion: 2;
   id: string;
