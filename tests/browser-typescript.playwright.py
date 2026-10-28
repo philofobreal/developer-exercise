@@ -63,7 +63,7 @@ try:
                     page.locator('[data-source-file]').set_input_files({'name':'user-account.ts','mimeType':'text/plain','buffer':source.encode()})
                     expect(page.locator('#author-editor')).to_have_value(source)
                     page.locator('[data-author="title"]').fill('UserAccount sorrendszabályok')
-                    page.locator('[data-author="description"]').fill('Az interface mezők cserélhetők; az osztálymezők és a constructor értékadásai sorrendtartók.')
+                    page.locator('[data-author="description"]').fill('Az interface mezők, az osztálymezők és a constructor két értékadása is cserélhető; a constructor értékadásai a constructorban maradnak.')
                     page.locator('[data-author-apply]').click();expect(page.locator('[data-board-line]')).to_have_count(13);page.locator('[data-step="try"]').click();expect(page.locator('.source-zone .code-row')).to_have_count(13)
                     model=json.loads((ROOT/'public/samples/typescript/01-user-account.model.json').read_text(encoding='utf-8'))
                     def check_order(order,label):
@@ -71,7 +71,10 @@ try:
                         page.locator('[data-view="edit"]').click();page.locator('#code-editor').fill('\n'.join(by_id[id] for id in order));page.locator('[data-apply]').click()
                         page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text(label)
                     check_order([1,3,2,4,5,6,7,8,9,10,11,12,13],'Elfogadva')
-                    check_order([1,2,3,4,5,7,6,8,10,9,11,12,13],'Hibás')
+                    # ADR-031: fields and constructor writes swapped is accepted (the program lists no keys);
+                    # a constructor write moved out of the constructor stays wrong.
+                    check_order([1,2,3,4,5,7,6,8,10,9,11,12,13],'Elfogadva')
+                    check_order([1,2,3,4,5,6,7,8,9,11,10,12,13],'Hibás')
                     page.locator('[data-ordering-policy] summary').click();expect(page.locator('[data-ordering-policy]')).to_contain_text('kulcssorrend')
                     page.screenshot(path=str(ARTIFACTS/f'typescript-{mode}-screenshot-explained.png'),full_page=True)
                     page.locator('[data-preview-toggle]').click();expect(page.locator('[data-ordering-policy]')).to_have_count(0)
