@@ -133,10 +133,19 @@ export function objectFootprints(list, file, compiler, checker, host) {
         else if (compiler.isObjectLiteralExpression(init))
             owned.set(symbol, { id, statement, kind: { kind: 'object' } });
     }
-    if (!owned.size)
+    // ADR-031: in the body of a constructor of an analysable class, `this` is an own object too. Its
+    // field initialisers and parameter properties ran before the body; a parameter is an outside value
+    // that may be stored but not operated on (OTHER).
+    const ctor = list[0]?.parent && compiler.isBlock(list[0].parent) && compiler.isConstructorDeclaration(list[0].parent.parent) ? list[0].parent.parent : undefined;
+    const selfInfo = ctor && compiler.isClassDeclaration(ctor.parent) ? classInfo(ctor.parent) : null;
+    const self = selfInfo ? 'T' + ctor.pos : null;
+    const parameters = new Set(ctor ? ctor.parameters.flatMap(parameter => { const symbol = compiler.isIdentifier(parameter.name) ? checker.getSymbolAtLocation(parameter.name) : undefined; return symbol ? [symbol] : []; }) : []);
+    if (!owned.size && !self)
         return result;
     // Abstract heap, collected flow-insensitively over every statement of the list.
     const kinds = new Map([...owned.values()].map(entry => [entry.id, entry.kind]));
+    if (self)
+        kinds.set(self, { kind: 'class', info: selfInfo });
     const fields = new Map(), elements = new Map();
     let changed = false;
     const addField = (object, name, value) => {
@@ -275,7 +284,8 @@ export function objectFootprints(list, file, compiler, checker, host) {
                     unknown();
             }
             // A field the construction already created keeps the key order; any other name may add a key.
-            const existing = kind.kind === 'class' && (kind.info.fields.get(name) !== undefined || kind.info.parameterFields.includes(name));
+            // ADR-031: unless the program lists keys, adding a key is a write of that field alone.
+            const existing = !host.enumeratedKeys || kind.kind === 'class' && (kind.info.fields.get(name) !== undefined || kind.info.parameterFields.includes(name));
             frame.fp.writes.add(at(object, existing ? name : WHOLE));
             addField(object, name, value);
         }
@@ -400,7 +410,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
         if (compiler.isNumericLiteral(expr) || [S.TrueKeyword, S.FalseKeyword, S.NullKeyword].includes(expr.kind))
             return PRIM;
         if (expr.kind === S.ThisKeyword)
-            return frame.self ? objects(frame.self) : unknown();
+            return frame.self ? objects(frame.self) : self ? objects(self) : unknown();
         if (compiler.isIdentifier(expr)) {
             const local = frame.env.get(expr.text);
             if (local)
@@ -409,6 +419,8 @@ export function objectFootprints(list, file, compiler, checker, host) {
                 const symbol = checker.getSymbolAtLocation(expr), own = symbol && owned.get(symbol);
                 if (own)
                     return objects(own.id);
+                if (symbol && parameters.has(symbol))
+                    return OTHER;
                 if (host.primitive(expr))
                     return PRIM;
             }
@@ -557,6 +569,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
         return false;
     };
     let foreign = new Set();
+    const selfStatements = new Set();
     const scan = (node, statement) => {
         if (compiler.isIdentifier(node)) {
             const symbol = checker.getSymbolAtLocation(node);
@@ -566,14 +579,32 @@ export function objectFootprints(list, file, compiler, checker, host) {
                 (occurrences.get(symbol) ?? occurrences.set(symbol, []).get(symbol)).push(statement);
             }
         }
+        // The constructor's own `this`; a nested function or class has a `this` of its own.
+        if (self && node.kind === S.ThisKeyword && !inNested(node, statement))
+            selfStatements.add(statement);
         compiler.forEachChild(node, child => scan(child, statement));
     };
     // A block-scoped const of this list is visible only to the list's statements; a use inside a nested function escapes.
     for (const statement of list)
         scan(statement, statement);
     const escaped = new Set([...foreign].map(symbol => owned.get(symbol).id));
-    // Fixpoint: heap facts and footprints, escapes propagating through stored references.
     const budget = { steps: 0 };
+    // ADR-031: the state the body starts from, as a construction leaves it.
+    if (self) {
+        try {
+            const frame = { self, env: new Map(), fp: { reads: new Set(), writes: new Set(), mayThrow: false }, stack: new Set(), budget };
+            for (const [name, initializer] of selfInfo.fields)
+                addField(self, name, initializer ? expression(initializer, frame) : PRIM);
+            for (const name of selfInfo.parameterFields)
+                addField(self, name, OTHER);
+        }
+        catch (error) {
+            if (!(error instanceof Unknown))
+                throw error;
+            escaped.add(self);
+        }
+    }
+    // Fixpoint: heap facts and footprints, escapes propagating through stored references.
     for (let round = 0; round < 12; round++) {
         changed = false;
         result.clear();
@@ -602,6 +633,11 @@ export function objectFootprints(list, file, compiler, checker, host) {
                     escaped.add(owned.get(symbol).id);
                     changed = true;
                 }
+        // Any statement naming `this` without a footprint, a return included, may hand it to unknown code.
+        if (self && !escaped.has(self) && [...selfStatements].some(statement => !result.has(statement))) {
+            escaped.add(self);
+            changed = true;
+        }
         for (const id of [...escaped]) {
             const held = [...fields.get(id)?.values() ?? [], ...elements.has(id) ? [elements.get(id)] : []];
             for (const value of held)

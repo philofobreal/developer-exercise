@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased – 2026-10-28 a konstruktor this-írásai (ADR-031, v15)
+
+- **Rés lezárva:** a konstruktor két független `this`-írása (`this.name = name; this.id = id;`) felcserélhető, ha a program nem listázza a kulcsokat. A `this` a nem származtatott, elemezhető osztály konstruktorában saját objektum.
+- **Kötött marad:**
+  - az olvasás írás után;
+  - a kiszökő `this` (például `register(this)`);
+  - a kulcsokat listázó program;
+  - a származtatott osztály;
+  - a paraméteren végzett művelet;
+  - ugyanazon mező kétszeri írása.
+- **Orákulum:** a konstruktor `this`-műveletei és a bővebb értékkör (literálok, aritmetika, saját mezők, `throw new Error` egy ágban) is helyi objektumművelet; sorrendjükről a futásidő dönt.
+- **Tesztek:** `constructor-footprints`, kilenc új fixture; a `01-user-account` 8/8 kombinációja pontosan egyezik a futásidővel.
+
 ## Unreleased – 2026-10-28 pontosabb hibaazonosítás (ADR-030)
 
 - **Kérdés:** a setter törzsébe tett `score = 0;` mezőre a kiértékelő csak annyit mondott, hogy „a pontos ok nem nevezhető meg”. Az ok: a blokk záró `}` sora több helyen is állhatott, és az ilyen blokkot a diagnosztika kihagyta.

@@ -60,7 +60,7 @@ export function enumeratesKeys(file, compiler) {
 /** `options.imports` describes the TypeScript emit (ADR-013); JavaScript imports always load their module. */
 export function jsTsOrderingRelations(file, compiler, options = {}) {
     const reflectedKeys = observesKeyOrder(file, compiler), enumeratedKeys = enumeratesKeys(file, compiler);
-    const statements = statementOrdering(file, compiler, { ...(file.fileName.endsWith('.ts') ? options : {}), reflectedKeys }), members = typeMemberOrdering(file, compiler, { reflectedKeys, enumeratedKeys });
+    const statements = statementOrdering(file, compiler, { ...(file.fileName.endsWith('.ts') ? options : {}), reflectedKeys, enumeratedKeys }), members = typeMemberOrdering(file, compiler, { reflectedKeys, enumeratedKeys });
     return combineOrderingRelations([
         { entries: statements.entries, protectedInputs: statements.protectedInputs, spans: statements.units.map(({ first, last }) => ({ first, last })), note: '' },
         { entries: members.entries, protectedInputs: new Map(), spans: members.spans, note: members.note }

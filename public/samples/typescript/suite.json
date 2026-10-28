@@ -2,7 +2,7 @@
   {
     "id": "01-user-account",
     "title": "UserAccount – a beküldött példa",
-    "description": "Az interface adatmezői és a kezdőérték nélküli class mezők felcserélhetők, mert a program maga nem listázza a kulcsokat (ADR-029). A konstruktor this-értékadásai sorrendben maradnak.",
+    "description": "Az interface adatmezői, a kezdőérték nélküli class mezők és a konstruktor két független this-értékadása felcserélhetők, mert a program maga nem listázza a kulcsokat (ADR-029, ADR-031).",
     "acceptedSwaps": [
       [
         2,
@@ -11,13 +11,13 @@
       [
         6,
         7
-      ]
-    ],
-    "rejectedSwaps": [
+      ],
       [
         9,
         10
-      ],
+      ]
+    ],
+    "rejectedSwaps": [
       [
         5,
         13
@@ -83,18 +83,18 @@
   {
     "id": "04-declare-fields",
     "title": "Kifejezetten törölt declare mezők",
-    "description": "A declare mezők nem hoznak létre futásidejű property-t. Az értékadó constructor viszont sorrendtartó.",
+    "description": "A declare mezők nem hoznak létre futásidejű property-t. A konstruktor két független értékadása is felcserélhető, mert a program nem listázza a kulcsokat (ADR-031).",
     "acceptedSwaps": [
       [
         2,
         3
-      ]
-    ],
-    "rejectedSwaps": [
+      ],
       [
         5,
         6
-      ],
+      ]
+    ],
+    "rejectedSwaps": [
       [
         4,
         8
@@ -104,7 +104,7 @@
       2,
       3
     ],
-    "probe": "JSON.stringify({name:value.name,id:value.id,keys:Object.keys(value)})"
+    "probe": "JSON.stringify({name:value.name,id:value.id,keys:Object.keys(value).sort()})"
   },
   {
     "id": "05-field-initializers",

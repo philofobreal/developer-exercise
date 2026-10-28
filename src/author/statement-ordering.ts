@@ -59,7 +59,8 @@ export function bindingChecker(file: ts.SourceFile, compiler: Compiler): ts.Type
  * import none of whose bindings is used as a value. */
 export type ImportEmit = 'verbatim' | 'elide-unused';
 /** `reflectedKeys` (ADR-020): the program may list global keys, so function declarations keep their global order. */
-export interface OrderingOptions {imports?: ImportEmit; reflectedKeys?: boolean;}
+/** `enumeratedKeys` (ADR-029/031): the program may list enumerable keys, so adding a key to an own object is ordered. */
+export interface OrderingOptions {imports?: ImportEmit; reflectedKeys?: boolean; enumeratedKeys?: boolean;}
 
 export function statementOrdering(file: ts.SourceFile, compiler: Compiler, options: OrderingOptions = {}): StatementOrdering {
  const empty: StatementOrdering = {entries: [], protectedInputs: new Map(), units: []};
@@ -485,7 +486,7 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
    const summaries = node.statements.map(statement => summary(statement, node)), sourceFile = compiler.isSourceFile(node);
    // ADR-025: in a function-context list, statements on the list's own objects get footprints.
    if (compiler.isBlock(node) && context(node) !== file) {
-    const footprints = objectFootprints(node.statements, file, compiler, checker, {primitive: expr => primitive(expr, new Set())});
+    const footprints = objectFootprints(node.statements, file, compiler, checker, {primitive: expr => primitive(expr, new Set()), enumeratedKeys: options.enumeratedKeys ?? true});
     summaries.forEach((unit, i) => {
      const statement = node.statements[i]!, footprint = footprints.get(statement);
      // ADR-028: an if/else owns its first and last rows; its branch rows follow their own block.

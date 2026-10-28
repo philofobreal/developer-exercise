@@ -51,9 +51,11 @@ export declare function bindingChecker(file: ts.SourceFile, compiler: Compiler):
  * import none of whose bindings is used as a value. */
 export type ImportEmit = 'verbatim' | 'elide-unused';
 /** `reflectedKeys` (ADR-020): the program may list global keys, so function declarations keep their global order. */
+/** `enumeratedKeys` (ADR-029/031): the program may list enumerable keys, so adding a key to an own object is ordered. */
 export interface OrderingOptions {
     imports?: ImportEmit;
     reflectedKeys?: boolean;
+    enumeratedKeys?: boolean;
 }
 export declare function statementOrdering(file: ts.SourceFile, compiler: Compiler, options?: OrderingOptions): StatementOrdering;
 export {};

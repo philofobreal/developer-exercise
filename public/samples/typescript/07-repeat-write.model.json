@@ -125,7 +125,7 @@
     "reason": "",
     "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
-    "dependencyPolicy": "scoped-effect-analysis-v14",
+    "dependencyPolicy": "scoped-effect-analysis-v15",
     "provenance": [
       {
         "before": 1,
@@ -148,8 +148,8 @@
       {
         "before": 4,
         "after": 5,
-        "category": "effect",
-        "code": "ExpressionStatement"
+        "category": "data",
+        "code": "object-write-after-write"
       },
       {
         "before": 5,
@@ -172,7 +172,7 @@
     ],
     "evidence": {
       "sourceDigest": "c83670161e0da9c1",
-      "analyzer": "scoped-effect-analysis-v14",
+      "analyzer": "scoped-effect-analysis-v15",
       "environment": {
         "typescript": "5.8.3",
         "importEmit": "verbatim",

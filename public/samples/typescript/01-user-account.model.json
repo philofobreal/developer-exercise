@@ -4,7 +4,7 @@
   "revision": 1,
   "language": "typescript",
   "title": "UserAccount – a beküldött példa",
-  "description": "Az interface adatmezői és a kezdőérték nélküli class mezők felcserélhetők, mert a program maga nem listázza a kulcsokat (ADR-029). A konstruktor this-értékadásai sorrendben maradnak.",
+  "description": "Az interface adatmezői, a kezdőérték nélküli class mezők és a konstruktor két független this-értékadása felcserélhetők, mert a program maga nem listázza a kulcsokat (ADR-029, ADR-031).",
   "lines": [
     {
       "id": 1,
@@ -116,7 +116,7 @@
       "sourceLine": 12,
       "code": "    this.id = id;",
       "dependencies": [
-        9
+        8
       ],
       "fixed": false,
       "functionBlock": 1,
@@ -191,7 +191,7 @@
     "reason": "",
     "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
-    "dependencyPolicy": "scoped-effect-analysis-v14",
+    "dependencyPolicy": "scoped-effect-analysis-v15",
     "provenance": [
       {
         "before": 1,
@@ -242,10 +242,10 @@
         "code": "block-open"
       },
       {
-        "before": 9,
+        "before": 8,
         "after": 10,
-        "category": "effect",
-        "code": "ExpressionStatement"
+        "category": "structure",
+        "code": "block-open"
       },
       {
         "before": 10,
@@ -268,7 +268,7 @@
     ],
     "evidence": {
       "sourceDigest": "b3adab2637be05fd",
-      "analyzer": "scoped-effect-analysis-v14",
+      "analyzer": "scoped-effect-analysis-v15",
       "environment": {
         "typescript": "5.8.3",
         "importEmit": "verbatim",

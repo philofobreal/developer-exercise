@@ -583,7 +583,7 @@ export function statementOrdering(file, compiler, options = {}) {
             const summaries = node.statements.map(statement => summary(statement, node)), sourceFile = compiler.isSourceFile(node);
             // ADR-025: in a function-context list, statements on the list's own objects get footprints.
             if (compiler.isBlock(node) && context(node) !== file) {
-                const footprints = objectFootprints(node.statements, file, compiler, checker, { primitive: expr => primitive(expr, new Set()) });
+                const footprints = objectFootprints(node.statements, file, compiler, checker, { primitive: expr => primitive(expr, new Set()), enumeratedKeys: options.enumeratedKeys ?? true });
                 summaries.forEach((unit, i) => {
                     const statement = node.statements[i], footprint = footprints.get(statement);
                     // ADR-028: an if/else owns its first and last rows; its branch rows follow their own block.

@@ -68,6 +68,16 @@ const fixtures=[
   'function build() {',"  const first = new Item('a');","  const second = new Item('b');","  first.alias = '';",'  second.activate();','  return [first, second];','}']},
  // ADR-028: writes that add keys to an object keep their order (the key order is observable).
  {id:'prompt-new-keys',probe:'build()',source:['function build() {','  const box = {a: 1};','  box.b = 2;','  box.c = 3;','  return JSON.stringify(box);','}']},
+ // ADR-031: constructor bodies, `this` as an own object.
+ {id:'ctor-independent-writes',probe:'build()',source:['class Point {','  constructor(x, y) {','    this.x = x;','    this.y = y;',"    this.label = 'p';",'  }','}','function build() {','  return new Point(1, 2);','}']},
+ {id:'ctor-read-after-write',probe:'build()',source:['class Pair {','  constructor() {','    this.a = 1;','    this.b = this.a + 1;','    this.c = 3;','  }','}','function build() {','  return new Pair();','}']},
+ {id:'ctor-escape',probe:'build()',source:['function register(item) {','  record(item.a, item.b);','}','class Tracked {','  constructor() {','    this.a = 1;','    register(this);','    this.b = 2;','    this.c = 3;','  }','}','function build() {','  return new Tracked();','}']},
+ {id:'ctor-enumerates',probe:'build()',source:['class Shape {','  constructor() {','    this.a = 1;','    this.b = 2;','  }','}','function build() {','  return JSON.stringify(new Shape());','}']},
+ {id:'ctor-derived',probe:'build()',source:['class Base {','  constructor() {','    this.k = 0;','  }','}','class Derived extends Base {','  constructor() {','    super();','    this.a = 1;','    this.b = 2;','  }','}','function build() {','  return new Derived();','}']},
+ {id:'ctor-method-call',probe:'build()',source:['class Bag {','  constructor() {','    this.items = [];','    this.count = 0;','    this.add(5);','  }','  add(value) {','    this.items.push(value);','  }','}','function build() {','  return new Bag();','}']},
+ {id:'ctor-parameter-operation',probe:'build()',source:['class Sum {','  constructor(a, b) {','    this.total = a + b;',"    this.tag = 't';",'  }','}','function build() {','  return new Sum(1, 2);','}']},
+ {id:'ctor-guard',probe:"(() => { try { return new Guarded(''); } catch (error) { return error.message; } })()",source:['class Guarded {','  constructor(value) {',"    if (value === '') {","      throw new Error('empty');",'    }','    this.value = value;','    this.extra = 1;','  }','}']},
+ {id:'ctor-ts-fields',language:'typescript',probe:'build()',source:['class Account {','  name: string;','  balance = 0;','  constructor(public readonly id: string, name: string) {','    this.name = name;','    this.balance = 10;','  }','}','function build(): Account {',"  return new Account('a1', 'Ada');",'}']},
  // ADR-028: the runtime master prompt's own input — a string method in a setter, two fields of
  // one object written by independent statements and a list-level if/else on an own object.
  {id:'prompt-mini-fixture',language:'typescript',probe:'runMiniFixture()',source:[

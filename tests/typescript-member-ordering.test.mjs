@@ -48,8 +48,9 @@ test('exact screenshot is syntactically valid but has a different observable pro
  const source=await readFile(new URL('01-user-account.ts',directory),'utf8');
  const model=generateCodeLineExercise({source,language:'typescript'},ts),compiled=compile(model);
  const order=[1,2,3,4,5,7,6,8,10,9,11,12,13],changed=codes(model,order);
- assert.equal(grade(compiled,changed).status,'rejected');
- assert.equal(model.authoring.dependencyPolicy,'scoped-effect-analysis-v14');
+ // ADR-031: fields and constructor writes both swapped; only the unlisted key order differs.
+ assert.equal(grade(compiled,changed).status,'accepted');
+ assert.equal(model.authoring.dependencyPolicy,'scoped-effect-analysis-v15');
  assert.deepEqual(model.lines[1].dependencies,[1]);assert.deepEqual(model.lines[2].dependencies,[1]);assert.deepEqual(model.lines[3].dependencies,[2,3]);
  assert.ok(model.lines.every(line=>line.fixed===false));
  // The raw creation order differs; the public probe compares the key set (ADR-029).
@@ -70,7 +71,7 @@ test('exact screenshot is syntactically valid but has a different observable pro
  // (the probe's Object.keys is outside the program); the values stay the same in both modes.
  const fieldsSwapped=codes(model,swap(model.lines.map(line=>line.id),6,7)),nameAfterConstructor=codes(model,[1,2,3,4,5,7,8,9,10,11,6,12,13]);
  for(const lines of [fieldsSwapped,nameAfterConstructor])for(const define of [false,true]){const after=JSON.parse(run(lines.join('\n'),examples[0].probe,define));assert.deepEqual([after.name,after.id,[...after.keys].sort()],['Murphy',1,['id','name']]);}
- const original=model.lines.map(line=>line.code),allowed=new Set([key(original),key(codes(model,swap(model.lines.map(line=>line.id),2,3))),key(fieldAfterConstructor),key(fieldsSwapped),key(nameAfterConstructor)]);
+ const original=model.lines.map(line=>line.code),allowed=new Set([key(original),key(codes(model,swap(model.lines.map(line=>line.id),2,3))),key(fieldAfterConstructor),key(fieldsSwapped),key(nameAfterConstructor),key(codes(model,swap(model.lines.map(line=>line.id),9,10)))]);
  for(let from=0;from<original.length;from++)for(let to=0;to<original.length;to++){
   const lines=[...original];lines.splice(to,0,lines.splice(from,1)[0]);
   assert.equal(grade(compiled,lines).accepted,allowed.has(key(lines)),JSON.stringify({from,to}));
@@ -145,15 +146,13 @@ test('all eight interface/class/constructor combinations agree with both compile
   // ADR-029: the program lists no keys, so equal values and an equal key set are the same behaviour.
   const observe=value=>{const result=JSON.parse(value);return JSON.stringify([result.name,result.id,[...result.keys].sort()]);};
   const lines=codes(model,order),actuals=[false,true].map(define=>run(lines.join('\n'),examples[0].probe,define)),equivalent=actuals.every((value,index)=>observe(value)===observe(baselines[index]));
-  // Sound: nothing accepted changes behaviour. The constructor's this-writes stay ordered (a
-  // statement barrier, no footprint on `this`): a known completeness gap, recorded exactly.
+  // Exact (ADR-031 closed the constructor gap): accepted precisely when behaviour is kept.
   const verdict=grade(compiled,lines).accepted;
-  assert.ok(!verdict||equivalent,JSON.stringify({types,fields,writes}));
-  assert.equal(verdict,equivalent&&!writes,JSON.stringify({types,fields,writes}));if(verdict)accepted++;
+  assert.equal(verdict,equivalent,JSON.stringify({types,fields,writes}));if(verdict)accepted++;
   assert.equal(grade(authored,lines).status,'accepted');
   for(const value of actuals){const result=JSON.parse(value);assert.equal(result.name,'Murphy');assert.equal(result.id,1);}
  }
- assert.equal(accepted,4);
+ assert.equal(accepted,8);
 });
 
 test('mixed type-member DAG keeps fixed slots, common edges, OR profiles, text bijection and budget',()=>{
