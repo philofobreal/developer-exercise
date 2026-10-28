@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased – 2026-10-28 futásidőhöz igazított függőségek (ADR-028, v13)
+
+- **Kiinduló kérdés:** a futásidejű mesterprompt saját bemenetén (`runMiniFixture`) a v12 szinte teljes sorláncot adott. A rögzített mintán 328 olyan sorrendet utasított el, amelyet a futásidejű orákulum azonosnak lát. A prompt szerint kézzel készített modell 0 ilyet utasított el. [Soronkénti elemzés](docs/runtime-prompt-mini-fixture-elemzes.md).
+- **Javítás:**
+  - mezőszintű hatásnyom: ugyanazon objektum két különböző mezőjének írása szabad; az új kulcsot létrehozó írás kötött marad;
+  - listaszintű `if/else` hatásnyommal;
+  - ismert `String.prototype` metódusok bizonyítottan string értéken;
+  - `may-throw` csak két lehetséges kivétel között köt.
+- **Eredmény:** a generátor lezárt sorrendi relációja azonos a kézi, prompt szerinti modellével, és a mintán 0 a hibás elfogadás és az indokolatlan elutasítás is.
+- **Szigorítás:** a `.length` olvasás csak string értéken elemezhető, mert `null.length` dob.
+- **Orákulum:** a P2-kivétel a csak helyi objektumokon dolgozó `if/else`-re is kiterjed. A TS-modulok `export`-ja CommonJS-kibocsátással fut.
+- **Tesztek:** négy új ADR-028 eset, három új fixture (`prompt-mini-fixture`, `prompt-one-thrower`, `prompt-new-keys`), és minden elfogadott egysoros mozgatás orákulum-ellenőrzése.
+
 ## Unreleased – 2026-10-28 lezáró regresszió (G1)
 
 - **Minta:** a `23-parameter-property` TypeScript-minta fordítható (`Parameters` → `Point`); a modell függőségei változatlanok.

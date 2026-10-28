@@ -576,3 +576,9 @@ A G1.1–G1.2 a felhasználó kérésére részfeladatonként megállva, a G1.3�
 **Végső jelentés.** Az epic minden szakasza lezárult. A korábban nyitott kockázatok közül a 4. és az 5. megoldva (G1.1, G1.2). A G1 új regressziót nem talált a termékben: a mátrix-flake tesztoldali ok volt, a forráshűség és az erőforráskeret a mért korlátokon belül van.
 
 **Korlátok.** A kampány minta, nem teljes bizonyítás; a függvénytörzs-generátor csak JavaScriptet állít elő. Az erőforrás-mérések egy gépen készültek. A teljes WCAG-megfelelés és az univerzális szemantikai ekvivalencia nem állítás.
+
+## Utómunka: futásidőhöz igazított függőségek (ADR-028, v13)
+
+A G1 után a felhasználó a futásidejű mesterpromptot saját bemenettel (`runMiniFixture`) adta át, és azt kérte, hogy a blokkon belül független sorok legyenek szabadon rendezhetők. A promptot LLM-ként lefuttattuk, a kapott modellt soronként és a futásidejű orákulummal is megvizsgáltuk: [elemzés](runtime-prompt-mini-fixture-elemzes.md).
+
+A v12 túlkötött: a mintán 328 futásidőben azonos sorrendet utasított el. Négy okát javítottuk: mezőszint, listaszintű `if/else`, string-metódusok, egyetlen kivétel ([ADR-028](adr/028-runtime-precise-object-footprints.md)). A v13 lezárt sorrendi relációja azonos a kézi modellével.

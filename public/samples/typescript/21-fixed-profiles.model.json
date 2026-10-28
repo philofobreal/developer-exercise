@@ -64,11 +64,11 @@
     "reason": "",
     "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
-    "dependencyPolicy": "scoped-effect-analysis-v12",
+    "dependencyPolicy": "scoped-effect-analysis-v13",
     "provenance": [],
     "evidence": {
       "sourceDigest": "6df447a43a9a25ba",
-      "analyzer": "scoped-effect-analysis-v12",
+      "analyzer": "scoped-effect-analysis-v13",
       "environment": {
         "typescript": "5.8.3",
         "importEmit": "verbatim",

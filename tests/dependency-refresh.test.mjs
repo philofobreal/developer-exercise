@@ -28,7 +28,7 @@ test('exact user snapshot stays serial on import; explicit refresh accepts b/not
  assert.deepEqual(downloadable,{...refreshed,revision:2});
  assert.deepEqual(original,snapshot);
  assert.deepEqual(refreshed.lines.map(line=>line.dependencies),[[],[1],[1],[2,3],[1],[4,5],[6]]);
- assert.equal(refreshed.authoring.dependencyPolicy,'scoped-effect-analysis-v12');
+ assert.equal(refreshed.authoring.dependencyPolicy,'scoped-effect-analysis-v13');
  for(const [index,line] of refreshed.lines.entries())assert.deepEqual({...line,dependencies:[]},{...original.lines[index],dependencies:[]});
  assert.deepEqual(refreshed.blocks,original.blocks);assert.equal(grade(refreshed).status,'accepted');
  for(const order of [[1,3,4,2,5,6,7],[1,3,2,6,4,5,7],[1,3,2,4,6,5,7]])assert.equal(grade(refreshed,order).status,'rejected');

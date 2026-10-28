@@ -1,6 +1,6 @@
 # ADR-025 – Helyi objektumok hatásnyoma: soronként valódi függőségek (v12)
 
-Állapot: implementálva (2026-10-28). Policyverzió: `scoped-effect-analysis-v12`. A validátor, a CodeLine-séma és a tanulói parsermentes értékelés változatlan.
+Állapot: implementálva (2026-10-28). Policyverzió: `scoped-effect-analysis-v12`. Pontosította: [ADR-028](028-runtime-precise-object-footprints.md) (v13: mezőszint, `if/else`, string-metódusok, egyetlen kivétel). A validátor, a CodeLine-séma és a tanulói parsermentes értékelés változatlan.
 
 ## Kontextus
 

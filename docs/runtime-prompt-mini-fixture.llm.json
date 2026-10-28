@@ -1,0 +1,678 @@
+{
+ "schemaVersion": 2,
+ "id": "runtime-mini-fixture",
+ "revision": 1,
+ "language": "typescript",
+ "title": "runMiniFixture – futásidejű függőségmodell",
+ "description": "User és Store példányokon végzett műveletek: a független sorok szabadon rendezhetők, a megfigyelhető hatások sorrendje kötött.",
+ "lines": [
+  {
+   "id": 1,
+   "sourceLine": 1,
+   "code": "type State = \"idle\" | \"active\";",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 0,
+   "scopeId": null,
+   "normalization": "indent"
+  },
+  {
+   "id": 2,
+   "sourceLine": 3,
+   "code": "class User {",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 0,
+   "scopeId": null,
+   "normalization": "indent"
+  },
+  {
+   "id": 3,
+   "sourceLine": 4,
+   "code": "    private _alias = \"\";",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 0,
+   "scopeId": "scope-user",
+   "normalization": "indent"
+  },
+  {
+   "id": 4,
+   "sourceLine": 5,
+   "code": "    state: State = \"idle\";",
+   "dependencies": [
+    3
+   ],
+   "fixed": false,
+   "functionBlock": 0,
+   "scopeId": "scope-user",
+   "normalization": "indent"
+  },
+  {
+   "id": 5,
+   "sourceLine": 6,
+   "code": "    score = 0;",
+   "dependencies": [
+    4
+   ],
+   "fixed": false,
+   "functionBlock": 0,
+   "scopeId": "scope-user",
+   "normalization": "indent"
+  },
+  {
+   "id": 6,
+   "sourceLine": 8,
+   "code": "    constructor(public readonly id: string, public name: string) {}",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 0,
+   "scopeId": "scope-user",
+   "normalization": "indent"
+  },
+  {
+   "id": 7,
+   "sourceLine": 10,
+   "code": "    set alias(value: string) {",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 1,
+   "scopeId": "scope-user",
+   "normalization": "indent"
+  },
+  {
+   "id": 8,
+   "sourceLine": 11,
+   "code": "        this._alias = value.trim();",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 1,
+   "scopeId": "scope-set-alias",
+   "normalization": "indent"
+  },
+  {
+   "id": 9,
+   "sourceLine": 12,
+   "code": "    }",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 1,
+   "scopeId": "scope-user",
+   "normalization": "indent"
+  },
+  {
+   "id": 10,
+   "sourceLine": 14,
+   "code": "    get alias(): string {",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 2,
+   "scopeId": "scope-user",
+   "normalization": "indent"
+  },
+  {
+   "id": 11,
+   "sourceLine": 15,
+   "code": "        return this._alias;",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 2,
+   "scopeId": "scope-get-alias",
+   "normalization": "indent"
+  },
+  {
+   "id": 12,
+   "sourceLine": 16,
+   "code": "    }",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 2,
+   "scopeId": "scope-user",
+   "normalization": "indent"
+  },
+  {
+   "id": 13,
+   "sourceLine": 18,
+   "code": "    activate(): void {",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 3,
+   "scopeId": "scope-user",
+   "normalization": "indent"
+  },
+  {
+   "id": 14,
+   "sourceLine": 19,
+   "code": "        this.state = \"active\";",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 3,
+   "scopeId": "scope-activate",
+   "normalization": "indent"
+  },
+  {
+   "id": 15,
+   "sourceLine": 20,
+   "code": "    }",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 3,
+   "scopeId": "scope-user",
+   "normalization": "indent"
+  },
+  {
+   "id": 16,
+   "sourceLine": 22,
+   "code": "    updateScore(value: number): void {",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 4,
+   "scopeId": "scope-user",
+   "normalization": "indent"
+  },
+  {
+   "id": 17,
+   "sourceLine": 23,
+   "code": "        this.score = value;",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 4,
+   "scopeId": "scope-update-score",
+   "normalization": "indent"
+  },
+  {
+   "id": 18,
+   "sourceLine": 24,
+   "code": "    }",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 4,
+   "scopeId": "scope-user",
+   "normalization": "indent"
+  },
+  {
+   "id": 19,
+   "sourceLine": 25,
+   "code": "}",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 0,
+   "scopeId": null,
+   "normalization": "indent"
+  },
+  {
+   "id": 20,
+   "sourceLine": 27,
+   "code": "class Store<T> {",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 0,
+   "scopeId": null,
+   "normalization": "indent"
+  },
+  {
+   "id": 21,
+   "sourceLine": 28,
+   "code": "    private readonly items: T[] = [];",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 0,
+   "scopeId": "scope-store",
+   "normalization": "indent"
+  },
+  {
+   "id": 22,
+   "sourceLine": 30,
+   "code": "    add(item: T): void {",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 5,
+   "scopeId": "scope-store",
+   "normalization": "indent"
+  },
+  {
+   "id": 23,
+   "sourceLine": 31,
+   "code": "        this.items.push(item);",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 5,
+   "scopeId": "scope-add",
+   "normalization": "indent"
+  },
+  {
+   "id": 24,
+   "sourceLine": 32,
+   "code": "    }",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 5,
+   "scopeId": "scope-store",
+   "normalization": "indent"
+  },
+  {
+   "id": 25,
+   "sourceLine": 34,
+   "code": "    list(): readonly T[] {",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 6,
+   "scopeId": "scope-store",
+   "normalization": "indent"
+  },
+  {
+   "id": 26,
+   "sourceLine": 35,
+   "code": "        return this.items;",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 6,
+   "scopeId": "scope-list",
+   "normalization": "indent"
+  },
+  {
+   "id": 27,
+   "sourceLine": 36,
+   "code": "    }",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 6,
+   "scopeId": "scope-store",
+   "normalization": "indent"
+  },
+  {
+   "id": 28,
+   "sourceLine": 37,
+   "code": "}",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 0,
+   "scopeId": null,
+   "normalization": "indent"
+  },
+  {
+   "id": 29,
+   "sourceLine": 39,
+   "code": "export function runMiniFixture(): readonly User[] {",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 7,
+   "scopeId": null,
+   "normalization": "indent"
+  },
+  {
+   "id": 30,
+   "sourceLine": 40,
+   "code": "    const store = new Store<User>();",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 7,
+   "scopeId": "scope-run",
+   "normalization": "indent"
+  },
+  {
+   "id": 31,
+   "sourceLine": 41,
+   "code": "    const first = new User(\"u1\", \"Anna\");",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 7,
+   "scopeId": "scope-run",
+   "normalization": "indent"
+  },
+  {
+   "id": 32,
+   "sourceLine": 42,
+   "code": "    const second = new User(\"u2\", \"Bela\");",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 7,
+   "scopeId": "scope-run",
+   "normalization": "indent"
+  },
+  {
+   "id": 33,
+   "sourceLine": 44,
+   "code": "    first.alias = \"A\";",
+   "dependencies": [
+    31
+   ],
+   "fixed": false,
+   "functionBlock": 7,
+   "scopeId": "scope-run",
+   "normalization": "indent"
+  },
+  {
+   "id": 34,
+   "sourceLine": 45,
+   "code": "    second.activate();",
+   "dependencies": [
+    32
+   ],
+   "fixed": false,
+   "functionBlock": 7,
+   "scopeId": "scope-run",
+   "normalization": "indent"
+  },
+  {
+   "id": 35,
+   "sourceLine": 47,
+   "code": "    store.add(first);",
+   "dependencies": [
+    30,
+    31
+   ],
+   "fixed": false,
+   "functionBlock": 7,
+   "scopeId": "scope-run",
+   "normalization": "indent"
+  },
+  {
+   "id": 36,
+   "sourceLine": 48,
+   "code": "    store.add(second);",
+   "dependencies": [
+    32,
+    35
+   ],
+   "fixed": false,
+   "functionBlock": 7,
+   "scopeId": "scope-run",
+   "normalization": "indent"
+  },
+  {
+   "id": 37,
+   "sourceLine": 50,
+   "code": "    const bonus = 5;",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 7,
+   "scopeId": "scope-run",
+   "normalization": "indent"
+  },
+  {
+   "id": 38,
+   "sourceLine": 51,
+   "code": "    const nextScore = 40 + bonus;",
+   "dependencies": [
+    37
+   ],
+   "fixed": false,
+   "functionBlock": 7,
+   "scopeId": "scope-run",
+   "normalization": "indent"
+  },
+  {
+   "id": 39,
+   "sourceLine": 52,
+   "code": "    first.updateScore(nextScore);",
+   "dependencies": [
+    31,
+    38
+   ],
+   "fixed": false,
+   "functionBlock": 7,
+   "scopeId": "scope-run",
+   "normalization": "indent"
+  },
+  {
+   "id": 40,
+   "sourceLine": 54,
+   "code": "    if (second.state === \"active\") {",
+   "dependencies": [
+    34
+   ],
+   "fixed": false,
+   "functionBlock": 7,
+   "scopeId": "scope-run",
+   "normalization": "indent"
+  },
+  {
+   "id": 41,
+   "sourceLine": 55,
+   "code": "        second.updateScore(90);",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 7,
+   "scopeId": "scope-if-state",
+   "normalization": "indent"
+  },
+  {
+   "id": 42,
+   "sourceLine": 56,
+   "code": "    } else {",
+   "dependencies": [
+    41
+   ],
+   "fixed": false,
+   "functionBlock": 7,
+   "scopeId": "scope-if-state",
+   "normalization": "indent"
+  },
+  {
+   "id": 43,
+   "sourceLine": 57,
+   "code": "        second.updateScore(10);",
+   "dependencies": [
+    42
+   ],
+   "fixed": false,
+   "functionBlock": 7,
+   "scopeId": "scope-if-state",
+   "normalization": "indent"
+  },
+  {
+   "id": 44,
+   "sourceLine": 58,
+   "code": "    }",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 7,
+   "scopeId": "scope-run",
+   "normalization": "indent"
+  },
+  {
+   "id": 45,
+   "sourceLine": 60,
+   "code": "    return store.list();",
+   "dependencies": [
+    33,
+    36,
+    39,
+    44
+   ],
+   "fixed": false,
+   "functionBlock": 7,
+   "scopeId": "scope-run",
+   "normalization": "indent"
+  },
+  {
+   "id": 46,
+   "sourceLine": 61,
+   "code": "}",
+   "dependencies": [],
+   "fixed": false,
+   "functionBlock": 7,
+   "scopeId": null,
+   "normalization": "indent"
+  }
+ ],
+ "blocks": [
+  {
+   "id": "scope-user",
+   "kind": "block",
+   "parentScopeId": null,
+   "openLineId": 2,
+   "closeLineId": 19
+  },
+  {
+   "id": "scope-set-alias",
+   "kind": "function",
+   "parentScopeId": "scope-user",
+   "openLineId": 7,
+   "closeLineId": 9,
+   "functionBlock": 1
+  },
+  {
+   "id": "scope-get-alias",
+   "kind": "function",
+   "parentScopeId": "scope-user",
+   "openLineId": 10,
+   "closeLineId": 12,
+   "functionBlock": 2
+  },
+  {
+   "id": "scope-activate",
+   "kind": "function",
+   "parentScopeId": "scope-user",
+   "openLineId": 13,
+   "closeLineId": 15,
+   "functionBlock": 3
+  },
+  {
+   "id": "scope-update-score",
+   "kind": "function",
+   "parentScopeId": "scope-user",
+   "openLineId": 16,
+   "closeLineId": 18,
+   "functionBlock": 4
+  },
+  {
+   "id": "scope-store",
+   "kind": "block",
+   "parentScopeId": null,
+   "openLineId": 20,
+   "closeLineId": 28
+  },
+  {
+   "id": "scope-add",
+   "kind": "function",
+   "parentScopeId": "scope-store",
+   "openLineId": 22,
+   "closeLineId": 24,
+   "functionBlock": 5
+  },
+  {
+   "id": "scope-list",
+   "kind": "function",
+   "parentScopeId": "scope-store",
+   "openLineId": 25,
+   "closeLineId": 27,
+   "functionBlock": 6
+  },
+  {
+   "id": "scope-run",
+   "kind": "function",
+   "parentScopeId": null,
+   "openLineId": 29,
+   "closeLineId": 46,
+   "functionBlock": 7
+  },
+  {
+   "id": "scope-if-state",
+   "kind": "block",
+   "parentScopeId": "scope-run",
+   "openLineId": 40,
+   "closeLineId": 44
+  }
+ ],
+ "edges": [],
+ "profiles": [],
+ "authoring": {
+  "strategy": "manual-runtime-dependency-analysis",
+  "semanticEquivalenceProven": false,
+  "note": "Kézi, következtetett modell a master prompt szerint, nem automatikusan hitelesített bizonyítás. Feltevés: a runMiniFixture() visszatérési értéke és a visszaadott objektumok állapota, kulcssorrendje a megfigyelés; a Store referenciát tárol; a String.prototype.trim tiszta; a mezőírások mezőszinten függetlenek. Evidence és provenance szándékosan elhagyva.",
+  "ruleNotes": [
+   {
+    "before": 3,
+    "after": 4,
+    "note": "A példánymezők kulcssorrendje a visszaadott objektumokon megfigyelhető (pl. JSON.stringify)."
+   },
+   {
+    "before": 4,
+    "after": 5,
+    "note": "Ugyanaz: a mezőinicializálók a forrás sorrendjében hozzák létre a kulcsokat."
+   },
+   {
+    "before": 31,
+    "after": 33,
+    "note": "A first deklarációja (TDZ) és példánya kell a setterhívás előtt."
+   },
+   {
+    "before": 32,
+    "after": 34,
+    "note": "A second deklarációja és példánya kell az activate() előtt."
+   },
+   {
+    "before": 30,
+    "after": 35,
+    "note": "A store deklarációja kell az add előtt."
+   },
+   {
+    "before": 31,
+    "after": 35,
+    "note": "A first deklarációja kell az add előtt; a Store csak referenciát tárol, ezért az alias írása nem kötött hozzá."
+   },
+   {
+    "before": 32,
+    "after": 36,
+    "note": "A second deklarációja kell az add előtt."
+   },
+   {
+    "before": 35,
+    "after": 36,
+    "note": "A tároló elemsorrendje a visszatérési értéken megfigyelhető."
+   },
+   {
+    "before": 37,
+    "after": 38,
+    "note": "A nextScore a bonus értékét olvassa."
+   },
+   {
+    "before": 31,
+    "after": 39,
+    "note": "A first deklarációja kell a hívás előtt."
+   },
+   {
+    "before": 38,
+    "after": 39,
+    "note": "Az updateScore a nextScore értékét kapja."
+   },
+   {
+    "before": 34,
+    "after": 40,
+    "note": "A feltétel a second.state mezőt olvassa, amelyet az activate() ír (RAW)."
+   },
+   {
+    "before": 41,
+    "after": 42,
+    "note": "A then-ág utasítása a közös } else { határ előtt marad."
+   },
+   {
+    "before": 42,
+    "after": 43,
+    "note": "Az else-ág utasítása a közös } else { határ után marad."
+   },
+   {
+    "before": 33,
+    "after": 45,
+    "note": "Az alias írása a visszaadott first állapotán látszik."
+   },
+   {
+    "before": 36,
+    "after": 45,
+    "note": "A tároló tartalma a visszatérési érték."
+   },
+   {
+    "before": 39,
+    "after": 45,
+    "note": "A first.score a visszaadott állapoton látszik."
+   },
+   {
+    "before": 44,
+    "after": 45,
+    "note": "Az elágazás a second.score mezőt írja, ez a visszaadott állapoton látszik."
+   }
+  ]
+ }
+}

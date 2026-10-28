@@ -30,7 +30,7 @@ function expectOrder(context,lines,accepted,why){
 
 test('prompt reference: a stored reference, a distinct object and the store order',()=>{
  const c=prepare(objectFixtures.get('prompt-store-alias'));
- assert.equal(c.model.authoring.dependencyPolicy,'scoped-effect-analysis-v12');
+ assert.equal(c.model.authoring.dependencyPolicy,'scoped-effect-analysis-v13');
  expectOrder(c,c.move("store.add(first);","first.alias = 'A';"),true,'the store keeps the reference: the alias may follow the add');
  expectOrder(c,c.move("second.activate();","first.alias = 'A';"),true,'two distinct objects commute');
  expectOrder(c,c.move("const store = new Store();","const first = new Item('a');"),true,'independent constructions commute');
@@ -71,6 +71,55 @@ test('TypeScript: parameter properties and private fields behave the same',()=>{
  const c=prepare(objectFixtures.get('prompt-store-alias-ts'));
  expectOrder(c,c.move("store.add(first);","first.alias = 'A';"),true,'reference store in TypeScript');
  expectOrder(c,c.move("store.add(second);","store.add(first);"),false,'store order in TypeScript');
+});
+
+test('ADR-028: the runtime master prompt input — independent rows of one block are free',()=>{
+ const c=prepare(objectFixtures.get('prompt-mini-fixture'));
+ expectOrder(c,c.move("second.activate();",'first.alias = "A";'),true,'two objects; trim() on a string runs no unknown code');
+ expectOrder(c,c.move('first.alias = "A";',"first.updateScore(nextScore);",true),true,'two fields of one object');
+ expectOrder(c,c.move('first.alias = "A";',"return store.list();"),true,'the alias may cross the if/else on the other object');
+ expectOrder(c,c.move("store.add(second);","return store.list();"),true,'the add does not read what the if/else writes');
+ expectOrder(c,c.move("const bonus = 5;","const store = new Store<User>();"),true,'a pure constant');
+ expectOrder(c,c.move("second.activate();","return store.list();"),false,'the if/else reads the state activate() writes');
+ expectOrder(c,c.move("store.add(second);","store.add(first);"),false,'the store order is observable');
+ expectOrder(c,c.move('first.alias = "A";',"return store.list();",true),false,'nothing moves after the return');
+ expectOrder(c,c.move('first.alias = "A";','const first = new User("u1", "Anna");'),false,'a use before its declaration');
+});
+
+/** Every row's required predecessors: dependencies closed with block membership (open → member → close). */
+function closedOrder(model){
+ const within=(scope,block)=>{for(let s=scope;s;s=model.blocks.find(b=>b.id===s)?.parentScopeId)if(s===block.id)return true;return false;};
+ const before=new Map(model.lines.map(line=>[line.id,new Set(line.dependencies)]));
+ for(const block of model.blocks)for(const line of model.lines)if(line.id!==block.openLineId&&line.id!==block.closeLineId&&within(line.scopeId,block)){before.get(line.id).add(block.openLineId);before.get(block.closeLineId).add(line.id);}
+ const closed=new Map(),walk=id=>{if(!closed.has(id)){const all=new Set();closed.set(id,all);for(const p of before.get(id)){all.add(p);walk(p).forEach(q=>all.add(q));}}return closed.get(id);};
+ return Object.fromEntries(model.lines.map(line=>[line.id,[...walk(line.id)].sort((x,y)=>x-y)]));
+}
+
+test('ADR-028: the generator orders the master prompt input exactly as the hand-made runtime model',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const manual=JSON.parse(await readFile(new URL('../docs/runtime-prompt-mini-fixture.llm.json',import.meta.url),'utf8'));
+ const c=prepare(objectFixtures.get('prompt-mini-fixture'));
+ assert.deepEqual(c.model.lines.map(line=>line.code),manual.lines.map(line=>line.code));
+ assert.deepEqual(closedOrder(c.model),closedOrder(manual),'neither stricter nor looser than the runtime analysis');
+});
+
+test('ADR-028: one possible throw commutes with a write that cannot throw; two throws do not',()=>{
+ const c=prepare(objectFixtures.get('prompt-one-thrower'));
+ expectOrder(c,c.move("second.activate();","first.alias = '';"),true,'second is unobservable once the setter throws');
+ expectOrder(c,c.move("const second = new Item('b');","first.alias = '';",true),true,'a construction that cannot throw');
+ const both=prepare(objectFixtures.get('prompt-throwing-setters'));
+ expectOrder(both,both.move("second.rename('');","first.alias = '';"),false,'which exception surfaces depends on the order');
+});
+
+test('ADR-028: key-adding writes and receivers that may not be strings keep their order',()=>{
+ const keys=prepare(objectFixtures.get('prompt-new-keys'));
+ expectOrder(keys,keys.move("box.c = 3;","box.b = 2;"),false,'the key order is observable');
+ // A number has no trim(): the setter is unknown code, so the old barrier order stays.
+ const source=['class Item {',"  constructor() { this._alias = ''; this.active = false; }",'  set alias(value) {','    this._alias = value.trim();','  }','  activate() {','    this.active = true;','  }','}',
+  'function build() {','  const first = new Item();','  const second = new Item();','  first.alias = 5;','  second.activate();','  return [first, second];','}'].join('\n');
+ const model=generateCodeLineExercise({source,language:'javascript'},ts),{compiled}=compileCodeLineExercise(model),lines=model.lines.map(line=>line.code);
+ const at=lines.findIndex(line=>line.trim()==='second.activate();'),[moved]=lines.splice(at,1);lines.splice(at-1,0,moved);
+ assert.equal(validateSubmission(compiled,{exerciseId:model.id,revision:model.revision,lines}).status,'rejected','trim() on a number throws');
 });
 
 test('every fixture: the reference is accepted and every single-row move the model accepts keeps behaviour',()=>{

@@ -488,7 +488,9 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
     const footprints = objectFootprints(node.statements, file, compiler, checker, {primitive: expr => primitive(expr, new Set())});
     summaries.forEach((unit, i) => {
      const statement = node.statements[i]!, footprint = footprints.get(statement);
-     if (unit.kind !== 'barrier' || !footprint || !ownsRows(statement)) return;
+     // ADR-028: an if/else owns its first and last rows; its branch rows follow their own block.
+     const owns = compiler.isIfStatement(statement) ? ownsRows(statement, braces(statement.thenStatement)[0], braces(statement.elseStatement ?? statement.thenStatement)[1]) : ownsRows(statement);
+     if (unit.kind !== 'barrier' || !footprint || !owns) return;
      unit.footprint = footprint;
      // Its binding inputs: every identifier it reads, protected like a pure unit's (TDZ and value).
      const inputs = (current: ts.Node): void => {

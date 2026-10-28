@@ -2,12 +2,26 @@
 class Unknown extends Error {
 }
 const unknown = () => { throw new Unknown(); };
-const PRIM = { prim: true, objs: new Set(), other: false };
-const OTHER = { prim: false, objs: new Set(), other: true };
-const union = (...values) => ({ prim: values.some(v => v.prim), objs: new Set(values.flatMap(v => [...v.objs])), other: values.some(v => v.other) });
-const objects = (...ids) => ({ prim: false, objs: new Set(ids), other: false });
+const PRIM = { prim: true, text: false, objs: new Set(), other: false };
+const STR = { prim: true, text: true, objs: new Set(), other: false };
+const OTHER = { prim: false, text: false, objs: new Set(), other: true };
+const union = (...values) => ({ prim: values.some(v => v.prim), text: values.some(v => v.prim) && values.every(v => !v.prim || v.text), objs: new Set(values.flatMap(v => [...v.objs])), other: values.some(v => v.other) });
+const objects = (...ids) => ({ prim: false, text: false, objs: new Set(ids), other: false });
 const ARRAY_READS = new Set(['map', 'filter', 'forEach', 'some', 'every', 'find', 'join', 'includes', 'indexOf', 'slice']);
 const ARRAY_WRITES = new Set(['push', 'unshift', 'pop', 'shift']);
+/** ADR-028: String.prototype methods that cannot throw or run code on a string receiver, by the
+ * arguments they accept without conversion: none, strings, or numeric literals. */
+const STRING_METHODS = new Map([
+    ...['trim', 'trimStart', 'trimEnd', 'toUpperCase', 'toLowerCase'].map(name => [name, { args: 'none', text: true }]),
+    ...['includes', 'startsWith', 'endsWith', 'indexOf', 'lastIndexOf'].map(name => [name, { args: 'text', text: false }]),
+    ['concat', { args: 'text', text: true }],
+    ...['slice', 'substring', 'charAt'].map(name => [name, { args: 'number', text: true }])
+]);
+/** ADR-028: reads and writes are recorded per object field; `*` stands for the whole object
+ * (its creation, an array, or a write that may add a key and so change the key order). */
+const WHOLE = '*';
+const at = (object, field) => object + '::' + field;
+const objectOf = (key) => key.slice(0, key.lastIndexOf('::'));
 const ERRORS = new Set(['Error', 'TypeError', 'RangeError']);
 /** Source text that lets a program change what property access or calls do. */
 const REFLECTIVE = /\.prototype\b|__proto__|defineProperty|setPrototypeOf|\bReflect\b|\bProxy\b|Object\.assign|\bdelete\b/;
@@ -127,14 +141,14 @@ export function objectFootprints(list, file, compiler, checker, host) {
     let changed = false;
     const addField = (object, name, value) => {
         const map = fields.get(object) ?? new Map(), before = map.get(name), after = before ? union(before, value) : value;
-        if (!before || after.prim !== before.prim || after.other !== before.other || after.objs.size !== before.objs.size)
+        if (!before || after.prim !== before.prim || after.text !== before.text || after.other !== before.other || after.objs.size !== before.objs.size)
             changed = true;
         map.set(name, after);
         fields.set(object, map);
     };
     const addElements = (object, value) => {
         const before = elements.get(object), after = before ? union(before, value) : value;
-        if (!before || after.prim !== before.prim || after.other !== before.other || after.objs.size !== before.objs.size)
+        if (!before || after.prim !== before.prim || after.text !== before.text || after.other !== before.other || after.objs.size !== before.objs.size)
             changed = true;
         elements.set(object, after);
     };
@@ -161,7 +175,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
         return block(body.body.statements, inner);
     }
     function construct(id, info, args, frame) {
-        frame.fp.writes.add(id);
+        frame.fp.writes.add(at(id, WHOLE));
         const own = { ...frame, self: id, env: new Map() };
         for (const [name, initializer] of info.fields)
             addField(id, name, initializer ? expression(initializer, own) : PRIM);
@@ -260,15 +274,18 @@ export function objectFootprints(list, file, compiler, checker, host) {
                 if (kind.info.getters.has(name) || kind.info.methods.has(name))
                     unknown();
             }
-            frame.fp.writes.add(object);
+            // A field the construction already created keeps the key order; any other name may add a key.
+            const existing = kind.kind === 'class' && (kind.info.fields.get(name) !== undefined || kind.info.parameterFields.includes(name));
+            frame.fp.writes.add(at(object, existing ? name : WHOLE));
             addField(object, name, value);
         }
     }
     function read(base, name, frame) {
         if (base.other || !base.objs.size && !base.prim)
             unknown();
+        // `length` of null or undefined throws: only a value that can only be a string qualifies.
         if (base.prim) {
-            if (name !== 'length' || base.objs.size)
+            if (name !== 'length' || !base.text || base.objs.size)
                 unknown();
             return PRIM;
         }
@@ -278,7 +295,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
             if (kind.kind === 'array') {
                 if (name !== 'length')
                     unknown();
-                frame.fp.reads.add(object);
+                frame.fp.reads.add(at(object, WHOLE));
                 values.push(PRIM);
                 continue;
             }
@@ -295,12 +312,24 @@ export function objectFootprints(list, file, compiler, checker, host) {
             // A property nobody defines may come from Object.prototype: not modelled.
             if (!value)
                 unknown();
-            frame.fp.reads.add(object);
+            frame.fp.reads.add(at(object, name));
             values.push(value);
         }
         return union(...values);
     }
     function call(base, name, args, frame) {
+        // ADR-028: a known String.prototype method on a value that can only be a string.
+        if (base.prim && base.text && !base.objs.size && !base.other) {
+            const method = STRING_METHODS.get(name);
+            if (!method || (method.args === 'none') !== !args.length)
+                unknown();
+            for (const argument of args) {
+                const value = method.args === 'number' ? (compiler.isNumericLiteral(unwrap(argument)) ? PRIM : unknown()) : expression(argument, frame);
+                if (method.args === 'text' && (!value.prim || !value.text || value.objs.size || value.other))
+                    unknown();
+            }
+            return method.text ? STR : PRIM;
+        }
         if (base.prim || base.other || !base.objs.size)
             unknown();
         const values = [];
@@ -316,8 +345,8 @@ export function objectFootprints(list, file, compiler, checker, host) {
             if (kind.kind !== 'array')
                 unknown();
             if (ARRAY_WRITES.has(name)) {
-                frame.fp.writes.add(object);
-                frame.fp.reads.add(object);
+                frame.fp.writes.add(at(object, WHOLE));
+                frame.fp.reads.add(at(object, WHOLE));
                 const pushed = args.map(argument => expression(argument, frame));
                 if (name === 'push' || name === 'unshift') {
                     pushed.forEach(value => addElements(object, value));
@@ -332,7 +361,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
             }
             if (!ARRAY_READS.has(name))
                 unknown();
-            frame.fp.reads.add(object);
+            frame.fp.reads.add(at(object, WHOLE));
             const items = elements.get(object) ?? PRIM;
             if (name === 'join') {
                 args.forEach(argument => prim(expression(argument, frame)));
@@ -366,7 +395,9 @@ export function objectFootprints(list, file, compiler, checker, host) {
     function expression(raw, frame) {
         step(frame);
         const expr = unwrap(raw);
-        if (compiler.isNumericLiteral(expr) || compiler.isStringLiteral(expr) || compiler.isNoSubstitutionTemplateLiteral(expr) || [S.TrueKeyword, S.FalseKeyword, S.NullKeyword].includes(expr.kind))
+        if (compiler.isStringLiteral(expr) || compiler.isNoSubstitutionTemplateLiteral(expr))
+            return STR;
+        if (compiler.isNumericLiteral(expr) || [S.TrueKeyword, S.FalseKeyword, S.NullKeyword].includes(expr.kind))
             return PRIM;
         if (expr.kind === S.ThisKeyword)
             return frame.self ? objects(frame.self) : unknown();
@@ -387,7 +418,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
         }
         if (compiler.isTemplateExpression(expr)) {
             expr.templateSpans.forEach(span => prim(expression(span.expression, frame)));
-            return PRIM;
+            return STR;
         }
         if (compiler.isPropertyAccessExpression(expr)) {
             if (expr.questionDotToken)
@@ -411,7 +442,8 @@ export function objectFootprints(list, file, compiler, checker, host) {
                 unknown();
             prim(left);
             prim(right);
-            return PRIM;
+            // A string operand makes `+` a concatenation.
+            return operator === S.PlusToken && (left.text || right.text) ? STR : PRIM;
         }
         if (compiler.isPrefixUnaryExpression(expr)) {
             const operand = expression(expr.operand, frame);
@@ -466,7 +498,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
             if (own.kind.kind === 'class')
                 construct(own.id, own.kind.info, init.arguments?.map(argument => expression(argument, frame)) ?? [], frame);
             else if (compiler.isArrayLiteralExpression(init)) {
-                frame.fp.writes.add(own.id);
+                frame.fp.writes.add(at(own.id, WHOLE));
                 for (const element of init.elements) {
                     if (compiler.isSpreadElement(element) || compiler.isOmittedExpression(element))
                         unknown();
@@ -476,7 +508,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
                     elements.set(own.id, PRIM);
             }
             else {
-                frame.fp.writes.add(own.id);
+                frame.fp.writes.add(at(own.id, WHOLE));
                 for (const property of init.properties) {
                     if (!compiler.isPropertyAssignment(property))
                         unknown();
@@ -488,10 +520,33 @@ export function objectFootprints(list, file, compiler, checker, host) {
             }
             return frame.fp;
         }
+        // ADR-028: an if/else on own objects, both branches over-approximated; it must not leave the list early.
+        if (compiler.isIfStatement(statement)) {
+            if (leaves(statement))
+                unknown();
+            expression(statement.expression, frame);
+            block([statement.thenStatement, ...statement.elseStatement ? [statement.elseStatement] : []], frame);
+            return frame.fp;
+        }
         if (!compiler.isExpressionStatement(statement))
             unknown();
         effect(statement.expression, frame);
         return frame.fp;
+    }
+    /** Whether a return inside `root` (outside nested functions) would leave the list's function. */
+    function leaves(root) {
+        let found = false;
+        const visit = (node) => {
+            if (found || compiler.isFunctionLike(node) || compiler.isClassLike(node))
+                return;
+            if (compiler.isReturnStatement(node)) {
+                found = true;
+                return;
+            }
+            compiler.forEachChild(node, visit);
+        };
+        compiler.forEachChild(root, visit);
+        return found;
     }
     // Identifier occurrences of own bindings, by top-level statement of the list.
     const occurrences = new Map();
@@ -527,7 +582,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
                 continue;
             try {
                 const fp = statementFootprint(statement, budget);
-                if ([...fp.reads, ...fp.writes].some(id => escaped.has(id.split('|')[0]) || escaped.has(id)))
+                if ([...fp.reads, ...fp.writes].map(objectOf).some(id => escaped.has(id.split('|')[0]) || escaped.has(id)))
                     continue;
                 result.set(statement, fp);
             }
@@ -564,9 +619,14 @@ export function objectFootprints(list, file, compiler, checker, host) {
 }
 /** Why two footprinted statements must keep their order; empty when they commute. */
 export function footprintConflicts(a, b) {
-    const meets = (x, y) => [...x].some(id => y.has(id));
+    // ADR-028: fields of one object meet when equal or when either side is the whole object.
+    const field = (key) => key.slice(key.lastIndexOf('::') + 2);
+    const meets = (x, y) => [...x].some(p => [...y].some(q => objectOf(p) === objectOf(q) && (field(p) === WHOLE || field(q) === WHOLE || field(p) === field(q))));
     const found = [];
-    if (a.mayThrow || b.mayThrow)
+    // ADR-028: only two possible throws race for the surfacing exception. A statement that cannot
+    // throw touches only this list's own, unescaped objects, which no one observes once the other
+    // throws out of the block, and any state the throw depends on is a read conflict below.
+    if (a.mayThrow && b.mayThrow)
         found.push('may-throw');
     if (meets(a.writes, b.reads))
         found.push('object-read-after-write');

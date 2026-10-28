@@ -190,12 +190,17 @@ function jsObjectOperations(program){
    if(declaration?.id.type==='Identifier'&&init&&(init.type==='NewExpression'&&init.callee.type==='Identifier'&&classes.has(init.callee.name)&&init.arguments.every(simple)||init.type==='ArrayExpression'||init.type==='ObjectExpression'))owned.set(declaration.id.name,item);
   }
   const receiver=node=>node.type==='MemberExpression'&&!node.computed&&node.object.type==='Identifier'&&owned.has(node.object.name);
-  return item=>{
+  // ADR-028: a strict comparison of an own object's property with a simple value.
+  const test=node=>node.type==='BinaryExpression'&&['===','!=='].includes(node.operator)&&[node.left,node.right].every(side=>simple(side)||receiver(side));
+  const operation=item=>{
    if(item.type==='VariableDeclaration')return [...owned.values()].includes(item);
+   // ADR-028: an if/else whose test and branches only operate on own objects.
+   if(item.type==='IfStatement')return test(item.test)&&[item.consequent,item.alternate].every(branch=>!branch||branch.type==='BlockStatement'&&branch.body.every(statement=>statement.type!=='VariableDeclaration'&&operation(statement)));
    const expression=item.type==='ExpressionStatement'?item.expression:null;
    if(expression?.type==='CallExpression')return receiver(expression.callee)&&expression.arguments.every(simple);
    return expression?.type==='AssignmentExpression'&&expression.operator==='='&&receiver(expression.left)&&simple(expression.right);
   };
+  return operation;
  };
 }
 
@@ -286,12 +291,17 @@ function tsObjectOperations(file){
    if(declaration&&ts.isIdentifier(declaration.name)&&init&&(ts.isNewExpression(init)&&ts.isIdentifier(init.expression)&&classes.has(init.expression.text)&&(init.arguments??[]).every(simple)||ts.isArrayLiteralExpression(init)||ts.isObjectLiteralExpression(init)))owned.set(declaration.name.text,item);
   }
   const receiver=node=>ts.isPropertyAccessExpression(node)&&ts.isIdentifier(node.expression)&&owned.has(node.expression.text);
-  return item=>{
+  // ADR-028: a strict comparison of an own object's property with a simple value.
+  const test=node=>ts.isBinaryExpression(node)&&[ts.SyntaxKind.EqualsEqualsEqualsToken,ts.SyntaxKind.ExclamationEqualsEqualsToken].includes(node.operatorToken.kind)&&[node.left,node.right].every(side=>simple(side)||receiver(side));
+  const operation=item=>{
    if(ts.isVariableStatement(item))return [...owned.values()].includes(item);
+   // ADR-028: an if/else whose test and branches only operate on own objects.
+   if(ts.isIfStatement(item))return test(item.expression)&&[item.thenStatement,item.elseStatement].every(branch=>!branch||ts.isBlock(branch)&&branch.statements.every(statement=>!ts.isVariableStatement(statement)&&operation(statement)));
    const expression=ts.isExpressionStatement(item)?item.expression:null;
    if(expression&&ts.isCallExpression(expression))return receiver(expression.expression)&&expression.arguments.every(simple);
    return !!expression&&ts.isBinaryExpression(expression)&&expression.operatorToken.kind===ts.SyntaxKind.EqualsToken&&receiver(expression.left)&&simple(expression.right);
   };
+  return operation;
  };
 }
 /** tsRefs: name references as in jsRefs, over the TypeScript AST; types are not references. */
@@ -530,7 +540,7 @@ function execute(code,{language,probe,strict=true,asynchronous=false},{className
  // Nested classes exist only once the probe ran: snapshot them afterwards.
  const nestedSnapshot=`(()=>{try{${keys}return JSON.stringify(__classes.map(([k,c])=>JSON.stringify([k,own(c.prototype),own(c)])).sort());}catch(error){return 'throws:'+(error&&error.name);}})()`;
  const attempt=(js,timeout)=>{
-  const context=createContext({trace:[],__classes:[]},asynchronous?{microtaskMode:'afterEvaluate'}:{});
+  const context=createContext({trace:[],__classes:[],exports:{}},asynchronous?{microtaskMode:'afterEvaluate'}:{});
   const tail=asynchronous
    ?`;var __result='pending',__nested='pending';Promise.resolve(${probe}).then(value=>{__result=JSON.stringify({value,trace});__nested=${nestedSnapshot};},error=>{__result='throws:'+(error&&error.name)+':'+(error&&error.message);});`
    :`;var __result=JSON.stringify({value:(${probe}),trace});var __nested=${nestedSnapshot};`;
@@ -541,8 +551,11 @@ function execute(code,{language,probe,strict=true,asynchronous=false},{className
  if(language!=='typescript')return run(code);
  const outputs=[];
  for(const define of [false,true]){
-  const output=ts.transpileModule(code,{reportDiagnostics:true,compilerOptions:{target:ts.ScriptTarget.ES2022,useDefineForClassFields:define}});
+  const transpile=module=>ts.transpileModule(code,{reportDiagnostics:true,compilerOptions:{target:ts.ScriptTarget.ES2022,useDefineForClassFields:define,...module?{module:ts.ModuleKind.CommonJS}:{}}});
+  let output=transpile(false);
   if(output.diagnostics?.length)return {call:'syntax',reflection:''};
+  // A module's exports run as a script: CommonJS emit keeps every declaration a script binding.
+  if(/^export\b/m.test(output.outputText))output=transpile(true);
   outputs.push(run(output.outputText));
  }
  return {call:outputs.map(o=>o.call).join(' | '),reflection:outputs.map(o=>o.reflection).join(' | ')};
