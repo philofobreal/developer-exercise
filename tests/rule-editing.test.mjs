@@ -70,12 +70,13 @@ test('removing a pedagogical rule is free and loosens; a generated rule is redun
 });
 
 test('relaxation safety: hard never, conservative only acknowledged, proven only as a policy override',()=>{
- const commented=generate(['function f() {','  const a = 1;','  // note','  const b = 2;','  return a + b;','}']);
- const conservative=direct(commented,3,4);
+ // A multi-row comment stays conservatively ordered (v12, ADR-025): line 5 closes it, line 6 follows.
+ const commented=generate(['function f() {','  const a = 1;','  /*','   note','  */','  const b = 2;','  return a + b;','}']);
+ const conservative=direct(commented,5,6);
  assert.equal(conservative.editability,'conservative');
- assert.equal(applyRuleEdits(commented,[{kind:'remove-rule',before:3,after:4}]).error,'needs-acknowledgement');
- const relaxed=applyRuleEdits(commented,[{kind:'remove-rule',before:3,after:4,acknowledge:'unproven-relaxation',note:'A komment szabadon mozoghat.'}]);
- assert.deepEqual(ok(relaxed).authoring.relaxations.map(({removed,...entry})=>entry),[{before:3,after:4,editability:'conservative',note:'A komment szabadon mozoghat.'}]);assert.ok(ok(relaxed).authoring.relaxations[0].removed.reasons.every(reason=>reason.category==='conservative'));
+ assert.equal(applyRuleEdits(commented,[{kind:'remove-rule',before:5,after:6}]).error,'needs-acknowledgement');
+ const relaxed=applyRuleEdits(commented,[{kind:'remove-rule',before:5,after:6,acknowledge:'unproven-relaxation',note:'A komment szabadon mozoghat.'}]);
+ assert.deepEqual(ok(relaxed).authoring.relaxations.map(({removed,...entry})=>entry),[{before:5,after:6,editability:'conservative',note:'A komment szabadon mozoghat.'}]);assert.ok(ok(relaxed).authoring.relaxations[0].removed.reasons.every(reason=>reason.category==='conservative'));
  assert.equal(relaxed.effect.looser,'yes');
  const model=base();
  assert.equal(direct(model,2,4).editability,'proven');
@@ -170,13 +171,13 @@ test('refresh carries author rules, relaxations and notes over and reports what 
 });
 
 test('refresh revokes a relaxation the regenerated analysis now proves, and says so',async()=>{
- const commented=generate(['function f() {','  const a = 1;','  // note','  const b = 2;','  return a + b;','}']);
- const relaxed=ok(applyRuleEdits(commented,[{kind:'remove-rule',before:3,after:4,acknowledge:'unproven-relaxation'}]));
+ const commented=generate(['function f() {','  const a = 1;','  /*','   note','  */','  const b = 2;','  return a + b;','}']);
+ const relaxed=ok(applyRuleEdits(commented,[{kind:'remove-rule',before:5,after:6,acknowledge:'unproven-relaxation'}]));
  // Pretend the analysis had found the pair to be only conservative while it is now proven.
- const stronger=structuredClone(relaxed);stronger.authoring.relaxations=[{before:2,after:5,editability:'conservative'}];
+ const stronger=structuredClone(relaxed);stronger.authoring.relaxations=[{before:2,after:7,editability:'conservative'}];
  const {model,report}=await refreshAuthorModel(stronger,ports);
- assert.deepEqual(report.relaxations,[{before:2,after:5,outcome:'revoked'}]);
- assert.ok(model.lines[4].dependencies.includes(2));
+ assert.deepEqual(report.relaxations,[{before:2,after:7,outcome:'revoked'}]);
+ assert.ok(model.lines[6].dependencies.includes(2));
  assert.equal(model.authoring.relaxations,undefined);
 });
 

@@ -58,7 +58,9 @@ for(const [statement,beforeB,first] of [['const c = [a];','accepted','rejected']
  }
 });
 test('multiline expressions, inline comments, forward bindings and external bindings stay conservative',()=>{
- for(const input of ['const a = 1;\n// comment\nconst b = 2;','const a = 1;\nconst b = (\n 2\n);','const b = a + 1;\nconst a = 1;','const a = outer;\nconst b = a + 1;','const a = 1; // trailing comment\nconst b = 2;']){
+ // v12 (ADR-025): a one-row comment is free, a multi-row comment keeps its place.
+ const free=generate('const a = 1;\n// comment\nconst b = 2;'),order=free.lines.map(x=>x.id);[order[0],order[1]]=[order[1],order[0]];assert.equal(check(free,order).status,'accepted');
+ for(const input of ['const a = 1;\n/*\n comment\n*/\nconst b = 2;','const a = 1;\nconst b = (\n 2\n);','const b = a + 1;\nconst a = 1;','const a = outer;\nconst b = a + 1;','const a = 1; // trailing comment\nconst b = 2;']){
   const m=generate(input);const original=m.lines.map(x=>x.id);assert.equal(check(m,original).status,'accepted');[original[0],original[1]]=[original[1],original[0]];assert.equal(check(m,original).status,'rejected');
  }
 });

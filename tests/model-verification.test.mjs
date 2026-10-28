@@ -35,7 +35,7 @@ test('a fully analysed reference is analysis-verified and publishable, with soun
 });
 
 test('conservative fallbacks and projection loss lower the status to conservative and are named',async()=>{
- const commented=await verify(generate(['function f(n) {','  const a = n + 1;','  // note','  return a;','}']));
+ const commented=await verify(generate(['function f(n) {','  const a = n + 1;','  /*','   note','  */','  return a;','}']));
  assert.equal(commented.status,'conservative');
  assert.ok(commented.checks.fallbacks.codes['opaque-row']>0);
  const fixture=corpus.get('wp6-hoisted-into-continued-call');

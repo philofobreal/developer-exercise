@@ -15,7 +15,9 @@
  *                   that read or write the same name (RAW/WAR/WAW, ADR-013);
  *                   in a function-level list an effect-free statement may
  *                   cross an external one that cannot observe it (ADR-019,
- *                   by name: see commutation());
+ *                   by name: see commutation()); two local object
+ *                   operations (ADR-025, see jsObjectOperations()) are not
+ *                   ordered here: P3 compares their runtime result;
  *   P3 runtime    – value, thrown exception and record() trace agree with the
  *                   reference on the fixture probe (TS: both class-field modes).
  * P3 is empirical evidence on finite inputs, not an equivalence proof.
@@ -170,6 +172,32 @@ function commutation(refs,transfers,isFunction,classify){
  };
 }
 const jsCommutes=commutation(jsRefs,jsTransfers,node=>jsFunction.has(node.type),(statement,chain)=>jsClassify(statement,chain));
+/* P2 local object operations (ADR-025), by syntax only and apart from the generator's
+ * footprints. In a function's statement list, `const X = new C(…)` for a class C declared
+ * without `extends` anywhere in the program, or `const X = [ … ]` / `{ … }`, owns X. A
+ * statement that is such a declaration, or calls a method of / assigns a property of an owned
+ * name with identifier or literal arguments, is a local object operation. */
+function jsObjectOperations(program){
+ const classes=new Set();
+ const collect=node=>{if(!node||typeof node!=='object')return;if(Array.isArray(node)){node.forEach(collect);return;}if(node.type==='ClassDeclaration'&&!node.superClass)classes.add(node.id.name);for(const value of Object.values(node))if(value&&typeof value==='object')collect(value);};
+ collect(program);
+ const simple=node=>node.type==='Literal'||node.type==='Identifier';
+ return (items,chain)=>{
+  if(!chain[0]||!jsFunction.has(chain[0].type))return ()=>false;
+  const owned=new Map();
+  for(const item of items){
+   const declaration=item.type==='VariableDeclaration'&&item.kind==='const'&&item.declarations.length===1?item.declarations[0]:null,init=declaration?.init;
+   if(declaration?.id.type==='Identifier'&&init&&(init.type==='NewExpression'&&init.callee.type==='Identifier'&&classes.has(init.callee.name)&&init.arguments.every(simple)||init.type==='ArrayExpression'||init.type==='ObjectExpression'))owned.set(declaration.id.name,item);
+  }
+  const receiver=node=>node.type==='MemberExpression'&&!node.computed&&node.object.type==='Identifier'&&owned.has(node.object.name);
+  return item=>{
+   if(item.type==='VariableDeclaration')return [...owned.values()].includes(item);
+   const expression=item.type==='ExpressionStatement'?item.expression:null;
+   if(expression?.type==='CallExpression')return receiver(expression.callee)&&expression.arguments.every(simple);
+   return expression?.type==='AssignmentExpression'&&expression.operator==='='&&receiver(expression.left)&&simple(expression.right);
+  };
+ };
+}
 
 /* ------------------------- TypeScript (compiler AST walk) -------------------- */
 const tsFunction=node=>ts.isFunctionDeclaration(node)||ts.isFunctionExpression(node)||ts.isArrowFunction(node)||ts.isMethodDeclaration(node)||ts.isConstructorDeclaration(node)||ts.isGetAccessorDeclaration(node)||ts.isSetAccessorDeclaration(node);
@@ -244,6 +272,28 @@ function tsClassify(statement,chain){
  return {external,reads,writes};
 }
 const tsPositionFree=(statement,hoisting)=>erased(statement)||hoisting&&ts.isFunctionDeclaration(statement)&&!!statement.body;
+/** The TypeScript counterpart of jsObjectOperations (ADR-025). */
+function tsObjectOperations(file){
+ const classes=new Set();
+ const collect=node=>{if(ts.isClassDeclaration(node)&&node.name&&!node.heritageClauses?.some(clause=>clause.token===ts.SyntaxKind.ExtendsKeyword))classes.add(node.name.text);ts.forEachChild(node,collect);};
+ collect(file);
+ const simple=node=>ts.isIdentifier(node)||ts.isStringLiteral(node)||ts.isNumericLiteral(node)||[ts.SyntaxKind.TrueKeyword,ts.SyntaxKind.FalseKeyword,ts.SyntaxKind.NullKeyword].includes(node.kind);
+ return (items,chain)=>{
+  if(!chain[0]||!tsFunction(chain[0]))return ()=>false;
+  const owned=new Map();
+  for(const item of items){
+   const list=ts.isVariableStatement(item)&&(item.declarationList.flags&ts.NodeFlags.BlockScoped)===ts.NodeFlags.Const?item.declarationList.declarations:[],declaration=list.length===1?list[0]:null,init=declaration?.initializer;
+   if(declaration&&ts.isIdentifier(declaration.name)&&init&&(ts.isNewExpression(init)&&ts.isIdentifier(init.expression)&&classes.has(init.expression.text)&&(init.arguments??[]).every(simple)||ts.isArrayLiteralExpression(init)||ts.isObjectLiteralExpression(init)))owned.set(declaration.name.text,item);
+  }
+  const receiver=node=>ts.isPropertyAccessExpression(node)&&ts.isIdentifier(node.expression)&&owned.has(node.expression.text);
+  return item=>{
+   if(ts.isVariableStatement(item))return [...owned.values()].includes(item);
+   const expression=ts.isExpressionStatement(item)?item.expression:null;
+   if(expression&&ts.isCallExpression(expression))return receiver(expression.expression)&&expression.arguments.every(simple);
+   return !!expression&&ts.isBinaryExpression(expression)&&expression.operatorToken.kind===ts.SyntaxKind.EqualsToken&&receiver(expression.left)&&simple(expression.right);
+  };
+ };
+}
 /** tsRefs: name references as in jsRefs, over the TypeScript AST; types are not references. */
 function tsRefs(root){
  const out=[],S=ts.SyntaxKind;
@@ -316,14 +366,17 @@ function tsOverloadsAdjacent(file){
 
 /* ------------------------------- shared policy ------------------------------- */
 const meets=(x,y)=>[...x].some(v=>y.has(v));
-/** Ordered pairs of P2: an external effect on either side, or a RAW/WAR/WAW conflict. */
-function effectPairs(lists,key,classify,positionFree,commutes){
+/** Ordered pairs of P2: an external effect on either side, or a RAW/WAR/WAW conflict.
+ * `objectOperations(items, chain)` names the list's local object operations (ADR-025). */
+function effectPairs(lists,key,classify,positionFree,commutes,objectOperations=()=>()=>false){
  const pairs=[];
  for(const {items,hoisting,chain} of lists){
-  const classes=items.map(item=>classify(item,chain));
+  const classes=items.map(item=>classify(item,chain)),operation=objectOperations(items,chain);
   for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++){
    const a=items[i],b=items[j],ca=classes[i],cb=classes[j];
    if(positionFree(a,hoisting)||positionFree(b,hoisting))continue;
+   // ADR-025: the order of two local object operations is judged by P3 alone.
+   if(operation(a)&&operation(b))continue;
    // ADR-019: an effect-free statement may cross an external one that cannot observe it.
    if(ca.external!==cb.external&&(ca.external?commutes(b,a,chain):commutes(a,b,chain)))continue;
    if(ca.external||cb.external||meets(ca.writes,cb.reads)||meets(ca.writes,cb.writes)||meets(ca.reads,cb.writes))pairs.push(key(a)+'\u0000'+key(b));
@@ -458,10 +511,10 @@ function analyse(code,language,ordered=false){
   // Global-object properties are what the emitted script declares; a module declares none.
   let globals={};
   if(!ts.isExternalModule(file)){try{globals=jsReflection(parseScript(ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,{ecmaVersion:'latest',sourceType:'script'}),ordered);}catch{return null;}}
-  return {shape:tsShape(file),effects:effectPairs(tsLists(file),tsShape,tsClassify,tsPositionFree,tsCommutes),reflection:tsReflection(file,globals,ordered),nested:nestedClasses(code,language)};
+  return {shape:tsShape(file),effects:effectPairs(tsLists(file),tsShape,tsClassify,tsPositionFree,tsCommutes,tsObjectOperations(file)),reflection:tsReflection(file,globals,ordered),nested:nestedClasses(code,language)};
  }
  let tree;try{tree=parseScript(code,{ecmaVersion:'latest',sourceType:'script'});}catch{return null;}
- return {shape:jsShape(tree),effects:effectPairs(jsLists(tree),node=>jsShape(node),jsClassify,jsPositionFree,jsCommutes),reflection:jsReflection(tree,ordered),nested:nestedClasses(code,language)};
+ return {shape:jsShape(tree),effects:effectPairs(jsLists(tree),node=>jsShape(node),jsClassify,jsPositionFree,jsCommutes,jsObjectOperations(tree)),reflection:jsReflection(tree,ordered),nested:nestedClasses(code,language)};
 }
 /** Runs a fixed fixture. `call`: probe value, exception and record() trace.
  * `reflection`: own keys and descriptor kinds of the top-level classes'

@@ -1,4 +1,5 @@
 import { mergeOrderingEntries } from './ordering-relations.js';
+import { freeCommentRows } from './comment-rows.js';
 /** `reflectedKeys` (ADR-020): the program may list non-enumerable keys, so the ADR-010 key chain applies. */
 export function typeMemberOrdering(file, compiler, options = {}) {
     const physical = file.text.split('\n'), entries = [], spans = [];
@@ -106,20 +107,23 @@ export function typeMemberOrdering(file, compiler, options = {}) {
                     sizes.push(1);
                 }
             });
-            // No edits on shared physical boundaries. Comments remain opaque barriers.
+            // No edits on shared physical boundaries. A row with one complete comment is free (ADR-025);
+            // other non-member rows remain opaque barriers.
             if (open && close && grouped.every((member, i) => member.first > first(open) && member.last < first(close) && (!i || grouped[i - 1].last < member.first))) {
                 const units = [], free = [];
                 let cursor = first(open) + 1;
-                for (const member of grouped) {
-                    for (; cursor < member.first; cursor++)
+                const gap = (until) => {
+                    const comments = freeCommentRows(file, compiler, cursor, until - 1);
+                    for (; cursor < until; cursor++)
                         if (physical[cursor]?.trim())
-                            units.push({ first: cursor, last: cursor, pure: false });
+                            (comments.has(cursor) ? free : units).push({ first: cursor, last: cursor, pure: false });
+                };
+                for (const member of grouped) {
+                    gap(member.first);
                     (member.free ? free : units).push(member);
                     cursor = member.last + 1;
                 }
-                for (; cursor < first(close); cursor++)
-                    if (physical[cursor]?.trim())
-                        units.push({ first: cursor, last: cursor, pure: false });
+                gap(first(close));
                 // Definitions only need the class open; the remaining units keep their own order,
                 // wired explicitly so that no barrier inherits a definition's row as predecessor.
                 const wired = new Set();

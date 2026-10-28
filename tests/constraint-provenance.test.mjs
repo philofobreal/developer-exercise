@@ -34,11 +34,15 @@ test('statement reasons: binding inputs, RAW/WAR/WAW conflicts, barriers, commen
  assert.ok(reasons(local,6,7).includes('data/read-after-write'));
  assert.ok(reasons(local,7,8).includes('effect/ExpressionStatement'));
  assert.deepEqual(reasons(local,8,9),['structure/block-close']);
+ // v12 (ADR-025): a one-row comment is free; the rows of a multi-row comment stay ordered.
  const script=generate(['var a = 1;','// note','function g() {','  return a;','}']);
- assert.deepEqual(reasons(script,1,2),['conservative/opaque-row']);
- assert.deepEqual(reasons(script,2,3),['conservative/opaque-row']);
+ assert.deepEqual(reasons(script,1,2),[]);
+ assert.deepEqual(reasons(script,2,3),[]);
  assert.deepEqual(reasons(script,3,4),['structure/block-open']);
- assert.ok(reasons(script,1,3).length===0,'implied by the comment chain, removed by reduction');
+ const block=generate(['var a = 1;','/*','  note','*/','function g() {','  return a;','}']);
+ assert.deepEqual(reasons(block,1,2),['conservative/opaque-row']);
+ assert.deepEqual(reasons(block,4,5),['conservative/opaque-row']);
+ assert.ok(reasons(block,1,5).length===0,'implied by the comment chain, removed by reduction');
  const globals=generate(['var a = 1;','function g() {','  return a;','}']);
  assert.deepEqual(reasons(globals,1,2),[],'v11: a function key is not observed');
  const listing=generate(['var a = 1;','function g() {','  return globalThis.a;','}']);

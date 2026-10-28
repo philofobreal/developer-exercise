@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased – 2026-10-28 valódi függőségek soronként: helyi objektumok hatásnyoma és szabad megjegyzések (ADR-025, v12)
+
+- **Cél (felhasználói kérés, mesterprompt):** minden sor csak a ténylegesen szükséges előzményeitől függjön. Az elrendezés pontosan ott romoljon el, ahol a program viselkedése is megváltozna.
+- **Helyi objektumok:** egy függvény saját objektumain (`new` saját osztállyal, tömb- és objektumliterál) dolgozó utasítások hatásnyomot kapnak. A hatásnyom a konstruktor-, metódus- és accessortörzsek absztrakt végrehajtásából adódik. Két ilyen utasítást csak objektumütközés (a tárolt referenciákon át is) vagy lehetséges kivétel köt.
+  - A prompt referenciaesete: `first.alias` és `store.add(first)`, illetve `first.alias` és `second.activate()` szabad.
+  - Kötött marad a tároló sorrendje, a másoló tároló, a megosztott napló, a két dobó utasítás, az ismeretlen kód és az alias.
+  - Ismeretlen kód, szökés, öröklés vagy reflexió esetén minden marad a régiben.
+- **Megjegyzések:** az egysoros megjegyzés szabad a blokkján belül, utasításlistában és osztálytörzsben is. A többsoros megjegyzés sorai, a JSDoc és az irányelvek (`@ts-`, `/// <…>`) kötöttek maradnak.
+- **Független orákulum:** két helyi objektumművelet sorrendjét a futásidejű összevetés (teljes JSON-állapot, napló, kivétel) dönti el.
+- **Tesztek:** [object-footprints.test.mjs](tests/object-footprints.test.mjs): a prompt eseteinek mintái, kimerítő egysoros mozgatás, generatív objektumprogramok. Új kampányfajta: `--kinds=object`. A policycímke `scoped-effect-analysis-v12`.
+
 ## Unreleased – 2026-10-28 kapcsolatkapcsoló és pontos visszaállítás (ADR-024)
 
 - **A kör kapcsoló:** egy sor körére kattintva a vele kapcsolatban álló sorok kipipálódnak, a kapcsolat színével (kék: előtte, borostyán: utána, lakat: szerkezeti). Pipára kattintva a kapcsolat megszűnik, üres körre kattintva létrejön; a húzás ugyanez. Ugyanúgy működik a Szabályok tábláján és a Próba lépés mindkét zónájában; a gyakorló mód és a tanulói nézet nem látja.

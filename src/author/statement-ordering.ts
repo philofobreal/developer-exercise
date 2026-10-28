@@ -29,6 +29,8 @@
  */
 import type ts from 'typescript';
 import type {OrderingEntry, OrderingReason} from './ordering-relations.js';
+import {footprintConflicts, objectFootprints, type Footprint} from './object-footprints.js';
+import {freeCommentRows} from './comment-rows.js';
 type Compiler = typeof ts;
 
 export type UnitKind = 'pure' | 'local-write' | 'position-free' | 'barrier' | 'opaque';
@@ -37,7 +39,7 @@ export interface StatementUnit {first: number; last: number; kind: UnitKind; rea
 export interface StatementOrdering {entries: OrderingEntry[]; protectedInputs: Map<number, Set<number>>; units: StatementUnit[];}
 /** `readSet`/`writeSet`: bindings a pure or local-write unit reads or writes when it runs
  * (may-sets, unions over branches); two such units conflict on RAW, WAR or WAW. */
-interface Summary extends StatementUnit {reads: Set<number>; start: number; global?: boolean; readSet: Set<ts.Symbol>; writeSet: Set<ts.Symbol>; node?: ts.Statement;}
+interface Summary extends StatementUnit {reads: Set<number>; start: number; global?: boolean; readSet: Set<ts.Symbol>; writeSet: Set<ts.Symbol>; node?: ts.Statement; footprint?: Footprint;}
 interface Binding {row: number | null; primitiveInitializer: ts.Expression | null;}
 
 /** Barrier reasons that name an unsupported shape rather than an effect (ADR-014). */
@@ -417,10 +419,22 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
   * orders only conservatively; otherwise each barrier side, a shared global creation order
   * and each RAW/WAR/WAW conflict is a reason of its own. */
  const hoisted = (unit: Summary): boolean => unit.kind === 'position-free' && unit.reason === 'hoisted-function-declaration';
+ /** ADR-025: two statements on the list's own objects are ordered only by an object conflict or
+  * a possible throw; one that cannot throw commutes with a local write (no binding is shared:
+  * its callees run in other function contexts). Null when the rule does not apply. */
+ const objectOrder = (a: Summary, b: Summary): [OrderingReason['category'], string][] | null => {
+  if (a.footprint && b.footprint) return footprintConflicts(a.footprint, b.footprint).map(code => [code === 'may-throw' ? 'effect' : 'data', code]);
+  const [object, other] = a.footprint ? [a.footprint, b] : b.footprint ? [b.footprint, a] : [];
+  if (!object || other!.kind !== 'local-write') return null;
+  return object.mayThrow ? [['effect', 'may-throw']] : [];
+ };
  const pairReasons = (a: Summary, b: Summary): [OrderingReason['category'], string][] => {
+  if (a.reason === 'free-comment' || b.reason === 'free-comment') return [];
   if (a.kind === 'opaque' || b.kind === 'opaque') return [['conservative', 'opaque-row']];
   const found: [OrderingReason['category'], string][] = [];
-  if (a.kind !== 'position-free' && b.kind !== 'position-free' && !commutes(a, b) && !commutes(b, a)) for (const unit of [a, b]) if (unit.kind === 'barrier') found.push([barrierCategory(unit.reason), unit.reason]);
+  const objects = objectOrder(a, b);
+  if (objects) found.push(...objects);
+  else if (a.kind !== 'position-free' && b.kind !== 'position-free' && !commutes(a, b) && !commutes(b, a)) for (const unit of [a, b]) if (unit.kind === 'barrier') found.push([barrierCategory(unit.reason), unit.reason]);
   // v11 (ADR-020): a hoisted function's global key counts only if the program reflects keys; vars and emitted vars keep their order.
   if (a.global && b.global && (options.reflectedKeys || !hoisted(a) && !hoisted(b))) found.push(['policy', 'script-global-order']);
   if (meets(a.writeSet, b.readSet)) found.push(['data', 'read-after-write']);
@@ -469,6 +483,26 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
  function visit(node: ts.Node): void {
   if (compiler.isSourceFile(node) || compiler.isBlock(node) || compiler.isModuleBlock(node)) {
    const summaries = node.statements.map(statement => summary(statement, node)), sourceFile = compiler.isSourceFile(node);
+   // ADR-025: in a function-context list, statements on the list's own objects get footprints.
+   if (compiler.isBlock(node) && context(node) !== file) {
+    const footprints = objectFootprints(node.statements, file, compiler, checker, {primitive: expr => primitive(expr, new Set())});
+    summaries.forEach((unit, i) => {
+     const statement = node.statements[i]!, footprint = footprints.get(statement);
+     if (unit.kind !== 'barrier' || !footprint || !ownsRows(statement)) return;
+     unit.footprint = footprint;
+     // Its binding inputs: every identifier it reads, protected like a pure unit's (TDZ and value).
+     const inputs = (current: ts.Node): void => {
+      if (compiler.isIdentifier(current) && !(compiler.isPropertyAccessExpression(current.parent) && current.parent.name === current) && !(compiler.isVariableDeclaration(current.parent) && current.parent.name === current)) {
+       const symbol = checker.getSymbolAtLocation(current), found = binding(current, symbol);
+       if (symbol) unit.readSet.add(symbol);
+       if (found?.row != null && found.row < unit.first) unit.reads.add(found.row);
+      }
+      compiler.forEachChild(current, inputs);
+     };
+     inputs(statement);
+     if (compiler.isVariableStatement(statement)) {const declared = statement.declarationList.declarations[0]!.name, symbol = checker.getSymbolAtLocation(declared); if (symbol) unit.writeSet.add(symbol);}
+    });
+   }
    if (scriptGlobal(node)) summaries.forEach((unit, i) => {if (declaresGlobal(node.statements[i]!)) unit.global = true;});
    // A physical row containing multiple statements/boundaries is indivisible.
    const separate = summaries.every((unit, i) => !i || summaries[i - 1]!.last < unit.first) && (!summaries.length || sourceFile || summaries[0]!.first > line(node) && summaries.at(-1)!.last < end(node));
@@ -483,12 +517,25 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
       grouped.push({...unit, first: head.first, start: head.start, kind: 'barrier', reason: 'overload-group'});
      } else grouped.push(unit);
     });
-    // Preserve comments and other non-statement rows as opaque units.
+    // ADR-025: a row holding one complete comment is free inside its list. Other non-statement
+    // rows between statements stay opaque; before the first and after the last statement they
+    // keep the projection's source order.
     const complete: Summary[] = [];
+    const gap = (from: number, to: number, between: boolean): void => {
+     const free = freeCommentRows(file, compiler, from, to);
+     for (let row = from; row <= to; row++) {
+      if (!physical[row]?.trim()) continue;
+      if (free.has(row)) complete.push({first: row, last: row, start: -1, kind: 'position-free', reason: 'free-comment', reads: new Set(), readSet: new Set(), writeSet: new Set()});
+      else if (between) complete.push({first: row, last: row, start: -1, kind: 'opaque', reason: 'non-statement-row', reads: new Set(), readSet: new Set(), writeSet: new Set()});
+     }
+    };
+    const inner = sourceFile ? 0 : line(node) + 1, outer = sourceFile ? physical.length - 1 : end(node) - 1;
+    if (!grouped.length) gap(inner, outer, false);
     for (let i = 0; i < grouped.length; i++) {
-     if (i) for (let row = grouped[i - 1]!.last + 1; row < grouped[i]!.first; row++) if (physical[row]?.trim()) complete.push({first: row, last: row, start: -1, kind: 'opaque', reason: 'non-statement-row', reads: new Set(), readSet: new Set(), writeSet: new Set()});
+     gap(i ? grouped[i - 1]!.last + 1 : inner, grouped[i]!.first - 1, i > 0);
      complete.push(grouped[i]!);
     }
+    if (grouped.length) gap(grouped.at(-1)!.last + 1, outer, false);
     for (const unit of complete) {
      units.push({first: unit.first, last: unit.last, kind: unit.kind, reason: unit.reason});
      entries.set(unit.first, new Set()); reasons.delete(unit.first);

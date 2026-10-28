@@ -132,3 +132,46 @@ export function randomScriptProgram(seed,{language='javascript',items=8}={}){
  lines.push('function evaluate() {',`  return [${reads.join(', ')}];`,'}');
  return {id:`random-script-${language}-${seed}`,origin:'random',language,source:lines,probe:'evaluate()'};
 }
+
+/** ADR-025: a function that builds local objects of one small class and operates on them in a
+ * random order. The operations mix the dangers the footprints must see: a stored reference
+ * (keep), a copy at storage time (copy), a shared array attached to several objects (attach,
+ * note), a possible throw (rename ''), unknown code (shout records) and plain field writes.
+ * References only point from earlier to later objects, so the state stays acyclic, and the
+ * probe returns the JSON of every object (or the thrown message). */
+export function randomObjectProgram(seed,{language='javascript',operations=8}={}){
+ const rng=random(seed),pick=items=>items[Math.floor(rng()*items.length)],chance=p=>rng()<p,typescript=language==='typescript';
+ const t=type=>typescript?`: ${type}`:'';
+ const head=typescript?[
+  'class Box {','  count = 0;','  items: unknown[] = [];','  log: string[] = [];',"  private _tag = '';",'  constructor(public label: string) {}']:[
+  'class Box {','  constructor(label) {','    this.label = label;','    this.count = 0;','    this.items = [];','    this.log = [];',"    this._tag = '';",'  }'];
+ const source=[...head,
+  `  set tag(value${t('string')}) {`,'    this._tag = value;','  }',
+  `  get tag()${t('string')} {`,'    return this._tag;','  }',
+  `  bump()${t('void')} {`,'    this.count = this.count + 1;','  }',
+  `  keep(other${t('Box')})${t('void')} {`,'    this.items.push(other);','  }',
+  `  attach(log${t('string[]')})${t('void')} {`,'    this.log = log;','  }',
+  `  note(text${t('string')})${t('void')} {`,'    this.log.push(text);','  }',
+  `  copy(other${t('Box')})${t('void')} {`,'    this.items.push(other.label + other.tag);','  }',
+  `  rename(text${t('string')})${t('void')} {`,"    if (text === '') {","      throw new Error('empty ' + this.label);",'    }','    this.label = text;','  }',
+  `  shout()${t('void')} {`,"    record('shout', this.label);",'  }',
+  '}'];
+ const names=['a','b','c'].slice(0,2+Math.floor(rng()*2));
+ const body=[`function run()${t('string')} {`,...names.map(name=>`  const ${name} = new Box('${name}');`),`  const shared${t('string[]')} = [];`];
+ let counter=0;
+ for(let i=0;i<operations;i++){
+  const x=pick(names),others=names.filter(name=>name!==x),later=names.slice(names.indexOf(x)+1),n=counter++;
+  const kind=pick(['tag','tag','bump','keep','attach','note','note','copy','rename','shout','push']);
+  if(kind==='tag')body.push(`  ${x}.tag = 't${n}';`);
+  else if(kind==='bump')body.push(`  ${x}.bump();`);
+  else if(kind==='keep'&&later.length)body.push(`  ${x}.keep(${pick(later)});`);
+  else if(kind==='attach')body.push(`  ${x}.attach(shared);`);
+  else if(kind==='note')body.push(`  ${x}.note('n${n}');`);
+  else if(kind==='copy'&&others.length)body.push(`  ${x}.copy(${pick(others)});`);
+  else if(kind==='rename')body.push(`  ${x}.rename('${chance(0.25)?'':'r'+n}');`);
+  else if(kind==='shout')body.push(`  ${x}.shout();`);
+  else body.push(`  shared.push('s${n}');`);
+ }
+ body.push(`  return JSON.stringify([${names.join(', ')}, shared]);`,'}');
+ return {id:`object-${language}-${seed}`,language,origin:'object',probe:"(() => { try { return run(); } catch (error) { return 'throws ' + error.message; } })()",source:[...source,...body]};
+}

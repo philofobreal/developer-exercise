@@ -20,6 +20,7 @@
  * Every edge carries its reason (ADR-014). */
 import type ts from 'typescript';
 import {mergeOrderingEntries, type OrderingEntry, type OrderingReason} from './ordering-relations.js';
+import {freeCommentRows} from './comment-rows.js';
 type Compiler = typeof ts;
 /** `reflect`: the object on which the member creates a creation-ordered key.
  * `phases`: when a runtime class unit evaluates code (ADR-012): `key` at class
@@ -121,14 +122,19 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
      grouped.push({first: head.first, last: member.last, pure: false, plain: !!head.plain && !!member.plain, ...(definition ? {free: true} : {}), ...(member.reflect ? {reflect: member.reflect} : {})}); sizes.push(size);
     } else {grouped.push(member); sizes.push(1);}
    });
-   // No edits on shared physical boundaries. Comments remain opaque barriers.
+   // No edits on shared physical boundaries. A row with one complete comment is free (ADR-025);
+   // other non-member rows remain opaque barriers.
    if (open && close && grouped.every((member, i) => member.first > first(open) && member.last < first(close) && (!i || grouped[i - 1]!.last < member.first))) {
     const units: Unit[] = [], free: Unit[] = []; let cursor = first(open) + 1;
+    const gap = (until: number): void => {
+     const comments = freeCommentRows(file, compiler, cursor, until - 1);
+     for (; cursor < until; cursor++) if (physical[cursor]?.trim()) (comments.has(cursor) ? free : units).push({first: cursor, last: cursor, pure: false});
+    };
     for (const member of grouped) {
-     for (; cursor < member.first; cursor++) if (physical[cursor]?.trim()) units.push({first: cursor, last: cursor, pure: false});
+     gap(member.first);
      (member.free ? free : units).push(member); cursor = member.last + 1;
     }
-    for (; cursor < first(close); cursor++) if (physical[cursor]?.trim()) units.push({first: cursor, last: cursor, pure: false});
+    gap(first(close));
     // Definitions only need the class open; the remaining units keep their own order,
     // wired explicitly so that no barrier inherits a definition's row as predecessor.
     const wired = new Set<number>();

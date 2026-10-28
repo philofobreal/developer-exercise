@@ -522,4 +522,9 @@ A kézi `class-inventory-ts` modell a konstruktort a mező után, a metódusokat
 A felhasználó két nagy feladatot kért az F1, F2 és G1 előtt. Az epic terve változatlanul megmarad, és utánuk folytatódik.
 
 1. **Kapcsolatkapcsoló ([ADR-024](adr/024-link-toggle-and-exact-restore.md)) – kész:** a kör kipipálja a kiinduló sor közvetlen kapcsolatait a kapcsolat színével; pipára kattintva megszűnik, üres körre kattintva létrejön a kapcsolat, és a megszüntetett generált kapcsolat pontosan visszaállítható. Bizonyíték: `rule-editing` oda-vissza út, `workbench-flow` 9 eset, workbench-böngészőcsomag 45/45.
-2. **A függőségi gráf a mesterprompt szerint – folyamatban:** a generátor soronként, minden sor szemszögéből határozza meg a szükséges megelőző sorokat, se fölösleges, se hiányzó kapcsolat nélkül, úgy, hogy az elrendezés pontosan ott romoljon el, ahol a program viselkedése is megváltozna.
+2. **A függőségi gráf a mesterprompt szerint ([ADR-025](adr/025-local-object-effect-footprints.md), v12) – kész:** a mai elemző minden mellékhatásos utasítást teljes forrássorrendbe láncolt, és a megjegyzések is független sorokat kötöttek össze. A v12 a függvény saját objektumain dolgozó utasításokat a konstruktor-, metódus- és accessortörzsek absztrakt végrehajtásából számolt hatásnyom szerint rendezi, az egysoros megjegyzést pedig felszabadítja. Bizonyíték:
+   - a prompt referenciafüggvényén az 5040 sorrendből pontosan az a 136 elfogadott, amelyet a futásidejű orákulum ekvivalensnek talál (v11: 1);
+   - objektumkampány 120 program, 473 836 sorrend, 0 hibás elfogadás;
+   - korpusz 0 hibás elfogadás.
+
+**Ezután folytatódik:** F1 → F2 → G1.
