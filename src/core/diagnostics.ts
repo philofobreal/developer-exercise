@@ -27,7 +27,7 @@ export type DiagnosticCode =
   | 'fixed-position'
   | 'order-direct' | 'order-transitive' | 'pedagogical-rule' | 'structural-placement' | 'scope-boundary' | 'unit-split'
   | 'profile-conflict'
-  | 'unexplained-rejection' | 'single-move-repair' | 'diagnostic-budget' | 'withheld';
+  | 'unexplained-rejection' | 'single-move-repair' | 'two-move-repair' | 'diagnostic-budget' | 'withheld';
 /** `proven`: true under every content-consistent assignment, and enough to explain the
  * verdict. `general`: correct but names no cause. */
 export type DiagnosticCertainty = 'proven' | 'general';
@@ -50,7 +50,8 @@ export interface DiagnosticRule {
 /** `verified`: the validator accepts the result. `partial`: removes this proven conflict,
  * other errors may remain. `guidance`: a direction, not a checked change. `move` uses the
  * sorter's insert semantics: the line at `from` ends at `to`, movable neighbours shift. */
-export interface DiagnosticFix { level: 'verified' | 'partial' | 'guidance'; text: string; move?: { from: number; to: number }; }
+/** `moves` (ADR-033): the verified moves in order, each counted after the previous ones; `move` is the first. */
+export interface DiagnosticFix { level: 'verified' | 'partial' | 'guidance'; text: string; move?: { from: number; to: number }; moves?: { from: number; to: number }[]; }
 export interface Diagnostic {
   code: DiagnosticCode;
   severity: 'error' | 'notice';
@@ -290,7 +291,7 @@ function orderingDiagnostics(compiled: CompiledRules, lines: readonly string[], 
   }
   if (!out.length) {
     if (budget.used > budget.limit) return [];
-    const move = singleMove(compiled, lines, candidates, common, options);
+    const move = moveRepair(compiled, lines, candidates, common, options);
     return move ? [unexplained(def, compiled), move] : [unexplained(def, compiled)];
   }
   const ranked = out.sort((x, y) => Math.min(...x.positions, Infinity) - Math.min(...y.positions, Infinity)).slice(0, MAX_REPORTED);
@@ -478,66 +479,105 @@ export function moveLine<T>(lines: readonly T[], fixedSlots: ReadonlySet<number>
   return out;
 }
 
-/** ADR-030: when no cause is proven, a single-line move the validator accepts. It is a verified way
- * out, not a proven culprit: another move may fix the arrangement as well.
- * Candidates first: the lines are aligned with the reference (equal content in order), the longest
- * run in reference order stays, and each line outside it is tried only between its nearest
- * neighbours of that run. Then the remaining moves by increasing distance. One state allowance
- * bounds both phases apart from the diagnostic budget; `null` when no move is accepted within it. */
-function singleMove(compiled: CompiledRules, lines: readonly string[], candidates: readonly number[][], common: readonly (readonly [number, number])[], options: DiagnosticOptions): Diagnostic | null {
+/** ADR-030/033: when no cause is proven, one or two line moves the validator accepts. It is a
+ * verified way out, not a proven culprit: other moves may fix the arrangement as well.
+ * Windows: the lines are aligned with the reference (equal content in order), the longest run in
+ * reference order stays, and each line outside it is tried only between its nearest neighbours of
+ * that run, by any line of its content. Order: single moves into windows; then two moves, the
+ * first from the windows that leave the fewest rules broken in every assignment, the second from
+ * the windows of its result; then any single move by increasing distance. One allowance bounds
+ * all phases apart from the diagnostic budget; `null` when nothing is accepted within it. */
+function moveRepair(compiled: CompiledRules, lines: readonly string[], candidates: readonly number[][], common: readonly (readonly [number, number])[], options: DiagnosticOptions): Diagnostic | null {
+  type Move = { from: number; to: number };
   const def = compiled.definition, n = lines.length;
   const fixedSlots = new Set(def.tokens.flatMap(t => t.fixedPosition === undefined ? [] : [t.fixedPosition]));
   const states = clampInt(options.repairStates, 5_000, 200_000);
   let allowance = clampInt(options.moveSearchStates, 400_000, 50_000_000);
-  const tried = new Set<number>();
-  const attempt = (from: number, to: number): Diagnostic | null | undefined => {
-    const moved = moveLine(lines, fixedSlots, from, to);
-    if (!moved || tried.has(from * n + to)) return undefined;
-    tried.add(from * n + to);
-    if (allowance <= 0) return null;
-    // A rule broken in every assignment rejects the move without a search. The lines' candidate
-    // rows move with them; a fixed row's candidate kept at another position only widens the
-    // bounds, so nothing acceptable is ever skipped.
+  /** Rules broken in every assignment. The lines' candidate rows move with them; a fixed row's
+   * candidate kept at another position only widens the bounds, so nothing acceptable is skipped. */
+  const broken = (rows: readonly number[][]): number => {
     allowance -= n + common.length;
     const lo = new Array<number>(def.tokens.length).fill(Infinity), hi = new Array<number>(def.tokens.length).fill(-Infinity);
-    moveLine(candidates, fixedSlots, from, to)!.forEach((items, position) => { for (const t of items) { if (position < lo[t]!) lo[t] = position; if (position > hi[t]!) hi[t] = position; } });
-    if (common.some(([a, b]) => lo[a]! > hi[b]!)) return undefined;
-    // A validation re-matches every line: its cost grows with the rows, not only the states.
-    allowance -= 4 * n;
-    const check = validateSubmission(compiled, { exerciseId: def.id, revision: def.revision, lines: moved }, { maxStates: Math.min(states, allowance) });
-    allowance -= check.exploredStates + n;
-    if (!check.accepted) return undefined;
-    return { ...base('single-move-repair', 'notice', 'general', 'positions'), positions: [from], positionScope: 'some', summary: `Egyetlen sor áthelyezése elég: a(z) ${row(from)} (${quote(lines[from]!)}) máshová kerülve elfogadható megoldást ad.`, detail: 'Ez nem bizonyítja, hogy éppen ez a sor a hibás: más áthelyezés is javíthatja az elrendezést.', evidence: 'A validátor az áthelyezett elrendezést elfogadta.', limits: 'Ellenőrzött kiút, nem bizonyított ok.', fix: { level: 'verified', move: { from, to }, text: `Ha a(z) ${row(from)}t a(z) ${row(to)} helyére teszed, a megoldás elfogadott.` } };
+    rows.forEach((items, position) => { for (const t of items) { if (position < lo[t]!) lo[t] = position; if (position > hi[t]!) hi[t] = position; } });
+    return common.filter(([a, b]) => lo[a]! > hi[b]!).length;
   };
-  // Alignment: every line takes the first unused reference row of its content, in submission order.
-  const used = new Set<number>(), seq = candidates.map(items => { const t = items.find(i => !used.has(i)) ?? -1; used.add(t); return t; });
-  // Longest strictly increasing run of reference rows (patience sorting), as positions.
-  const tails: number[] = [], back = new Array<number>(n).fill(-1);
-  seq.forEach((t, p) => {
-    if (t < 0) return;
-    let lo = 0, hi = tails.length;
-    while (lo < hi) { const mid = (lo + hi) >> 1; if (seq[tails[mid]!]! < t) lo = mid + 1; else hi = mid; }
-    back[p] = lo ? tails[lo - 1]! : -1; tails[lo] = p;
-  });
-  const kept: number[] = [];
-  for (let p = tails.at(-1) ?? -1; p >= 0; p = back[p]!) kept.unshift(p);
-  const inRun = new Set(kept);
-  // Lines of equal content are interchangeable: the window an out-of-run line belongs to may be
-  // filled by any line of its content (a misplaced `}` shifts the alignment of all later ones).
-  const content = candidates.map(items => items.join(','));
-  for (let displaced = 0; displaced < n; displaced++) {
-    if (inRun.has(displaced) || seq[displaced]! < 0) continue;
-    // Between the run's nearest rows below and above this line's reference row.
-    const t = seq[displaced]!, below = kept.filter(p => seq[p]! < t).at(-1), above = kept.find(p => seq[p]! > t);
-    const sources = content.flatMap((key, p) => key === content[displaced] ? [p] : []).sort((x, y) => Math.abs(x - displaced) - Math.abs(y - displaced));
-    for (const from of sources) {
-      const shift = (p: number): number => p > from ? p - 1 : p;
-      const first = below === undefined ? 0 : shift(below) + 1, last = above === undefined ? n - 1 : shift(above);
-      for (let to = first; to <= last; to++) { const found = attempt(from, to); if (found !== undefined) return found; }
+  /** A validation re-matches every line: its cost grows with the rows, not only the states. */
+  const accepted = (moved: string[]): boolean | null => {
+    if (allowance <= 0) return null;
+    allowance -= 4 * n;
+    const check = validateSubmission(compiled, { exerciseId: def.id, revision: def.revision, lines: moved }, { maxStates: Math.min(states, Math.max(1, allowance)) });
+    allowance -= check.exploredStates + n;
+    return check.accepted;
+  };
+  const windows = (rows: readonly number[][]): Move[] => {
+    // Alignment: every line takes the first unused reference row of its content, in order.
+    const used = new Set<number>(), seq = rows.map(items => { const t = items.find(i => !used.has(i)) ?? -1; used.add(t); return t; });
+    // Longest strictly increasing run of reference rows (patience sorting), as positions.
+    const tails: number[] = [], back = new Array<number>(n).fill(-1);
+    seq.forEach((t, p) => {
+      if (t < 0) return;
+      let lo = 0, hi = tails.length;
+      while (lo < hi) { const mid = (lo + hi) >> 1; if (seq[tails[mid]!]! < t) lo = mid + 1; else hi = mid; }
+      back[p] = lo ? tails[lo - 1]! : -1; tails[lo] = p;
+    });
+    const kept: number[] = [];
+    for (let p = tails.at(-1) ?? -1; p >= 0; p = back[p]!) kept.unshift(p);
+    const inRun = new Set(kept), content = rows.map(items => items.join(',')), out: Move[] = [], seen = new Set<number>();
+    // Lines of equal content are interchangeable: the window an out-of-run line belongs to may be
+    // filled by any line of its content (a misplaced `}` shifts the alignment of all later ones).
+    for (let displaced = 0; displaced < n; displaced++) {
+      if (inRun.has(displaced) || seq[displaced]! < 0) continue;
+      const t = seq[displaced]!, below = kept.filter(p => seq[p]! < t).at(-1), above = kept.find(p => seq[p]! > t);
+      const sources = content.flatMap((key, p) => key === content[displaced] ? [p] : []).sort((x, y) => Math.abs(x - displaced) - Math.abs(y - displaced));
+      for (const from of sources) {
+        const shift = (p: number): number => p > from ? p - 1 : p;
+        const first = below === undefined ? 0 : shift(below) + 1, last = above === undefined ? n - 1 : shift(above);
+        for (let to = first; to <= last; to++) if (to !== from && !seen.has(from * n + to)) { seen.add(from * n + to); out.push({ from, to }); }
+      }
+    }
+    return out;
+  };
+  const single = (moves: readonly Move[]): Diagnostic => {
+    const [{ from, to }] = moves as [Move];
+    return { ...base('single-move-repair', 'notice', 'general', 'positions'), positions: [from], positionScope: 'some', summary: `Egyetlen sor áthelyezése elég: a(z) ${row(from)} (${quote(lines[from]!)}) máshová kerülve elfogadható megoldást ad.`, detail: 'Ez nem bizonyítja, hogy éppen ez a sor a hibás: más áthelyezés is javíthatja az elrendezést.', evidence: 'A validátor az áthelyezett elrendezést elfogadta.', limits: 'Ellenőrzött kiút, nem bizonyított ok.', fix: { level: 'verified', move: { from, to }, moves: [{ from, to }], text: `Ha a(z) ${row(from)}t a(z) ${row(to)} helyére teszed, a megoldás elfogadott.` } };
+  };
+  const double = (first: Move, second: Move): Diagnostic => {
+    // The second move counts positions after the first; name its line by its original position.
+    const original = moveLine(lines.map((_, i) => i), fixedSlots, first.from, first.to)![second.from]!;
+    const positions = [...new Set([first.from, original])].sort((x, y) => x - y);
+    return { ...base('two-move-repair', 'notice', 'general', 'positions'), positions, positionScope: 'some', summary: `Két sor áthelyezése elég: a(z) ${rows(positions)} máshová kerülve elfogadható megoldást ad.`, detail: 'Egyetlen áthelyezés nem javítja az elrendezést, kettő igen. Ez nem bizonyítja, hogy éppen ezek a sorok a hibásak.', evidence: 'A validátor a kétszer áthelyezett elrendezést elfogadta.', limits: 'Ellenőrzött kiút, nem bizonyított ok.', fix: { level: 'verified', move: first, moves: [first, second], text: `Ha a(z) ${row(first.from)}t a(z) ${row(first.to)} helyére teszed, majd az így kapott elrendezés ${row(second.from)}át a(z) ${row(second.to)} helyére, a megoldás elfogadott.` } };
+  };
+  const tried = new Set<number>();
+  const one = (move: Move): Diagnostic | null | undefined => {
+    if (tried.has(move.from * n + move.to)) return undefined;
+    tried.add(move.from * n + move.to);
+    const moved = moveLine(lines, fixedSlots, move.from, move.to);
+    if (!moved) return undefined;
+    if (allowance <= 0) return null;
+    if (broken(moveLine(candidates, fixedSlots, move.from, move.to)!)) return undefined;
+    const ok = accepted(moved);
+    return ok === null ? null : ok ? single([move]) : undefined;
+  };
+  const near = windows(candidates);
+  for (const move of near) { const found = one(move); if (found !== undefined) return found; }
+  // ADR-033: two moves, the most promising first moves only.
+  const firsts = near.slice(0, 200).flatMap(move => {
+    const rows2 = moveLine(candidates, fixedSlots, move.from, move.to);
+    return rows2 && allowance > 0 ? [{ move, rows: rows2, broken: broken(rows2) }] : [];
+  }).sort((x, y) => x.broken - y.broken).slice(0, 16);
+  for (const first of firsts) {
+    const after = moveLine(lines, fixedSlots, first.move.from, first.move.to)!;
+    for (const second of windows(first.rows)) {
+      if (allowance <= 0) return null;
+      const rows2 = moveLine(first.rows, fixedSlots, second.from, second.to);
+      if (!rows2 || broken(rows2)) continue;
+      const ok = accepted(moveLine(after, fixedSlots, second.from, second.to)!);
+      if (ok === null) return null;
+      if (ok) return double(first.move, second);
     }
   }
   for (let distance = 1; distance < n; distance++) for (let from = 0; from < n; from++) {
-    for (const to of [from - distance, from + distance]) { const found = attempt(from, to); if (found !== undefined) return found; }
+    for (const to of [from - distance, from + distance]) { const found = one({ from, to }); if (found !== undefined) return found; }
   }
   return null;
 }

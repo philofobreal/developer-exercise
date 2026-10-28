@@ -17,7 +17,7 @@
 import type { ExerciseDefinition, Submission, ValidationOptions, ValidationResult } from './types.js';
 import type { CodeLineExercise, ConstraintCategory } from './code-line.js';
 import { type CompiledRules } from './model.js';
-export type DiagnosticCode = 'invalid-reference' | 'invalid-submission' | 'search-budget' | 'unknown-content' | 'extra-line' | 'missing-line' | 'wrong-multiplicity' | 'fixed-position' | 'order-direct' | 'order-transitive' | 'pedagogical-rule' | 'structural-placement' | 'scope-boundary' | 'unit-split' | 'profile-conflict' | 'unexplained-rejection' | 'single-move-repair' | 'diagnostic-budget' | 'withheld';
+export type DiagnosticCode = 'invalid-reference' | 'invalid-submission' | 'search-budget' | 'unknown-content' | 'extra-line' | 'missing-line' | 'wrong-multiplicity' | 'fixed-position' | 'order-direct' | 'order-transitive' | 'pedagogical-rule' | 'structural-placement' | 'scope-boundary' | 'unit-split' | 'profile-conflict' | 'unexplained-rejection' | 'single-move-repair' | 'two-move-repair' | 'diagnostic-budget' | 'withheld';
 /** `proven`: true under every content-consistent assignment, and enough to explain the
  * verdict. `general`: correct but names no cause. */
 export type DiagnosticCertainty = 'proven' | 'general';
@@ -40,6 +40,7 @@ export interface DiagnosticRule {
 /** `verified`: the validator accepts the result. `partial`: removes this proven conflict,
  * other errors may remain. `guidance`: a direction, not a checked change. `move` uses the
  * sorter's insert semantics: the line at `from` ends at `to`, movable neighbours shift. */
+/** `moves` (ADR-033): the verified moves in order, each counted after the previous ones; `move` is the first. */
 export interface DiagnosticFix {
     level: 'verified' | 'partial' | 'guidance';
     text: string;
@@ -47,6 +48,10 @@ export interface DiagnosticFix {
         from: number;
         to: number;
     };
+    moves?: {
+        from: number;
+        to: number;
+    }[];
 }
 export interface Diagnostic {
     code: DiagnosticCode;

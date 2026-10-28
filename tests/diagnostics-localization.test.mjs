@@ -83,7 +83,8 @@ test('soundness by brute force: every proven block claim holds in every well-for
     if(x.rule&&x.certainty==='proven')assert.ok(every.every(a=>a.get(x.rule.before)>a.get(x.rule.after)),JSON.stringify({lines,diagnostic:x.summary}));
     // A block claim on one line: misplaced in every assignment whose blocks are well formed.
     if(x.code==='scope-boundary'&&!x.rule){claims++;const [id]=x.references,[p]=x.positions;assert.ok(all.every(a=>a.get(id)===p&&!placed(d,a,id)),JSON.stringify({lines,diagnostic:x.summary}));}
-    if(x.code==='single-move-repair'){moves++;assert.equal(validateSubmission(d,sub(d,moveLine(lines,new Set(),x.fix.move.from,x.fix.move.to))).status,'accepted',JSON.stringify(lines));assert.equal(r.explained,false);}
+    // ADR-033: every suggested move sequence, applied in order, is accepted.
+    if(x.code.endsWith('move-repair')){moves++;let fixed=lines;for(const m of x.fix.moves)fixed=moveLine(fixed,new Set(),m.from,m.to);assert.equal(validateSubmission(d,sub(d,fixed)).status,'accepted',JSON.stringify(lines));assert.equal(r.explained,false);assert.deepEqual(x.references,[]);}
    }
   }
  }
@@ -142,4 +143,40 @@ test('performance: at the 500-row limit a diagnosis without any single-move fix 
  assert.equal(r.verdict.status,'rejected');
  // Measured about 0.12 s locally; the budget leaves headroom for a loaded CI machine.
  assert.ok(ms<2000,`${Math.round(ms)} ms`);
+});
+
+// ADR-033: two independent ambiguous errors; no single move repairs them, two do.
+const twoGroups=def([{id:'x1',code:'x = 1;',scope:null},{id:'x2',code:'x = 1;',scope:null},{id:'u',code:'use(x);',scope:null,after:['x1','x2']},{id:'y1',code:'y = 1;',scope:null},{id:'y2',code:'y = 1;',scope:null},{id:'v',code:'use(y);',scope:null,after:['y1','y2']}]);
+const twoErrors=['x = 1;','use(x);','x = 1;','y = 1;','use(y);','y = 1;'];
+
+test('two moves: a verified sequence when no single move is accepted, naming no culprit',()=>{
+ const r=diagnoseSubmission(twoGroups,sub(twoGroups,twoErrors));
+ assert.equal(r.explained,false);
+ assert.deepEqual(r.diagnostics.map(x=>x.code),['unexplained-rejection','two-move-repair']);
+ const m=r.diagnostics[1];
+ assert.deepEqual([m.certainty,m.severity,m.references,m.positionScope,m.positions.length,m.fix.moves.length],['general','notice',[],'some',2,2]);
+ assert.deepEqual(m.fix.move,m.fix.moves[0]);
+ for(const single of [0,1,2,3,4,5])for(let to=0;to<6;to++)if(to!==single)assert.equal(validateSubmission(twoGroups,sub(twoGroups,moveLine(twoErrors,new Set(),single,to))).accepted,false,'no single move repairs it');
+ let fixed=twoErrors;for(const step of m.fix.moves)fixed=moveLine(fixed,new Set(),step.from,step.to);
+ assert.equal(validateSubmission(twoGroups,sub(twoGroups,fixed)).status,'accepted');
+});
+
+test('two moves: a single move keeps its one-element sequence, and the disclosure rule covers both',()=>{
+ const one=def([{id:'x1',code:'x = 1;',scope:null},{id:'x2',code:'x = 1;',scope:null},{id:'u',code:'use(x);',scope:null,after:['x1','x2']},{id:'e',code:'end();',scope:null}]);
+ const s=diagnoseSubmission(one,sub(one,['x = 1;','use(x);','end();','x = 1;'])).diagnostics.find(x=>x.code==='single-move-repair');
+ assert.deepEqual(s.fix.moves,[s.fix.move]);
+ const report=diagnoseSubmission(twoGroups,sub(twoGroups,twoErrors)),at=level=>discloseReport(report,level).diagnostics.find(x=>x.code==='two-move-repair');
+ assert.equal(at('verdict'),undefined);assert.ok(at('positions'));assert.equal(at('positions').fix,undefined);
+ assert.equal(at('rules').fix.moves.length,2);
+});
+
+test('two moves: fixed slots are never moved, and an exhausted allowance only drops the suggestion',()=>{
+ const pinned=def([...twoGroups.tokens.slice(0,3),{id:'k',code:'keep();',scope:null,fixedPosition:3},...twoGroups.tokens.slice(3)]);
+ const lines=['x = 1;','use(x);','x = 1;','keep();','y = 1;','use(y);','y = 1;'];
+ const m=diagnoseSubmission(pinned,sub(pinned,lines)).diagnostics.find(x=>x.code==='two-move-repair');
+ assert.ok(m);
+ let fixed=lines;for(const step of m.fix.moves){assert.ok(step.from!==3&&step.to!==3);fixed=moveLine(fixed,new Set([3]),step.from,step.to);}
+ assert.equal(validateSubmission(pinned,sub(pinned,fixed)).status,'accepted');
+ const tiny=diagnoseSubmission(twoGroups,sub(twoGroups,twoErrors),{moveSearchStates:1});
+ assert.ok(!tiny.diagnostics.some(x=>x.code.endsWith('move-repair')||x.code==='diagnostic-budget'));
 });

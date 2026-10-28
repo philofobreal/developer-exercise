@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-10-29 kétlépéses javítási javaslat (ADR-033)
+
+- **Rés lezárva:** ha egyetlen áthelyezés nem javítja az elrendezést, a kiértékelő két ellenőrzött lépést javasol (`two-move-repair`, `fix.moves`). A legígéretesebb első lépésekből indul, és ugyanabban a keretben marad.
+- **Mérés:** két független hibánál a megmagyarázatlan esetek kb. 83%-a kap javaslatot; p95 legfeljebb 130 ms, a legrosszabb eset 500 soron kb. 0,14 s.
+- **Tesztek:** a `diagnostics-localization` három új esete, és a nyers erős ellenőrzés minden javaslatsorozatot a validátorral igazol.
+
 ## Unreleased – 2026-10-29 értékérzékeny dobáselemzés (ADR-032, v16)
 
 - **Rés lezárva:** egy `if (!id) throw …` ellenőrzés nem számít lehetséges dobásnak, ha a literál argumentum mellett soha nem teljesül. A literálok a törzsekbe ismert értékként érkeznek; a `!`, `===`, összehasonlítás, `+`, `.length`, `typeof`, a rövidzár és a template eldönti az ágat.

@@ -1,6 +1,6 @@
 # ADR-030 – Blokkhatár-becslés azonos tartalmú határsorokkal és ellenőrzött egylépéses javítás
 
-Állapot: implementálva (2026-10-28). Az [ADR-023](023-explainable-validation-diagnostics.md) diagnosztikáját bővíti. A validátor, a verdikt, a CodeLine-séma és a tanulói parsermentes értékelés változatlan. A diagnosztika továbbra is csak magyaráz, nem dönt.
+Állapot: implementálva (2026-10-28). Az [ADR-023](023-explainable-validation-diagnostics.md) diagnosztikáját bővíti. A validátor, a verdikt, a CodeLine-séma és a tanulói parsermentes értékelés változatlan. A diagnosztika továbbra is csak magyaráz, nem dönt. A kétlépéses keresést az [ADR-033](033-two-move-repair.md) adja hozzá.
 
 ## Kontextus
 
