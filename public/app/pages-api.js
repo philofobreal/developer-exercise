@@ -1,6 +1,6 @@
 /** GitHub Pages static demo adapter. All evaluation is local and demonstrative.
  * This is NEVER an authoritative server-grade grading endpoint. */
-import {compileCodeLineExercise,validateSubmission} from '../dist/index.js';
+import {compileCodeLineExercise,validateSubmission,diagnoseSubmission,discloseReport,codeLineDiagnosticReasons} from '../dist/index.js';
 import {generateCodeLineExercise} from '../author/generator.mjs';
 import {getLanguageAdapter} from '../author/languages.mjs';
 import {auditReference} from '../author/audit.mjs';
@@ -73,12 +73,14 @@ export async function editRules(body){
 export async function previewDraft(body){
   const ref=drafts.get(body?.draftId);
   if(!ref||!Array.isArray(body.lines))throw Error('Érvénytelen vagy lejárt szerzői előnézet.');
-  return validateSubmission(ref.compiled,{exerciseId:ref.model.id,revision:ref.model.revision,lines:body.lines},{maxStates:30_000});
+  const report=diagnoseSubmission(ref.compiled,{exerciseId:ref.model.id,revision:ref.model.revision,lines:body.lines},{maxStates:30_000,reasons:ref.reasons??=codeLineDiagnosticReasons(ref.model)});
+  return {...report.verdict,feedback:{author:discloseReport(report,'provenance'),learner:discloseReport(report,'positions')}};
 }
 export async function evaluate(body){
   const ref=records.get(body?.exerciseId);
   if(!ref)throw Error('Ismeretlen referenciafeladat.');
-  return validateSubmission(ref.compiled,body,{maxStates:50_000});
+  const report=diagnoseSubmission(ref.compiled,body,{maxStates:50_000});
+  return {...report.verdict,feedback:{learner:discloseReport(report,'positions')}};
 }
 export async function loadTypeScriptFixture(){
   const res=await fetch(new URL('../samples/copy-field-utility.service.ts',import.meta.url));

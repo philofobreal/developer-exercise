@@ -17,7 +17,7 @@
 import type { ExerciseDefinition, Submission, ValidationOptions, ValidationResult } from './types.js';
 import type { CodeLineExercise, ConstraintCategory } from './code-line.js';
 import { type CompiledRules } from './model.js';
-export type DiagnosticCode = 'invalid-reference' | 'invalid-submission' | 'search-budget' | 'unknown-content' | 'extra-line' | 'missing-line' | 'wrong-multiplicity' | 'fixed-position' | 'order-direct' | 'order-transitive' | 'pedagogical-rule' | 'structural-placement' | 'scope-boundary' | 'unit-split' | 'profile-conflict' | 'unexplained-rejection' | 'diagnostic-budget';
+export type DiagnosticCode = 'invalid-reference' | 'invalid-submission' | 'search-budget' | 'unknown-content' | 'extra-line' | 'missing-line' | 'wrong-multiplicity' | 'fixed-position' | 'order-direct' | 'order-transitive' | 'pedagogical-rule' | 'structural-placement' | 'scope-boundary' | 'unit-split' | 'profile-conflict' | 'unexplained-rejection' | 'diagnostic-budget' | 'withheld';
 /** `proven`: true under every content-consistent assignment, and enough to explain the
  * verdict. `general`: correct but names no cause. */
 export type DiagnosticCertainty = 'proven' | 'general';
@@ -88,6 +88,17 @@ export interface DiagnosticOptions extends ValidationOptions {
     reasons?: ReadonlyMap<string, readonly ConstraintCategory[]>;
 }
 export declare const ruleKey: (before: string, after: string) => string;
+/** What one viewer is shown (ADR-026): the diagnostics up to `level`, the rest withheld and
+ * counted. A rejection whose every error was withheld keeps one general line with the verdict's
+ * own message, so the viewer gets no false cause and no cause above the level either. The
+ * verdict itself is never changed. */
+export interface Feedback {
+    level: DisclosureLevel;
+    diagnostics: Diagnostic[];
+    explained: boolean;
+    withheld: number;
+}
+export declare function discloseReport(report: DiagnosticReport, level: DisclosureLevel): Feedback;
 /** Bound provenance of a CodeLine v2 model as diagnostic reasons; empty when unbound or absent. */
 export declare function codeLineDiagnosticReasons(model: CodeLineExercise): Map<string, ConstraintCategory[]>;
 /** Diagnose one submission. The verdict is computed by `validateSubmission` with the same options. */

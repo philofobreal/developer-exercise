@@ -3,7 +3,7 @@
  * to a general explanation (epic 06, regressions 09.4, metamorphic checks 09.5). */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {examples,compileDefinition,compileCodeLineExercise,compileCodeLineExerciseV3,diagnoseSubmission,validateSubmission,moveLine,codeLineDiagnosticReasons,ruleKey,disclosureLevels} from '../dist/index.js';
+import {examples,compileDefinition,compileCodeLineExercise,compileCodeLineExerciseV3,diagnoseSubmission,validateSubmission,moveLine,codeLineDiagnosticReasons,ruleKey,disclosureLevels,discloseReport} from '../dist/index.js';
 import {suiteExercise,permutations} from './fixtures/language-ir.mjs';
 
 const def=(tokens,extra={})=>({schemaVersion:1,id:'d',revision:1,language:'javascript',title:'',description:'',tokens,blocks:[],...extra});
@@ -219,4 +219,16 @@ test('500 lines: a chain and a heavily duplicated model stay inside the explicit
  assert.ok(d.diagnostics.length<=13);
  console.log(`diagnostics 500 lines: chain ${chainMs.toFixed(0)} ms (${r.budget.used} steps), duplicated ${dupMs.toFixed(0)} ms (${d.budget.used} steps, ${d.verdict.status})`);
  assert.ok(chainMs<5000&&dupMs<5000);
+});
+
+test('disclosure (ADR-026): a level withholds what it may not show, keeps a general line and never the verdict',()=>{
+ const lines=['const b = a + 1;','const a = 1;','log(b);'],report=diagnose(chain,lines);
+ const author=discloseReport(report,'provenance'),learner=discloseReport(report,'positions');
+ assert.deepEqual(author.diagnostics,report.diagnostics);assert.equal(author.withheld,0);
+ assert.equal(learner.withheld,1);assert.deepEqual(learner.diagnostics.map(d=>[d.code,d.certainty,d.disclosure]),[['withheld','general','verdict']]);
+ assert.equal(learner.diagnostics[0].summary,report.verdict.message);assert.equal(learner.explained,false);
+ assert.ok(!JSON.stringify(learner).includes('"rule"'),'no rule in the learner view');
+ const unknown=discloseReport(diagnose(chain,['const a = 1;','evil();','log(b);']),'positions');
+ assert.ok(unknown.diagnostics.some(d=>d.code==='unknown-content'),'a content mark is learner-visible');
+ assert.deepEqual(discloseReport(diagnose(chain,['const a = 1;','const b = a + 1;','log(b);']),'verdict'),{level:'verdict',diagnostics:[],explained:true,withheld:0});
 });

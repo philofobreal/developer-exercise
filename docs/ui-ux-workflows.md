@@ -61,6 +61,8 @@ A **Próba** a rendezőt és a megoldás kódszerkesztőjét kínálja. A szerz�
 
 A kódszerkesztő külön, még nem alkalmazott munkaváltozat. Más nézetre vagy lépésre váltás nem dobja el. Ha közben a rendező módosul, visszatéréskor jelzés figyelmeztet a két változatra. A „Rendezőből újratöltés” explicit módon elveti a szerkesztő piszkozatát.
 
+**Visszajelzés ([ADR-026](adr/026-learner-feedback-and-row-marks.md)):** ellenőrzés után az értékelősáv a legfontosabb bizonyított okot mondja ki, alatta a „Részletes magyarázat” minden tételt felsorol a javítással (ellenőrzött, részleges vagy útmutatás), a szerzőnek a bizonyítékkal. Az érintett sorok a rendezőben jelölést kapnak (piros: biztosan érintett, borostyán: ezek egyike), és a tételek „Ugrás” gombja oda viszi a fókuszt. Bármely mozgatás azonnal törli a jelölést. A gyakorló mód és a Tanulói nézet csak azt mutatja, amit az API a tanulónak kiad.
+
 A **Tanulói nézet** (csak a Próba lépésben) elrejti:
 
 - a módváltót és a lépéseket;
@@ -89,12 +91,13 @@ A megjelenítés a `src/workbench` natív strict TypeScript-forrása; az állapo
 **Tesztek:**
 
 - `tests/workbench-flow.test.mjs`: minden állapotátmenet (zárolás, elavulás, módváltás, landolás, összekötés iránya).
-- `npm run test:browser:workbench`: 47 folyamat Node és Pages módban, többek között:
+- `npm run test:browser:workbench`: 49 folyamat Node és Pages módban, többek között:
   - a zárolt lépések;
   - az újraépítés és a JSON-alkalmazás után minden későbbi lépés frissül;
   - egy szerzői projekt a gyakorlás mellett, példák mint kezdőpontok;
   - szabálypanel és kapcsolatkapcsoló egérrel, húzással és billentyűzettel, a táblán és a próbarendezőn is (létrehozás, megszüntetés, pontos visszaállítás);
   - sorrögzítés és feloldás a táblán;
+  - visszajelzés: jelölt sorok, ugrás, tanulói nézet, érvénytelenítés mozgatás után;
   - az ívek újrarajzolása rendezés közben és az azonnali újraértékelés;
   - a görgetés megmaradása szabály hozzáadása és eltávolítása után;
   - a piszkozatok megőrzése és a késői válaszok elleni védelem;

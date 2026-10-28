@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-10-28 visszajelzés és soronkénti jelölés (ADR-026, F1)
+
+- **Rövid és részletes magyarázat:** az értékelősáv a legfontosabb bizonyított okot mondja ki. A „Részletes magyarázat” minden diagnosztikát felsorol a javítás bizonyossági szintjével, a szerzőnek a bizonyítékkal és a korláttal.
+- **Soronkénti jelölés:** a ténylegesen értékelt sorok jelölést kapnak (biztosan érintett, illetve ezek egyike), képernyőolvasóval is. Az „Ugrás” gomb a fókuszt a sorra viszi. Bármely mozgatás azonnal érvényteleníti a jelölést.
+- **Felfedés:** az API nézőnként vág (`discloseReport`). A szerzői előnézet mindent lát, a tanuló a pozíciószintig. A szabályszintű ok visszatartott, és egy általános sor helyettesíti; a megbízható gráf nem utazik a tanulóhoz. A Tanulói nézet pontosan a tanulói szintet mutatja.
+- **Tesztek:** core egységteszt, negatív szivárgási API-teszt, böngészős eset Node és Pages módban.
+
 ## Unreleased – 2026-10-28 sorrögzítés a Szabályok tábláján (ADR-024)
 
 - **Rajzszög-kapcsoló** minden sor műveleti sávjában: a sort a referencia szerinti helyére rögzíti, újra megnyomva feloldja. Akadálymentes toggle gomb (`aria-pressed`, helyet megnevező címke és tooltip), élő státuszsor, a fókusz a gombon marad. Ugyanaz a típusos `set-fixed` szerkesztés, mint a panelen, amelynek gombja is ezt az ikont kapta.

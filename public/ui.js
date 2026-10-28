@@ -20,7 +20,9 @@ const attempt=createAttemptController(ex,at);
 const {text,formattedAnswer}=attempt;
 const view=createWorkbenchView({root,state,ex,at,attempt,scroll:createScrollMemory(root)});
 const render=()=>view.render();
-function commit(msg=''){at().generation=(at().generation??0)+1;at().report=null;at().feedback=msg;render();}
+function commit(msg=''){at().generation=(at().generation??0)+1;at().report=null;at().feedback=msg;delete state.feedbackFocus;render();}
+/** The graded lines and the sorter slot of each, so a diagnostic position marks its row (ADR-026). */
+const submitted=a=>({lines:a.answer.filter(x=>x!==null).map(text),slots:a.answer.flatMap((x,i)=>x===null?[]:[i])});
 /** A message belongs to the surface the author is looking at. */
 function notify(message){const a=at();if(a&&(state.mode==='practice'||state.learnerPreview||state.view==='sort'||state.view==='edit'))a.feedback=message;else if(state.view==='model'||state.sourceKind==='json')state.modelMessage=message;else state.author.message=message;render();}
 function movePoolToBoundary(index,boundary){if(!attempt.insertFromPool(index,boundary))return commit('Nincs szabad megoldássor.');commit();}
@@ -44,7 +46,7 @@ async function authorApply(body,{preserveAttempt=false,sessionImport,current=cap
  state.modelMessage=body.source!==undefined?summary:compatible?'A módosított szabályok érvényesek. A kitöltés megmaradt; ellenőrizheted az új függőségekkel.':'A módosított modell érvényes. A kitöltést az új szerkezethez visszaállítottuk.';
  state.author.message=summary;
  landAfterAdmission(state,land);commit(state.modelMessage);
- if(compatible){const id=state.active,a=at(),generation=a.generation;let report;try{report=await previewDraft({draftId:data.draftId,lines:a.answer.filter(x=>x!==null).map(text)});}catch{report={status:'indeterminate',message:'Az előnézet értékelése nem érhető el.',exploredStates:0};}if(state.active===id&&at()===a&&a.generation===generation){a.report=report;render();}}
+ if(compatible){const id=state.active,a=at(),generation=a.generation,{lines,slots}=submitted(a);let report;try{report={...await previewDraft({draftId:data.draftId,lines}),slots};}catch{report={status:'indeterminate',message:'Az előnézet értékelése nem érhető el.',exploredStates:0};}if(state.active===id&&at()===a&&a.generation===generation){a.report=report;render();}}
 }
 /** The link between the anchor and another line toggles (ADR-024): a direct link is removed (the
  * core asks for its acknowledgement where needed), a missing one is added in reference order, and
@@ -126,6 +128,12 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  if(b.hasAttribute('data-start-load')){const e=state.exercises.find(x=>x.id===root.querySelector('[data-start-example]')?.value);if(!e){state.author.message='Válassz egy példát a listából.';render();return;}startFromExample(state,e);state.sourceKind='code';render();return;}
  if(b.hasAttribute('data-edit-example')){const e=ex();if(!e)return;startFromExample(state,e);enterMode(state,'author');state.view='author';state.sourceKind='code';render();return;}
  if(b.hasAttribute('data-author-revert')){revertAuthorDraft(state);render();return;}
+ if(b.dataset.feedbackGoto!==undefined){
+  // Move to the rows a diagnostic names; the marks come from the graded report, not from a search here.
+  state.feedbackFocus=+b.dataset.feedbackGoto;render();
+  const row=root.querySelector('.solution-zone .code-row.diag-focus');row?.scrollIntoView({block:'nearest'});
+  (row?.querySelector('.drag-handle:not([disabled])')??row?.querySelector('button'))?.focus({preventScroll:true});return;
+ }
  if(b.dataset.rulePin){
   // A pin is one typed set-fixed edit; the open panel and the focus stay where they are.
   const line=+b.dataset.rulePin,draftId=state.previews.get(state.active),fixed=b.getAttribute('aria-pressed')!=='true',place=(state.authorModel?.lines.findIndex(item=>item.id===line)??-1)+1;
@@ -173,8 +181,9 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  if(b.hasAttribute('data-model-refresh')){state.modelDraft=root.querySelector('#model-editor').value;try{await authorApply({model:JSON.parse(state.modelDraft),refreshDependencies:true},{preserveAttempt:true});}catch(err){state.modelMessage=err.message;render();}return;}
  if(b.hasAttribute('data-check')){if(state.view!=='sort'){a.feedback='Előbb alkalmazd a szerkesztő változtatásait.';render();return;}
    const generation=a.generation;
-   try{const preview=state.previews.get(state.active);const lines=a.answer.filter(x=>x!==null).map(text);
-      const report=preview?await previewDraft({draftId:preview,lines}):await evaluate({exerciseId:ex().id,revision:ex().revision,lines});if(at()===a&&a.generation===generation)a.report=report;}
+   delete state.feedbackFocus;
+   try{const preview=state.previews.get(state.active),{lines,slots}=submitted(a);
+      const report=preview?await previewDraft({draftId:preview,lines}):await evaluate({exerciseId:ex().id,revision:ex().revision,lines});if(at()===a&&a.generation===generation)a.report={...report,slots};}
    catch{if(at()===a&&a.generation===generation)a.report={status:'indeterminate',message:'A validációs szerver nem érhető el.',exploredStates:0};}render();return;
  }
 },error=>notify(error instanceof Error?error.message:'A művelet nem sikerült.')));

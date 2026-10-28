@@ -9,7 +9,7 @@ import path from 'node:path';
 import {generateCodeLineExercise,AuthoringError} from '../author/generator.mjs';
 import {getLanguageAdapter} from '../author/languages.mjs';
 import {auditReference} from '../author/audit.mjs';
-import {compileCodeLineExercise,validateSubmission} from '../../dist/index.js';
+import {compileCodeLineExercise,validateSubmission,diagnoseSubmission,discloseReport,codeLineDiagnosticReasons} from '../../dist/index.js';
 import {authorRuleSheet,editAuthorModel,refreshAuthorModel,verifyAuthorModel} from '../../dist/author/engine.js';
 import {createReferenceAuditor} from '../../dist/author/reference-audit.js';
 export class ServiceError extends Error{constructor(code,message){super(message);this.statusCode=code;}}
@@ -78,11 +78,15 @@ export class ExerciseCatalog{
   preview(body){
     this.prune();if(typeof body?.draftId!=='string'||!Array.isArray(body?.lines)||body.lines.length>500)throw new ServiceError(400,'Invalid draft submission');
     const item=this.drafts.get(body.draftId);if(!item)throw new ServiceError(404,'Preview not found or expired');
-    return validateSubmission(item.compiled,{exerciseId:item.model.id,revision:item.model.revision,lines:body.lines},{maxStates:30_000});
+    // F1 (ADR-026): the verdict, plus feedback for the author and for the learner view of the draft.
+    const report=diagnoseSubmission(item.compiled,{exerciseId:item.model.id,revision:item.model.revision,lines:body.lines},{maxStates:30_000,reasons:item.reasons??=codeLineDiagnosticReasons(item.model)});
+    return {...report.verdict,feedback:{author:discloseReport(report,'provenance'),learner:discloseReport(report,'positions')}};
   }
   evaluate(body){
     if(!body||typeof body.exerciseId!=='string'||!Array.isArray(body.lines)||body.lines.length>500)throw new ServiceError(400,'Invalid submission');
     const item=this.trusted.get(body.exerciseId);if(!item)throw new ServiceError(404,'Exercise not found');
-    return validateSubmission(item.compiled,body,{maxStates:50_000});
+    // A trusted exercise answers its learner only up to the positions level until F2 decides more.
+    const report=diagnoseSubmission(item.compiled,body,{maxStates:50_000});
+    return {...report.verdict,feedback:{learner:discloseReport(report,'positions')}};
   }
 }

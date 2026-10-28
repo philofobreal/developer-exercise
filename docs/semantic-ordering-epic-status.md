@@ -54,7 +54,7 @@ Jelölés: ✅ kész és ellenőrzött · 🔄 folyamatban · ⏳ következik ·
 | D2 | EPIC-05: vizuális szabálypanel, `importEmit`-választó és a minősítés megjelenítése a szerzői felületen | ✅ | Playwright-bizonyíték |
 | U1 | A szerzői és a próbanézetek egyszerűsítése: léptetéses folyamat, egyetlen aktív állapottal, egyértelmű állapotkapcsolattal és frissítéssel a nézetek között | ✅ | állapotgép-egységtesztek, Playwright-átjárási tesztek minden lépésváltásra, újragenerálásra és frissítésre |
 | E1 | EPIC-06: core diagnosztikai modul (bizonyított konfliktusok, többértelműség, keret) | ✅ | diagnosztikai regressziók (09.4), metamorf: a validátor döntése változatlan |
-| F1 | EPIC-07: tanulói visszajelzés és soronkénti jelölés | ⏳ | böngészőteszt, hozzáférhetőség |
+| F1 | EPIC-07: tanulói visszajelzés és soronkénti jelölés | ✅ | böngészőteszt, hozzáférhetőség |
 | F2 | EPIC-08: disclosure policy (szerző / Pages / trusted szerver) és szerveroldali szerzői jogosultság, vagy explicit, dokumentált helyidemó-korlát | ⏳ | negatív szivárgási és jogosultsági tesztek |
 | G1 | EPIC-09/12: teljes regresszió, kampány, böngésző; forráshűségi round-trip (forrás → modell → render → export/import); a szerzői elemzés idő- és memóriakerete; dokumentáció, végső jelentés | ⏳ | `check:all`, `test:browser:all`, `git diff --check` |
 
@@ -528,3 +528,18 @@ A felhasználó két nagy feladatot kért az F1, F2 és G1 előtt. Az epic terve
    - korpusz 0 hibás elfogadás.
 
 **Ezután folytatódik:** F1 → F2 → G1.
+
+## F1 – visszajelzés és soronkénti jelölés – lezárva
+
+**Döntés:** [ADR-026](adr/026-learner-feedback-and-row-marks.md).
+
+- **API:** az értékelő végpontok a változatlan ítélet mellett nézőnként vágott visszajelzést adnak. A szerzői előnézet mindent lát, a tanuló (megbízható értékelés, gyakorlás, Tanulói nézet) a pozíciószintig. A szabályszintű ok visszatartott, és egy általános sor helyettesíti.
+- **Felület:**
+  - rövid ok az értékelősávban, részletes magyarázat javítással és bizonyítékkal;
+  - soronkénti jelölés a ténylegesen értékelt sorokon, `aria-describedby`-vel;
+  - „Ugrás” a sorokhoz fókuszkezeléssel;
+  - azonnali érvénytelenítés minden mozgatáskor.
+- **A nyitott kérdés:** a meglévő Tanulói nézet pontosan a tanulói szintet mutatja, külön kapcsoló nem kell.
+- **Bizonyíték:** `discloseReport` egységteszt; negatív szivárgási API-teszt; böngészős eset Node és Pages módban.
+
+**Következik:** F2 (a felfedési politika, a tanulói szint emelése, szerveroldali szerzői jogosultság), majd G1.

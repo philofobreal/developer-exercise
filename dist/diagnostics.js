@@ -16,6 +16,13 @@ const reasonText = {
     unit: 'A két sor egy többsoros egység része, ezért együtt mozog.',
     unknown: ''
 };
+export function discloseReport(report, level) {
+    const rank = disclosureLevels.indexOf(level);
+    const shown = report.diagnostics.filter(d => disclosureLevels.indexOf(d.disclosure) <= rank), withheld = report.diagnostics.length - shown.length;
+    if (withheld && report.verdict.status === 'rejected' && !shown.some(d => d.severity === 'error'))
+        shown.unshift({ ...base('withheld', 'error', 'general', 'verdict'), summary: report.verdict.message, detail: 'A megoldás nem fogadható el; a pontos ok ebben a nézetben nem jelenik meg.', evidence: 'A validátor döntése.' });
+    return { level, diagnostics: shown, explained: report.verdict.accepted || shown.some(d => d.certainty === 'proven' && d.code !== 'diagnostic-budget'), withheld };
+}
 /** Bound provenance of a CodeLine v2 model as diagnostic reasons; empty when unbound or absent. */
 export function codeLineDiagnosticReasons(model) {
     const reasons = new Map();

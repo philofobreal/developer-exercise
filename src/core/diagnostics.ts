@@ -27,7 +27,7 @@ export type DiagnosticCode =
   | 'fixed-position'
   | 'order-direct' | 'order-transitive' | 'pedagogical-rule' | 'structural-placement' | 'scope-boundary' | 'unit-split'
   | 'profile-conflict'
-  | 'unexplained-rejection' | 'diagnostic-budget';
+  | 'unexplained-rejection' | 'diagnostic-budget' | 'withheld';
 /** `proven`: true under every content-consistent assignment, and enough to explain the
  * verdict. `general`: correct but names no cause. */
 export type DiagnosticCertainty = 'proven' | 'general';
@@ -101,6 +101,18 @@ const reasonText: Record<ConstraintCategory, string> = {
   unit: 'A két sor egy többsoros egység része, ezért együtt mozog.',
   unknown: ''
 };
+
+/** What one viewer is shown (ADR-026): the diagnostics up to `level`, the rest withheld and
+ * counted. A rejection whose every error was withheld keeps one general line with the verdict's
+ * own message, so the viewer gets no false cause and no cause above the level either. The
+ * verdict itself is never changed. */
+export interface Feedback {level: DisclosureLevel; diagnostics: Diagnostic[]; explained: boolean; withheld: number;}
+export function discloseReport(report: DiagnosticReport, level: DisclosureLevel): Feedback {
+ const rank = disclosureLevels.indexOf(level);
+ const shown = report.diagnostics.filter(d => disclosureLevels.indexOf(d.disclosure) <= rank), withheld = report.diagnostics.length - shown.length;
+ if (withheld && report.verdict.status === 'rejected' && !shown.some(d => d.severity === 'error')) shown.unshift({...base('withheld', 'error', 'general', 'verdict'), summary: report.verdict.message, detail: 'A megoldás nem fogadható el; a pontos ok ebben a nézetben nem jelenik meg.', evidence: 'A validátor döntése.'});
+ return {level, diagnostics: shown, explained: report.verdict.accepted || shown.some(d => d.certainty === 'proven' && d.code !== 'diagnostic-budget'), withheld};
+}
 
 /** Bound provenance of a CodeLine v2 model as diagnostic reasons; empty when unbound or absent. */
 export function codeLineDiagnosticReasons(model: CodeLineExercise): Map<string, ConstraintCategory[]> {
