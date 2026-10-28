@@ -20,5 +20,7 @@ export declare function jsTsEnvironment(file: ts.SourceFile, compiler: typeof ts
  * object (also inside strings, which only makes it stricter), or uses `this` at
  * script level, where it is the global object. */
 export declare function observesKeyOrder(file: ts.SourceFile, compiler: typeof ts): boolean;
+/** ADR-029: whether the program itself may observe the creation order of instance fields. */
+export declare function enumeratesKeys(file: ts.SourceFile, compiler: typeof ts): boolean;
 /** `options.imports` describes the TypeScript emit (ADR-013); JavaScript imports always load their module. */
 export declare function jsTsOrderingRelations(file: ts.SourceFile, compiler: typeof ts, options?: OrderingOptions): OrderingRelations;

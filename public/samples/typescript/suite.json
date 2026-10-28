@@ -2,18 +2,18 @@
   {
     "id": "01-user-account",
     "title": "UserAccount – a beküldött példa",
-    "description": "Az interface adatmezői felcserélhetők. A normál class mezők és this-értékadások sorrendje megmarad, mert a kulcssorrend is megfigyelhető.",
+    "description": "Az interface adatmezői és a kezdőérték nélküli class mezők felcserélhetők, mert a program maga nem listázza a kulcsokat (ADR-029). A konstruktor this-értékadásai sorrendben maradnak.",
     "acceptedSwaps": [
       [
         2,
         3
-      ]
-    ],
-    "rejectedSwaps": [
+      ],
       [
         6,
         7
-      ],
+      ]
+    ],
+    "rejectedSwaps": [
       [
         9,
         10
@@ -27,7 +27,7 @@
       2,
       3
     ],
-    "probe": "JSON.stringify({name:user.name,id:user.id,keys:Object.keys(user)})"
+    "probe": "JSON.stringify({name:user.name,id:user.id,keys:Object.keys(user).sort()})"
   },
   {
     "id": "02-interface",

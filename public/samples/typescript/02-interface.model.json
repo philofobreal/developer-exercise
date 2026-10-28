@@ -83,7 +83,7 @@
     "reason": "",
     "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
-    "dependencyPolicy": "scoped-effect-analysis-v13",
+    "dependencyPolicy": "scoped-effect-analysis-v14",
     "provenance": [
       {
         "before": 1,
@@ -124,7 +124,7 @@
     ],
     "evidence": {
       "sourceDigest": "01061fcba23845aa",
-      "analyzer": "scoped-effect-analysis-v13",
+      "analyzer": "scoped-effect-analysis-v14",
       "environment": {
         "typescript": "5.8.3",
         "importEmit": "verbatim",
@@ -136,7 +136,7 @@
         "examples": []
       }
     },
-    "note": "A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor, a declare mezők, a privát (#) és a tömbindex nevű metódusok bárhol állhatnak az osztálytörzsben. A többi metódus és accessor a mezőkhöz és egymáshoz képest is szabad; csak ha a program maga listázza a kulcsokat (getOwnPropertyNames, Reflect.ownKeys, getOwnPropertyDescriptors), akkor tartják meg egymáshoz képesti sorrendjüket, mert akkor a prototípus (static esetén a konstruktor) kulcssorrendje megfigyelhető, és az accessor mező akkor ebben a láncban is a helyén marad. Egy azonos nevű getter és setter egy tulajdonság: egymással felcserélhetők. A példány- és a static mezők egymáshoz képest szabadok, mert más fázisban futnak, de csoportjukon belül megtartják a sorrendet; a számított nevű metódus a mezőkhöz képest szabad. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.",
+    "note": "A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor, a declare mezők, a privát (#) és a tömbindex nevű metódusok bárhol állhatnak. A többi metódus és accessor is szabad; csak ha a program listázza a nem felsorolható kulcsokat (getOwnPropertyNames, Reflect.ownKeys), tartják meg a kulcssorrendjüket. Az azonos nevű getter és setter egy tulajdonság. A példány- és a static mezők más fázisban futnak, egymáshoz képest szabadok; csoportjukon belül sorrendben maradnak, kivéve a kódot nem futtató példánymezőket, ha a program nem listázza a kulcsokat (Object.keys, JSON.stringify, for…in, spread, console). A számított nevű metódus a mezőkhöz képest szabad. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.",
     "dependencyHints": []
   }
 }

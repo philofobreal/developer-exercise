@@ -40,9 +40,7 @@
    "id": 4,
    "sourceLine": 5,
    "code": "    state: State = \"idle\";",
-   "dependencies": [
-    3
-   ],
+   "dependencies": [],
    "fixed": false,
    "functionBlock": 0,
    "scopeId": "scope-user",
@@ -52,9 +50,7 @@
    "id": 5,
    "sourceLine": 6,
    "code": "    score = 0;",
-   "dependencies": [
-    4
-   ],
+   "dependencies": [],
    "fixed": false,
    "functionBlock": 0,
    "scopeId": "scope-user",
@@ -581,18 +577,8 @@
  "authoring": {
   "strategy": "manual-runtime-dependency-analysis",
   "semanticEquivalenceProven": false,
-  "note": "Kézi, következtetett modell a master prompt szerint, nem automatikusan hitelesített bizonyítás. Feltevés: a runMiniFixture() visszatérési értéke és a visszaadott objektumok állapota, kulcssorrendje a megfigyelés; a Store referenciát tárol; a String.prototype.trim tiszta; a mezőírások mezőszinten függetlenek. Evidence és provenance szándékosan elhagyva.",
+  "note": "Kézi, következtetett modell a master prompt szerint, nem automatikusan hitelesített bizonyítás. Feltevés: a runMiniFixture() visszatérési értéke és a visszaadott objektumok állapota a megfigyelés, a példánymezők kulcssorrendje nem, mert a program nem listázza a kulcsokat (ADR-029); a Store referenciát tárol; a String.prototype.trim tiszta; a mezőírások mezőszinten függetlenek. Evidence és provenance szándékosan elhagyva.",
   "ruleNotes": [
-   {
-    "before": 3,
-    "after": 4,
-    "note": "A példánymezők kulcssorrendje a visszaadott objektumokon megfigyelhető (pl. JSON.stringify)."
-   },
-   {
-    "before": 4,
-    "after": 5,
-    "note": "Ugyanaz: a mezőinicializálók a forrás sorrendjében hozzák létre a kulcsokat."
-   },
    {
     "before": 31,
     "after": 33,

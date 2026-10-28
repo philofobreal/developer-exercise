@@ -1,6 +1,6 @@
 # ADR-020 – A metódusok és a felső szintű függvények kulcssorrendje csak reflektáló programban kötött
 
-Állapot: implementálva (`scoped-effect-analysis-v11`). A validátor, a CodeLine-séma jelentése, a tanulói parsermentes értékelés és a bizalmi határ változatlan. A már importált modellek függőségei nem generálódnak újra.
+Állapot: implementálva (`scoped-effect-analysis-v11`). A példánymezőkre kiterjesztette: [ADR-029](029-unobserved-instance-field-order.md) (v14). A validátor, a CodeLine-séma jelentése, a tanulói parsermentes értékelés és a bizalmi határ változatlan. A már importált modellek függőségei nem generálódnak újra.
 
 ## Kontextus
 

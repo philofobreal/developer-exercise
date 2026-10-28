@@ -582,3 +582,5 @@ A G1.1–G1.2 a felhasználó kérésére részfeladatonként megállva, a G1.3�
 A G1 után a felhasználó a futásidejű mesterpromptot saját bemenettel (`runMiniFixture`) adta át, és azt kérte, hogy a blokkon belül független sorok legyenek szabadon rendezhetők. A promptot LLM-ként lefuttattuk, a kapott modellt soronként és a futásidejű orákulummal is megvizsgáltuk: [elemzés](runtime-prompt-mini-fixture-elemzes.md).
 
 A v12 túlkötött: a mintán 328 futásidőben azonos sorrendet utasított el. Négy okát javítottuk: mezőszint, listaszintű `if/else`, string-metódusok, egyetlen kivétel ([ADR-028](adr/028-runtime-precise-object-footprints.md)). A v13 lezárt sorrendi relációja azonos a kézi modellével.
+
+A következő kérdés a `state` és a `score` mező cseréje volt: ez csak a kulcssorrendet változtatja. A felhasználó döntése szerint a példánymezők kulcssorrendje csak kulcsokat listázó programban számít ([ADR-029](adr/029-unobserved-instance-field-order.md), v14).

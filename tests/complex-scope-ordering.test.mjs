@@ -225,10 +225,10 @@ const library={
    {name:'const names a for ciklusba',order:o=>moveBefore(o,26,28),status:'rejected',equivalent:false},
    {name:'interface-tag az osztálytörzsbe',order:o=>moveBefore(o,5,8),status:'rejected',equivalent:false},
    {name:'korai return a feltétel után',order:o=>swap(o,13,14),status:'rejected',equivalent:false}]},
- 'class-accounts-ts':{probe:"(() => { const account = new CreditAccount('Ana', 50); account.deposit(100); const results = [account.withdraw(120), account.withdraw(40), account.withdraw(5)]; account.deposit(7); return [results, account.statement(), Object.keys(account), account instanceof Account]; })()",extensions:20160,
+ 'class-accounts-ts':{probe:"(() => { const account = new CreditAccount('Ana', 50); account.deposit(100); const results = [account.withdraw(120), account.withdraw(40), account.withdraw(5)]; account.deposit(7); return [results, account.statement(), Object.keys(account).sort(), account instanceof Account]; })()",extensions:20160,
   scope:[
    {name:'leszármazott osztály az ős elé',order:o=>moveBefore(o,range(22,29),1),status:'rejected',equivalent:false},
-   {name:'mezők cseréje',order:o=>swap(o,2,3),status:'rejected',equivalent:false},
+   {name:'literál-kezdőértékű mezők cseréje: a tárolt szerzői modell köti, futásidőben azonos (ADR-029)',order:o=>swap(o,2,3),status:'rejected',equivalent:true},
    {name:'absztrakt metódus előre',order:o=>moveBefore(o,20,5),status:'accepted',equivalent:true},
    {name:'egyenleg és napló frissítésének cseréje',order:o=>swap(o,13,14),status:'accepted',equivalent:true},
    {name:'super hívás a konstruktoron kívül',order:o=>moveBefore(o,24,26),status:'rejected',equivalent:false},

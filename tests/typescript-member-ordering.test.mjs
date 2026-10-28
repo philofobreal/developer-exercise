@@ -49,11 +49,13 @@ test('exact screenshot is syntactically valid but has a different observable pro
  const model=generateCodeLineExercise({source,language:'typescript'},ts),compiled=compile(model);
  const order=[1,2,3,4,5,7,6,8,10,9,11,12,13],changed=codes(model,order);
  assert.equal(grade(compiled,changed).status,'rejected');
- assert.equal(model.authoring.dependencyPolicy,'scoped-effect-analysis-v13');
+ assert.equal(model.authoring.dependencyPolicy,'scoped-effect-analysis-v14');
  assert.deepEqual(model.lines[1].dependencies,[1]);assert.deepEqual(model.lines[2].dependencies,[1]);assert.deepEqual(model.lines[3].dependencies,[2,3]);
  assert.ok(model.lines.every(line=>line.fixed===false));
+ // The raw creation order differs; the public probe compares the key set (ADR-029).
+ const rawKeys='JSON.stringify({name:user.name,id:user.id,keys:Object.keys(user)})';
  for(const define of [false,true]){
-  const before=JSON.parse(run(source,examples[0].probe,define)),after=JSON.parse(run(changed.join('\n'),examples[0].probe,define));
+  const before=JSON.parse(run(source,rawKeys,define)),after=JSON.parse(run(changed.join('\n'),rawKeys,define));
   assert.equal(after.name,before.name);assert.equal(after.id,before.id);
   assert.deepEqual(before.keys,['name','id']);assert.deepEqual(after.keys,['id','name']);
  }
@@ -64,7 +66,11 @@ test('exact screenshot is syntactically valid but has a different observable pro
  // the field (and key) order name, id is unchanged in both class-field modes.
  const fieldAfterConstructor=codes(model,[1,2,3,4,5,6,8,9,10,11,7,12,13]);
  for(const define of [false,true])assert.deepEqual(JSON.parse(run(fieldAfterConstructor.join('\n'),examples[0].probe,define)),JSON.parse(run(source,examples[0].probe,define)));
- const original=model.lines.map(line=>line.code),allowed=new Set([key(original),key(codes(model,swap(model.lines.map(line=>line.id),2,3))),key(fieldAfterConstructor)]);
+ // ADR-029: the program lists no keys, so the two fields without initialisers are free of each other
+ // (the probe's Object.keys is outside the program); the values stay the same in both modes.
+ const fieldsSwapped=codes(model,swap(model.lines.map(line=>line.id),6,7)),nameAfterConstructor=codes(model,[1,2,3,4,5,7,8,9,10,11,6,12,13]);
+ for(const lines of [fieldsSwapped,nameAfterConstructor])for(const define of [false,true]){const after=JSON.parse(run(lines.join('\n'),examples[0].probe,define));assert.deepEqual([after.name,after.id,[...after.keys].sort()],['Murphy',1,['id','name']]);}
+ const original=model.lines.map(line=>line.code),allowed=new Set([key(original),key(codes(model,swap(model.lines.map(line=>line.id),2,3))),key(fieldAfterConstructor),key(fieldsSwapped),key(nameAfterConstructor)]);
  for(let from=0;from<original.length;from++)for(let to=0;to<original.length;to++){
   const lines=[...original];lines.splice(to,0,lines.splice(from,1)[0]);
   assert.equal(grade(compiled,lines).accepted,allowed.has(key(lines)),JSON.stringify({from,to}));
@@ -107,7 +113,12 @@ for(const [name,source,yes,no] of [
  ['computed method barrier','interface X {\n [Symbol.iterator](): Iterator<number>;\n a: number;\n b: number;\n}',[[3,4]],[[2,3]]],
  ['same decoded name','interface X {\n a: number;\n "a": number;\n b: number;\n}',[],[[2,4],[3,4]]],
  ['static declare stays conservative','class X {\n declare static a: number;\n declare static b: number;\n}',[],[[2,3]]],
- ['abstract fields stay conservative','abstract class X {\n abstract a: number;\n abstract b: number;\n}',[],[[2,3]]],
+ // ADR-029: abstract fields emit nothing and run no code; the program lists no keys.
+ ['abstract fields are free','abstract class X {\n abstract a: number;\n abstract b: number;\n}',[[2,3]],[]],
+ ['an initialiser that reads another field stays ordered','class X {\n a = 1;\n b = this.a + 1;\n}',[],[[2,3]]],
+ ['an initialiser that runs code stays ordered','function f(): number { return 1; }\nclass X {\n a = f();\n b = 2;\n}',[],[[3,4]]],
+ ['literal fields are ordered when the program lists keys','class X {\n a = 1;\n b = 2;\n}\nconsole.log(Object.keys(new X()));',[],[[2,3]]],
+ ['literal fields are free when the program lists no keys','class X {\n a = 1;\n b = [2, {c: "d"}];\n}\nconst x = new X();',[[2,3]],[]],
  ['decorated member stays attached','function tag(...args: unknown[]): void {}\nclass X {\n @tag\n declare a: number;\n declare b: number;\n declare c: number;\n}',[[5,6]],[[3,5],[4,5]]],
  ['readonly declare','class X {\n declare readonly a: number;\n declare readonly b: number;\n}',[[2,3]],[]],
  ['auto accessors','class X {\n accessor a = 1;\n accessor b = 2;\n}',[],[[2,3]]]
@@ -131,12 +142,18 @@ test('all eight interface/class/constructor combinations agree with both compile
  const reference=model.lines.map(line=>line.id),baselines=[false,true].map(define=>run(source,examples[0].probe,define));let accepted=0;
  for(const types of [false,true])for(const fields of [false,true])for(const writes of [false,true]){
   let order=reference;if(types)order=swap(order,2,3);if(fields)order=swap(order,6,7);if(writes)order=swap(order,9,10);
-  const lines=codes(model,order),actuals=[false,true].map(define=>run(lines.join('\n'),examples[0].probe,define)),equivalent=actuals.every((value,index)=>value===baselines[index]);
-  assert.equal(grade(compiled,lines).accepted,equivalent,JSON.stringify({types,fields,writes}));if(equivalent)accepted++;
+  // ADR-029: the program lists no keys, so equal values and an equal key set are the same behaviour.
+  const observe=value=>{const result=JSON.parse(value);return JSON.stringify([result.name,result.id,[...result.keys].sort()]);};
+  const lines=codes(model,order),actuals=[false,true].map(define=>run(lines.join('\n'),examples[0].probe,define)),equivalent=actuals.every((value,index)=>observe(value)===observe(baselines[index]));
+  // Sound: nothing accepted changes behaviour. The constructor's this-writes stay ordered (a
+  // statement barrier, no footprint on `this`): a known completeness gap, recorded exactly.
+  const verdict=grade(compiled,lines).accepted;
+  assert.ok(!verdict||equivalent,JSON.stringify({types,fields,writes}));
+  assert.equal(verdict,equivalent&&!writes,JSON.stringify({types,fields,writes}));if(verdict)accepted++;
   assert.equal(grade(authored,lines).status,'accepted');
   for(const value of actuals){const result=JSON.parse(value);assert.equal(result.name,'Murphy');assert.equal(result.id,1);}
  }
- assert.equal(accepted,2);
+ assert.equal(accepted,4);
 });
 
 test('mixed type-member DAG keeps fixed slots, common edges, OR profiles, text bijection and budget',()=>{

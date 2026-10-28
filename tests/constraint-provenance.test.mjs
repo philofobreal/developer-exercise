@@ -62,7 +62,9 @@ test('projection reasons: clause chains, continued rows and sealed units',()=>{
 
 test('class members: definitions, evaluation phases, reflected key order and erased runs',()=>{
  const model=generate(['class A {','  x = 1;','  y = 2;','  static s = 3;','  m() {}','  n() {}','}']);
- assert.deepEqual(reasons(model,2,3),['effect/class-evaluation-order']);
+ assert.deepEqual(reasons(model,2,3),[],'v14 (ADR-029): two literal instance fields commute when the program lists no keys');
+ const reading=generate(['class A {','  x = 1;','  y = this.x + 1;','}']);
+ assert.deepEqual(reasons(reading,2,3),['effect/class-evaluation-order'],'an initialiser that reads another field keeps the order');
  assert.deepEqual(reasons(model,1,4),['structure/block-open'],'a static field shares no phase with instance fields');
  assert.deepEqual(reasons(model,1,5),['structure/block-open']);
  assert.deepEqual(reasons(model,5,6),[],'v11: the methods commute');

@@ -4,7 +4,7 @@
   "revision": 1,
   "language": "typescript",
   "title": "UserAccount – a beküldött példa",
-  "description": "Az interface adatmezői felcserélhetők. A normál class mezők és this-értékadások sorrendje megmarad, mert a kulcssorrend is megfigyelhető.",
+  "description": "Az interface adatmezői és a kezdőérték nélküli class mezők felcserélhetők, mert a program maga nem listázza a kulcsokat (ADR-029). A konstruktor this-értékadásai sorrendben maradnak.",
   "lines": [
     {
       "id": 1,
@@ -80,7 +80,7 @@
       "sourceLine": 8,
       "code": "  id: number;",
       "dependencies": [
-        6
+        5
       ],
       "fixed": false,
       "functionBlock": 0,
@@ -191,7 +191,7 @@
     "reason": "",
     "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
-    "dependencyPolicy": "scoped-effect-analysis-v13",
+    "dependencyPolicy": "scoped-effect-analysis-v14",
     "provenance": [
       {
         "before": 1,
@@ -224,10 +224,10 @@
         "code": "block-open"
       },
       {
-        "before": 6,
+        "before": 5,
         "after": 7,
-        "category": "effect",
-        "code": "class-evaluation-order"
+        "category": "structure",
+        "code": "block-open"
       },
       {
         "before": 5,
@@ -268,7 +268,7 @@
     ],
     "evidence": {
       "sourceDigest": "b3adab2637be05fd",
-      "analyzer": "scoped-effect-analysis-v13",
+      "analyzer": "scoped-effect-analysis-v14",
       "environment": {
         "typescript": "5.8.3",
         "importEmit": "verbatim",
@@ -280,7 +280,7 @@
         "examples": []
       }
     },
-    "note": "A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor, a declare mezők, a privát (#) és a tömbindex nevű metódusok bárhol állhatnak az osztálytörzsben. A többi metódus és accessor a mezőkhöz és egymáshoz képest is szabad; csak ha a program maga listázza a kulcsokat (getOwnPropertyNames, Reflect.ownKeys, getOwnPropertyDescriptors), akkor tartják meg egymáshoz képesti sorrendjüket, mert akkor a prototípus (static esetén a konstruktor) kulcssorrendje megfigyelhető, és az accessor mező akkor ebben a láncban is a helyén marad. Egy azonos nevű getter és setter egy tulajdonság: egymással felcserélhetők. A példány- és a static mezők egymáshoz képest szabadok, mert más fázisban futnak, de csoportjukon belül megtartják a sorrendet; a számított nevű metódus a mezőkhöz képest szabad. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.",
+    "note": "A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor, a declare mezők, a privát (#) és a tömbindex nevű metódusok bárhol állhatnak. A többi metódus és accessor is szabad; csak ha a program listázza a nem felsorolható kulcsokat (getOwnPropertyNames, Reflect.ownKeys), tartják meg a kulcssorrendjüket. Az azonos nevű getter és setter egy tulajdonság. A példány- és a static mezők más fázisban futnak, egymáshoz képest szabadok; csoportjukon belül sorrendben maradnak, kivéve a kódot nem futtató példánymezőket, ha a program nem listázza a kulcsokat (Object.keys, JSON.stringify, for…in, spread, console). A számított nevű metódus a mezőkhöz képest szabad. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.",
     "dependencyHints": [
       {
         "name": "name",

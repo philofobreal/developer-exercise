@@ -10,7 +10,7 @@
    - minden nem triviális élhez magyar `ruleNotes`;
    - `evidence`, `provenance` és `dependencyPolicy` nincs, mert a prompt 5.7. pontja szerint ezeket egy kézi modell nem hamisíthatja.
 2. **A modell formai ellenőrzése.** A core `compileCodeLineExercise` hibátlanul befogadja: a séma, a blokkhierarchia, az aciklikusság és az eredeti sorrend elfogadása rendben van.
-3. **Összevetés a futásidővel.** A független orákulum minden vizsgált sorrendet le is futtat. A TS-forrást mindkét osztálymező-módban fordítja, és összeveti a visszatérési értéket (JSON, kulcssorrenddel), a kivételt és a mellékhatásokat.
+3. **Összevetés a futásidővel.** A független orákulum minden vizsgált sorrendet le is futtat. A TS-forrást mindkét osztálymező-módban fordítja, és összeveti a visszatérési értéket (JSON), a kivételt és a mellékhatásokat. A v14 óta (ADR-029) a kulcssorrend csak akkor számít, ha a program maga listázza a kulcsokat; ez a program nem teszi.
    - A vizsgált sorrendek: a teljes egysoros szomszédság (minden sor minden helyre, minden párcsere), valamint modellenként 300 mintavett, a modell által megengedett teljes sorrend.
    - A forrás az orákulum fixture-jei közé került (`prompt-mini-fixture`).
 4. **Ugyanez a projekt generátorával** a javítás előtt (v12) és után (v13).
@@ -31,21 +31,21 @@ A két futás mintája eltér, mert a mintavétel a modellek saját megengedett 
 Két pontosítással igaz:
 
 - **Független, ha bizonyítottan az.** Ismeretlen kód, közös objektum, alias vagy két lehetséges kivétel esetén a sorrend továbbra is kötött. Ezt a prompt is így kéri: „a helyes elfogadás fontosabb a maximális szabadságnál”.
-- **A „futásidőben mindegy” a megfigyelhető viselkedésre értendő.** Ide tartozik a kulcssorrend is: a mezők és az új kulcsot létrehozó írások sorrendje a visszaadott objektumon `JSON.stringify`-jal látszik. Ezért marad kötött például a 3 → 4 → 5. sor.
+- **A „futásidőben mindegy” a megfigyelhető viselkedésre értendő.** Az értékek, a kivételek és a mellékhatások számítanak. A kulcssorrend a felhasználó döntése alapján (2026-10-28, [ADR-029](adr/029-unobserved-instance-field-order.md)) csak akkor, ha a program maga listázza a kulcsokat. A v13 még kötötte a 3 → 4 → 5. sort; a v14 felszabadítja.
 
 ## Soronkénti vizsgálat
 
-Jelölés: a számok a közvetlen előzmények (`dependencies`). A „–” azt jelenti, hogy csak a blokkszerkezet köti a sort. A kézi modell a blokkszerkezetből adódó éleket nem írja ki, a generátor igen; a lezárt reláció ettől nem változik.
+Jelölés: az LLM oszlop a kézi modell mai, ADR-029 szerinti állapota. A számok a közvetlen előzmények (`dependencies`). A „–” azt jelenti, hogy csak a blokkszerkezet köti a sort. A kézi modell a blokkszerkezetből adódó éleket nem írja ki, a generátor igen; a lezárt reláció ettől nem változik.
 
 ### Osztályok (1–28. sor)
 
-| # | Sor | v12 | LLM | v13 | Indok |
+| # | Sor | v12 | LLM | v14 | Indok |
 | --- | --- | --- | --- | --- | --- |
 | 1 | `type State = "idle" \| "active";` | – | – | – | típus, futásidőben nem létezik |
 | 2 | `class User {` | – | – | – | a függvény nem fut a modul kiértékelésekor |
 | 3 | `private _alias = "";` | 2 | – | 2 | blokkszerkezet |
-| 4 | `state: State = "idle";` | 3 | 3 | 3 | a példánymezők kulcssorrendje a visszaadott objektumon megfigyelhető |
-| 5 | `score = 0;` | 4 | 4 | 4 | ugyanaz |
+| 4 | `state: State = "idle";` | 3 | – | 2 (v13: 3) | v14: a literál-kezdőértékű példánymezők szabadok, mert a program nem listázza a kulcsokat |
+| 5 | `score = 0;` | 4 | – | 2 (v13: 4) | ugyanaz |
 | 6 | `constructor(public readonly id: string, public name: string) {}` | 2 | – | 2 | a paramétertulajdonságok helye nem a sor helyétől függ |
 | 7–9 | `set alias(value: string) { … }` | 2 | – | 2 | a prototípus-kulcsok sorrendjét a program nem listázza (ADR-020) |
 | 10–12 | `get alias(): string { … }` | 2 | – | 2 | ugyanaz |
@@ -57,11 +57,11 @@ Jelölés: a számok a közvetlen előzmények (`dependencies`). A „–” azt
 | 22–27 | `add(…)`, `list()` | 20 | – | 20 | a prototípus-kulcsok sorrendje nem megfigyelt |
 | 28 | `}` | 27 | – | 27 | blokkszerkezet |
 
-Az osztályrészben a három modell egyezik; ez a rész a v12-ben sem volt túlkötött.
+Az osztályrészben a 4–5. sor kivételével a modellek egyeznek. Ezt a két kötést a v14 oldja fel (ADR-029); a kézi modell ehhez igazodott, a lezárt sorrendi reláció ma is azonos.
 
 ### `runMiniFixture` (29–46. sor)
 
-| # | Sor | v12 | LLM | v13 | Indok | Értékelés |
+| # | Sor | v12 | LLM | v13 = v14 | Indok | Értékelés |
 | --- | --- | --- | --- | --- | --- | --- |
 | 29 | `export function runMiniFixture(…) {` | – | – | – | blokknyitó | |
 | 30 | `const store = new Store<User>();` | 29 | – | 29 | független konstrukció | |

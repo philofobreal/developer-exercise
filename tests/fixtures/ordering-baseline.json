@@ -379,8 +379,8 @@
  },
  "class-accounts-ts": {
   "neighbours": 1059,
-  "accepted": 19,
+  "accepted": 27,
   "completenessGaps": 0,
-  "justifiedRejections": 1040
+  "justifiedRejections": 1032
  }
 }

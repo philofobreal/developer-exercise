@@ -49,10 +49,18 @@ export function observesKeyOrder(file, compiler) {
         visit(file);
     return found;
 }
+/** Names and forms through which a program lists enumerable keys in creation order (also inside
+ * strings, which only makes it stricter): key listing, serialisation, copying, printing, for…in
+ * and any spread. */
+const keyEnumeration = /\b(?:keys|values|entries|stringify|assign|structuredClone|console|inspect)\b|\.\.\.|\bfor\s*\([^)]*\bin\b/;
+/** ADR-029: whether the program itself may observe the creation order of instance fields. */
+export function enumeratesKeys(file, compiler) {
+    return observesKeyOrder(file, compiler) || keyEnumeration.test(file.text);
+}
 /** `options.imports` describes the TypeScript emit (ADR-013); JavaScript imports always load their module. */
 export function jsTsOrderingRelations(file, compiler, options = {}) {
-    const reflectedKeys = observesKeyOrder(file, compiler);
-    const statements = statementOrdering(file, compiler, { ...(file.fileName.endsWith('.ts') ? options : {}), reflectedKeys }), members = typeMemberOrdering(file, compiler, { reflectedKeys });
+    const reflectedKeys = observesKeyOrder(file, compiler), enumeratedKeys = enumeratesKeys(file, compiler);
+    const statements = statementOrdering(file, compiler, { ...(file.fileName.endsWith('.ts') ? options : {}), reflectedKeys }), members = typeMemberOrdering(file, compiler, { reflectedKeys, enumeratedKeys });
     return combineOrderingRelations([
         { entries: statements.entries, protectedInputs: statements.protectedInputs, spans: statements.units.map(({ first, last }) => ({ first, last })), note: '' },
         { entries: members.entries, protectedInputs: new Map(), spans: members.spans, note: members.note }

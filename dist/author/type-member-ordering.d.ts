@@ -31,8 +31,10 @@ export interface TypeMemberOrdering {
     }[];
     note: string;
 }
-/** `reflectedKeys` (ADR-020): the program may list non-enumerable keys, so the ADR-010 key chain applies. */
+/** `reflectedKeys` (ADR-020): the program may list non-enumerable keys, so the ADR-010 key chain applies.
+ * `enumeratedKeys` (ADR-029): the program may list enumerable keys, so instance fields keep their order. */
 export declare function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, options?: {
     reflectedKeys?: boolean;
+    enumeratedKeys?: boolean;
 }): TypeMemberOrdering;
 export {};

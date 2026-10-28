@@ -415,7 +415,10 @@ const arrayIndex=key=>/^(0|[1-9]\d*)$/.test(key)&&Number(key)<4294967295;
  * enumerable ones (fields, static fields, vars) keep their creation order. */
 const keySet=keys=>[...new Set(keys)].sort();
 /** `ordered`: the program itself may list these keys (reflectsKeys), so every creation order counts, as in ADR-010. */
-const classOrder=(proto,statics,staticFields,instance,ordered)=>JSON.stringify(ordered?[firstOccurrences(proto),firstOccurrences([...statics,...staticFields]),firstOccurrences(instance)]:[keySet(proto),keySet(statics),firstOccurrences(staticFields),firstOccurrences(instance)]);
+/** `enumerated` (ADR-029): the program may list enumerable keys; otherwise instance fields count as a set too. */
+const classOrder=(proto,statics,staticFields,instance,ordered,enumerated=true)=>JSON.stringify(ordered?[firstOccurrences(proto),firstOccurrences([...statics,...staticFields]),firstOccurrences(instance)]:[keySet(proto),keySet(statics),firstOccurrences(staticFields),enumerated?firstOccurrences(instance):keySet(instance)]);
+/** ADR-029: a fixture lists enumerable keys itself (key listing, serialisation, copying, printing, for…in, any spread). */
+const enumerationNames=/\b(?:keys|values|entries|stringify|assign|structuredClone|console|inspect)\b|\.\.\.|\bfor\s*\([^)]*\bin\b/;
 const globalOrder=(globals,functions)=>{const ordered=firstOccurrences(globals).filter(name=>!functions.includes(name));return [ordered,keySet(functions)];};
 /** Whether a fixture can list non-enumerable or global keys itself: it names a reflection
  * API or the global object anywhere in its text, or uses `this` at script level. */
@@ -440,7 +443,7 @@ function reflectsKeys(code,language){
  return found;
 }
 const firstOccurrences=keys=>[...new Set(keys)].filter(key=>!arrayIndex(key));
-function jsReflection(tree,ordered=false){
+function jsReflection(tree,ordered=false,enumerated=true){
  const classes=[],globals=[],functions=[],vars=[];
  const keyOf=member=>member.computed?'computed:'+jsShape(member.key):member.key.type==='PrivateIdentifier'?null:member.key.type==='Identifier'?member.key.name:String(member.key.value);
  const patternNames=(pattern,out)=>{if(!pattern)return;if(pattern.type==='Identifier')out.push(pattern.name);else if(pattern.type==='ObjectPattern')pattern.properties.forEach(p=>patternNames(p.type==='RestElement'?p.argument:p.value,out));else if(pattern.type==='ArrayPattern')pattern.elements.forEach(e=>patternNames(e,out));else if(pattern.type==='RestElement')patternNames(pattern.argument,out);else if(pattern.type==='AssignmentPattern')patternNames(pattern.left,out);};
@@ -454,7 +457,7 @@ function jsReflection(tree,ordered=false){
     if(member.type==='MethodDefinition'&&member.kind!=='constructor')(member.static?statics:proto).push(key);
     if(member.type==='PropertyDefinition')(member.static?staticFields:instance).push(key);
    }
-   classes.push(classOrder(proto,statics,staticFields,instance,ordered));
+   classes.push(classOrder(proto,statics,staticFields,instance,ordered,enumerated));
   }
   if(global&&node.type==='VariableDeclaration'&&node.kind==='var')node.declarations.forEach(d=>{patternNames(d.id,globals);patternNames(d.id,vars);});
   if(global&&node.type==='FunctionDeclaration'){globals.push(node.id.name);functions.push(node.id.name);}
@@ -464,9 +467,9 @@ function jsReflection(tree,ordered=false){
  visit(tree,true);
  // A name that is also a var keeps its place among the ordered globals.
  const functionsOnly=ordered?[]:firstOccurrences(functions).filter(name=>!vars.includes(name));
- return {order:JSON.stringify([classes.sort(),globalOrder(globals,functionsOnly)]),classNames:tree.body.filter(s=>s.type==='ClassDeclaration').map(s=>s.id.name),globals:firstOccurrences(globals),functions:functionsOnly,ordered};
+ return {order:JSON.stringify([classes.sort(),globalOrder(globals,functionsOnly)]),classNames:tree.body.filter(s=>s.type==='ClassDeclaration').map(s=>s.id.name),globals:firstOccurrences(globals),functions:functionsOnly,ordered,enumerated};
 }
-function tsReflection(file,{globals=[],functions=[]}={},ordered=false){
+function tsReflection(file,{globals=[],functions=[]}={},ordered=false,enumerated=true){
  const classes=[];
  const has=(node,kind)=>!!ts.canHaveModifiers(node)&&!!ts.getModifiers(node)?.some(m=>m.kind===kind);
  const keyOf=name=>!name||ts.isPrivateIdentifier(name)?null:ts.isComputedPropertyName(name)?'computed:'+tsShape(name.expression):ts.isNumericLiteral(name)?String(Number(name.text)):name.text;
@@ -481,12 +484,12 @@ function tsReflection(file,{globals=[],functions=[]}={},ordered=false){
     if((ts.isMethodDeclaration(member)||ts.isGetAccessorDeclaration(member)||ts.isSetAccessorDeclaration(member))&&member.body||ts.isPropertyDeclaration(member)&&has(member,ts.SyntaxKind.AccessorKeyword))(isStatic?statics:proto).push(key);
     else if(ts.isPropertyDeclaration(member))(isStatic?staticFields:instance).push(key);
    }
-   classes.push(classOrder(proto,statics,staticFields,[...parameters,...instance],ordered));
+   classes.push(classOrder(proto,statics,staticFields,[...parameters,...instance],ordered,enumerated));
   }
   ts.forEachChild(node,visit);
  };
  visit(file);
- return {order:JSON.stringify([classes.sort(),globalOrder(globals,functions)]),classNames:file.statements.flatMap(s=>ts.isClassDeclaration(s)&&s.name&&!has(s,ts.SyntaxKind.DeclareKeyword)?[s.name.text]:[]),globals:firstOccurrences(globals),functions,ordered};
+ return {order:JSON.stringify([classes.sort(),globalOrder(globals,functions)]),classNames:file.statements.flatMap(s=>ts.isClassDeclaration(s)&&s.name&&!has(s,ts.SyntaxKind.DeclareKeyword)?[s.name.text]:[]),globals:firstOccurrences(globals),functions,ordered,enumerated};
 }
 
 /** Class declarations below the top level, keyed by their enclosing named
@@ -514,17 +517,17 @@ function nestedClasses(code,language){
  try{visit(parseScript(code,{ecmaVersion:'latest',sourceType:'script'}),[],false);}catch{return [];}
  return found;
 }
-function analyse(code,language,ordered=false){
+function analyse(code,language,ordered=false,enumerated=true){
  if(language==='typescript'){
   const file=ts.createSourceFile('fixture.ts',code,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);
   if(file.parseDiagnostics.length||!tsOverloadsAdjacent(file))return null;
   // Global-object properties are what the emitted script declares; a module declares none.
   let globals={};
   if(!ts.isExternalModule(file)){try{globals=jsReflection(parseScript(ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,{ecmaVersion:'latest',sourceType:'script'}),ordered);}catch{return null;}}
-  return {shape:tsShape(file),effects:effectPairs(tsLists(file),tsShape,tsClassify,tsPositionFree,tsCommutes,tsObjectOperations(file)),reflection:tsReflection(file,globals,ordered),nested:nestedClasses(code,language)};
+  return {shape:tsShape(file),effects:effectPairs(tsLists(file),tsShape,tsClassify,tsPositionFree,tsCommutes,tsObjectOperations(file)),reflection:tsReflection(file,globals,ordered,enumerated),nested:nestedClasses(code,language)};
  }
  let tree;try{tree=parseScript(code,{ecmaVersion:'latest',sourceType:'script'});}catch{return null;}
- return {shape:jsShape(tree),effects:effectPairs(jsLists(tree),node=>jsShape(node),jsClassify,jsPositionFree,jsCommutes,jsObjectOperations(tree)),reflection:jsReflection(tree,ordered),nested:nestedClasses(code,language)};
+ return {shape:jsShape(tree),effects:effectPairs(jsLists(tree),node=>jsShape(node),jsClassify,jsPositionFree,jsCommutes,jsObjectOperations(tree)),reflection:jsReflection(tree,ordered,enumerated),nested:nestedClasses(code,language)};
 }
 /** Runs a fixed fixture. `call`: probe value, exception and record() trace.
  * `reflection`: own keys and descriptor kinds of the top-level classes'
@@ -532,7 +535,7 @@ function analyse(code,language,ordered=false){
  * (names come from the reference analysis), read right after evaluation.
  * `nested` (from this code's own analysis) registers the nested classes; their
  * snapshots are sorted by key, as declaration order is not itself observable. */
-function execute(code,{language,probe,strict=true,asynchronous=false},{classNames=[],globals=[],functions=[],ordered=false}={},nested=[]){
+function execute(code,{language,probe,strict=true,asynchronous=false},{classNames=[],globals=[],functions=[],ordered=false,enumerated=true}={},nested=[]){
  for(const {key,name,end} of [...nested].sort((a,b)=>b.end-a.end))code=code.slice(0,end)+`;__classes.push([${JSON.stringify(key)}, ${name}]);`+code.slice(end);
  const keys=`const keys=o=>Reflect.ownKeys(o).map(k=>{const d=Object.getOwnPropertyDescriptor(o,k);return [String(k),'get' in d||'set' in d?'accessor':'value',d.enumerable,d.configurable,d.writable===undefined?null:d.writable];}),own=o=>{const all=keys(o);if(${ordered})return all;return [...all.filter(k=>!k[2]).sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0),...all.filter(k=>k[2])];};`;
  const reflect=`;var __reflection=(()=>{try{${keys}`
@@ -541,9 +544,11 @@ function execute(code,{language,probe,strict=true,asynchronous=false},{className
  const nestedSnapshot=`(()=>{try{${keys}return JSON.stringify(__classes.map(([k,c])=>JSON.stringify([k,own(c.prototype),own(c)])).sort());}catch(error){return 'throws:'+(error&&error.name);}})()`;
  const attempt=(js,timeout)=>{
   const context=createContext({trace:[],__classes:[],exports:{}},asynchronous?{microtaskMode:'afterEvaluate'}:{});
+  // ADR-029: unless the program lists enumerable keys itself, an object's key order is not part of the result.
+  const replacer=enumerated?'null':`(key,value)=>value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(name=>[name,value[name]])):value`;
   const tail=asynchronous
-   ?`;var __result='pending',__nested='pending';Promise.resolve(${probe}).then(value=>{__result=JSON.stringify({value,trace});__nested=${nestedSnapshot};},error=>{__result='throws:'+(error&&error.name)+':'+(error&&error.message);});`
-   :`;var __result=JSON.stringify({value:(${probe}),trace});var __nested=${nestedSnapshot};`;
+   ?`;var __result='pending',__nested='pending';Promise.resolve(${probe}).then(value=>{__result=JSON.stringify({value,trace},${replacer});__nested=${nestedSnapshot};},error=>{__result='throws:'+(error&&error.name)+':'+(error&&error.message);});`
+   :`;var __result=JSON.stringify({value:(${probe}),trace},${replacer});var __nested=${nestedSnapshot};`;
   try{new Script((strict?'"use strict";\n':'')+'function record(...args) { trace.push(args); }\n'+js+'\n'+reflect+tail,{filename:'fixed-oracle-fixture.js'}).runInContext(context,{timeout});return {call:String(context.__result),reflection:String(context.__reflection)+' nested:'+String(context.__nested)};}
   catch(error){if(error?.code==='ERR_SCRIPT_EXECUTION_TIMEOUT')return {call:'timeout',reflection:''};return {call:'throws:'+error?.name+':'+error?.message,reflection:''};}
  };
@@ -569,7 +574,7 @@ function execute(code,{language,probe,strict=true,asynchronous=false},{className
 export function createOracle(fixture,{policy='reflective'}={}){
  if(!['reflective','call-only'].includes(policy))throw Error('unknown oracle policy '+policy);
  const source=Array.isArray(fixture.source)?fixture.source.join('\n'):fixture.source;
- const ordered=reflectsKeys(source,fixture.language),reference=analyse(source,fixture.language,ordered);
+ const ordered=reflectsKeys(source,fixture.language),enumerated=ordered||enumerationNames.test(source),reference=analyse(source,fixture.language,ordered,enumerated);
  if(!reference)throw Error(`oracle fixture ${fixture.id} does not parse`);
  const baseline=execute(source,fixture,reference.reflection,reference.nested);
  if(/^throws:|timeout|syntax/.test(baseline.call))throw Error(`oracle fixture ${fixture.id} reference fails: ${baseline.call}`);
@@ -577,7 +582,7 @@ export function createOracle(fixture,{policy='reflective'}={}){
  return lines=>{
   const code=lines.join('\n');
   if(cache.has(code))return cache.get(code);
-  let verdict;const candidate=analyse(code,fixture.language,ordered);
+  let verdict;const candidate=analyse(code,fixture.language,ordered,enumerated);
   if(!candidate)verdict={ok:false,reason:'syntax'};
   else if(candidate.shape!==reference.shape)verdict={ok:false,reason:'scope'};
   else if(candidate.effects!==reference.effects)verdict={ok:false,reason:'effect-order'};

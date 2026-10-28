@@ -63,14 +63,14 @@ const fixtures=[
   'class Store {','  private items: Item[] = [];','  add(item: Item): void {','    this.items.push(item);','  }','  list(): string[] {',"    return this.items.map(entry => entry.name + ':' + entry.alias + ':' + entry.active);",'  }','}',
   'function build(): string[] {',"  const first = new Item('a');","  const second = new Item('b');",'  const store = new Store();',"  first.alias = 'A';",'  store.add(first);','  second.activate();','  store.add(second);','  return store.list();','}']},
  // ADR-028: only the setter may throw; the other object's write is dead once it does.
- {id:'prompt-one-thrower',probe:'(() => { try { return JSON.stringify(build()); } catch (error) { return error.message; } })()',source:[
+ {id:'prompt-one-thrower',probe:'(() => { try { return build(); } catch (error) { return error.message; } })()',source:[
   'class Item {','  constructor(name) {','    this.name = name;',"    this._alias = '';",'    this.active = false;','  }','  set alias(value) {',"    if (value === '') {","      throw new Error('empty alias');",'    }','    this._alias = value;','  }','  activate() {','    this.active = true;','  }','}',
   'function build() {',"  const first = new Item('a');","  const second = new Item('b');","  first.alias = '';",'  second.activate();','  return [first, second];','}']},
  // ADR-028: writes that add keys to an object keep their order (the key order is observable).
  {id:'prompt-new-keys',probe:'build()',source:['function build() {','  const box = {a: 1};','  box.b = 2;','  box.c = 3;','  return JSON.stringify(box);','}']},
  // ADR-028: the runtime master prompt's own input — a string method in a setter, two fields of
  // one object written by independent statements and a list-level if/else on an own object.
- {id:'prompt-mini-fixture',language:'typescript',probe:'JSON.stringify(runMiniFixture())',source:[
+ {id:'prompt-mini-fixture',language:'typescript',probe:'runMiniFixture()',source:[
   'type State = "idle" | "active";','','class User {','    private _alias = "";','    state: State = "idle";','    score = 0;','',
   '    constructor(public readonly id: string, public name: string) {}','','    set alias(value: string) {','        this._alias = value.trim();','    }','',
   '    get alias(): string {','        return this._alias;','    }','','    activate(): void {','        this.state = "active";','    }','',

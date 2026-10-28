@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased – 2026-10-28 példánymezők szabad sorrendje (ADR-029, v14)
+
+- **Kérdés:** miért hibás a `state` és a `score` mező felcserélése? Mérés: 0 fordítási hiba, azonos értékek, csak az `Object.keys`/`JSON.stringify` kulcssorrend tér el.
+- **Döntés (felhasználó):** a kulcssorrend csak akkor számít, ha a program maga listázza a kulcsokat.
+- **Generátor:** a kódot nem futtató, egyedi nevű példánymezők egymáshoz képest szabadok. Kötött marad a sorrend:
+  - ha egy inicializáló kódot futtat vagy másik mezőt olvas;
+  - ha a program kulcsokat listáz (reflexió, `keys`/`values`/`entries`, `stringify`, `assign`, `structuredClone`, `console`, `inspect`, spread, `for…in`);
+  - a statikus és az `accessor` mezőknél.
+- **Orákulum:** ugyanez a szerződés. A példánymezők kulcsai halmazként számítanak, a P3 kulcsrendezett JSON-t hasonlít.
+- **Minta:** a `01-user-account` két mezője felcserélhető. A konstruktor `this`-írásai kötöttek maradnak; ez ismert, tesztben rögzített rés.
+
 ## Unreleased – 2026-10-28 futásidőhöz igazított függőségek (ADR-028, v13)
 
 - **Kiinduló kérdés:** a futásidejű mesterprompt saját bemenetén (`runMiniFixture`) a v12 szinte teljes sorláncot adott. A rögzített mintán 328 olyan sorrendet utasított el, amelyet a futásidejű orákulum azonosnak lát. A prompt szerint kézzel készített modell 0 ilyet utasított el. [Soronkénti elemzés](docs/runtime-prompt-mini-fixture-elemzes.md).

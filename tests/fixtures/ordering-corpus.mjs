@@ -7,7 +7,7 @@ const library={
  'algo-bfs-js':'(() => { const grid = [[0, 0, 0, 0], [1, 1, 0, 1], [0, 0, 0, 0], [0, 1, 1, 0]]; return [shortestPath(grid, [0, 0], [3, 3]), shortestPath(grid, [0, 0], [2, 0]), shortestPath(grid, [3, 0], [0, 3]), shortestPath([[0, 1], [1, 0]], [0, 0], [1, 1]), shortestPath(grid, [2, 2], [2, 2]), shortestPath([[0, 0], [0, 0]], [0, 0], [5, 5])]; })()',
  'algo-sort-search-js':'(() => { const input = [5, 2, 9, 1, 5, 6, -3]; const sorted = insertionSort(input); return [sorted, input, [-3, 1, 5, 6, 9, 4, 10].map((target) => binarySearch(sorted, target))]; })()',
  'class-inventory-ts':"(() => { const inventory = new Inventory(3); inventory.add({ sku: 'a', name: 'alma', quantity: 2, price: 100 }); inventory.add({ sku: 'b', name: 'barack', quantity: 5, price: 40 }); inventory.add({ sku: 'a', name: 'alma', quantity: 4, price: 100 }); inventory.add({ sku: 'c', name: 'citrom', quantity: 1, price: 70 }); return [inventory.totalValue(), inventory.lowStock(), Object.keys(inventory)]; })()",
- 'class-accounts-ts':"(() => { const account = new CreditAccount('Ana', 50); account.deposit(100); const results = [account.withdraw(120), account.withdraw(40), account.withdraw(5)]; account.deposit(7); return [results, account.statement(), Object.keys(account), account instanceof Account]; })()",
+ 'class-accounts-ts':"(() => { const account = new CreditAccount('Ana', 50); account.deposit(100); const results = [account.withdraw(120), account.withdraw(40), account.withdraw(5)]; account.deposit(7); return [results, account.statement(), Object.keys(account).sort(), account instanceof Account]; })()",
 };
 
 const fixtures=[
