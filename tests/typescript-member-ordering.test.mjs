@@ -50,7 +50,7 @@ test('exact screenshot is syntactically valid but has a different observable pro
  const order=[1,2,3,4,5,7,6,8,10,9,11,12,13],changed=codes(model,order);
  // ADR-031: fields and constructor writes both swapped; only the unlisted key order differs.
  assert.equal(grade(compiled,changed).status,'accepted');
- assert.equal(model.authoring.dependencyPolicy,'scoped-effect-analysis-v16');
+ assert.equal(model.authoring.dependencyPolicy,'scoped-effect-analysis-v17');
  assert.deepEqual(model.lines[1].dependencies,[1]);assert.deepEqual(model.lines[2].dependencies,[1]);assert.deepEqual(model.lines[3].dependencies,[2,3]);
  assert.ok(model.lines.every(line=>line.fixed===false));
  // The raw creation order differs; the public probe compares the key set (ADR-029).

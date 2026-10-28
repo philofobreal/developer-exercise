@@ -24,7 +24,7 @@ const prepare=id=>{
 
 test('guards that literal arguments never fire add no possible throw; the policy is v16',()=>{
  const c=prepare('value-guards-never-throw');
- assert.equal(c.model.authoring.dependencyPolicy,'scoped-effect-analysis-v16');
+ assert.equal(c.model.authoring.dependencyPolicy,'scoped-effect-analysis-v17');
  c.check(c.swap("const first = new Account('a1', 5);","const second = new Account('b2', 0);"),true,'!id, limit < 0 and id.length > 8 are all false');
  c.check(c.swap("first.rename('A');","second.rename(`B${1}`);"),true,"value === '' is false for 'A' and for the template");
  assert.ok(!c.reasons("second.rename(`B${1}`);").includes('may-throw'),'no possible throw remains');

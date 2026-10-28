@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased – 2026-10-29 vezérlési szerkezetek a függvénytörzsben (ADR-034, v17)
+
+- **Rés lezárva:** saját objektumokon dolgozó `else if` lánc, `switch`, `try/catch/finally` és `for…of` (saját tömbön) már nem köt minden más utasítást.
+  - A `catch` elnyeli a `try` lehetséges dobását.
+  - A ciklus a tömb minden elemét olvassa.
+- **Biztonság:**
+  - A bejárt tömböt író ciklus (lehet, hogy nem ér véget), a címkés ugrás és a korai `return` barrier marad.
+  - A ciklusban változó helyi érték nem marad ismert.
+  - A kupac fixpontja az ismert érték elvesztését is követi.
+- **Megmaradó korlát:** a `switch` `case` sorait a v2 formátum egy egységként a szomszédaihoz zárja (ADR-009).
+- **Kimarad:** a számlálós `for`, a `while` és a `do` (a véget érés nem bizonyítható).
+- **Tesztek:** `control-flow-footprints` és hat új fixture.
+
 ## Unreleased – 2026-10-29 kétlépéses javítási javaslat (ADR-033)
 
 - **Rés lezárva:** ha egyetlen áthelyezés nem javítja az elrendezést, a kiértékelő két ellenőrzött lépést javasol (`two-move-repair`, `fix.moves`). A legígéretesebb első lépésekből indul, és ugyanabban a keretben marad.

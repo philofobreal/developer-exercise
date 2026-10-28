@@ -98,6 +98,19 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
   if (!open || !close || line(open) !== first || line(close) !== last) return false;
   return physical[first]?.trim() === file.text.slice(node.getStart(file), open.end).trim() && physical[last]?.trim() === file.text.slice(close.getStart(file), node.end).trim();
  };
+ /** ADR-028/034: a compound statement owns its first row (up to its opening brace) and its last row
+  * (the closing brace of its last block): if/else if chains, switch, try/catch/finally, for…of. */
+ const ownsCompound = (statement: ts.Statement): boolean => {
+  if (compiler.isIfStatement(statement)) {
+   let last: ts.Statement = statement;
+   while (compiler.isIfStatement(last)) last = last.elseStatement ?? last.thenStatement;
+   return ownsRows(statement, braces(statement.thenStatement)[0], braces(last)[1]);
+  }
+  if (compiler.isSwitchStatement(statement)) return ownsRows(statement, ...braces(statement.caseBlock));
+  if (compiler.isTryStatement(statement)) return ownsRows(statement, braces(statement.tryBlock)[0], braces(statement.finallyBlock ?? statement.catchClause?.block)[1]);
+  if (compiler.isForOfStatement(statement)) return ownsRows(statement, ...braces(statement.statement));
+  return ownsRows(statement);
+ };
  const braces = (node: ts.Node | undefined): [ts.Node, ts.Node] | [] => {
   if (!node) return [];
   const children = node.getChildren(file), open = children.find(child => child.kind === S.OpenBraceToken), close = children.filter(child => child.kind === S.CloseBraceToken).at(-1);
@@ -490,7 +503,7 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
     summaries.forEach((unit, i) => {
      const statement = node.statements[i]!, footprint = footprints.get(statement);
      // ADR-028: an if/else owns its first and last rows; its branch rows follow their own block.
-     const owns = compiler.isIfStatement(statement) ? ownsRows(statement, braces(statement.thenStatement)[0], braces(statement.elseStatement ?? statement.thenStatement)[1]) : ownsRows(statement);
+     const owns = ownsCompound(statement);
      if (unit.kind !== 'barrier' || !footprint || !owns) return;
      unit.footprint = footprint;
      // Its binding inputs: every identifier it reads, protected like a pure unit's (TDZ and value).

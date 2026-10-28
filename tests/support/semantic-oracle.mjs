@@ -191,17 +191,28 @@ function jsObjectOperations(program){
   }
   // ADR-031: in the constructor of a class without `extends`, `this` is an own object as well.
   const self=constructors.has(chain[0]);
-  const receiver=node=>node.type==='MemberExpression'&&!node.computed&&(node.object.type==='Identifier'&&owned.has(node.object.name)||self&&node.object.type==='ThisExpression');
+  // ADR-034: a for…of variable over an own object stands for its elements inside the loop body.
+  const aliases=new Set();
+  const receiver=node=>node.type==='MemberExpression'&&!node.computed&&(node.object.type==='Identifier'&&(owned.has(node.object.name)||aliases.has(node.object.name))||self&&node.object.type==='ThisExpression');
   // ADR-031: a value built only from simple values and own objects' fields: literals, arrays and
   // objects of them, arithmetic and comparisons. Its effects stay on own objects, so P3 sees them.
   const value=node=>simple(node)||receiver(node)||node.type==='TemplateLiteral'&&node.expressions.every(value)||node.type==='ArrayExpression'&&node.elements.every(element=>element&&element.type!=='SpreadElement'&&value(element))
    ||node.type==='ObjectExpression'&&node.properties.every(property=>property.type==='Property'&&!property.computed&&property.kind==='init'&&!property.method&&value(property.value))
    ||node.type==='UnaryExpression'&&node.operator!=='delete'&&value(node.argument)||node.type==='BinaryExpression'&&value(node.left)&&value(node.right);
   const thrown=item=>item.type==='ThrowStatement'&&item.argument.type==='NewExpression'&&item.argument.callee.type==='Identifier'&&['Error','TypeError','RangeError'].includes(item.argument.callee.name)&&item.argument.arguments.every(value);
+  const jump=item=>(item.type==='BreakStatement'||item.type==='ContinueStatement')&&!item.label;
+  const body=branch=>!branch||branch.type==='BlockStatement'&&branch.body.every(statement=>statement.type!=='VariableDeclaration'&&(operation(statement)||thrown(statement)||jump(statement)));
   const operation=item=>{
    if(item.type==='VariableDeclaration')return [...owned.values()].includes(item);
-   // ADR-028: an if/else whose test and branches only operate on own objects (or throw, ADR-031).
-   if(item.type==='IfStatement')return value(item.test)&&[item.consequent,item.alternate].every(branch=>!branch||branch.type==='BlockStatement'&&branch.body.every(statement=>statement.type!=='VariableDeclaration'&&(operation(statement)||thrown(statement))));
+   // ADR-028/034: an if/else (if) chain whose tests and branches only operate on own objects (or throw).
+   if(item.type==='IfStatement')return value(item.test)&&body(item.consequent)&&(!item.alternate||(item.alternate.type==='IfStatement'?operation(item.alternate):body(item.alternate)));
+   // ADR-034: switch, try/catch/finally and for…of over an own object, built the same way.
+   if(item.type==='SwitchStatement')return value(item.discriminant)&&item.cases.every(clause=>(!clause.test||value(clause.test))&&clause.consequent.every(statement=>operation(statement)||thrown(statement)||jump(statement)));
+   if(item.type==='TryStatement')return body(item.block)&&(!item.handler||body(item.handler.body))&&body(item.finalizer);
+   if(item.type==='ForOfStatement'){
+    if(item.await||item.right.type!=='Identifier'||!owned.has(item.right.name)||item.left.type!=='VariableDeclaration'||item.left.declarations.length!==1||item.left.declarations[0].id.type!=='Identifier')return false;
+    const name=item.left.declarations[0].id.name;aliases.add(name);const ok=body(item.body);aliases.delete(name);return ok;
+   }
    const expression=item.type==='ExpressionStatement'?item.expression:null;
    if(expression?.type==='CallExpression')return receiver(expression.callee)&&expression.arguments.every(value);
    return expression?.type==='AssignmentExpression'&&expression.operator==='='&&receiver(expression.left)&&value(expression.right);
@@ -298,17 +309,29 @@ function tsObjectOperations(file){
   }
   // ADR-031: in the constructor of a class without `extends`, `this` is an own object as well.
   const self=ts.isConstructorDeclaration(chain[0])&&!chain[0].parent.heritageClauses?.some(clause=>clause.token===ts.SyntaxKind.ExtendsKeyword);
-  const receiver=node=>ts.isPropertyAccessExpression(node)&&(ts.isIdentifier(node.expression)&&owned.has(node.expression.text)||self&&node.expression.kind===ts.SyntaxKind.ThisKeyword);
+  // ADR-034: a for…of variable over an own object stands for its elements inside the loop body.
+  const aliases=new Set();
+  const receiver=node=>ts.isPropertyAccessExpression(node)&&(ts.isIdentifier(node.expression)&&(owned.has(node.expression.text)||aliases.has(node.expression.text))||self&&node.expression.kind===ts.SyntaxKind.ThisKeyword);
   // ADR-031: a value built only from simple values and own objects' fields: literals, arrays and
   // objects of them, arithmetic and comparisons. Its effects stay on own objects, so P3 sees them.
   const value=node=>simple(node)||receiver(node)||ts.isParenthesizedExpression(node)&&value(node.expression)||ts.isNoSubstitutionTemplateLiteral(node)||ts.isTemplateExpression(node)&&node.templateSpans.every(span=>value(span.expression))
    ||ts.isArrayLiteralExpression(node)&&node.elements.every(value)||ts.isObjectLiteralExpression(node)&&node.properties.every(property=>ts.isPropertyAssignment(property)&&(ts.isIdentifier(property.name)||ts.isStringLiteral(property.name))&&value(property.initializer))
    ||ts.isPrefixUnaryExpression(node)&&value(node.operand)||ts.isBinaryExpression(node)&&!assignment.has(node.operatorToken.kind)&&value(node.left)&&value(node.right);
   const thrown=item=>ts.isThrowStatement(item)&&ts.isNewExpression(item.expression)&&ts.isIdentifier(item.expression.expression)&&['Error','TypeError','RangeError'].includes(item.expression.expression.text)&&(item.expression.arguments??[]).every(value);
+  const jump=item=>(ts.isBreakStatement(item)||ts.isContinueStatement(item))&&!item.label;
+  const body=branch=>!branch||ts.isBlock(branch)&&branch.statements.every(statement=>!ts.isVariableStatement(statement)&&(operation(statement)||thrown(statement)||jump(statement)));
   const operation=item=>{
    if(ts.isVariableStatement(item))return [...owned.values()].includes(item);
-   // ADR-028: an if/else whose test and branches only operate on own objects (or throw, ADR-031).
-   if(ts.isIfStatement(item))return value(item.expression)&&[item.thenStatement,item.elseStatement].every(branch=>!branch||ts.isBlock(branch)&&branch.statements.every(statement=>!ts.isVariableStatement(statement)&&(operation(statement)||thrown(statement))));
+   // ADR-028/034: an if/else (if) chain whose tests and branches only operate on own objects (or throw).
+   if(ts.isIfStatement(item))return value(item.expression)&&body(item.thenStatement)&&(!item.elseStatement||(ts.isIfStatement(item.elseStatement)?operation(item.elseStatement):body(item.elseStatement)));
+   // ADR-034: switch, try/catch/finally and for…of over an own object, built the same way.
+   if(ts.isSwitchStatement(item))return value(item.expression)&&item.caseBlock.clauses.every(clause=>(!ts.isCaseClause(clause)||value(clause.expression))&&clause.statements.every(statement=>operation(statement)||thrown(statement)||jump(statement)));
+   if(ts.isTryStatement(item))return body(item.tryBlock)&&(!item.catchClause||body(item.catchClause.block))&&body(item.finallyBlock);
+   if(ts.isForOfStatement(item)){
+    const head=item.initializer;
+    if(item.awaitModifier||!ts.isIdentifier(item.expression)||!owned.has(item.expression.text)||!ts.isVariableDeclarationList(head)||head.declarations.length!==1||!ts.isIdentifier(head.declarations[0].name))return false;
+    const name=head.declarations[0].name.text;aliases.add(name);const ok=body(item.statement);aliases.delete(name);return ok;
+   }
    const expression=ts.isExpressionStatement(item)?item.expression:null;
    if(expression&&ts.isCallExpression(expression))return receiver(expression.expression)&&expression.arguments.every(value);
    return !!expression&&ts.isBinaryExpression(expression)&&expression.operatorToken.kind===ts.SyntaxKind.EqualsToken&&receiver(expression.left)&&value(expression.right);

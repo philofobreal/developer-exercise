@@ -65,7 +65,7 @@ const at = (object: string, field: string): string => object + '::' + field;
 const objectOf = (key: string): string => key.slice(0, key.lastIndexOf('::'));
 const ERRORS = new Set(['Error', 'TypeError', 'RangeError']);
 /** Source text that lets a program change what property access or calls do. */
-const REFLECTIVE = /\.prototype\b|__proto__|defineProperty|setPrototypeOf|\bReflect\b|\bProxy\b|Object\.assign|\bdelete\b/;
+const REFLECTIVE = /\.prototype\b|__proto__|defineProperty|setPrototypeOf|\bReflect\b|\bProxy\b|Object\.assign|\bdelete\b|\bSymbol\.iterator\b/;
 
 export function objectFootprints(list: readonly ts.Statement[], file: ts.SourceFile, compiler: Compiler, checker: ts.TypeChecker, host: FootprintHost): Map<ts.Statement, Footprint> {
  const result = new Map<ts.Statement, Footprint>();
@@ -165,17 +165,18 @@ export function objectFootprints(list: readonly ts.Statement[], file: ts.SourceF
  let changed = false;
  const addField = (object: string, name: string, value: Value): void => {
   const map = fields.get(object) ?? new Map<string, Value>(), before = map.get(name), after = before ? union(before, value) : value;
-  if (!before || after.prim !== before.prim || after.text !== before.text || after.other !== before.other || after.objs.size !== before.objs.size) changed = true;
+  if (!before || after.prim !== before.prim || after.text !== before.text || after.other !== before.other || after.objs.size !== before.objs.size || !!after.known !== !!before.known) changed = true;
   map.set(name, after);fields.set(object, map);
  };
  const addElements = (object: string, value: Value): void => {
   const before = elements.get(object), after = before ? union(before, value) : value;
-  if (!before || after.prim !== before.prim || after.text !== before.text || after.other !== before.other || after.objs.size !== before.objs.size) changed = true;
+  if (!before || after.prim !== before.prim || after.text !== before.text || after.other !== before.other || after.objs.size !== before.objs.size || !!after.known !== !!before.known) changed = true;
   elements.set(object, after);
  };
  const fresh = (owner: string, node: ts.Node, kind: Kind): string => {const id = owner + '|' + node.pos; if (!kinds.has(id)) {kinds.set(id, kind); changed = true;} return id;};
 
- interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; stack: Set<string>; budget: {steps: number};}
+ /** `exits` (ADR-034): enclosing switches and loops an unlabelled `break` may leave; `loops`: those a `continue` may. */
+interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; stack: Set<string>; budget: {steps: number}; exits?: number; loops?: number;}
  const step = (frame: Frame): void => {if (++frame.budget.steps > 20_000) unknown();};
  const prim = (value: Value): void => {if (!value.prim || value.objs.size || value.other) unknown();};
 
@@ -220,9 +221,65 @@ export function objectFootprints(list: readonly ts.Statement[], file: ts.SourceF
     if (!compiler.isNewExpression(error) || !compiler.isIdentifier(error.expression) || !ERRORS.has(error.expression.text) || checker.getSymbolAtLocation(error.expression)?.declarations?.some(declaration => declaration.getSourceFile() === file)) unknown();
     for (const argument of (error as ts.NewExpression).arguments ?? []) prim(expression(argument, frame));
     frame.fp.mayThrow = true;
+   }
+   // ADR-034: a jump out of the enclosing switch or loop. Interpreting what follows anyway only adds effects.
+   else if (compiler.isBreakStatement(statement) && !statement.label && frame.exits) continue;
+   else if (compiler.isContinueStatement(statement) && !statement.label && frame.loops) continue;
+   // ADR-034: every clause (fall-through included) may run; a break leaves the switch.
+   else if (compiler.isSwitchStatement(statement)) {
+    expression(statement.expression, frame);
+    const inner: Frame = {...frame, exits: (frame.exits ?? 0) + 1};
+    for (const clause of statement.caseBlock.clauses) {
+     if (compiler.isCaseClause(clause)) expression(clause.expression, frame);
+     returned = union(returned, block(clause.statements, inner));
+    }
+   }
+   // ADR-034: a throw inside try is caught when there is a catch; the catch runs only if try may throw.
+   else if (compiler.isTryStatement(statement)) {
+    const outer = frame.fp.mayThrow;
+    frame.fp.mayThrow = false;
+    returned = union(returned, block(statement.tryBlock.statements, frame));
+    const tryThrows = frame.fp.mayThrow, handler = statement.catchClause;
+    frame.fp.mayThrow = outer || tryThrows && !handler;
+    if (handler && tryThrows) {
+     const binding = handler.variableDeclaration?.name;
+     if (binding && !compiler.isIdentifier(binding)) unknown();
+     // The caught value is the Error this footprint threw: no own object.
+     if (binding) frame.env.set((binding as ts.Identifier).text, OTHER);
+     returned = union(returned, block(handler.block.statements, frame));
+    }
+    if (statement.finallyBlock) returned = union(returned, block(statement.finallyBlock.statements, frame));
+   }
+   // ADR-034: for…of over own arrays the body does not write: it ends, and reads every element.
+   else if (compiler.isForOfStatement(statement)) {
+    const head = statement.initializer;
+    if (statement.awaitModifier || !compiler.isVariableDeclarationList(head) || head.declarations.length !== 1 || !compiler.isIdentifier(head.declarations[0]!.name) || (head.flags & compiler.NodeFlags.BlockScoped) === 0) unknown();
+    const iterated = expression(statement.expression, frame);
+    if (iterated.prim || iterated.other || !iterated.objs.size || [...iterated.objs].some(id => kinds.get(id)?.kind !== 'array')) unknown();
+    for (const id of iterated.objs) frame.fp.reads.add(at(id, WHOLE));
+    // Locals the body assigns lose a known value: a later iteration may see another one.
+    for (const name of assignedNames(statement.statement)) if (frame.env.has(name)) frame.env.set(name, union(frame.env.get(name)!, PRIM));
+    frame.env.set(((head as ts.VariableDeclarationList).declarations[0]!.name as ts.Identifier).text, union(...[...iterated.objs].map(id => elements.get(id) ?? PRIM)));
+    const body: Footprint = {reads: new Set(), writes: new Set(), mayThrow: false};
+    returned = union(returned, block([statement.statement], {...frame, fp: body, exits: (frame.exits ?? 0) + 1, loops: (frame.loops ?? 0) + 1}));
+    // Writing the iterated array may extend the iteration: not shown to end.
+    if ([...iterated.objs].some(id => body.writes.has(at(id, WHOLE)))) unknown();
+    body.reads.forEach(key => frame.fp.reads.add(key));body.writes.forEach(key => frame.fp.writes.add(key));
+    frame.fp.mayThrow ||= body.mayThrow;
    } else unknown();
   }
   return returned;
+ }
+ /** Identifiers assigned anywhere in `root`, nested functions included (they may run in it). */
+ function assignedNames(root: ts.Node): Set<string> {
+  const names = new Set<string>();
+  const visit = (node: ts.Node): void => {
+   if (compiler.isBinaryExpression(node) && node.operatorToken.kind >= S.FirstAssignment && node.operatorToken.kind <= S.LastAssignment && compiler.isIdentifier(unwrap(node.left))) names.add((unwrap(node.left) as ts.Identifier).text);
+   if ((compiler.isPrefixUnaryExpression(node) || compiler.isPostfixUnaryExpression(node)) && (node.operator === S.PlusPlusToken || node.operator === S.MinusMinusToken) && compiler.isIdentifier(node.operand)) names.add(node.operand.text);
+   compiler.forEachChild(node, visit);
+  };
+  visit(root);
+  return names;
  }
  /** Assignments, updates and calls whose value is discarded. */
  function effect(raw: ts.Expression, frame: Frame): void {
@@ -437,7 +494,7 @@ export function objectFootprints(list: readonly ts.Statement[], file: ts.SourceF
    return frame.fp;
   }
   // ADR-028: an if/else on own objects, both branches over-approximated; it must not leave the list early.
-  if (compiler.isIfStatement(statement)) {
+  if (compiler.isIfStatement(statement) || compiler.isSwitchStatement(statement) || compiler.isTryStatement(statement) || compiler.isForOfStatement(statement)) {
    if (leaves(statement)) unknown();
    block([statement], frame);
    return frame.fp;

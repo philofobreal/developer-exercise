@@ -22,7 +22,7 @@ const prepare=id=>{
 
 test('independent constructor writes commute; the policy is v15',()=>{
  const c=prepare('ctor-independent-writes');
- assert.equal(c.model.authoring.dependencyPolicy,'scoped-effect-analysis-v16');
+ assert.equal(c.model.authoring.dependencyPolicy,'scoped-effect-analysis-v17');
  c.check(c.swap('this.x = x;','this.y = y;'),true,'two fields of this');
  c.check(c.swap('this.x = x;',"this.label = 'p';"),true,'a parameter is only stored');
 });
