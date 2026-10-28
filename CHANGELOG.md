@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased – 2026-10-28 sorrögzítés a Szabályok tábláján (ADR-024)
+
+- **Rajzszög-kapcsoló** minden sor műveleti sávjában: a sort a referencia szerinti helyére rögzíti, újra megnyomva feloldja. Akadálymentes toggle gomb (`aria-pressed`, helyet megnevező címke és tooltip), élő státuszsor, a fókusz a gombon marad. Ugyanaz a típusos `set-fixed` szerkesztés, mint a panelen, amelynek gombja is ezt az ikont kapta.
+- **Teszt:** új böngészős eset Node és Pages módban; a kapcsolóteszt egy versenyhelyzete javítva (az újraértékelés megvárása a második húzás előtt).
+
 ## Unreleased – 2026-10-28 valódi függőségek soronként: helyi objektumok hatásnyoma és szabad megjegyzések (ADR-025, v12)
 
 - **Cél (felhasználói kérés, mesterprompt):** minden sor csak a ténylegesen szükséges előzményeitől függjön. Az elrendezés pontosan ott romoljon el, ahol a program viselkedése is megváltozna.

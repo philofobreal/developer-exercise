@@ -56,10 +56,21 @@ Az oda-vissza út így pontos: a modell a revízión kívül azonos az eltávol�
 
 A séma (`docs/schema.json`) és a generált ellenőrző ezt a mezőt kifejezetten leírja. Az ismeretlen mező továbbra is tilos.
 
+### 3. Rögzítés a táblán (2026-10-28, felhasználói kérés)
+
+A Szabályok lépés tábláján minden sor műveleti sávjában rajzszög-ikonos kapcsoló van (WAI-ARIA toggle button, `aria-pressed`).
+
+- **Rögzítés:** megnyomva a sor a megoldásban csak a referencia szerinti helyén állhat (`fixed`, ADR-002). Ez ugyanaz a típusos `set-fixed` szerkesztés, mint a panelen; a minősítés és a hatásjelentés ugyanúgy frissül.
+- **Feloldás:** újra megnyomva a rögzítés megszűnik.
+- **Állapot:** rögzítve a rajzszög kitöltött és zölden kiemelt, a sor bal szélén zöld sáv jelzi. Az akadálymentes név és a tooltip megmondja, melyik helyre rögzít, illetve hogy most rögzített.
+- **Visszajelzés:** a tábla élő státuszsora (`role="status"`) kiírja az eredményt. A fókusz a gombon marad, a nyitott panel nem változik.
+- **Egységesség:** a panel rögzítőgombja ugyanezt az ikont kapta. A gyakorló mód és a tanulói nézet nem látja.
+
 ## Következmények
 
 - **Tesztek:**
   - [rule-editing.test.mjs](../../tests/rule-editing.test.mjs): pontos oda-vissza út (modell és minősítés), régi lazítás; a régi pontos alak-ellenőrzések az új mezővel bővültek;
   - [workbench-flow.test.mjs](../../tests/workbench-flow.test.mjs): a kapcsoló minden állapota és a kapcsolat keresése mindkét irányból;
   - workbench-böngészőcsomag, új eset Node és Pages módban: pipák és színek, szerkezeti lakat, létrehozás → megszüntetés → visszaállítás, bizonyított szabály megerősítéssel és pontos visszaállítással, billentyűzet, húzás a próbarendezőn (sor nem mozdul), Escape.
+- **Rögzítés tesztjei:** a gomb állapota és akadálymentes neve ([workbench-flow.test.mjs](../../tests/workbench-flow.test.mjs)); böngészős eset Node és Pages módban: egérrel rögzít, billentyűzettel felold, státusz, fókusz, JSON `fixed`, a próbarendező rögzített helye.
 - **Korlát:** a pipák csak a közvetlen kapcsolatokat mutatják. Egy csak tranzitívan kötött pár üres kör; rákattintva közvetlen szerzői szabály lesz belőle, ami a sorrendet nem szigorítja.

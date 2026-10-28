@@ -33,6 +33,7 @@ const steps={source:'author',rules:'model',try:'sort'};
 /** Commit a newly compiled author model atomically and continue where the flow says (`land`).
  * Compatible attempts survive a dependency-only edit, so the new rules are observable at once. */
 async function authorApply(body,{preserveAttempt=false,sessionImport,current=captureAuthorRequest(state),request=compileDraft,land='stay'}={}){
+ delete state.boardStatus;
  let data;try{data=await request(body);}catch(error){if(!current())return;throw error;}
  if(!current())return;
  if(data.ok===false){if(state.ruleSelection)recordRuleRefusal(state.ruleSelection,data,body.edits);render();return;}
@@ -125,6 +126,16 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  if(b.hasAttribute('data-start-load')){const e=state.exercises.find(x=>x.id===root.querySelector('[data-start-example]')?.value);if(!e){state.author.message='Válassz egy példát a listából.';render();return;}startFromExample(state,e);state.sourceKind='code';render();return;}
  if(b.hasAttribute('data-edit-example')){const e=ex();if(!e)return;startFromExample(state,e);enterMode(state,'author');state.view='author';state.sourceKind='code';render();return;}
  if(b.hasAttribute('data-author-revert')){revertAuthorDraft(state);render();return;}
+ if(b.dataset.rulePin){
+  // A pin is one typed set-fixed edit; the open panel and the focus stay where they are.
+  const line=+b.dataset.rulePin,draftId=state.previews.get(state.active),fixed=b.getAttribute('aria-pressed')!=='true',place=(state.authorModel?.lines.findIndex(item=>item.id===line)??-1)+1;
+  if(!draftId)return;
+  const blocked=ruleEditBlocked(state);if(blocked){state.boardStatus=blocked;render();return;}
+  await authorApply({draftId,edits:[{kind:'set-fixed',line,fixed}]},{preserveAttempt:true,request:editRules});
+  const done=state.authorModel?.lines.find(item=>item.id===line)?.fixed===fixed;
+  state.boardStatus=done?(fixed?`A(z) #${line} sor rögzítve a ${place}. helyen.`:`A(z) #${line} sor rögzítése feloldva.`):'A rögzítés nem módosult.';
+  render();root.querySelector(`[data-rule-pin="${line}"]`)?.focus({preventScroll:true});return;
+ }
  if(b.dataset.ruleConnect){
   const line=+b.dataset.ruleConnect,anchor=state.ruleConnect;
   if(anchor===undefined){state.ruleConnect=line;state.ruleSelection={line,message:''};render();root.querySelector(`[data-rule-connect="${line}"]`)?.focus({preventScroll:true});return;}

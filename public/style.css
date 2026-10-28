@@ -102,6 +102,9 @@ main {min-width:0;padding:28px 30px 24px;scroll-margin-top:15px}.task-heading {d
 .board-row.connect-source {background:#173a33}
 .board-row.rule-selected {box-shadow:inset 3px 0 0 var(--accent);background:#173a33}.board-row.rule-before {box-shadow:inset 3px 0 0 #7fb4ff;background:#172a40}.board-row.rule-after {box-shadow:inset 3px 0 0 #e6b86a;background:#2f2a1c}
 .board-row .row-actions button {width:30px;height:28px;min-height:28px}
+.pin-toggle {color:#8fa7bc;background:transparent}.pin-toggle:hover {color:#d6e7f2;background:#20384a}.pin-toggle[aria-pressed=true] {background:#2c5747;color:#e6fff6}.pin-toggle[aria-pressed=true] .pin-head,.rule-fixed [aria-pressed=true] .pin-head {fill:currentColor}
+.board-row.fixed-row {border-left:0;box-shadow:inset 2px 0 0 #5cba9e}
+.board-status {font-size:12px;color:#ace4cb;margin:0 0 8px;min-height:0}.board-status:empty {display:none}
 #app .depth-1 {padding-left:18px}#app .depth-2 {padding-left:36px}#app .depth-3 {padding-left:54px}#app .depth-4 {padding-left:72px}#app .depth-5 {padding-left:90px}#app .depth-6 {padding-left:108px}#app .depth-7 {padding-left:126px}#app .depth-8 {padding-left:144px}
 .arc {fill:none;stroke-width:1.6;opacity:.9}.arc.before {stroke:#7fb4ff}.arc.after {stroke:#e6b86a}.arc.other {stroke:#8aa0b3;opacity:.55}
 .arc.other.editability-pedagogical {stroke:#9fb6ff;opacity:.85}.arc.other.editability-conservative {stroke:#d7b56a;opacity:.8}.arc.editability-hard {stroke-dasharray:3 3}

@@ -1,5 +1,6 @@
 import { createRuleMarks, ruleButton, rulesAvailable } from './rule-panel.js';
 import { icon } from './icons.js';
+import { escapeHtml as esc } from './ui-utilities.js';
 const SVG = 'http://www.w3.org/2000/svg';
 /** Nesting depth for indentation only: the number of enclosing blocks. */
 function depths(model) {
@@ -26,7 +27,13 @@ export function connectButton(state, id) {
     const side = link.after === anchor ? 'before' : 'after', where = side === 'before' ? 'előtt' : 'után', hard = link.editability === 'hard';
     return button(side + (hard ? ' link-locked' : ''), true, `A(z) #${id} sornak a(z) #${anchor} sor ${where} kell állnia; ${hard ? 'szerkezeti kapcsolat, nem szüntethető meg' : 'megnyomva megszünteted'}`, hard ? 'Szerkezeti kapcsolat: nem szüntethető meg.' : 'Közvetlen kapcsolat a kiinduló sorral; kattintva megszünteted.', icon(hard ? 'lock' : 'check'));
 }
-const legend = '<p class="board-legend"><span class="rule-swatch before" aria-hidden="true"></span>előtte kell állnia <span class="rule-swatch selected" aria-hidden="true"></span>kijelölt <span class="rule-swatch after" aria-hidden="true"></span>utána kell állnia · Láncszem: a sor szabályai. Kör: kipipálja a sor kapcsolatait; pipára kattintva megszünteted, üres körre kattintva létrehozod a kapcsolatot.</p>';
+/** A board row's pin (WAI-ARIA toggle button): a pinned line may stand only at its reference
+ * position in a solution (`fixed`, ADR-002); the core applies it as a typed `set-fixed` edit. */
+export function pinButton(id, index, fixed) {
+    const place = `${index + 1}. helyen`;
+    return `<button type="button" class="pin-toggle" data-rule-pin="${id}" aria-pressed="${fixed}" aria-label="${fixed ? `A(z) #${id} sor rögzítésének feloldása (most a ${place} rögzített)` : `A(z) #${id} sor rögzítése a ${place}`}" title="${fixed ? `Rögzített: a megoldásban csak a ${place} állhat. Kattints a feloldáshoz.` : `Rögzítés: a sor a megoldásban csak a ${place} állhat.`}">${icon('pin')}</button>`;
+}
+const legend = '<p class="board-legend"><span class="rule-swatch before" aria-hidden="true"></span>előtte kell állnia <span class="rule-swatch selected" aria-hidden="true"></span>kijelölt <span class="rule-swatch after" aria-hidden="true"></span>utána kell állnia · Láncszem: a sor szabályai. Kör: kipipálja a sor kapcsolatait; pipára kattintva megszünteted, üres körre kattintva létrehozod a kapcsolatot. Rajzszög: a sort a helyére rögzíted, vagy feloldod.</p>';
 const toggle = (state) => `<label class="board-toggle"><input type="checkbox" data-board-all ${state.boardAll ? 'checked' : ''}> Minden nem szerkezeti szabály rajzolása</label>`;
 const connecting = (state) => state.ruleConnect !== undefined ? `<p class="board-connecting" role="status">A(z) #${state.ruleConnect} sor kapcsolatai kipipálva: kék – előtte kell állnia, borostyán – utána, lakat – szerkezeti. Pipára kattintva megszünteted, üres körre kattintva létrehozod a kapcsolatot. Escape vagy a kiinduló kör: befejezés.</p>` : '';
 export function renderRuleBoard(state, highlight) {
@@ -34,8 +41,8 @@ export function renderRuleBoard(state, highlight) {
     if (!model || !rulesAvailable(state))
         return '';
     const marks = createRuleMarks(state), indent = depths(model);
-    const rows = model.lines.map((line, index) => `<li class="board-row${marks(line.id)}${state.ruleConnect === line.id ? ' connect-source' : ''}${line.fixed ? ' fixed-row' : ''}" data-board-line="${line.id}">${connectButton(state, line.id)}<span class="board-id">#${line.id}</span><span class="board-index">${index + 1}.</span><pre class="code-text depth-${Math.min(indent.get(line.id) ?? 0, 8)}"><code>${highlight(line.code)}</code></pre><span class="row-actions">${ruleButton(state, line.id)}</span></li>`).join('');
-    return `<section class="rule-board" aria-labelledby="rule-board-title"><div class="board-heading"><h3 id="rule-board-title">A referencia sorai és szabályai</h3>${toggle(state)}</div>${legend}${connecting(state)}<div class="board-frame"><svg class="board-arcs" data-board-arcs aria-hidden="true" focusable="false"></svg><ol class="board-list" data-board-list aria-label="A referencia sorai">${rows}</ol></div></section>`;
+    const rows = model.lines.map((line, index) => `<li class="board-row${marks(line.id)}${state.ruleConnect === line.id ? ' connect-source' : ''}${line.fixed ? ' fixed-row' : ''}" data-board-line="${line.id}">${connectButton(state, line.id)}<span class="board-id">#${line.id}</span><span class="board-index">${index + 1}.</span><pre class="code-text depth-${Math.min(indent.get(line.id) ?? 0, 8)}"><code>${highlight(line.code)}</code></pre><span class="row-actions">${pinButton(line.id, index, line.fixed)}${ruleButton(state, line.id)}</span></li>`).join('');
+    return `<section class="rule-board" aria-labelledby="rule-board-title"><div class="board-heading"><h3 id="rule-board-title">A referencia sorai és szabályai</h3>${toggle(state)}</div>${legend}${connecting(state)}<p class="board-status" role="status" aria-live="polite" data-board-status>${esc(state.boardStatus ?? '')}</p><div class="board-frame"><svg class="board-arcs" data-board-arcs aria-hidden="true" focusable="false"></svg><ol class="board-list" data-board-list aria-label="A referencia sorai">${rows}</ol></div></section>`;
 }
 /** The Try step's rule bar: the same legend and drawing switch as the board. */
 export const renderTryRules = (state) => rulesAvailable(state) ? `<div class="try-rules" data-try-rules><div class="board-heading"><span class="eyebrow">SZERZŐI SZABÁLYOK A RENDEZŐBEN</span>${toggle(state)}</div>${legend}${connecting(state)}</div>` : '';

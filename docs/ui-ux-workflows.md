@@ -45,6 +45,7 @@ A **Sorfüggőségek újraszámítása** az aktuális JSON generált sorfüggős
 
 - **Kijelölés:** a sor láncszem gombja kijelöli a sort. Kiemelődnek a közvetlen előzményei (kék) és követői (borostyán), az ívek kirajzolódnak, és megnyílik a panel. A „Minden nem szerkezeti szabály rajzolása” az egész gráfot mutatja.
 - **Kapcsolatkapcsoló ([ADR-024](adr/024-link-toggle-and-exact-restore.md)):** egy sor körére kattintva az lesz a kiinduló sor, és a többi sor köre a vele való közvetlen kapcsolatot mutatja: kék pipa (előtte kell állnia), borostyán pipa (utána), lakat (szerkezeti, nem szüntethető meg), üres kör (nincs kapcsolat). Pipára kattintva a kapcsolat megszűnik, üres körre kattintva létrejön; ugyanazok a kattintások egy megszüntetett generált kapcsolatot pontosan visszaállítanak. Egy körről egy másik sorra húzás (egér, toll, érintés) ugyanez a kapcsoló. Billentyűzettel: Enter a kiinduló körön, majd a másikon; Escape vagy a kiinduló kör befejezi. Új kapcsolat iránya a referencia sorrendje, mert kötelező szabály csak azzal összhangban vehető fel (ADR-018); a megerősítést igénylő megszüntetést a panel kéri.
+- **Rögzítés:** a sor rajzszög-gombja (kapcsoló) a sort a referencia szerinti helyére rögzíti, újra megnyomva feloldja. A státuszsor kiírja az eredményt, a fókusz a gombon marad ([ADR-024](adr/024-link-toggle-and-exact-restore.md)).
 - **Döntés:** minden szerkesztés típusos szabályművelet; a megengedhetőségről, a megerősítés szintjéről és az újraminősítésről a core dönt (ADR-018, ADR-021). Egy nem alkalmazott JSON-piszkozat mellett a szabályszerkesztés nem indul el; a nem alkalmazott forráspiszkozat megmarad.
 
 ## Próba és tanulói nézet
@@ -88,11 +89,12 @@ A megjelenítés a `src/workbench` natív strict TypeScript-forrása; az állapo
 **Tesztek:**
 
 - `tests/workbench-flow.test.mjs`: minden állapotátmenet (zárolás, elavulás, módváltás, landolás, összekötés iránya).
-- `npm run test:browser:workbench`: 45 folyamat Node és Pages módban, többek között:
+- `npm run test:browser:workbench`: 47 folyamat Node és Pages módban, többek között:
   - a zárolt lépések;
   - az újraépítés és a JSON-alkalmazás után minden későbbi lépés frissül;
   - egy szerzői projekt a gyakorlás mellett, példák mint kezdőpontok;
   - szabálypanel és kapcsolatkapcsoló egérrel, húzással és billentyűzettel, a táblán és a próbarendezőn is (létrehozás, megszüntetés, pontos visszaállítás);
+  - sorrögzítés és feloldás a táblán;
   - az ívek újrarajzolása rendezés közben és az azonnali újraértékelés;
   - a görgetés megmaradása szabály hozzáadása és eltávolítása után;
   - a piszkozatok megőrzése és a késői válaszok elleni védelem;

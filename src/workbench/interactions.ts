@@ -38,7 +38,7 @@ export function installWorkbenchKeyboard(root:HTMLElement):void {
 const running=new WeakSet<HTMLButtonElement>();
 export async function dispatchWorkbenchAction(event:MouseEvent,handler:(button:HTMLButtonElement)=>Promise<void>,onError?:(error:unknown)=>void):Promise<void>{
  const button=event.target instanceof Element?event.target.closest<HTMLButtonElement>('button'):null;if(!button||running.has(button))return;
- const busy=button.matches('[data-check],[data-author-apply],[data-model-apply],[data-model-refresh],[data-format],[data-author-format],[data-author-sample],[data-rule-edit],[data-rule-connect]');
+ const busy=button.matches('[data-check],[data-author-apply],[data-model-apply],[data-model-refresh],[data-format],[data-author-format],[data-author-sample],[data-rule-edit],[data-rule-connect],[data-rule-pin]');
  const original=button.innerHTML,disabled=button.disabled,hadFocus=document.activeElement===button,owner=button.closest<HTMLElement>('#app');
  const context=owner?{exercise:owner.dataset.renderedExercise,view:owner.dataset.renderedView}:undefined;
  const action=button.getAttributeNames().find(name=>name.startsWith('data-'));

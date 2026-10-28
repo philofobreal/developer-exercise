@@ -307,9 +307,25 @@ def link_toggle(page):
         page.mouse.move(end['x']+20,end['y']+end['height']/2,steps=8);page.mouse.up()
     order=[item.get_attribute('data-line-id') for item in page.locator('.solution-zone .code-row').all()]
     drag(3,4);expect(page.locator('.try-rule-panel [data-rule-panel] [data-rule-pair="3-4"] .rule-badge')).to_have_text('Szerzői')
+    # The edit re-evaluates the arrangement and renders once more; wait for it before the next drag.
+    expect(page.locator('.report')).to_contain_text('Elfogadva')
     drag(3,4);expect(page.locator('.try-rule-panel [data-rule-panel] [data-rule-pair="3-4"]')).to_have_count(0)
     assert [item.get_attribute('data-line-id') for item in page.locator('.solution-zone .code-row').all()]==order,'a link drag never moves a row'
     expect(page.locator('.report')).to_contain_text('Elfogadva')
+def pin_lines(page):
+    """A board row's pin fixes the line at its reference place and releases it, by pointer and keyboard,
+    with a live status; the focus and the (closed) panel stay as they were."""
+    build(page,rules_source);pin=lambda line:page.locator(f'.board-row[data-board-line="{line}"] [data-rule-pin]')
+    expect(pin(3)).to_have_attribute('aria-pressed','false');expect(pin(3)).to_have_attribute('aria-label',re.compile('rögzítése a 3. helyen'))
+    pin(3).click();expect(pin(3)).to_have_attribute('aria-pressed','true');expect(page.locator('.board-row[data-board-line="3"]')).to_have_class(re.compile('fixed-row'))
+    expect(page.locator('[data-board-status]')).to_contain_text('#3 sor rögzítve a 3. helyen');expect(pin(3)).to_be_focused();expect(page.locator('[data-rule-panel]')).to_have_count(0)
+    page.locator('.rule-board').screenshot(path=str(ARTIFACTS/('ux-pin-'+('node' if page.url.startswith(BASE) else 'pages')+'.png')))
+    rules_json(page);assert json.loads(page.locator('#model-editor').input_value())['lines'][2]['fixed'] is True
+    page.locator('[data-rules-view="visual"]').click()
+    to_try(page);expect(page.locator('.solution-zone .code-row.fixed-row[data-line-id="3"]')).to_have_count(1)
+    page.locator('[data-step="rules"]').click()
+    pin(3).focus();page.keyboard.press('Enter');expect(pin(3)).to_have_attribute('aria-pressed','false');expect(page.locator('[data-board-status]')).to_contain_text('feloldva')
+    expect(page.locator('.board-row[data-board-line="3"]')).not_to_have_class(re.compile('fixed-row'));expect(pin(3)).to_be_focused()
 def stale_author_admission(page):
     pending=[]
     def intercept(route):pending.append(route)
@@ -381,7 +397,7 @@ try:
         browser=launch(p);context=browser.new_context(viewport={'width':1500,'height':1000},permissions=['clipboard-read','clipboard-write']);context.tracing.start(screenshots=True,snapshots=True,sources=True);page=context.new_page();page.set_default_timeout(10000);errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
         try:
             for mode,url in [('node',BASE),('pages',f'http://127.0.0.1:{static.server_port}/developer-exercise/')]:
-                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('model-first creation',model_first),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll),('circles toggle links: checks, removal and exact restore',link_toggle)]:
+                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('model-first creation',model_first),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll),('circles toggle links: checks, removal and exact restore',link_toggle),('pins fix and release a line on the board',pin_lines)]:
                     reset(page,url);case(mode+' '+name,lambda:action(page))
                 reset(page,url);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-author.png')),full_page=True)
                 practice(page);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-practice.png')),full_page=True)

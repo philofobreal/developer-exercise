@@ -10,6 +10,7 @@ const paths = {
     reset: '<path d="M3 11a9 9 0 1 1 2 7M3 4v7h7"/>',
     fullscreen: '<path d="M3 9V3h6m6 0h6v6m0 6v6h-6m-6 0H3v-6"/>',
     lock: '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4m-4 4v3"/>',
+    pin: '<path d="M12 17v5"/><path class="pin-head" d="M9 3h6l-1 6 3 3v2H7v-2l3-3z"/>',
     grip: '<circle cx="9" cy="5" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="19" r="1"/>',
     up: '<path d="m6 14 6-6 6 6"/>', down: '<path d="m6 10 6 6 6-6"/>', back: '<path d="M20 12H4m6-6-6 6 6 6"/>',
     file: '<path d="M14 2H5v20h14V7zm0 0v6h5M8 12h8m-8 4h8"/>',
