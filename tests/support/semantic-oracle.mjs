@@ -192,8 +192,6 @@ function jsObjectOperations(program){
   // ADR-031: in the constructor of a class without `extends`, `this` is an own object as well.
   const self=constructors.has(chain[0]);
   const receiver=node=>node.type==='MemberExpression'&&!node.computed&&(node.object.type==='Identifier'&&owned.has(node.object.name)||self&&node.object.type==='ThisExpression');
-  // ADR-028: a strict comparison of an own object's property with a simple value.
-  const test=node=>node.type==='BinaryExpression'&&['===','!=='].includes(node.operator)&&[node.left,node.right].every(side=>simple(side)||receiver(side));
   // ADR-031: a value built only from simple values and own objects' fields: literals, arrays and
   // objects of them, arithmetic and comparisons. Its effects stay on own objects, so P3 sees them.
   const value=node=>simple(node)||receiver(node)||node.type==='TemplateLiteral'&&node.expressions.every(value)||node.type==='ArrayExpression'&&node.elements.every(element=>element&&element.type!=='SpreadElement'&&value(element))
@@ -203,7 +201,7 @@ function jsObjectOperations(program){
   const operation=item=>{
    if(item.type==='VariableDeclaration')return [...owned.values()].includes(item);
    // ADR-028: an if/else whose test and branches only operate on own objects (or throw, ADR-031).
-   if(item.type==='IfStatement')return test(item.test)&&[item.consequent,item.alternate].every(branch=>!branch||branch.type==='BlockStatement'&&branch.body.every(statement=>statement.type!=='VariableDeclaration'&&(operation(statement)||thrown(statement))));
+   if(item.type==='IfStatement')return value(item.test)&&[item.consequent,item.alternate].every(branch=>!branch||branch.type==='BlockStatement'&&branch.body.every(statement=>statement.type!=='VariableDeclaration'&&(operation(statement)||thrown(statement))));
    const expression=item.type==='ExpressionStatement'?item.expression:null;
    if(expression?.type==='CallExpression')return receiver(expression.callee)&&expression.arguments.every(value);
    return expression?.type==='AssignmentExpression'&&expression.operator==='='&&receiver(expression.left)&&value(expression.right);
@@ -301,8 +299,6 @@ function tsObjectOperations(file){
   // ADR-031: in the constructor of a class without `extends`, `this` is an own object as well.
   const self=ts.isConstructorDeclaration(chain[0])&&!chain[0].parent.heritageClauses?.some(clause=>clause.token===ts.SyntaxKind.ExtendsKeyword);
   const receiver=node=>ts.isPropertyAccessExpression(node)&&(ts.isIdentifier(node.expression)&&owned.has(node.expression.text)||self&&node.expression.kind===ts.SyntaxKind.ThisKeyword);
-  // ADR-028: a strict comparison of an own object's property with a simple value.
-  const test=node=>ts.isBinaryExpression(node)&&[ts.SyntaxKind.EqualsEqualsEqualsToken,ts.SyntaxKind.ExclamationEqualsEqualsToken].includes(node.operatorToken.kind)&&[node.left,node.right].every(side=>simple(side)||receiver(side));
   // ADR-031: a value built only from simple values and own objects' fields: literals, arrays and
   // objects of them, arithmetic and comparisons. Its effects stay on own objects, so P3 sees them.
   const value=node=>simple(node)||receiver(node)||ts.isParenthesizedExpression(node)&&value(node.expression)||ts.isNoSubstitutionTemplateLiteral(node)||ts.isTemplateExpression(node)&&node.templateSpans.every(span=>value(span.expression))
@@ -312,7 +308,7 @@ function tsObjectOperations(file){
   const operation=item=>{
    if(ts.isVariableStatement(item))return [...owned.values()].includes(item);
    // ADR-028: an if/else whose test and branches only operate on own objects (or throw, ADR-031).
-   if(ts.isIfStatement(item))return test(item.expression)&&[item.thenStatement,item.elseStatement].every(branch=>!branch||ts.isBlock(branch)&&branch.statements.every(statement=>!ts.isVariableStatement(statement)&&(operation(statement)||thrown(statement))));
+   if(ts.isIfStatement(item))return value(item.expression)&&[item.thenStatement,item.elseStatement].every(branch=>!branch||ts.isBlock(branch)&&branch.statements.every(statement=>!ts.isVariableStatement(statement)&&(operation(statement)||thrown(statement))));
    const expression=ts.isExpressionStatement(item)?item.expression:null;
    if(expression&&ts.isCallExpression(expression))return receiver(expression.expression)&&expression.arguments.every(value);
    return !!expression&&ts.isBinaryExpression(expression)&&expression.operatorToken.kind===ts.SyntaxKind.EqualsToken&&receiver(expression.left)&&value(expression.right);

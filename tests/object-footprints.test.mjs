@@ -30,7 +30,7 @@ function expectOrder(context,lines,accepted,why){
 
 test('prompt reference: a stored reference, a distinct object and the store order',()=>{
  const c=prepare(objectFixtures.get('prompt-store-alias'));
- assert.equal(c.model.authoring.dependencyPolicy,'scoped-effect-analysis-v15');
+ assert.equal(c.model.authoring.dependencyPolicy,'scoped-effect-analysis-v16');
  expectOrder(c,c.move("store.add(first);","first.alias = 'A';"),true,'the store keeps the reference: the alias may follow the add');
  expectOrder(c,c.move("second.activate();","first.alias = 'A';"),true,'two distinct objects commute');
  expectOrder(c,c.move("const store = new Store();","const first = new Item('a');"),true,'independent constructions commute');

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-10-29 értékérzékeny dobáselemzés (ADR-032, v16)
+
+- **Rés lezárva:** egy `if (!id) throw …` ellenőrzés nem számít lehetséges dobásnak, ha a literál argumentum mellett soha nem teljesül. A literálok a törzsekbe ismert értékként érkeznek; a `!`, `===`, összehasonlítás, `+`, `.length`, `typeof`, a rövidzár és a template eldönti az ágat.
+- **Kötött marad:** a mindig teljesülő ellenőrzés, az ismeretlen (paraméterből érkező) érték és a kétféle írással összevont mezőérték. Ez utóbbi dokumentált, konzervatív veszteség.
+- **Orákulum:** a saját objektumokon dolgozó `if` feltétele bármely érték lehet.
+- **Tesztek:** `value-guards`, négy új fixture.
+
 ## Unreleased – 2026-10-28 a konstruktor this-írásai (ADR-031, v15)
 
 - **Rés lezárva:** a konstruktor két független `this`-írása (`this.name = name; this.id = id;`) felcserélhető, ha a program nem listázza a kulcsokat. A `this` a nem származtatott, elemezhető osztály konstruktorában saját objektum.

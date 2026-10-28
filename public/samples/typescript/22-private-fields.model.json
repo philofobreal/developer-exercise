@@ -93,7 +93,7 @@
     "reason": "",
     "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
-    "dependencyPolicy": "scoped-effect-analysis-v15",
+    "dependencyPolicy": "scoped-effect-analysis-v16",
     "provenance": [
       {
         "before": 1,
@@ -128,7 +128,7 @@
     ],
     "evidence": {
       "sourceDigest": "54cf7b992ae23039",
-      "analyzer": "scoped-effect-analysis-v15",
+      "analyzer": "scoped-effect-analysis-v16",
       "environment": {
         "typescript": "5.8.3",
         "importEmit": "verbatim",

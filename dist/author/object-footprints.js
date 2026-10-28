@@ -5,7 +5,10 @@ const unknown = () => { throw new Unknown(); };
 const PRIM = { prim: true, text: false, objs: new Set(), other: false };
 const STR = { prim: true, text: true, objs: new Set(), other: false };
 const OTHER = { prim: false, text: false, objs: new Set(), other: true };
-const union = (...values) => ({ prim: values.some(v => v.prim), text: values.some(v => v.prim) && values.every(v => !v.prim || v.text), objs: new Set(values.flatMap(v => [...v.objs])), other: values.some(v => v.other) });
+const same = (values) => values.every(v => v.known && Object.is(v.known.lit, values[0].known.lit)) ? values[0].known : undefined;
+const union = (...values) => { const known = values.length ? same(values) : undefined; return { prim: values.some(v => v.prim), text: values.some(v => v.prim) && values.every(v => !v.prim || v.text), objs: new Set(values.flatMap(v => [...v.objs])), other: values.some(v => v.other), ...known ? { known } : {} }; };
+/** ADR-032: a value known to be exactly this primitive. */
+const literal = (lit) => ({ prim: true, text: typeof lit === 'string', objs: new Set(), other: false, known: { lit } });
 const objects = (...ids) => ({ prim: false, text: false, objs: new Set(ids), other: false });
 const ARRAY_READS = new Set(['map', 'filter', 'forEach', 'some', 'every', 'find', 'join', 'includes', 'indexOf', 'slice']);
 const ARRAY_WRITES = new Set(['push', 'unshift', 'pop', 'shift']);
@@ -30,6 +33,24 @@ export function objectFootprints(list, file, compiler, checker, host) {
     if (REFLECTIVE.test(file.text))
         return result;
     const S = compiler.SyntaxKind;
+    /** ADR-032: arithmetic, concatenation and comparison of two known primitives; none of them runs code. */
+    const fold = (operator, a, b) => {
+        const compare = (x, y) => operator === S.LessThanToken ? x < y : operator === S.LessThanEqualsToken ? x <= y : operator === S.GreaterThanToken ? x > y : operator === S.GreaterThanEqualsToken ? x >= y : undefined;
+        if (typeof a === 'string' && typeof b === 'string') {
+            const c = compare(a, b);
+            if (c !== undefined)
+                return literal(c);
+        }
+        if (operator === S.PlusToken && (typeof a === 'string' || typeof b === 'string'))
+            return literal(String(a) + String(b));
+        if (typeof a !== 'number' || typeof b !== 'number')
+            return null;
+        const c = compare(a, b);
+        if (c !== undefined)
+            return literal(c);
+        const result = operator === S.PlusToken ? a + b : operator === S.MinusToken ? a - b : operator === S.AsteriskToken ? a * b : operator === S.SlashToken ? a / b : operator === S.PercentToken ? a % b : undefined;
+        return result === undefined ? null : literal(result);
+    };
     const unwrap = (expr) => compiler.isParenthesizedExpression(expr) || compiler.isAsExpression(expr) || compiler.isSatisfiesExpression(expr) || compiler.isNonNullExpression(expr) || compiler.isTypeAssertionExpression(expr) ? unwrap(expr.expression) : expr;
     const nameOf = (name) => compiler.isIdentifier(name) || compiler.isPrivateIdentifier(name) || compiler.isStringLiteral(name) ? name.text : undefined;
     const has = (node, kind) => (compiler.canHaveModifiers(node) ? compiler.getModifiers(node) ?? [] : []).some(modifier => modifier.kind === kind);
@@ -178,7 +199,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
         body.parameters.forEach((parameter, index) => {
             if (!compiler.isIdentifier(parameter.name) || parameter.initializer || parameter.dotDotDotToken)
                 unknown();
-            env.set(parameter.name.text, args[index] ?? PRIM);
+            env.set(parameter.name.text, args[index] ?? literal(undefined));
         });
         const inner = { ...frame, self, env, stack: new Set([...frame.stack, key]) };
         return block(body.body.statements, inner);
@@ -203,8 +224,9 @@ export function objectFootprints(list, file, compiler, checker, host) {
             else if (compiler.isReturnStatement(statement))
                 returned = statement.expression ? union(returned, expression(statement.expression, frame)) : returned;
             else if (compiler.isIfStatement(statement)) {
-                expression(statement.expression, frame);
-                returned = union(returned, block([statement.thenStatement], frame), statement.elseStatement ? block([statement.elseStatement], frame) : PRIM);
+                // ADR-032: a test whose value is known runs only the branch it selects.
+                const test = expression(statement.expression, frame), taken = test.known ? !!test.known.lit : undefined;
+                returned = union(returned, taken !== false ? block([statement.thenStatement], frame) : PRIM, statement.elseStatement && taken !== true ? block([statement.elseStatement], frame) : PRIM);
             }
             else if (compiler.isBlock(statement))
                 returned = union(returned, block(statement.statements, frame));
@@ -297,7 +319,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
         if (base.prim) {
             if (name !== 'length' || !base.text || base.objs.size)
                 unknown();
-            return PRIM;
+            return typeof base.known?.lit === 'string' ? literal(base.known.lit.length) : PRIM;
         }
         const values = [];
         for (const object of base.objs) {
@@ -406,9 +428,13 @@ export function objectFootprints(list, file, compiler, checker, host) {
         step(frame);
         const expr = unwrap(raw);
         if (compiler.isStringLiteral(expr) || compiler.isNoSubstitutionTemplateLiteral(expr))
-            return STR;
-        if (compiler.isNumericLiteral(expr) || [S.TrueKeyword, S.FalseKeyword, S.NullKeyword].includes(expr.kind))
-            return PRIM;
+            return literal(expr.text);
+        if (compiler.isNumericLiteral(expr))
+            return literal(Number(expr.text.replaceAll('_', '')));
+        if (expr.kind === S.TrueKeyword || expr.kind === S.FalseKeyword)
+            return literal(expr.kind === S.TrueKeyword);
+        if (expr.kind === S.NullKeyword)
+            return literal(null);
         if (expr.kind === S.ThisKeyword)
             return frame.self ? objects(frame.self) : self ? objects(self) : unknown();
         if (compiler.isIdentifier(expr)) {
@@ -425,12 +451,13 @@ export function objectFootprints(list, file, compiler, checker, host) {
                     return PRIM;
             }
             if (expr.text === 'undefined' && !checker.getSymbolAtLocation(expr)?.declarations?.some(declaration => declaration.getSourceFile() === file))
-                return PRIM;
+                return literal(undefined);
             return unknown();
         }
         if (compiler.isTemplateExpression(expr)) {
-            expr.templateSpans.forEach(span => prim(expression(span.expression, frame)));
-            return STR;
+            const spans = expr.templateSpans.map(span => expression(span.expression, frame));
+            spans.forEach(prim);
+            return spans.every(span => span.known) ? literal(expr.head.text + expr.templateSpans.map((span, i) => String(spans[i].known.lit) + span.literal.text).join('')) : STR;
         }
         if (compiler.isPropertyAccessExpression(expr)) {
             if (expr.questionDotToken)
@@ -445,33 +472,49 @@ export function objectFootprints(list, file, compiler, checker, host) {
             return call(expression(access.expression, frame), nameOf(access.name), expr.arguments, frame);
         }
         if (compiler.isBinaryExpression(expr)) {
-            const operator = expr.operatorToken.kind, left = expression(expr.left, frame), right = expression(expr.right, frame);
-            if (operator === S.AmpersandAmpersandToken || operator === S.BarBarToken || operator === S.QuestionQuestionToken)
-                return union(left, right);
+            const operator = expr.operatorToken.kind, left = expression(expr.left, frame);
+            // ADR-032: a known left side decides a short circuit; the right side then runs only if taken.
+            if (operator === S.AmpersandAmpersandToken || operator === S.BarBarToken || operator === S.QuestionQuestionToken) {
+                if (left.known) {
+                    const lit = left.known.lit, takeLeft = operator === S.AmpersandAmpersandToken ? !lit : operator === S.BarBarToken ? !!lit : lit !== null && lit !== undefined;
+                    return takeLeft ? left : expression(expr.right, frame);
+                }
+                return union(left, expression(expr.right, frame));
+            }
+            const right = expression(expr.right, frame);
             if (operator === S.EqualsEqualsEqualsToken || operator === S.ExclamationEqualsEqualsToken)
-                return PRIM;
+                return left.known && right.known ? literal((left.known.lit === right.known.lit) === (operator === S.EqualsEqualsEqualsToken)) : PRIM;
             if (operator >= S.FirstAssignment && operator <= S.LastAssignment || operator === S.CommaToken || operator === S.InKeyword || operator === S.InstanceOfKeyword)
                 unknown();
             prim(left);
             prim(right);
+            if (left.known && right.known) {
+                const folded = fold(operator, left.known.lit, right.known.lit);
+                if (folded)
+                    return folded;
+            }
             // A string operand makes `+` a concatenation.
             return operator === S.PlusToken && (left.text || right.text) ? STR : PRIM;
         }
         if (compiler.isPrefixUnaryExpression(expr)) {
             const operand = expression(expr.operand, frame);
             if (expr.operator === S.ExclamationToken)
-                return PRIM;
+                return operand.known ? literal(!operand.known.lit) : PRIM;
+            if (expr.operator === S.MinusToken && typeof operand.known?.lit === 'number')
+                return literal(-operand.known.lit);
             if (expr.operator === S.PlusPlusToken || expr.operator === S.MinusMinusToken)
                 unknown();
             prim(operand);
             return PRIM;
         }
         if (compiler.isTypeOfExpression(expr)) {
-            expression(expr.expression, frame);
-            return PRIM;
+            const operand = expression(expr.expression, frame);
+            return operand.known ? literal(typeof operand.known.lit) : STR;
         }
         if (compiler.isConditionalExpression(expr)) {
-            expression(expr.condition, frame);
+            const test = expression(expr.condition, frame);
+            if (test.known)
+                return expression(test.known.lit ? expr.whenTrue : expr.whenFalse, frame);
             return union(expression(expr.whenTrue, frame), expression(expr.whenFalse, frame));
         }
         if (compiler.isArrayLiteralExpression(expr)) {
@@ -536,8 +579,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
         if (compiler.isIfStatement(statement)) {
             if (leaves(statement))
                 unknown();
-            expression(statement.expression, frame);
-            block([statement.thenStatement, ...statement.elseStatement ? [statement.elseStatement] : []], frame);
+            block([statement], frame);
             return frame.fp;
         }
         if (!compiler.isExpressionStatement(statement))

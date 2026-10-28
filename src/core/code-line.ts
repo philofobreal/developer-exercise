@@ -33,7 +33,7 @@ export interface CodeBlock {
 export type ConstraintCategory = 'data' | 'effect' | 'structure' | 'unit' | 'policy' | 'author' | 'conservative' | 'unknown';
 /** Explanation metadata for one `before → after` constraint (a dependency or an edge); never a grading rule. */
 export interface ConstraintProvenance { before: number; after: number; category: ConstraintCategory; code: string; }
-export type DependencyPolicy = 'primitive-const-islands-v1' | 'scoped-primitive-dag-v2' | 'scoped-type-members-v3' | 'scoped-effect-analysis-v4' | 'scoped-effect-analysis-v5' | 'scoped-effect-analysis-v6' | 'scoped-effect-analysis-v7' | 'scoped-effect-analysis-v8' | 'scoped-effect-analysis-v9' | 'scoped-effect-analysis-v10' | 'scoped-effect-analysis-v11' | 'scoped-effect-analysis-v12' | 'scoped-effect-analysis-v13' | 'scoped-effect-analysis-v14' | 'scoped-effect-analysis-v15';
+export type DependencyPolicy = 'primitive-const-islands-v1' | 'scoped-primitive-dag-v2' | 'scoped-type-members-v3' | 'scoped-effect-analysis-v4' | 'scoped-effect-analysis-v5' | 'scoped-effect-analysis-v6' | 'scoped-effect-analysis-v7' | 'scoped-effect-analysis-v8' | 'scoped-effect-analysis-v9' | 'scoped-effect-analysis-v10' | 'scoped-effect-analysis-v11' | 'scoped-effect-analysis-v12' | 'scoped-effect-analysis-v13' | 'scoped-effect-analysis-v14' | 'scoped-effect-analysis-v15' | 'scoped-effect-analysis-v16';
 /** Assumptions the analysis made about how the reference runs (ADR-015). `classFields: 'either'`:
  * the result holds in both TypeScript class-field modes. */
 export interface AnalysisEnvironment { typescript?: string; importEmit?: 'verbatim' | 'elide-unused'; sourceKind?: 'module' | 'script'; classFields?: 'either'; }
