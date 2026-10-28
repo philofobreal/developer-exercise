@@ -561,14 +561,18 @@ A felhasználó kérésére (2026-10-28, kevés token) kis részfeladatokra bont
 
 **Következik:** G1.
 
-## G1 – lezáró regresszió és jelentés – folyamatban
+## G1 – lezáró regresszió és jelentés – lezárva
 
-A felhasználó kérésére kis részfeladatokra bontva, mindegyik után megállva:
+A G1.1–G1.2 a felhasználó kérésére részfeladatonként megállva, a G1.3–G1.5 egyben készült. A tesztelési eljárás leírása: [lezáró regresszió – módszertan](lezaro-regresszio-modszertan.md).
 
 | # | Részfeladat | Állapot |
 | --- | --- | --- |
 | G1.1 | A `23-parameter-property` minta fordíthatósága: átnevezés (`Parameters` → `Point`), mert modullá alakítás új sort hozna; előtte TS2300 ×2 és TS2693, utána 0 diagnosztika (`lib.es2022`, strict); a regenerált modellben csak a kódszöveg, a név és a kivonat változott | ✅ |
 | G1.2 | A mátrix drag-and-drop flake: **tesztoldali ok**. Az egeres és az érintéses gesztus pontosan a célsor középvonalára (`y+22`, sormagasság 44) ejtett, a beszúrási határ pedig épp a középvonal; az egész pointerkoordináta a tört elrendezéshez képest döntötte el az oldalt (rögzített hiba: 953 < 953,016 → a sor elé). A termék helyes, sor nem veszett el és nem duplázódott. A gesztus most a sor ¾-ére céloz, és új ellenpróba ellenőrzi a ¼-et (a sor elé); az állítások nem gyengültek. Terhelés alatt (4 párhuzamos futás): előtte 8-ból 2 és 12-ből 1 hiba, utána 16/16 zöld | ✅ |
-| G1.3 | Forráshűségi round-trip (forrás → modell → render → export/import) | ⏳ |
-| G1.4 | A szerzői elemzés idő- és memóriakerete | ⏳ |
-| G1.5 | Teljes regresszió, kampány, böngészőcsomagok, végső jelentés | ⏳ |
+| G1.3 | Forráshűségi round-trip ([source-fidelity.test.mjs](../tests/source-fidelity.test.mjs)): 24 TS-minta és 4 JS/TS szélső eset, hat lépésben (forrás → modell → IDE-nézet → értékelés → szerkesztő szövege → munkamenet-export/import → modell-JSON). 28/28 zöld. Megállapítás: az `indent` sor a nézetben új behúzást kap; ez a dokumentált formázási projekció, nem hűségi hiba, az `exact` sor betűre azonos | ✅ |
+| G1.4 | A szerzői elemzés kerete ([author-budget.test.mjs](../tests/author-budget.test.mjs)), esetenként külön folyamatban, a 500 soros bemeneti korlátnál: service-436 0,13 s / 14 MiB, objects-500 1,3 s / 115 MiB, flat-500 0,8 s / 85 MiB; keret 10 s és 400 MiB | ✅ |
+| G1.5 | `check:all` 741/741; kampány 1–200. mag, 7 változat, 1 400 program, 2 372 610 sorrend, **0 hibás elfogadás**, 0 eldöntetlen, 0 `indeterminate` (130 perc); `test:browser:all` mind a 8 csomag zöld (offline, szerver, mátrix 32, drag 45, workbench 49, engine, TypeScript 24 modell Node és Pages módban, Python-platform 58 eset) | ✅ |
+
+**Végső jelentés.** Az epic minden szakasza lezárult. A korábban nyitott kockázatok közül a 4. és az 5. megoldva (G1.1, G1.2). A G1 új regressziót nem talált a termékben: a mátrix-flake tesztoldali ok volt, a forráshűség és az erőforráskeret a mért korlátokon belül van.
+
+**Korlátok.** A kampány minta, nem teljes bizonyítás; a függvénytörzs-generátor csak JavaScriptet állít elő. Az erőforrás-mérések egy gépen készültek. A teljes WCAG-megfelelés és az univerzális szemantikai ekvivalencia nem állítás.

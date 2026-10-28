@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-10-28 lezáró regresszió (G1)
+
+- **Minta:** a `23-parameter-property` TypeScript-minta fordítható (`Parameters` → `Point`); a modell függőségei változatlanok.
+- **Mátrix-flake:** a böngészős teszt a beszúrási határ helyett egyértelmű pontra céloz, és ellenpróbát kapott; az állítások nem gyengültek.
+- **Új tesztek:** forráshűségi round-trip (`source-fidelity`, 28 eset) és a szerzői elemzés idő- és memóriakerete (`author-budget`, 10 s / 400 MiB a 500 soros korlátnál).
+- **Lezáró eredmény:** `check:all` 741/741; generatív kampány 1 400 programon és 2 372 610 sorrenden, 0 hibás elfogadással; mind a 8 böngészős csomag zöld.
+- **Dokumentáció:** [lezáró regresszió – módszertan](docs/lezaro-regresszio-modszertan.md), futtatási útmutatóval és a flake-ek kivizsgálásának menetével.
+
 ## Unreleased – 2026-10-28 felfedési politika, szerzői jogosultság és publikálás (ADR-027, F2)
 
 - **Szerzői kapu a szerveren:** token nélkül csak a helyi gépről, loopback hosztnévvel (DNS-rebinding ellen); `CODELINE_AUTHOR_TOKEN` mellett kötelező a Bearer token; cross-site és idegen origin mindig tiltott. A tanulói végpontok változatlanok.
