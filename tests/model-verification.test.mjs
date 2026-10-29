@@ -10,7 +10,7 @@ import ts from 'typescript';
 import {generateCodeLineExercise} from '../src/author/generator.mjs';
 import {verifyAuthorModel} from '../dist/author/engine.js';
 import {createReferenceAuditor} from '../dist/author/reference-audit.js';
-import {verifyModel} from '../dist/index.js';
+import {verifyModel,publicationRefusal,validateSubmission,compileCodeLineExercise} from '../dist/index.js';
 import {ExerciseCatalog} from '../src/server/catalog.mjs';
 import {corpus} from './fixtures/ordering-corpus.mjs';
 
@@ -23,6 +23,19 @@ async function verify(model,options={}){
  return verifyAuthorModel(model,ports,{audit,...options});
 }
 const claim=(result,prefix)=>result.claims.find(item=>item.claim.startsWith(prefix)).basis;
+/** ADR-036, restated: every adjacent swap, both ends for up to 100 repeated rows (by the
+ * validator's content key), the reversed and the end-swapped order; a submission equal to the
+ * reference or to an earlier probe is graded once. */
+function expectedProbes(model){
+ const lines=model.lines,text=order=>order.map(line=>line.code).join('\n'),seen=new Set([text(lines)]);let count=0;
+ const add=order=>{const key=text(order);if(!seen.has(key)){seen.add(key);count++;}};
+ for(let i=0;i+1<lines.length;i++){const order=[...lines];[order[i],order[i+1]]=[order[i+1],order[i]];add(order);}
+ const groups=new Map();
+ for(const line of lines){const mode=line.normalization??'indent',key=mode+'|'+(mode==='indent'?line.code.replace(/^[ \t]*/,''):line.code);groups.set(key,[...(groups.get(key)??[]),line]);}
+ for(const group of [...groups.values()].filter(group=>group.length>1).slice(0,100)){add([group.at(-1),...lines.filter(line=>line!==group.at(-1))]);add([...lines.filter(line=>line!==group[0]),group[0]]);}
+ add([...lines].reverse());if(lines.length>1)add([lines.at(-1),...lines.slice(1,-1),lines[0]]);
+ return count;
+}
 
 test('a fully analysed reference is analysis-verified and publishable, with soundness only tested',async()=>{
  const result=await verify(generate(['function f(n) {','  const a = n + 1;','  const b = n + 2;','  return a + b;','}']));
@@ -51,7 +64,7 @@ test('CopyFieldUtilityService: conservative, publishable, language unverifiable,
  const result=await verify(model);
  assert.equal(result.status,'conservative');
  assert.equal(result.publishable,true);
- assert.deepEqual([result.checks.rederivation,result.checks.audit,result.checks.projectionLoss,result.checks.budget.probed,result.checks.budget.indeterminate],['match','unverifiable',3,100,0]);
+ assert.deepEqual([result.checks.rederivation,result.checks.audit,result.checks.projectionLoss,result.checks.budget.probed,result.checks.budget.indeterminate],['match','unverifiable',3,expectedProbes(model),0]);
  // ADR-019: the pure arrow `isSourceField` may cross the continued `isTargetField = (` unit, which the closure pins (ADR-009).
  assert.equal(claim(result,'A referencia nyelvileg'),'not-established');
 });
@@ -94,6 +107,60 @@ test('a language error makes the reference unverified; an exhausted budget block
  const tight=await verify(generate(['const a = 1;','const b = 2;','const c = 3;','const d = 4;']),{maxStates:1});
  assert.equal(tight.publishable,false);
  assert.ok(tight.checks.budget.indeterminate>0||tight.checks.reference==='indeterminate');
+});
+
+test('ADR-036: the gate grades every adjacent swap and the hard probes, each distinct submission once',async()=>{
+ // Repeated rows: three `record(1);` copies inside three identical blocks, and `}` five times.
+ const model=generate(['function run() {',...Array.from({length:3},()=>['  {','    record(1);','  }']).flat(),'}']);
+ const result=await verify(model);
+ assert.equal(result.checks.budget.probed,expectedProbes(model));
+ assert.deepEqual([result.checks.budget.indeterminate,result.publishable],[0,true]);
+ // Three rows: the end swap equals the reversed order.
+ assert.equal((await verify(generate(['const a = 1;','const b = 2;','const c = 3;']))).checks.budget.probed,3);
+ // Two equal rows: every probe equals the reference.
+ assert.equal((await verify(generate(['record(1);','record(1);']))).checks.budget.probed,0);
+ // The explicit sample size limits only the adjacent swaps: the hard probes still run.
+ const hardOnly=(await verify(model,{neighbours:0})).checks.budget.probed;
+ assert.ok(hardOnly>0&&hardOnly<result.checks.budget.probed,String(hardOnly));
+});
+
+test('ADR-036: repeated rows are the validator\'s equal content, not equal after trim()',()=>{
+ const repeated=generate(['record(1);','const x = 2;','const y = 3;','record(1);']);
+ // 3 swaps and the repeated row at either end; the reversal equals the middle swap and the end
+ // swap equals the reference.
+ assert.equal(verifyModel(repeated).checks.budget.probed,5);
+ assert.equal(expectedProbes(repeated),5);
+ // A trailing space is significant for the validator: no repetition, so 3 swaps, the reversal
+ // and the end swap. Grouping by trim() would add both end moves (7).
+ const spaced=structuredClone(repeated);spaced.lines[3].code='record(1); ';
+ assert.equal(verifyModel(spaced).checks.budget.probed,5);
+});
+
+test('ADR-036: the gate stops at the first undecided probe and bounds the sum of all probes',async()=>{
+ // Two OR profiles: the reference matches the first at once, a swap only after the first fails,
+ // so the smallest budget that decides the reference leaves that probe undecided.
+ const model=generate(['const a = 1;','const b = 2;','const c = 3;','const d = 4;']);
+ model.profiles=[{id:'a-first',edges:[{before:1,after:2}]},{id:'b-first',edges:[{before:2,after:1}]}];
+ let stopped;
+ for(let maxStates=1;maxStates<=60&&!stopped;maxStates++){const result=verifyModel(model,{maxStates});if(result.checks.reference==='accepted'&&result.checks.budget.indeterminate)stopped=result;}
+ assert.ok(stopped,'some budget decides the reference but not every probe');
+ assert.equal(stopped.checks.budget.indeterminate,1);
+ assert.ok(stopped.checks.budget.probed<expectedProbes(model),'later probes are skipped');
+ assert.equal(stopped.publishable,false);
+ assert.match(stopped.findings.find(text=>text.startsWith('Egy kapupróba')),/elmaradtak/);
+ assert.equal(claim(stopped,'A szomszédos cserék'),'refuted');
+ assert.match(publicationRefusal(stopped),/kapupróba/);
+ // Sixty independent rows: each accepted swap costs about a full search, so the sum runs out.
+ const flat=generate(['function run() {',...Array.from({length:60},(_,i)=>`  const v${i} = ${i};`),'  return 0;','}']);
+ const states=validateSubmission(compileCodeLineExercise(flat).compiled,{exerciseId:flat.id,revision:flat.revision,lines:flat.lines.map(line=>line.code)}).exploredStates;
+ const capped=verifyModel(flat,{maxStates:2*states});
+ assert.equal(capped.checks.reference,'accepted');
+ assert.equal(capped.publishable,false);
+ assert.match(capped.findings.find(text=>text.startsWith('Egy kapupróba')),/összesített kerete/);
+ assert.ok(capped.checks.budget.probed<expectedProbes(flat));
+ // An undecided reference runs no probe and claims nothing about them.
+ const starved=verifyModel(model,{maxStates:1});
+ assert.deepEqual([starved.checks.reference,starved.checks.budget.probed,claim(starved,'A szomszédos cserék')],['indeterminate',0,'not-established']);
 });
 
 test('the core gate alone never claims analysis without re-derivation',()=>{

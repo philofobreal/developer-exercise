@@ -19,6 +19,7 @@ import type { CodeLineExercise, ConstraintCategory } from './code-line.js';
 import { compileDefinition, isModelError, type CompiledRules } from './model.js';
 import { matchContent } from './content-match.js';
 import { validateSubmission } from './validator.js';
+import { reachability } from './reachability.js';
 import { explainConstraints } from './constraint-explanation.js';
 
 export type DiagnosticCode =
@@ -332,28 +333,16 @@ function conflicts(edges: readonly [number, number][], n: number, lo: readonly n
   const violated = (a: number, b: number): boolean => Number.isFinite(lo[a]!) && Number.isFinite(hi[b]!) && lo[a]! > hi[b]!;
   const direct: Violation[] = edges.filter(([a, b]) => violated(a, b)).map(([a, b]) => ({ a, b, transitive: false }));
   // Only MAX_REPORTED conflicts are shown; enough direct ones make the closure unnecessary.
-  if (!budget.spend(edges.length) || direct.length >= MAX_REPORTED) return direct;
-  const words = (n + 31) >>> 5, desc = new Uint32Array(n * words), succ = Array.from({ length: n }, () => [] as number[]), indegree = new Int32Array(n);
-  for (const [a, b] of edges) { succ[a]!.push(b); indegree[b]!++; }
-  const order: number[] = [];
-  for (let i = 0; i < n; i++) if (!indegree[i]) order.push(i);
-  for (let head = 0; head < order.length; head++) for (const b of succ[order[head]!]!) if (!--indegree[b]!) order.push(b);
-  if (!budget.spend(edges.length * words + n)) return direct;
-  for (let k = order.length - 1; k >= 0; k--) {
-    const a = order[k]!;
-    for (const b of succ[a]!) { desc[a * words + (b >>> 5)]! |= 1 << (b & 31); for (let w = 0; w < words; w++) desc[a * words + w]! |= desc[b * words + w]!; }
-  }
-  const has = (a: number, b: number): boolean => ((desc[a * words + (b >>> 5)]! >>> (b & 31)) & 1) === 1;
-  const rank = new Int32Array(n); order.forEach((t, i) => { rank[t] = i; });
+  // The closure's cost is charged up front in bitset words, as before.
+  const words = (n + 31) >>> 5;
+  if (!budget.spend(edges.length) || direct.length >= MAX_REPORTED || !budget.spend(edges.length * words + n)) return direct;
+  const reach = reachability(n, edges), has = reach.reaches, rank = reach.rank;
   const directKeys = new Set(edges.map(([a, b]) => a * n + b));
   const found: Violation[] = [];
   for (let a = 0; a < n; a++) {
     if (!Number.isFinite(lo[a]!)) continue;
     if (!budget.spend(words)) return direct;
-    for (let w = 0; w < words; w++) for (let bits = desc[a * words + w]!; bits; bits &= bits - 1) {
-      const b = w * 32 + (31 - Math.clz32(bits & -bits));
-      if (!directKeys.has(a * n + b) && violated(a, b)) found.push({ a, b, transitive: true });
-    }
+    for (const b of reach.descendants(a)) if (!directKeys.has(a * n + b) && violated(a, b)) found.push({ a, b, transitive: true });
   }
   if (!budget.spend(found.length)) return direct;
   found.sort((x, y) => (rank[x.b]! - rank[x.a]!) - (rank[y.b]! - rank[y.a]!));

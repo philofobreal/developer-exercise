@@ -16,8 +16,8 @@
  *  - `unverified`: the provenance is missing, unbound or not re-derived, the model
  *    differs from its regeneration, the reference has a language error, or the author
  *    removed a generated constraint (ADR-018): an author's acknowledgement is no proof.
- * `publishable` additionally requires the reference and its adjacent swaps to be
- * decided within the production search budget and the reference to be free of language
+ * `publishable` additionally requires the reference, every adjacent swap and the hard probes
+ * (ADR-036) to be decided within the production search budget and the reference to be free of language
  * errors (ADR-035): a definite error blocks publication under every policy, while a
  * missing context (`unverifiable`) or an audit that did not run only lowers the claims.
  */
@@ -25,6 +25,7 @@ import { validateSubmission } from './validator.js';
 import { compileCodeLineExercise, type CodeLineExercise, type DependencyPolicy } from './code-line.js';
 import { explainConstraints } from './constraint-explanation.js';
 import { evidenceStatus } from './evidence.js';
+import { contentKey } from './content-match.js';
 
 export type VerificationStatus = 'analysis-verified' | 'conservative' | 'author-modified' | 'unverified';
 export interface VerificationInput {
@@ -36,7 +37,8 @@ export interface VerificationInput {
   currentAnalyzer?: DependencyPolicy;
   /** Projection loss of that regeneration; otherwise the bound evidence's own figure. */
   projectionLoss?: number;
-  /** Search budget per verdict (production: 50 000) and the number of adjacent swaps probed. */
+  /** Search budget per verdict (production: 50 000) and the number of adjacent swaps probed
+   * (default: every one, ADR-036; the targeted hard probes run in addition). */
   maxStates?: number;
   neighbours?: number;
 }
@@ -47,6 +49,7 @@ export interface ModelVerification {
   checks: {
     admission: 'ok' | 'failed';
     reference: 'accepted' | 'rejected' | 'indeterminate' | 'not-run';
+    /** Gate probes graded, and 1 when one stayed undecided (the gate stops there, ADR-036). */
     budget: { probed: number; indeterminate: number; maxStates: number };
     provenance: 'complete' | 'partial' | 'absent' | 'unbound';
     rederivation: 'match' | 'differs' | 'not-run';
@@ -78,19 +81,12 @@ export function verifyModel(model: CodeLineExercise, input: VerificationInput = 
   const compiled = compileCodeLineExercise(model);
   if ('status' in compiled) return { status: 'unverified', publishable: false, checks, findings: ['A modell befogadása sikertelen: ' + compiled.message], claims: [] };
   checks.admission = 'ok';
-  const code = new Map(model.lines.map(line => [line.id, line.code]));
-  const verdict = (order: number[]): string => validateSubmission(compiled.compiled, { exerciseId: model.id, revision: model.revision, lines: order.map(id => code.get(id)!) }, { maxStates }).status;
-  const reference = model.lines.map(line => line.id);
-  const referenceVerdict = verdict(reference);
-  checks.reference = referenceVerdict === 'accepted' ? 'accepted' : referenceVerdict === 'indeterminate' ? 'indeterminate' : 'rejected';
-  // Adjacent swaps near the reference are the orders learners most often submit.
-  const swaps = Math.min(input.neighbours ?? 100, reference.length - 1);
-  for (let k = 0; k < swaps; k++) {
-    const i = Math.floor(k * (reference.length - 1) / swaps), order = [...reference];
-    [order[i], order[i + 1]] = [order[i + 1]!, order[i]!];
-    checks.budget.probed++;
-    if (verdict(order) === 'indeterminate') checks.budget.indeterminate++;
-  }
+  const grade = (lines: string[]): { status: string; exploredStates: number } => validateSubmission(compiled.compiled, { exerciseId: model.id, revision: model.revision, lines }, { maxStates });
+  const referenceResult = grade(model.lines.map(line => line.code));
+  checks.reference = referenceResult.status === 'accepted' ? 'accepted' : referenceResult.status === 'indeterminate' ? 'indeterminate' : 'rejected';
+  const { probed, undecided } = checks.reference === 'accepted' ? runGateProbes(model, grade, referenceResult.exploredStates, maxStates, input.neighbours) : { probed: 0, undecided: null };
+  checks.budget.probed = probed;
+  if (undecided) checks.budget.indeterminate = 1;
   const explanation = explainConstraints(model);
   if ('status' in explanation) return { status: 'unverified', publishable: false, checks, findings: [explanation.message], claims: [] };
   checks.provenance = explanation.provenance;
@@ -107,7 +103,7 @@ export function verifyModel(model: CodeLineExercise, input: VerificationInput = 
 
   const publishable = checks.reference === 'accepted' && checks.budget.indeterminate === 0 && checks.audit !== 'errors';
   if (checks.reference !== 'accepted') findings.push(checks.reference === 'indeterminate' ? 'A referencia a kereten belül nem dől el.' : 'A modell a saját referenciáját sem fogadja el.');
-  if (checks.budget.indeterminate) findings.push(`${checks.budget.indeterminate} szomszédos csere a ${maxStates} állapotos kereten belül eldöntetlen.`);
+  if (undecided) findings.push(`Egy kapupróba nem dőlt el (${undecided}, ${maxStates} állapot próbánként); a további próbák elmaradtak.`);
   if (checks.audit === 'errors') findings.push('Nyelvi hibás referencia nem publikálható.');
   const unverified: string[] = [];
   const missing: Record<Exclude<ModelVerification['checks']['provenance'], 'complete'>, string> = { partial: 'Néhány kényszernek nincs oka.', absent: 'A modellnek nincs provenienciája (régi vagy importált modell).', unbound: 'A proveniencia nem ezekhez a sorokhoz tartozik.' };
@@ -134,13 +130,60 @@ export function verifyModel(model: CodeLineExercise, input: VerificationInput = 
   const analysed = status !== 'unverified';
   const claims: VerificationClaim[] = [
     { claim: 'A modell befogadható, és elfogadja a saját referenciáját.', basis: checks.reference === 'accepted' ? 'checked' : 'refuted' },
-    { claim: `A szomszédos cserék a produkciós kereten belül eldőlnek (${checks.budget.probed} vizsgált).`, basis: checks.budget.indeterminate ? 'refuted' : 'checked' },
+    { claim: `A szomszédos cserék és a nehéz próbák a produkciós kereten belül eldőlnek (${checks.budget.probed} vizsgált).`, basis: checks.budget.indeterminate ? 'refuted' : checks.reference === 'accepted' ? 'checked' : 'not-established' },
     { claim: 'Minden kényszer oka az aktuális elemzésből újra levezetett.', basis: checks.rederivation === 'match' && checks.provenance === 'complete' ? 'checked' : checks.rederivation === 'differs' ? 'refuted' : 'not-established' },
     { claim: 'Az elfogadott sorrendek a policy szerint egyenértékűek (soundness).', basis: analysed ? 'tested' : 'not-established' },
     { claim: 'A kezelt esetekben nincs indokolatlan elutasítás (completeness).', basis: status === 'analysis-verified' ? 'tested' : 'not-established' },
     { claim: 'A referencia nyelvileg helyes.', basis: checks.audit === 'ok' ? 'checked' : checks.audit === 'errors' ? 'refuted' : 'not-established' }
   ];
   return { status, publishable, checks, findings, claims };
+}
+
+/** All gate probes together may explore this many times the per-verdict budget. */
+const GATE_BUDGET_FACTOR = 20;
+
+/** Grades the gate probes until one is undecided, which already refuses publication, or the
+ * probes together exceed their bound, so an author request cannot hold the server for long
+ * (ADR-036). `undecided` names the probe kind, or the exhausted bound. */
+function runGateProbes(model: CodeLineExercise, grade: (lines: string[]) => { status: string; exploredStates: number }, spentOnReference: number, maxStates: number, neighbours: number | undefined): { probed: number; undecided: string | null } {
+  const bound = maxStates * GATE_BUDGET_FACTOR;
+  let probed = 0, spent = spentOnReference;
+  for (const { kind, lines } of gateProbes(model, neighbours)) {
+    if (spent >= bound) return { probed, undecided: `a kapupróbák ${bound} állapotos összesített kerete` };
+    const result = grade(lines);
+    probed++; spent += result.exploredStates;
+    if (result.status === 'indeterminate') return { probed, undecided: kind };
+  }
+  return { probed, undecided: null };
+}
+
+/** The submissions the gate grades besides the reference (ADR-036): every adjacent swap (or
+ * an even sample of `neighbours`), then the hard probes that put repeated content where a late
+ * error forces the search through every way of matching it: up to 100 repeated rows, the last
+ * copy first and the first copy last, then the reversed and the end-swapped order. Repetition
+ * is the validator's own content key; a submission equal to the reference or to an earlier
+ * probe is not graded again. */
+function* gateProbes(model: CodeLineExercise, neighbours: number | undefined): Generator<{ kind: string; lines: string[] }> {
+  const reference = model.lines, n = reference.length, seen = new Set([reference.map(line => line.code).join('\n')]);
+  function* fresh(kind: string, order: readonly (typeof reference)[number][]): Generator<{ kind: string; lines: string[] }> {
+    const lines = order.map(line => line.code), key = lines.join('\n');
+    if (!seen.has(key)) { seen.add(key); yield { kind, lines }; }
+  }
+  const swaps = Math.min(neighbours ?? n - 1, n - 1);
+  for (let k = 0; k < swaps; k++) {
+    const i = Math.floor(k * (n - 1) / swaps), order = [...reference];
+    [order[i], order[i + 1]] = [order[i + 1]!, order[i]!];
+    yield* fresh('szomszédos csere', order);
+  }
+  const copies = new Map<string, typeof reference>();
+  for (const line of reference) { const key = contentKey(line.code, line.normalization); copies.set(key, [...copies.get(key) ?? [], line]); }
+  const moved = (line: (typeof reference)[number], front: boolean): typeof reference => { const rest = reference.filter(other => other !== line); return front ? [line, ...rest] : [...rest, line]; };
+  for (const lines of [...copies.values()].filter(lines => lines.length > 1).slice(0, 100)) {
+    yield* fresh('ismétlődő sor az elejére', moved(lines.at(-1)!, true));
+    yield* fresh('ismétlődő sor a végére', moved(lines[0]!, false));
+  }
+  yield* fresh('fordított sorrend', [...reference].reverse());
+  if (n > 1) yield* fresh('első és utolsó sor cseréje', [reference.at(-1)!, ...reference.slice(1, -1), reference[0]!]);
 }
 
 /** What a trusted catalog serves (ADR-027, ADR-035). `publishable` (default): every model whose
@@ -150,7 +193,7 @@ export function verifyModel(model: CodeLineExercise, input: VerificationInput = 
 export type PublicationPolicy = 'publishable' | 'verified-only';
 export function publicationRefusal(verification: ModelVerification, policy: PublicationPolicy = 'publishable'): string | null {
   if (verification.checks.audit === 'errors') return 'A referencia nyelvi hibát tartalmaz.';
-  if (!verification.publishable) return 'A referencia vagy a szomszédos cserék nem dönthetők el a keretben.';
+  if (!verification.publishable) return 'A referencia vagy egy kapupróba (szomszédos csere, nehéz próba) nem dönthető el a keretben.';
   if (policy === 'verified-only' && verification.status === 'unverified') return 'A modell nem igazolt; explicit frissítés (refresh) után publikálható.';
   return null;
 }

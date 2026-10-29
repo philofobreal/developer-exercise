@@ -1,5 +1,31 @@
 # Changelog
 
+## Unreleased – 2026-10-29 a tanúkeresés nem robban (ADR-036)
+
+- **Súlyos hiba lezárva:**
+  - Ismétlődő sorok és blokkok mellett egy hibás beküldés eddig `indeterminate` választ kaphatott `rejected` helyett. Láncolt azonos blokkoknál k = 8-nál 556 540 állapot kellett.
+  - Most minden mért eset eldől: 3 000 majdnem helyes beküldés hat alakzaton 500 sorig, és 24 800 véletlen tanulói hiba 124 modellen. Egyik sem eldöntetlen, a legrosszabb eset kb. 2n állapot.
+- **Új core-modulok**, mindegyik egy döntést rejt el:
+  - **`placement.ts`:** a részleges hozzárendelés és minden rá vonatkozó szabály. Három szűkítést tartalmaz: a tranzitív lezártat a legkorábbi és legkésőbbi hellyel, a blokkfolytonosságot és az ellenőrzött, felcserélhető testvér-részfákat. A szabályokból számolt rész gyorsítótárban marad.
+  - **`reachability.ts`:** a core egyetlen tranzitívlezárt-számítása, amelyet a diagnosztika is használ. Körkörös gráfra nem számol félig.
+  - **`contentKey`:** az azonos tartalom egyetlen definíciója.
+- **A validátor** csak a keresési stratégiát tartja meg: a pozíciósorrendet, a keretet és a döntést.
+- **Változatlan:** a keresés csak megoldás nélküli vagy egy korábbi jelölt tükörképét adó ágat hagy ki. Ezért ahol a régi keresés döntött, a döntés és a tanú változatlan, az állapotszám soha nem nő.
+- **Kapu:**
+  - minden szomszédos cserét vizsgál, és célzott nehéz próbákat is futtat: ismétlődő sor a két végén, fordított sorrend, végek cseréje;
+  - az első eldöntetlen próbánál leáll, és megnevezi a fajtáját;
+  - az összes próba együtt legfeljebb a próbánkénti keret 20-szorosát használhatja;
+  - az azonos beküldést nem értékeli kétszer.
+- **Review-javítások:**
+  - a kézzel összerakott, körkörös szabályt elutasítja;
+  - az ismétlődést a validátor tartalomkulcsa dönti el, nem a `trim()`;
+  - a nem üres blokkokat külön listában tartja;
+  - a rögzített régi keresés a tartalomegyeztetést is befagyasztja.
+- **Tesztek:**
+  - a `search-pruning` 20 esete: nyers erős ellenőrzés 200 véletlen modellen, nyolc nevesített szélső eset, kör, gyorsítótár, növekvő jelöltlisták, terhelési csomag, v2/v3 összevetés a régi kereséssel;
+  - a `model-verification` kapupróbái.
+- **Korlát:** a nagy, elfogadott referenciákon kb. 1,2–1,4-szeres idő (500 sornál 4–7 ms).
+
 ## Unreleased – 2026-10-29 a nyelvi hiba blokkolja a publikálást; egy kapu (ADR-035)
 
 - **P0 lezárva:**

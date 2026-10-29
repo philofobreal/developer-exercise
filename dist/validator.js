@@ -1,6 +1,6 @@
 import { matchContent } from './content-match.js';
 import { compileDefinition, isModelError } from './model.js';
-import { createUnitChecks } from './unit-structure.js';
+import { createPlacement } from './placement.js';
 const result = (status, reason, message, exploredStates, positions) => ({ status, accepted: status === 'accepted', reason, message, exploredStates, ...(positions ? { positions } : {}) });
 /**
  * Witness-based exact validation:
@@ -44,50 +44,20 @@ export function validateSubmission(compiledOrRaw, submission, opts = {}) {
         if ([...counts].some(([k, v]) => got.get(k) !== v))
             return result('rejected', 'wrong_multiplicity', 'A kódsorok előfordulási száma nem egyezik.', 0);
     }
-    const ids = tokens.map(t => t.id), byId = new Map(ids.map((id, i) => [id, i]));
-    const opening = new Map(def.blocks.map(b => [byId.get(b.open), b.id]));
-    const closing = new Map(def.blocks.map(b => [byId.get(b.close), b.id]));
+    const byId = new Map(tokens.map((t, i) => [t.id, i]));
     const maxStates = Math.max(1, Math.min(1_000_000, Math.floor(Number.isFinite(opts.maxStates) ? opts.maxStates : 30_000)));
     let totalStates = 0;
     let exceeded = false;
-    const unitChecks = def.structure ? createUnitChecks(def) : null;
-    function scopesValid(assignment, partial = false) {
-        if (unitChecks)
-            return unitChecks.scopesValid(assignment, partial);
-        const stack = [];
-        for (const idx of assignment) {
-            // The assigned prefix already determines lexical ownership. A later
-            // assignment cannot repair a wrong scope earlier in that prefix.
-            if (idx < 0)
-                return partial;
-            const t = tokens[idx];
-            const closeId = closing.get(idx);
-            if (closeId !== undefined) {
-                if (stack[stack.length - 1] !== closeId)
-                    return false;
-                stack.pop();
-            }
-            const current = stack.length ? stack[stack.length - 1] : null;
-            if (t.scope !== current)
-                return false;
-            const openId = opening.get(idx);
-            if (openId !== undefined)
-                stack.push(openId);
+    for (const [profileIndex, profile] of compiled.profiles.entries()) {
+        // ADR-036: the placement owns the partial assignment and every rule over it.
+        const placement = createPlacement(compiled, profileIndex);
+        const degree = new Int32Array(tokens.length);
+        for (const e of profile.edges) {
+            degree[byId.get(e.before)]++;
+            degree[byId.get(e.after)]++;
         }
-        return stack.length === 0;
-    }
-    for (const profile of compiled.profiles) {
-        const edges = profile.edges.map(e => [byId.get(e.before), byId.get(e.after)]);
-        const related = Array.from({ length: tokens.length }, () => []);
-        for (const edge of edges) {
-            related[edge[0]].push(edge);
-            related[edge[1]].push(edge);
-        }
-        const assignment = new Int32Array(tokens.length).fill(-1);
-        const posByToken = new Int32Array(tokens.length).fill(-1);
-        const used = new Uint8Array(tokens.length);
         // MRV heuristic: least choices first, then most dependencies for early rejection.
-        const visitOrder = candidates.map((a, i) => ({ i, size: a.length, degree: Math.max(...a.map(j => related[j].length)) }))
+        const visitOrder = candidates.map((a, i) => ({ i, size: a.length, degree: Math.max(...a.map(j => degree[j])) }))
             .sort((a, b) => a.size - b.size || b.degree - a.degree || a.i - b.i).map(x => x.i);
         function dfs(depth) {
             if (totalStates >= maxStates) {
@@ -95,44 +65,22 @@ export function validateSubmission(compiledOrRaw, submission, opts = {}) {
                 return false;
             }
             totalStates++;
-            if (!scopesValid(assignment, true))
-                return false;
             if (depth === visitOrder.length)
-                return scopesValid(assignment);
+                return placement.complete();
             const position = visitOrder[depth];
             for (const idx of candidates[position]) {
-                if (used[idx])
+                if (!placement.tryPlace(idx, position))
                     continue;
-                if (unitChecks && !unitChecks.placementValid(idx, position, posByToken))
-                    continue;
-                let valid = true;
-                for (const [before, after] of related[idx]) {
-                    const other = before === idx ? after : before;
-                    const otherPos = posByToken[other];
-                    if (otherPos < 0)
-                        continue;
-                    if (before === idx && !(position < otherPos) || after === idx && !(otherPos < position)) {
-                        valid = false;
-                        break;
-                    }
-                }
-                if (!valid)
-                    continue;
-                used[idx] = 1;
-                assignment[position] = idx;
-                posByToken[idx] = position;
                 if (dfs(depth + 1))
                     return true;
-                used[idx] = 0;
-                assignment[position] = -1;
-                posByToken[idx] = -1;
+                placement.undo();
                 if (exceeded)
                     return false;
             }
             return false;
         }
         if (dfs(0))
-            return { ...result('accepted', null, 'Az összeállított tartalomsorozathoz létezik minden szabályt kielégítő hozzárendelés.', totalStates), matchedProfile: profile.id, matchedTokenIds: [...assignment].map(index => tokens[index].id) };
+            return { ...result('accepted', null, 'Az összeállított tartalomsorozathoz létezik minden szabályt kielégítő hozzárendelés.', totalStates), matchedProfile: profile.id, matchedTokenIds: placement.witness().map(index => tokens[index].id) };
         if (exceeded)
             break;
     }

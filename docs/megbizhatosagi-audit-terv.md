@@ -1,6 +1,13 @@
 # Megbízhatósági audit – ellenőrzés és javítási terv
 
-Állapot: 2026-10-29, `ccf5026`. A külső audit (a `project-snapshot.md` alapján készült) állításait a forráskódon és célzott mérésekkel ellenőriztük. Ez a dokumentum a megállapításokat és a javítás tervét rögzíti; kódváltozás még nem történt.
+Állapot: 2026-10-29, `ccf5026`. A külső audit (a `project-snapshot.md` alapján készült) állításait a forráskódon és célzott mérésekkel ellenőriztük. Ez a dokumentum a megállapításokat és a javítás tervét rögzíti.
+
+**Haladás:**
+- **1. fázis:** a nyelvi hiba blokkol, és egy kapu van ([ADR-035](adr/035-language-errors-block-publication.md)). Egy példa frissítve; a többi döntésre vár ([eltéréslista](peldak-migracioja.md)).
+- **2. fázis:** kész ([ADR-036](adr/036-implied-order-and-interchangeable-units.md)).
+  - **Mi bizonyult a fő oknak:** a robbanás fő oka nem szimmetria volt, hanem gyenge következtetés. A keresés csak a közvetlen éleket és az elhelyezett előtagot nézte.
+  - **A javítás:** implikált sorrend, blokkfolytonosság és ellenőrzött felcserélhető egységek.
+  - **Eredmény:** 0 eldöntetlen a mért eseteken.
 
 ## 1. Összefoglaló ítélet
 

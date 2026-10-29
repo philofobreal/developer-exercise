@@ -9,7 +9,8 @@ export interface VerificationInput {
     currentAnalyzer?: DependencyPolicy;
     /** Projection loss of that regeneration; otherwise the bound evidence's own figure. */
     projectionLoss?: number;
-    /** Search budget per verdict (production: 50 000) and the number of adjacent swaps probed. */
+    /** Search budget per verdict (production: 50 000) and the number of adjacent swaps probed
+     * (default: every one, ADR-036; the targeted hard probes run in addition). */
     maxStates?: number;
     neighbours?: number;
 }
@@ -23,6 +24,7 @@ export interface ModelVerification {
     checks: {
         admission: 'ok' | 'failed';
         reference: 'accepted' | 'rejected' | 'indeterminate' | 'not-run';
+        /** Gate probes graded, and 1 when one stayed undecided (the gate stops there, ADR-036). */
         budget: {
             probed: number;
             indeterminate: number;
