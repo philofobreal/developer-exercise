@@ -142,7 +142,19 @@ const fixtures=[
  {id:'prec-try-catch-finally',origin:'precision',language:'javascript',source:[
   'function evaluate() {','  let a = 0;','  let b = 0;','  let c = 0;','  try {','    a = 1;','    b = 2;',"    record('try', a);",'    c = b;','  } catch (error) {','    a = 3;','    b = 4;','  } finally {','    c = c + 1;','    b = 5;','  }','  return [a, b, c];','}']},
  {id:'prec-ts-clause-chain',origin:'precision',language:'typescript',source:[
-  'interface Point {','  x: number;','  y: number;','}','function evaluate(): Array<number | string> {','  let best: Point = { x: 0, y: 0 };','  let label = "none";','  const candidates: Point[] = [{ x: 1, y: 2 }, { x: 3, y: 1 }];','  for (const point of candidates) {','    if (point.x > best.x) {','      best = point;','      label = "x";','    } else {','      label = "keep";','      best = best;','    }','  }','  return [best.x, best.y, label];','}']}
+  'interface Point {','  x: number;','  y: number;','}','function evaluate(): Array<number | string> {','  let best: Point = { x: 0, y: 0 };','  let label = "none";','  const candidates: Point[] = [{ x: 1, y: 2 }, { x: 3, y: 1 }];','  for (const point of candidates) {','    if (point.x > best.x) {','      best = point;','      label = "x";','    } else {','      label = "keep";','      best = best;','    }','  }','  return [best.x, best.y, label];','}']},
+ // Plan phase 3, item 5: constructs no fixture ran before; the oracle proves the generated
+ // order sound for each, and the pinned baseline records how strict it is.
+ {id:'cov-function-class-expressions',origin:'coverage',language:'javascript',source:[
+  'function evaluate() {','  const square = function (n) {','    return n * n;','  };','  const Point = class {','    constructor(x) {','      this.x = x;','    }','  };','  const point = new Point(square(3));','  return point.x;','}']},
+ {id:'cov-for-in-do-while',origin:'coverage',language:'javascript',source:[
+  'function evaluate() {','  const source = { a: 1, b: 2, c: 3 };','  let sum = 0;','  for (const key in source) {','    sum += source[key];','  }','  let i = 0;','  do {','    i += 2;','  } while (i < 5);','  return [sum, i];','}']},
+ {id:'cov-optional-delete-regex',origin:'coverage',language:'javascript',source:[
+  'function evaluate() {',"  const config = { name: 'x', extra: { level: 2 } };",'  const level = config.extra?.level;','  const missing = config.other?.level;','  delete config.extra;','  const pattern = /a+b/g;',"  const matches = 'aab ab b'.match(pattern);",'  return [level, missing, Object.keys(config), matches];','}']},
+ {id:'cov-instanceof-in',origin:'coverage',language:'javascript',source:[
+  'function evaluate() {','  class Animal {}','  class Dog extends Animal {}','  const pet = new Dog();','  const isAnimal = pet instanceof Animal;',"  const hadName = 'name' in pet;","  pet.name = 'Rex';","  const hasName = 'name' in pet;",'  return [isAnimal, hadName, hasName];','}']},
+ {id:'cov-ts-assertions',origin:'coverage',language:'typescript',source:[
+  'interface Shape {','  kind: string;','  size?: number;','}','function evaluate(): Array<string | number> {',"  const raw: unknown = { kind: 'box', size: 3 };",'  const shape = raw as Shape;','  const size = shape.size!;',"  const config = { kind: 'circle' } satisfies Shape;",'  return [shape.kind, size * 2, config.kind];','}']}
 ];
 
 const evaluateSource=(await readFile(new URL('./evaluate-ordering.js',import.meta.url),'utf8')).replace(/\r\n?/g,'\n').trimEnd().split('\n');

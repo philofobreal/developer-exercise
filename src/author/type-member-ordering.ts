@@ -42,7 +42,7 @@ export interface TypeMemberOrdering {entries: OrderingEntry[]; spans: {first: nu
 export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, options: {reflectedKeys?: boolean; enumeratedKeys?: boolean} = {}): TypeMemberOrdering {
  const physical = file.text.split('\n'), entries: OrderingEntry[] = [], spans: {first: number; last: number}[] = [];
  /** `row` follows every row of `after` for the same reason. */
- const order = (row: number, after: number[], category: OrderingReason['category'], code: string): void => {entries.push({row, after, reasons: after.map(before => ({before, category, code}))});};
+ const order = (row: number, after: number[], category: OrderingReason['category'], code: OrderingReason['code']): void => {entries.push({row, after, reasons: after.map(before => ({before, category, code}))});};
  let hasClass = false, hasTypes = false;
  const first = (node: ts.Node): number => file.getLineAndCharacterOfPosition(node.getStart(file)).line;
  const last = (node: ts.Node): number => file.getLineAndCharacterOfPosition(node.end - 1).line;

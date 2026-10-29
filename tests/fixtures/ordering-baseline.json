@@ -353,6 +353,36 @@
   "completenessGaps": 0,
   "justifiedRejections": 461
  },
+ "cov-function-class-expressions": {
+  "neighbours": 174,
+  "accepted": 2,
+  "completenessGaps": 2,
+  "justifiedRejections": 170
+ },
+ "cov-for-in-do-while": {
+  "neighbours": 176,
+  "accepted": 5,
+  "completenessGaps": 0,
+  "justifiedRejections": 171
+ },
+ "cov-optional-delete-regex": {
+  "neighbours": 92,
+  "accepted": 0,
+  "completenessGaps": 4,
+  "justifiedRejections": 88
+ },
+ "cov-instanceof-in": {
+  "neighbours": 117,
+  "accepted": 0,
+  "completenessGaps": 0,
+  "justifiedRejections": 117
+ },
+ "cov-ts-assertions": {
+  "neighbours": 143,
+  "accepted": 5,
+  "completenessGaps": 0,
+  "justifiedRejections": 138
+ },
  "evaluate-ordering": {
   "neighbours": 51,
   "accepted": 6,

@@ -577,11 +577,11 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
 }
 
 /** Why two footprinted statements must keep their order; empty when they commute. */
-export function footprintConflicts(a: Footprint, b: Footprint): string[] {
+export function footprintConflicts(a: Footprint, b: Footprint): ('may-throw' | 'object-read-after-write' | 'object-write-after-read' | 'object-write-after-write')[] {
  // ADR-028: fields of one object meet when equal or when either side is the whole object.
  const field = (key: string): string => key.slice(key.lastIndexOf('::') + 2);
  const meets = (x: Set<string>, y: Set<string>): boolean => [...x].some(p => [...y].some(q => objectOf(p) === objectOf(q) && (field(p) === WHOLE || field(q) === WHOLE || field(p) === field(q))));
- const found: string[] = [];
+ const found: ReturnType<typeof footprintConflicts> = [];
  // ADR-028: only two possible throws race for the surfacing exception. A statement that cannot
  // throw touches only this list's own, unescaped objects, which no one observes once the other
  // throws out of the block, and any state the throw depends on is a read conflict below.

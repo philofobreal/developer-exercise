@@ -150,9 +150,12 @@ export function randomObjectProgram(seed,{language='javascript',operations=8}={}
   body.push('  '+boxOperation(x,pick(['tag','tag','bump','keep','attach','note','note','copy','rename','shout','push']),{names,n,pick,chance,throwChance:0.25}));
  }
  body.push(`  return JSON.stringify([${names.join(', ')}, shared]);`,'}');
- return {id:`object-${language}-${seed}`,language,origin:'object',probe:objectProbe,source:[...boxClass(typescript),...body]};
+ return {id:`object-${language}-${seed}`,language,origin:'object',probe:objectProbe,threw:probeCaughtThrow,source:[...boxClass(typescript),...body]};
 }
 const objectProbe="(() => { try { return run(); } catch (error) { return 'throws ' + error.message; } })()";
+/** Whether the object probe caught an exception on the reference: everything after the throw
+ * runs in no order at all, so such programs measure the generator differently (plan 3.2). */
+export const probeCaughtThrow=value=>typeof value==='string'&&value.startsWith('throws ');
 
 /** The small class every object and flow program operates on (ADR-025). */
 function boxClass(typescript){
@@ -239,5 +242,5 @@ export function randomFlowProgram(seed,{language='javascript',statements=7}={}){
   else body.push(`${p}outer: for (const entry of boxes) {`,...block(q,'entry'),`${q}break outer;`,`${p}}`);
  }
  body.push(`  return JSON.stringify([${names.join(', ')}, shared]);`,'}');
- return {id:`flow-${language}-${seed}`,language,origin:'object',probe:objectProbe,source:[...boxClass(typescript),...body]};
+ return {id:`flow-${language}-${seed}`,language,origin:'object',probe:objectProbe,threw:probeCaughtThrow,source:[...boxClass(typescript),...body]};
 }

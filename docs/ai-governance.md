@@ -2,6 +2,10 @@
 
 A vizsgálatkor a validátormag strict TypeScript volt, de a böngészős vezérlés és állapotkezelés, a formatter, a szerzői parser/generátor és a szerver JavaScript/MJS. Architektúraleírás és tesztkapuk léteztek, külön AGENTS.md és gépi modulhatár-kapu nem. Ez részleges mérnöki kontroll, nem teljes AI governance.
 
+**Mostani állapot (2026-10-29):**
+- **Ami van:** a munkaszerződés (AGENTS.md), az elvek és bizonyítékok táblája, a gépi architektúra-kapu és a kötelező Ousterhout-féle tervezési governance.
+- **Ami még részleges:** a governance teljessé tételét külön feladat tervezi meg ([megbízhatósági terv, G fázis](megbizhatosagi-audit-terv.md)). Ilyen rész például az AI-hozzájárulások eredetének és felülvizsgálatának rögzítése, a kockázati besorolás és a jóváhagyási pontok egységes leírása.
+
 A gyökér [AGENTS.md](../AGENTS.md) a humán és AI közreműködők munkaszerződése. Ez fejlesztési governance: az alkalmazás továbbra sem használ runtime AI-t a tanulói kiértékeléshez. A szabályok nem vezetnek be új, felhasználót akadályozó jóváhagyási lépéseket.
 
 | Elv / üzleti érték | Tulajdonos / elrejtett tudás | Technikai bizonyíték |
@@ -15,7 +19,21 @@ A gyökér [AGENTS.md](../AGENTS.md) a humán és AI közreműködők munkaszerz
 | Native TypeScript új megoldásokhoz | src/workbench és core | strict build; kézi any/ts-ignore tiltás; generált JS forrásgazda-térkép |
 | Emberi kontroll és követhetőség | User request + ADR + auditjelentés | Nincs automatikus push/deploy; változások és teszteredmények rögzítve |
 
-Az Ousterhout-féle tervezési review minden változtatásnál és review-nál kötelező; az ellenőrzőlista a [design-review.md](design-review.md), a döntés az [ADR-037](adr/037-standing-design-review.md). A belső modulok tulajdonosait az `information-hiding` architektúra-kapu kényszeríti ki.
+## Tervezési governance: Ousterhout-féle moduláris architektúra
+
+A projekt kötelező tervezési elve John Ousterhout *A Philosophy of Software Design* (*A szoftvertervezés filozófiája*) című könyvének moduláris architektúrája. Ez a governance része, nem egyetlen ADR döntése; az [ADR-037](adr/037-standing-design-review.md) csak a bevezetését és a gépi kaput rögzíti.
+
+| Szempont | Szabály |
+| --- | --- |
+| **Hatály** | Minden közreműködőre (ember és AI-ügynök), minden új fejlesztésre, refaktorálásra és review-ra. |
+| **Tervezéskor** | Modulonként leírjuk, milyen tudást vagy döntést rejt el, és mi az interfésze. Jelentős döntésnél legalább két tervet vetünk össze („design it twice”). Új vagy szélesített nyilvános interfész előtt ADR készül. |
+| **Commit előtt** | A szerző, AI-ügynök esetén maga az ügynök, lefuttatja a [tervezési ellenőrzőlistát](design-review.md) a saját változtatásán, és a megállapításokat javítja vagy kimondva rögzíti. |
+| **Review-ban** | Minden kódreview része egy tervezési menet a helyességi menet mellett. A megállapítás kategóriája `design`. |
+| **Kész-feltétel** | Egy refaktorálás vagy fejlesztés akkor kész, ha a tervezési megállapítások javítva vannak, vagy kimondva rögzítve (ADR, hátralévő munka). A zöld teszt nem elég: a helyességi tesztek a szivárgást és a sekély modult nem fogják meg. |
+| **Gépi kontroll** | Az architektúra-kapu kikényszeríti az importirányokat, a tiltott műveleteket és az `information-hiding` szabályt: a core belső moduljait csak a tulajdonosaik importálhatják. |
+| **Emberi kontroll** | A mélységet, a kohéziót, a szivárgást és a nevek minőségét review ítéli meg, az ellenőrzőlista alapján. Statikus eszköz ezt nem bizonyítja. |
+| **Eltérés** | Tudatos kivétel, például egy átmeneti migrációs port, csak indoklással és ADR-ben rögzítve megengedett. |
+| **Nyomonkövethetőség** | Az ADR-ek, a CHANGELOG és a commitüzenetek megnevezik, melyik modul milyen tudást birtokol, és mi változott a határokon. |
 
 Ousterhout alapján a cél nem a minél több modul, hanem az információ elrejtése és a változtatások tovagyűrűzésének csökkentése. A renderer nem ismeri a gráfkeresést; a DOM-input nem birtokol beszúrási algoritmust; a mag nem ismeri a böngészőt vagy hálózatot. Tudatos migrációs port átmenetileg indokolt, de egy üres továbbító réteg önmagában nem mély modul. Ezekhez manuális tervfelülvizsgálat is kell: egy statikus ellenőrző nem tud minden tervezési elvet bizonyítani.
 

@@ -4,7 +4,8 @@ import {performance} from 'node:perf_hooks';
 import {generateCodeLineExercise} from '../../src/author/generator.mjs';
 import {compileCodeLineExercise,validateSubmission} from '../../dist/index.js';
 import {statementOrdering} from '../../dist/author/statement-ordering.js';
-import {createOracle,codesOf,neighbourhood,extensions,random,shrink} from './semantic-oracle.mjs';
+import {codesOf,neighbourhood,extensions,random,shrink} from './semantic-oracle.mjs';
+import {createClassifier} from './order-classification.mjs';
 
 /** Bounded settings used by semantic-corpus.test.mjs and its pinned baseline. */
 export const CORPUS_CAPS={exhaustiveLimit:200,samples:100,repeats:0};
@@ -28,32 +29,31 @@ export function edgeStats(model){
 /** Classifies the generated model of one fixture against the policy oracle. */
 export function measureFixture(fixture,{model=generate(fixture),exhaustiveLimit=10000,samples=300,repeats=3,policy='reflective'}={}){
  const started=performance.now();for(let i=0;i<repeats;i++)generate(fixture);const generationMs=repeats?(performance.now()-started)/repeats:0;
- const compiled=compileCodeLineExercise(model);if(compiled.status)throw Error(fixture.id+': '+compiled.message);
- const judge=createOracle(fixture,{policy}),reference=model.lines.map(line=>line.id);
- const grade=order=>validateSubmission(compiled.compiled,{exerciseId:model.id,revision:model.revision,lines:codesOf(model,order)},{maxStates:200_000});
+ const classifier=createClassifier(fixture,model,{policy}),reference=model.lines.map(line=>line.id);
  const result={id:fixture.id,origin:fixture.origin,language:fixture.language,rows:model.lines.length,unsupported:analysisDisabled(fixture),...edgeStats(model),generationMs:+generationMs.toFixed(2),
-  orders:0,ordersExhaustive:true,unsound:0,undecidedAccepted:0,neighbours:0,accepted:0,completenessGaps:0,justifiedRejections:0,undecided:0,indeterminate:0,states:0,counterexamples:[],gaps:[]};
+  orders:0,ordersExhaustive:true,unsound:0,undecidedAccepted:0,neighbours:0,accepted:0,completenessGaps:0,justifiedRejections:0,undecided:0,indeterminate:0,states:0,counterexamples:[],gaps:[],gapCauses:{}};
+ const unsound=order=>classifier.classify(order).kind==='unsound';
+ const counterexample=(order,reason)=>{result.unsound++;if(result.counterexamples.length<3)result.counterexamples.push({order:shrink(reference,order,unsound),reason});};
  // A(M): exhaustive when small, otherwise a seeded random sample of linear extensions.
  let orders=extensions(model,{limit:exhaustiveLimit+1});
  if(orders.length>exhaustiveLimit){result.ordersExhaustive=false;const rng=random(0xC0DE);orders=Array.from({length:samples},()=>extensions(model,{limit:1,rng})[0]);}
  result.orders=orders.length;
- const unsound=order=>{const report=grade(order);return report.status==='accepted'&&judge(codesOf(model,order)).ok===false;};
  for(const order of orders){
-  const report=grade(order);result.states+=report.exploredStates;
-  if(report.status!=='accepted')throw Error(`${fixture.id}: validator rejects a linear extension ${order}`);
-  const verdict=judge(codesOf(model,order));
-  if(verdict.ok===false){result.unsound++;if(result.counterexamples.length<3)result.counterexamples.push({order:shrink(reference,order,unsound),reason:verdict.reason});}
-  else if(verdict.ok===null)result.undecidedAccepted++;
+  const outcome=classifier.classify(order);result.states+=outcome.states;
+  if(!['accepted','unsound','undecided-accepted'].includes(outcome.kind))throw Error(`${fixture.id}: validator rejects a linear extension ${order}`);
+  if(outcome.kind==='unsound')counterexample(order,outcome.reason);
+  else if(outcome.kind==='undecided-accepted')result.undecidedAccepted++;
  }
  // Local completeness: every single-row move and pair swap.
  const seen=new Set();
  for(const order of neighbourhood(reference)){
   const key=codesOf(model,order).join('\n');if(seen.has(key))continue;seen.add(key);result.neighbours++;
-  const report=grade(order),verdict=judge(codesOf(model,order));
-  if(report.status==='indeterminate'){result.indeterminate++;continue;}
-  if(report.status==='accepted'){result.accepted++;if(verdict.ok===false){result.unsound++;if(result.counterexamples.length<3)result.counterexamples.push({order:shrink(reference,order,unsound),reason:verdict.reason});}}
-  else if(verdict.ok===true){result.completenessGaps++;if(result.gaps.length<5)result.gaps.push(order);}
-  else if(verdict.ok===null)result.undecided++;
+  const outcome=classifier.classify(order);
+  if(outcome.kind==='indeterminate')result.indeterminate++;
+  else if(outcome.kind==='unsound'){result.accepted++;counterexample(order,outcome.reason);}
+  else if(outcome.kind==='accepted'||outcome.kind==='undecided-accepted')result.accepted++;
+  else if(outcome.kind==='gap'){result.completenessGaps++;if(result.gaps.length<5)result.gaps.push(order);for(const code of outcome.causes)result.gapCauses[code]=(result.gapCauses[code]??0)+1;}
+  else if(outcome.kind==='undecided')result.undecided++;
   else result.justifiedRejections++;
  }
  return result;

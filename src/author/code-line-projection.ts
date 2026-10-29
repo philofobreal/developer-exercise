@@ -97,7 +97,7 @@ export function projectCodeLine({physical, exact, structure, ordering}: Projecti
  const scopeOf = (line: number): Retained | null => retained.filter(block => block.start < line && line < block.end).at(-1) ?? null;
  // Reasons per line ID, then per predecessor ID; replaced together with a line's dependencies.
  const why = new Map<number, Map<number, Omit<OrderingReason, 'before'>[]>>();
- const explain = (before: number, after: number, category: OrderingReason['category'], code: string): void => {
+ const explain = (before: number, after: number, category: OrderingReason['category'], code: OrderingReason['code']): void => {
   const own = why.get(after) ?? new Map<number, Omit<OrderingReason, 'before'>[]>();
   own.set(before, [...own.get(before) ?? [], {category, code}]); why.set(after, own);
  };
@@ -125,7 +125,7 @@ export function projectCodeLine({physical, exact, structure, ordering}: Projecti
    lines[id - 1]!.dependencies = toIds(entry.after); why.delete(id);
    for (const before of entry.after) {
     const own = (entry.reasons ?? []).filter(reason => reason.before === before), from = byPhysical.get(before);
-    if (from !== undefined) for (const {category, code} of own.length ? own : [{category: 'unknown' as const, code: 'adapter-unspecified'}]) explain(from, id, category, code);
+    if (from !== undefined) for (const {category, code} of own.length ? own : [{category: 'unknown' as const, code: 'adapter-unspecified' as const}]) explain(from, id, category, code);
    }
   }
   for (const [row, inputs] of ordering.protectedInputs) {const id = byPhysical.get(row); if (id !== undefined) protectedById.set(id, new Set(toIds(inputs)));}

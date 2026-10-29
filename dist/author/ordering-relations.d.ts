@@ -8,11 +8,13 @@
  * Rows are 0-based physical rows of the normalised reference source.
  */
 import type { ConstraintCategory } from '../../dist/index.js';
+import type { ReasonCodeName } from './reason-codes.js';
 /** Why `before` must precede the entry's row (ADR-014): explanation only, never a grading rule. */
+/** `code` is a registered reason code (reason-codes.ts, ADR-038). */
 export interface OrderingReason {
     before: number;
     category: ConstraintCategory;
-    code: string;
+    code: ReasonCodeName;
 }
 /** `reasons` should cover every row of `after`; an uncovered one is projected as `unknown`. */
 export interface OrderingEntry {

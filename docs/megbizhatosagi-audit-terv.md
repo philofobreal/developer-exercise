@@ -8,6 +8,13 @@
   - **Mi bizonyult a fő oknak:** a robbanás fő oka nem szimmetria volt, hanem gyenge következtetés. A keresés csak a közvetlen éleket és az elhelyezett előtagot nézte.
   - **A javítás:** implikált sorrend, blokkfolytonosság és ellenőrzött felcserélhető egységek.
   - **Eredmény:** 0 eldöntetlen a mért eseteken.
+- **3. fázis:** kész ([ADR-038](adr/038-measurement-and-reason-code-register.md)).
+  - közös osztályozó okbontással;
+  - a dobó referenciák külön csoportban;
+  - generatív küszöbteszt;
+  - indokkód-jegyzék bizonyítékokkal;
+  - öt nyelvi lefedettségi fixture.
+- **G fázis:** az AI governance teljessé tételének tervezése ütemezve; az Ousterhout-féle tervezési governance már része.
 
 ## 1. Összefoglaló ítélet
 
@@ -151,6 +158,7 @@ A szkriptszintű `declare const d: number;` `erased-declaration-shape` barrier l
 
 Minden tétel új policyverzió, ADR, pozitív és negatív fixture, és utána kampány.
 
+0. **Tervezési előfeltétel (ADR-038 adóssága):** a kibocsátó helyek ne adják meg kézzel a kategóriát, hanem a jegyzékből vezessék le. Ez kb. 60 hely; a kimenet nem változhat, amit a kódleltár, a korpusz és a generatív küszöbök igazolnak.
 1. **`declare const` és társai (gyors javítás).** A változódeklaráló `declare` utasítás pozíciófüggetlen, ha a név egyedi.
 2. **Szökésanalízis az ismeretlen hívásokra** (a legnagyobb tétel).
    - Ha egy ismeretlen hívás csak primitív értéket kap, nem fér hozzá egyetlen még meg nem szökött saját objektumhoz sem, ezért azok műveleteivel felcserélhető.
@@ -172,6 +180,25 @@ Minden tétel új policyverzió, ADR, pozitív és negatív fixture, és utána 
 - **Rövid táv:** a projekciós lezárás finomítása ott, ahol a lyuk nélküli egység lezárása felesleges.
 - **Hosszú táv:** a CodeLine v3 egységszintű modell (a Python-tervben már szereplő natív IR út) integrálása a validátorba. Ez külön epic, saját ADR-rel és sémaverzióval.
 
+### G fázis – az AI governance teljessé tétele (tervezés, átfogó)
+
+**Háttér:** van AI governance ([AGENTS.md](../AGENTS.md), [ai-governance.md](ai-governance.md), architektúra-kapu), de a dokumentum maga részlegesnek nevezi. Az Ousterhout-féle tervezési governance már a része (ADR-037, [ellenőrzőlista](design-review.md)).
+
+**Teendők:**
+1. **Leltár:** mi szabályozott és mi nem. Szempontok:
+   - az AI-hozzájárulások eredete (attribúció, commit-trailer);
+   - a review-protokoll AI által írt kódra;
+   - a jóváhagyási pontok (push, deploy, távoli műveletek, adatok kiküldése);
+   - a külső tartalom kezelése (fixture, beillesztett forrás) mint adat;
+   - a kockázati besorolás (core, szerzői elemzés, megjelenítés);
+   - a bizonyítékok megőrzése (tesztek, mérések, ADR).
+2. **Terv:** egy governance-tervdokumentum és ADR a hiányzó elemekre.
+   - Minden elemhez legyen tulajdonos, kikényszerítés (gépi vagy review) és bizonyíték.
+   - Ne vezessen be új, a felhasználót akadályozó jóváhagyási lépést.
+3. **Gépi kontrollok bővítése**, ahol lehet (például a commit-trailer vagy az ADR-hivatkozás ellenőrzése). A többi rész review-ellenőrzőlistába kerül.
+
+**Kész, ha:** az ai-governance.md táblázata minden elemhez tulajdonost, kikényszerítést és bizonyítékot ad, és a „részleges” megjelölés indokoltan elhagyható vagy tételesen szűkíthető.
+
 ## 7. Mi számít „felszámoltnak”
 
 | Tulajdonság | Cél | Kikényszerítés |
@@ -190,6 +217,7 @@ Minden tétel új policyverzió, ADR, pozitív és negatív fixture, és utána 
 - **3. fázis**, a 4. fázis mérőalapja.
 - **4. fázis:** 1., 2., 3., majd a többi tétel.
 - **5–6. fázis.**
+- **G fázis:** átfogó. A tervezése a 3. fázis után következik; az Ousterhout-féle tervezési governance addig is minden fázisra kötelező.
 
 **Döntést igényel:**
 - **A példák migrációja.** Az 1. fázis 3. lépése átírja a régi feladatok függőségeit. Ez csak a felhasználó jóváhagyásával, tételes eltéréslistával történhet.

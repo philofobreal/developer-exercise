@@ -1,8 +1,10 @@
 import { footprintConflicts, objectFootprints } from './object-footprints.js';
 import { freeCommentRows } from './comment-rows.js';
-/** Barrier reasons that name an unsupported shape rather than an effect (ADR-014). */
-const unsupportedShape = new Set(['declaration-shape', 'shared-or-continued-rows', 'erased-declaration-shape', 'function-declaration-not-hoistable']);
-const barrierCategory = (reason) => reason === 'overload-group' ? 'structure' : unsupportedShape.has(reason) ? 'conservative' : 'effect';
+import { reasonCode } from './reason-codes.js';
+/** A barrier's category is its reason code's (ADR-038): an unsupported shape is conservative,
+ * an overload group structural, everything else an effect. Every barrier is created with a
+ * registered code; an unregistered one would surface as `unknown` and fail the register's test. */
+const barrierCategory = (reason) => reasonCode(reason)?.category ?? 'unknown';
 /** Separate, browser-safe checker host: only the reference file is visible. */
 export function bindingChecker(file, compiler) {
     const options = { allowJs: true, noLib: true, noResolve: true, target: compiler.ScriptTarget.Latest };
@@ -26,6 +28,8 @@ export function statementOrdering(file, compiler, options = {}) {
     const line = (node) => file.getLineAndCharacterOfPosition(node.getStart(file)).line;
     const end = (node) => file.getLineAndCharacterOfPosition(node.end - 1).line;
     const S = compiler.SyntaxKind;
+    // The enum's reverse mapping yields a SyntaxKind name; TypeScript types it as a plain string.
+    const kindName = (node) => S[node.kind];
     const functionLike = (node) => compiler.isFunctionDeclaration(node) || compiler.isFunctionExpression(node) || compiler.isArrowFunction(node) || compiler.isMethodDeclaration(node) || compiler.isConstructorDeclaration(node) || compiler.isGetAccessorDeclaration(node) || compiler.isSetAccessorDeclaration(node);
     const context = (node) => {
         let current = node.parent;
@@ -349,7 +353,7 @@ export function statementOrdering(file, compiler, options = {}) {
     }
     function summary(node, list) {
         const reads = new Set(), readSet = new Set(), writeSet = new Set(), base = { first: line(node), last: end(node), start: node.getStart(file), reads, readSet, writeSet, node };
-        const barrier = (reason) => ({ ...base, kind: 'barrier', reason });
+        const barrier = (reason) => ({ ...base, kind: 'barrier', reason, code: reason });
         /** Pure or local-write children compose; the unit reads and may write their unions. */
         const compose = (children, kind) => {
             if (!children.every(child => child.kind === 'pure' || child.kind === 'local-write'))
@@ -411,7 +415,7 @@ export function statementOrdering(file, compiler, options = {}) {
                 written.forEach(symbol => writeSet.add(symbol));
                 return { ...base, kind: 'local-write', reason: 'local-write' };
             }
-            return barrier(S[node.kind]);
+            return barrier(kindName(node));
         }
         if (compiler.isBlock(node)) {
             const children = node.statements.map(child => summary(child, node));
@@ -435,7 +439,7 @@ export function statementOrdering(file, compiler, options = {}) {
         if (compiler.isReturnStatement(node) && node.expression)
             pure(node.expression, reads);
         // Any other statement is an ordering barrier, including control transfers.
-        return barrier(S[node.kind]);
+        return barrier(kindName(node));
     }
     /** RAW, WAR or WAW on a binding between two units that run code (ADR-013). */
     const meets = (a, b) => [...a].some(symbol => b.has(symbol));
@@ -523,7 +527,7 @@ export function statementOrdering(file, compiler, options = {}) {
         else if (a.kind !== 'position-free' && b.kind !== 'position-free' && !commutes(a, b) && !commutes(b, a))
             for (const unit of [a, b])
                 if (unit.kind === 'barrier')
-                    found.push([barrierCategory(unit.reason), unit.reason]);
+                    found.push(unit.code ? [barrierCategory(unit.code), unit.code] : ['unknown', 'projection-unspecified']);
         // v11 (ADR-020): a hoisted function's global key counts only if the program reflects keys; vars and emitted vars keep their order.
         if (a.global && b.global && (options.reflectedKeys || !hoisted(a) && !hoisted(b)))
             found.push(['policy', 'script-global-order']);
@@ -640,7 +644,7 @@ export function statementOrdering(file, compiler, options = {}) {
                     const previous = node.statements[i - 1], current = node.statements[i];
                     if (previous && compiler.isFunctionDeclaration(previous) && !previous.body && compiler.isFunctionDeclaration(current) && !!previous.name && previous.name.text === current.name?.text) {
                         const head = grouped.pop();
-                        grouped.push({ ...unit, first: head.first, start: head.start, kind: 'barrier', reason: 'overload-group' });
+                        grouped.push({ ...unit, first: head.first, start: head.start, kind: 'barrier', reason: 'overload-group', code: 'overload-group' });
                     }
                     else
                         grouped.push(unit);

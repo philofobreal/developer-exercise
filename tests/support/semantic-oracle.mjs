@@ -605,7 +605,9 @@ function execute(code,{language,probe,strict=true,asynchronous=false},{className
  * policy 'reflective' (default, ADR-010) adds P4: reflectable property order
  * (syntactic rule and runtime snapshot) is part of the observable behaviour;
  * reason 'reflection' separates it from a call-level 'runtime' difference.
- * policy 'call-only' is the pre-ADR-010 P0–P3 policy, kept for comparison. */
+ * policy 'call-only' is the pre-ADR-010 P0–P3 policy, kept for comparison.
+ * `judge.referenceValue` is the probe's value on the reference (the first class-field mode
+ * for TypeScript), so a fixture can say whether its own probe caught an exception. */
 export function createOracle(fixture,{policy='reflective'}={}){
  if(!['reflective','call-only'].includes(policy))throw Error('unknown oracle policy '+policy);
  const source=Array.isArray(fixture.source)?fixture.source.join('\n'):fixture.source;
@@ -614,7 +616,7 @@ export function createOracle(fixture,{policy='reflective'}={}){
  const baseline=execute(source,fixture,reference.reflection,reference.nested);
  if(/^throws:|timeout|syntax/.test(baseline.call))throw Error(`oracle fixture ${fixture.id} reference fails: ${baseline.call}`);
  const reflective=policy==='reflective',cache=new Map();
- return lines=>{
+ const judge=lines=>{
   const code=lines.join('\n');
   if(cache.has(code))return cache.get(code);
   let verdict;const candidate=analyse(code,fixture.language,ordered,enumerated);
@@ -628,6 +630,8 @@ export function createOracle(fixture,{policy='reflective'}={}){
   }
   cache.set(code,verdict);return verdict;
  };
+ judge.referenceValue=JSON.parse(baseline.call.split(' | ')[0]).value;
+ return judge;
 }
 
 /* --------------------------- arrangement utilities --------------------------- */

@@ -34,5 +34,5 @@ export interface FootprintHost {
 }
 export declare function objectFootprints(list: readonly ts.Statement[], file: ts.SourceFile, compiler: Compiler, checker: ts.TypeChecker, host: FootprintHost): Map<ts.Statement, Footprint>;
 /** Why two footprinted statements must keep their order; empty when they commute. */
-export declare function footprintConflicts(a: Footprint, b: Footprint): string[];
+export declare function footprintConflicts(a: Footprint, b: Footprint): ('may-throw' | 'object-read-after-write' | 'object-write-after-read' | 'object-write-after-write')[];
 export {};

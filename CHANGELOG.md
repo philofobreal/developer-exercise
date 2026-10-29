@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased – 2026-10-29 mérési infrastruktúra és indokkód-jegyzék (ADR-038)
+
+- **Egy osztályozó:** a kampány és a korpuszmérés ugyanazt az osztályozót használja (`order-classification.mjs`). Ez megnevezi minden elutasítás okát (a megsértett kényszerek indokkódjait), és külön kezeli azokat a referenciákat, amelyek a próbán kivételt dobnak.
+- **Kötelező mérőszámok:** a gyors generatív mérés (`generative-metrics.test.mjs`, kb. 20 s) fajta × nyelv × szabályverzió × dobott-e szerint számol.
+  - **Abszolút küszöbök:** hibás elfogadás = 0, eldöntetlen = 0.
+  - **Csoportonkénti küszöb:** az indokolatlan elutasítás aránya nem nőhet (`generative-baseline.json`).
+  - **Újrarögzítés:** `node tests/ordering-campaign.mjs --baseline`.
+- **Az eddigi torzítás láthatóvá vált:** az objektumprogramokon a dobó referenciák indokolatlan elutasítási aránya 17–43%, a nem dobóké 11–27%.
+- **Indokkód-jegyzék** (`src/author/reason-codes.ts`):
+  - minden provenienciakód kategóriával, jelentéssel és ADR-rel;
+  - a `ReasonCodeName` típus elutasítja a nem regisztrált kódot;
+  - a barrierek kategóriáját a jegyzék adja.
+  - **Bizonyítékok:** 29 kódhoz viselkedési ellenpélda, 3 konzervatív kódhoz előfordulás, 2 kódhoz indokolt felmentés.
+  - **Változatlan:** a generátor kimenete.
+- **Nyelvi lefedettség:** öt új korpuszfixture (függvény- és osztálykifejezés, `for…in`, `do…while`, `?.`, `delete`, regex, `instanceof`, `in`, TS `as`, `!`, `satisfies`). Mind helyes, és nincs eldöntetlen eset.
+- **AI governance:**
+  - az Ousterhout-féle tervezési governance saját fejezetet kapott az `ai-governance.md`-ben;
+  - a governance teljessé tételének tervezése a terv G fázisa.
+
 ## Unreleased – 2026-10-29 a tanúkeresés nem robban (ADR-036)
 
 - **Súlyos hiba lezárva:**
