@@ -42,7 +42,7 @@ A `channelFeedback(report, channel, learnerFeedback)` a core-ban van, és a szer
 
 A `publicationRefusal(verification, policy)` dönti el, mit szolgál ki a megbízható katalógus.
 
-- **`publishable` (alapértelmezés):** a modellt csak akkor szolgálja ki, ha a referencia és a szomszédos cserék a produkciós keretben eldönthetők.
+- **`publishable` (alapértelmezés):** a modellt csak akkor szolgálja ki, ha a referencia és a szomszédos cserék a produkciós keretben eldönthetők, és ([ADR-035](035-language-errors-block-publication.md) óta) a referencia nyelvileg hibátlan.
 - **`verified-only` (`CODELINE_PUBLICATION`):** ezen felül az `unverified` modellt sem. Az `analysis-verified`, a `conservative` és az `author-modified` publikálható.
 - **Kihagyás:** a kihagyott modell a `catalog.skipped` listába kerül, és a szerver indításkor kiírja. A fájlhoz semmi nem nyúl: a régi modellek függőségeit csak explicit refresh kötheti újra.
 - **Ha semmi nem marad:** a szerver nem indul el.
@@ -55,7 +55,7 @@ A `publicationRefusal(verification, policy)` dönti el, mit szolgál ki a megbí
   - [diagnostics.test.mjs](../../tests/diagnostics.test.mjs): az indoklás leválasztása és a csatornapolitika;
   - [trust-boundary.test.mjs](../../tests/trust-boundary.test.mjs): az emelt tanulói szint negatív szivárgási tesztje;
   - [catalog-publication.test.mjs](../../tests/catalog-publication.test.mjs): a szabály minden ága, valamint az, hogy egy fájl sem íródik át.
-- **Pages:** helyi demó marad. A teljes modell a böngészőben van, ezért a felfedési politika ott csak a tanulói élményt adja vissza, biztonsági határt nem. A publikálási szabály és a szerzői kapu a szerverre vonatkozik.
+- **Pages:** helyi demó marad. A teljes modell a böngészőben van, ezért a felfedési politika ott csak a tanulói élményt adja vissza, biztonsági határt nem. A szerzői kapu a szerverre vonatkozik. A publikálási szabály az [ADR-035](035-language-errors-block-publication.md) óta a Pages-build példaválogatására is érvényes.
 - **Korlátok:**
   - a beépített felület tokent nem küld, ezért token módban a szerzői API csak API-kliensből érhető el, a felület szerzői része a helyi gépen működik;
   - a `learnerFeedback` csak a JSON-ban állítható, a felületen nincs kapcsolója;

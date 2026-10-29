@@ -28,8 +28,12 @@ test('Browser uses static API and original business modules',async()=>{
  assert.match(api,/pages-api\.js/);
  assert.match(pagesApi,/validateSubmission/);
  assert.doesNotMatch(pagesApi,/\/api\/evaluate|\/api\/author/);
+ // ADR-035: the manifest lists exactly what the catalog gate served; every example is accounted for.
  const names=JSON.parse(await readFile(file('examples/manifest.json'),'utf8'));
- assert.deepEqual(names,(await readdir(new URL('../examples/',import.meta.url))).filter(name=>name.endsWith('.json')).sort());
+ const publication=JSON.parse(await readFile(file('examples/publication.json'),'utf8'));
+ assert.deepEqual(names,publication.served.map(item=>item.file));
+ assert.deepEqual([...names,...publication.skipped.map(item=>item.file)].sort(),(await readdir(new URL('../examples/',import.meta.url))).filter(name=>name.endsWith('.json')).sort());
+ for(const {file:skipped} of publication.skipped)await assert.rejects(access(file('examples/'+skipped)),{code:'ENOENT'},skipped);
  for(const n of names){
    const model=JSON.parse(await readFile(file('examples/'+n),'utf8'));
    const compiled=compileCodeLineExercise(model);

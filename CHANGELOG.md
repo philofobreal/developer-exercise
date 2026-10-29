@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased – 2026-10-29 a nyelvi hiba blokkolja a publikálást; egy kapu (ADR-035)
+
+- **P0 lezárva:**
+  - A nyelvi hibás referencia (`audit=errors`) egyik publikálási politikában sem publikálható, az alapértelmezett `publishable` módban sem.
+  - A `publicationRefusal` először ezt nevezi meg.
+  - A szerzői előnézet változatlanul megmutatja.
+- **Egy kapu:**
+  - A `verify-models` és a Pages-build ugyanazt a katalóguskaput futtatja, mint a szerver.
+  - Ha a `verify-models` bármelyik példát elutasítja, a `check` elbukik.
+  - A Pages csak a kiszolgált modelleket másolja; a `publication.json` rögzíti a minősítést és a kihagyás okát.
+- **Szigorú beállítás:** az ismeretlen `CODELINE_PUBLICATION` érték hibát ad, nem a gyengébb politikára áll.
+- **Példák:** a frissítés tételes eltéréslistája: [peldak-migracioja.md](docs/peldak-migracioja.md).
+  - **Alkalmazva:** csak a `class-inventory-ts` frissítése, jóváhagyás után. A tranzitív sorrendje azonos, a revízió marad, a minősítés `analysis-verified`.
+  - **Döntésre vár:** a többi négy példa.
+  - **Nem frissíthető** a mai generátorral: az `algo-sort-search-js` és a `profiles-js`.
+- **Tesztek:**
+  - `publication-gate`, 8 eset;
+  - a `model-verification` és a `pages-build` bővítése.
+
 ## Unreleased – 2026-10-29 vezérlési szerkezetek a generatív kampányban, frissített korlátlista
 
 - **Rés lezárva:** a véletlen programok eddig nem tartalmaztak vezérlési szerkezetet, így a v17 újításait csak kézi fixture-ök ellenőrizték. Az új `flow` kampányfajta (`randomFlowProgram`, JS és TS) a saját objektumokon végzett műveleteket vezérlési szerkezetekbe ágyazza:

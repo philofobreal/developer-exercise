@@ -251,6 +251,7 @@
       "id": 23,
       "code": "return total;",
       "dependencies": [
+        19,
         22
       ],
       "fixed": false,
@@ -372,8 +373,6 @@
       "id": 34,
       "code": "}",
       "dependencies": [
-        17,
-        24,
         33
       ],
       "fixed": false,
@@ -449,5 +448,389 @@
       "openLineId": 28,
       "closeLineId": 30
     }
-  ]
+  ],
+  "authoring": {
+    "strategy": "ast-hierarchy",
+    "reason": "",
+    "omittedBlocks": 0,
+    "semanticEquivalenceProven": false,
+    "dependencyPolicy": "scoped-effect-analysis-v17",
+    "provenance": [
+      {
+        "before": 1,
+        "after": 2,
+        "category": "conservative",
+        "code": "type-member-barrier"
+      },
+      {
+        "before": 1,
+        "after": 3,
+        "category": "conservative",
+        "code": "type-member-barrier"
+      },
+      {
+        "before": 1,
+        "after": 4,
+        "category": "conservative",
+        "code": "type-member-barrier"
+      },
+      {
+        "before": 1,
+        "after": 5,
+        "category": "conservative",
+        "code": "type-member-barrier"
+      },
+      {
+        "before": 2,
+        "after": 6,
+        "category": "conservative",
+        "code": "type-member-barrier"
+      },
+      {
+        "before": 3,
+        "after": 6,
+        "category": "conservative",
+        "code": "type-member-barrier"
+      },
+      {
+        "before": 4,
+        "after": 6,
+        "category": "conservative",
+        "code": "type-member-barrier"
+      },
+      {
+        "before": 5,
+        "after": 6,
+        "category": "conservative",
+        "code": "type-member-barrier"
+      },
+      {
+        "before": 7,
+        "after": 8,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 7,
+        "after": 9,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 7,
+        "after": 10,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 10,
+        "after": 11,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 11,
+        "after": 12,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 11,
+        "after": 12,
+        "category": "effect",
+        "code": "effectful-or-unknown-initializer"
+      },
+      {
+        "before": 11,
+        "after": 12,
+        "category": "effect",
+        "code": "branch-contains-barrier"
+      },
+      {
+        "before": 12,
+        "after": 13,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 13,
+        "after": 14,
+        "category": "effect",
+        "code": "ExpressionStatement"
+      },
+      {
+        "before": 13,
+        "after": 14,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 14,
+        "after": 15,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 15,
+        "after": 16,
+        "category": "effect",
+        "code": "branch-contains-barrier"
+      },
+      {
+        "before": 15,
+        "after": 16,
+        "category": "effect",
+        "code": "ExpressionStatement"
+      },
+      {
+        "before": 16,
+        "after": 17,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 7,
+        "after": 18,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 18,
+        "after": 19,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 19,
+        "after": 20,
+        "category": "effect",
+        "code": "ForOfStatement"
+      },
+      {
+        "before": 20,
+        "after": 21,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 21,
+        "after": 22,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 19,
+        "after": 23,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 19,
+        "after": 23,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 22,
+        "after": 23,
+        "category": "effect",
+        "code": "ForOfStatement"
+      },
+      {
+        "before": 22,
+        "after": 23,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 23,
+        "after": 24,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 7,
+        "after": 25,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 25,
+        "after": 26,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 26,
+        "after": 27,
+        "category": "effect",
+        "code": "ForOfStatement"
+      },
+      {
+        "before": 27,
+        "after": 28,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 28,
+        "after": 29,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 29,
+        "after": 30,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 30,
+        "after": 31,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 31,
+        "after": 32,
+        "category": "effect",
+        "code": "ForOfStatement"
+      },
+      {
+        "before": 31,
+        "after": 32,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 32,
+        "after": 33,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 33,
+        "after": 34,
+        "category": "structure",
+        "code": "block-close"
+      }
+    ],
+    "evidence": {
+      "sourceDigest": "6f60250daf471fe3",
+      "analyzer": "scoped-effect-analysis-v17",
+      "environment": {
+        "typescript": "5.8.3",
+        "importEmit": "verbatim",
+        "sourceKind": "script",
+        "classFields": "either"
+      },
+      "projectionLoss": {
+        "pairs": 0,
+        "examples": []
+      }
+    },
+    "note": "A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor, a declare mezők, a privát (#) és a tömbindex nevű metódusok bárhol állhatnak. A többi metódus és accessor is szabad; csak ha a program listázza a nem felsorolható kulcsokat (getOwnPropertyNames, Reflect.ownKeys), tartják meg a kulcssorrendjüket. Az azonos nevű getter és setter egy tulajdonság. A példány- és a static mezők más fázisban futnak, egymáshoz képest szabadok; csoportjukon belül sorrendben maradnak, kivéve a kódot nem futtató példánymezőket, ha a program nem listázza a kulcsokat (Object.keys, JSON.stringify, for…in, spread, console). A számított nevű metódus a mezőkhöz képest szabad. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.",
+    "dependencyHints": [
+      {
+        "name": "items",
+        "declarationLine": 8,
+        "usageLine": 11
+      },
+      {
+        "name": "item",
+        "declarationLine": 10,
+        "usageLine": 11
+      },
+      {
+        "name": "sku",
+        "declarationLine": 2,
+        "usageLine": 11
+      },
+      {
+        "name": "existing",
+        "declarationLine": 11,
+        "usageLine": 12
+      },
+      {
+        "name": "existing",
+        "declarationLine": 11,
+        "usageLine": 13
+      },
+      {
+        "name": "item",
+        "declarationLine": 10,
+        "usageLine": 13
+      },
+      {
+        "name": "quantity",
+        "declarationLine": 4,
+        "usageLine": 13
+      },
+      {
+        "name": "items",
+        "declarationLine": 8,
+        "usageLine": 16
+      },
+      {
+        "name": "item",
+        "declarationLine": 10,
+        "usageLine": 16
+      },
+      {
+        "name": "sku",
+        "declarationLine": 2,
+        "usageLine": 16
+      },
+      {
+        "name": "items",
+        "declarationLine": 8,
+        "usageLine": 20
+      },
+      {
+        "name": "total",
+        "declarationLine": 19,
+        "usageLine": 21
+      },
+      {
+        "name": "item",
+        "declarationLine": 20,
+        "usageLine": 21
+      },
+      {
+        "name": "total",
+        "declarationLine": 19,
+        "usageLine": 23
+      },
+      {
+        "name": "items",
+        "declarationLine": 8,
+        "usageLine": 27
+      },
+      {
+        "name": "item",
+        "declarationLine": 27,
+        "usageLine": 28
+      },
+      {
+        "name": "lowStockLimit",
+        "declarationLine": 9,
+        "usageLine": 28
+      },
+      {
+        "name": "names",
+        "declarationLine": 26,
+        "usageLine": 29
+      },
+      {
+        "name": "item",
+        "declarationLine": 27,
+        "usageLine": 29
+      },
+      {
+        "name": "names",
+        "declarationLine": 26,
+        "usageLine": 32
+      }
+    ]
+  }
 }

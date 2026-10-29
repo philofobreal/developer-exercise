@@ -1,7 +1,9 @@
 /** Prepare a GitHub Pages static demonstrator, retaining the original Node project. */
-import {cp,copyFile,mkdir,readdir,rm,writeFile,readFile} from 'node:fs/promises';
+import {cp,copyFile,mkdir,rm,writeFile,readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {createRequire} from 'node:module';
+import {publishExamples} from './publish-examples.mjs';
+import {publicationPolicy} from '../src/server/catalog.mjs';
 const require=createRequire(import.meta.url);
 const root=process.cwd(),out=path.join(root,'_site');
 await rm(out,{recursive:true,force:true});
@@ -17,9 +19,10 @@ for(const [file,modules] of [['generator.mjs',['code-line-projection.js']],['lan
  for(const module of modules){if(!text.includes('../../dist/author/'+module))throw Error(`Typed author packaging path changed: ${file} -> ${module}`);text=text.replace('../../dist/author/'+module,'../dist/author/'+module);}
  await writeFile(target,text);
 }
-await cp(path.join(root,'examples'),path.join(out,'examples'),{recursive:true});
-const names=(await readdir(path.join(root,'examples'))).filter(n=>n.endsWith('.json')).sort();
-await writeFile(path.join(out,'examples','manifest.json'),JSON.stringify(names,null,2)+'\n');
+// Only models the trusted catalog would serve, under the same policy (ADR-035).
+const publication=publicationPolicy(process.env.CODELINE_PUBLICATION);
+const {served,skipped}=await publishExamples(path.join(root,'examples'),path.join(out,'examples'),{publication});
+for(const {file,status,reason} of skipped)console.warn(`Kihagyott feladat (${publication}): ${file} [${status}] – ${reason}`);
 await writeFile(path.join(out,'.nojekyll'),'');
 await copyFile(path.join(root,'docs/schema.json'),path.join(out,'schema.json'));
 await copyFile(path.join(root,'docs/language-ir.schema.json'),path.join(out,'language-ir-v1.schema.json'));
@@ -39,4 +42,4 @@ let api=await readFile(path.join(out,'app/api.js'),'utf8');
 api="export * from './pages-api.js';\n";
 await writeFile(path.join(out,'app/api.js'),api);
 // The pure author and validator modules are browser-safe ESM. A Node backend is NOT deployed.
-console.log('GitHub Pages demo created:',out,'reference exercises:',names.length);
+console.log('GitHub Pages demo created:',out,'reference exercises:',served.length);

@@ -89,6 +89,7 @@ test('a language error makes the reference unverified; an exhausted budget block
  const typed=await verify(generate(['const a: number = 1;','const b: string = a;'],'typescript'));
  assert.equal(typed.checks.audit,'errors');
  assert.equal(typed.status,'unverified');
+ assert.equal(typed.publishable,false,'ADR-035: a language error blocks publication');
  assert.equal(claim(typed,'A referencia nyelvileg'),'refuted');
  const tight=await verify(generate(['const a = 1;','const b = 2;','const c = 3;','const d = 4;']),{maxStates:1});
  assert.equal(tight.publishable,false);

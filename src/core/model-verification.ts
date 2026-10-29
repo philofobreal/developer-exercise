@@ -17,7 +17,9 @@
  *    differs from its regeneration, the reference has a language error, or the author
  *    removed a generated constraint (ADR-018): an author's acknowledgement is no proof.
  * `publishable` additionally requires the reference and its adjacent swaps to be
- * decided within the production search budget.
+ * decided within the production search budget and the reference to be free of language
+ * errors (ADR-035): a definite error blocks publication under every policy, while a
+ * missing context (`unverifiable`) or an audit that did not run only lowers the claims.
  */
 import { validateSubmission } from './validator.js';
 import { compileCodeLineExercise, type CodeLineExercise, type DependencyPolicy } from './code-line.js';
@@ -103,9 +105,10 @@ export function verifyModel(model: CodeLineExercise, input: VerificationInput = 
   const bound = evidenceStatus(model) === 'current' ? model.authoring?.evidence?.projectionLoss?.pairs : undefined;
   checks.projectionLoss = input.projectionLoss ?? bound ?? null;
 
-  const publishable = checks.reference === 'accepted' && checks.budget.indeterminate === 0;
+  const publishable = checks.reference === 'accepted' && checks.budget.indeterminate === 0 && checks.audit !== 'errors';
   if (checks.reference !== 'accepted') findings.push(checks.reference === 'indeterminate' ? 'A referencia a kereten belül nem dől el.' : 'A modell a saját referenciáját sem fogadja el.');
   if (checks.budget.indeterminate) findings.push(`${checks.budget.indeterminate} szomszédos csere a ${maxStates} állapotos kereten belül eldöntetlen.`);
+  if (checks.audit === 'errors') findings.push('Nyelvi hibás referencia nem publikálható.');
   const unverified: string[] = [];
   const missing: Record<Exclude<ModelVerification['checks']['provenance'], 'complete'>, string> = { partial: 'Néhány kényszernek nincs oka.', absent: 'A modellnek nincs provenienciája (régi vagy importált modell).', unbound: 'A proveniencia nem ezekhez a sorokhoz tartozik.' };
   if (checks.provenance !== 'complete') unverified.push(missing[checks.provenance]);
@@ -140,11 +143,13 @@ export function verifyModel(model: CodeLineExercise, input: VerificationInput = 
   return { status, publishable, checks, findings, claims };
 }
 
-/** What a trusted catalog serves (ADR-027). `publishable` (default): every model whose reference
- * and adjacent swaps are decided within the production budget, whatever its qualification.
- * `verified-only`: additionally no `unverified` model. A refused model is skipped, never rewritten. */
+/** What a trusted catalog serves (ADR-027, ADR-035). `publishable` (default): every model whose
+ * reference has no language error and, with its adjacent swaps, is decided within the production
+ * budget, whatever its qualification. `verified-only`: additionally no `unverified` model. A refused
+ * model is skipped, never rewritten. */
 export type PublicationPolicy = 'publishable' | 'verified-only';
 export function publicationRefusal(verification: ModelVerification, policy: PublicationPolicy = 'publishable'): string | null {
+  if (verification.checks.audit === 'errors') return 'A referencia nyelvi hibát tartalmaz.';
   if (!verification.publishable) return 'A referencia vagy a szomszédos cserék nem dönthetők el a keretben.';
   if (policy === 'verified-only' && verification.status === 'unverified') return 'A modell nem igazolt; explicit frissítés (refresh) után publikálható.';
   return null;

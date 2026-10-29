@@ -13,6 +13,13 @@ import {compileCodeLineExercise,validateSubmission,diagnoseSubmission,channelFee
 import {authorRuleSheet,editAuthorModel,refreshAuthorModel,verifyAuthorModel} from '../../dist/author/engine.js';
 import {createReferenceAuditor} from '../../dist/author/reference-audit.js';
 export class ServiceError extends Error{constructor(code,message){super(message);this.statusCode=code;}}
+/** The publication policy named by `CODELINE_PUBLICATION` (ADR-027, ADR-035). The server, the model
+ * check and the Pages build read it here alike; a misspelt value fails instead of serving more. */
+export function publicationPolicy(value){
+  if(value===undefined||value==='')return 'publishable';
+  if(value==='publishable'||value==='verified-only')return value;
+  throw Error(`Unknown CODELINE_PUBLICATION: ${value} (publishable | verified-only)`);
+}
 export class ExerciseCatalog{
   constructor(records){this.trusted=records;this.drafts=new Map();this.ts=null;this.skipped=[];}
   /** `publication` (ADR-027): which qualified models are served; a refused one is listed in `skipped`, its file untouched. */
@@ -31,7 +38,7 @@ export class ExerciseCatalog{
       const verification=await verifyAuthorModel(model,{generate:input=>generateCodeLineExercise(input,parser)},{audit:audit.semantics});
       const refusal=publicationRefusal(verification,publication);
       if(refusal){catalog.skipped.push({id:model.id,file:filename,status:verification.status,reason:refusal});continue;}
-      records.set(model.id,{model,compiled:result.compiled,audit,verification});
+      records.set(model.id,{model,file:filename,compiled:result.compiled,audit,verification});
     }
     if(!records.size)throw Error(`No publishable JSON exercises in examples/ (policy: ${publication})`);
     return catalog;
