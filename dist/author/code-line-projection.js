@@ -7,6 +7,7 @@
  * emits carries its reasons (ADR-014). */
 import { codeLineDigest } from '../../dist/index.js';
 import { reduceGeneratedDependencies, sealMultiRowUnits } from './ordering-relations.js';
+import { categoryOf } from './reason-codes.js';
 /** Physical rows that become lines: non-blank, or whitespace-exact. */
 export function projectedRows(physical, exact) {
     return physical.flatMap((code, line) => code.trim() || exact.has(line) ? [{ code, line }] : []);
@@ -83,9 +84,9 @@ export function projectCodeLine({ physical, exact, structure, ordering }) {
     const scopeOf = (line) => retained.filter(block => block.start < line && line < block.end).at(-1) ?? null;
     // Reasons per line ID, then per predecessor ID; replaced together with a line's dependencies.
     const why = new Map();
-    const explain = (before, after, category, code) => {
+    const explain = (before, after, code) => {
         const own = why.get(after) ?? new Map();
-        own.set(before, [...own.get(before) ?? [], { category, code }]);
+        own.set(before, [...own.get(before) ?? [], { code }]);
         why.set(after, own);
     };
     // An unlisted row keeps its source predecessor: a closing row for its block, a continued
@@ -95,11 +96,11 @@ export function projectCodeLine({ physical, exact, structure, ordering }) {
         if (!i)
             return;
         if (closers.has(line))
-            explain(i, i + 1, 'structure', 'block-close');
+            explain(i, i + 1, 'block-close');
         else if (spans.some(span => span.first < line && line <= span.last))
-            explain(i, i + 1, 'unit', 'continued-row');
+            explain(i, i + 1, 'continued-row');
         else
-            explain(i, i + 1, 'conservative', 'source-order');
+            explain(i, i + 1, 'source-order');
     });
     const lines = rows.map(({ code, line }, i) => {
         const boundary = retained.find(block => block.start === line || block.end === line), scope = scopeOf(line);
@@ -120,8 +121,8 @@ export function projectCodeLine({ physical, exact, structure, ordering }) {
             for (const before of entry.after) {
                 const own = (entry.reasons ?? []).filter(reason => reason.before === before), from = byPhysical.get(before);
                 if (from !== undefined)
-                    for (const { category, code } of own.length ? own : [{ category: 'unknown', code: 'adapter-unspecified' }])
-                        explain(from, id, category, code);
+                    for (const { code } of own.length ? own : [{ code: 'adapter-unspecified' }])
+                        explain(from, id, code);
             }
         }
         for (const [row, inputs] of ordering.protectedInputs) {
@@ -140,20 +141,20 @@ export function projectCodeLine({ physical, exact, structure, ordering }) {
             const id = byPhysical.get(separator), previous = segment(boundaries[i], separator);
             lines[id - 1].dependencies = [...new Set([byPhysical.get(boundaries[i]), ...previous])];
             why.delete(id);
-            explain(byPhysical.get(boundaries[i]), id, 'structure', 'clause-boundary');
+            explain(byPhysical.get(boundaries[i]), id, 'clause-boundary');
             for (const before of previous)
-                explain(before, id, 'structure', 'clause-segment');
+                explain(before, id, 'clause-segment');
             for (const after of segment(separator, boundaries[i + 2])) {
                 const dependencies = lines[after - 1].dependencies;
                 if (!dependencies.includes(id))
                     dependencies.push(id);
-                explain(id, after, 'structure', 'clause-separator');
+                explain(id, after, 'clause-separator');
             }
         });
     }
     if (ordering) {
         const units = ordering.spans.flatMap(unit => { const first = byPhysical.get(unit.first), last = byPhysical.get(unit.last); return first === undefined || last === undefined ? [] : [{ first, last }]; });
-        sealMultiRowUnits(lines, units, new Map(retained.map(block => [byPhysical.get(block.start), block.id])), (before, after) => explain(before, after, 'unit', 'sealed-unit'));
+        sealMultiRowUnits(lines, units, new Map(retained.map(block => [byPhysical.get(block.start), block.id])), (before, after) => explain(before, after, 'sealed-unit'));
     }
     reduceGeneratedDependencies(lines, protectedById);
     // A row can still close and open unrelated blocks; lock only each such unrepresentable interval.
@@ -166,17 +167,17 @@ export function projectCodeLine({ physical, exact, structure, ordering }) {
     const provenance = [];
     const emit = (before, after, reasons) => {
         const seen = new Set();
-        for (const { category, code } of reasons)
-            if (!seen.has(category + ':' + code)) {
-                seen.add(category + ':' + code);
-                provenance.push({ before, after, category, code });
+        for (const { code } of reasons)
+            if (!seen.has(code)) {
+                seen.add(code);
+                provenance.push({ before, after, category: categoryOf(code), code });
             }
     };
     for (const line of lines)
         for (const before of line.dependencies)
-            emit(before, line.id, why.get(line.id)?.get(before) ?? [{ category: 'unknown', code: 'projection-unspecified' }]);
+            emit(before, line.id, why.get(line.id)?.get(before) ?? [{ code: 'projection-unspecified' }]);
     for (const edge of edgeMap.values())
-        emit(edge.before, edge.after, [{ category: 'conservative', code: 'shared-boundary-lock' }]);
+        emit(edge.before, edge.after, [{ code: 'shared-boundary-lock' }]);
     provenance.sort((a, b) => a.after - b.after || a.before - b.before);
     // Freedom lost in projection (ADR-017): within one list (same enclosing unit, scope and clause
     // segment), a unit pair the adapter leaves unordered must stay unordered in the model.

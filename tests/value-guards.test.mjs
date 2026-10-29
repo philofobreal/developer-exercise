@@ -6,7 +6,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import ts from 'typescript';
-import {generateCodeLineExercise} from '../src/author/generator.mjs';
+import {generateCodeLineExercise,DEPENDENCY_POLICY} from '../src/author/generator.mjs';
 import {compileCodeLineExercise,validateSubmission} from '../dist/index.js';
 import {createOracle} from './support/semantic-oracle.mjs';
 import {objectFixtures} from './fixtures/object-programs.mjs';
@@ -24,7 +24,7 @@ const prepare=id=>{
 
 test('guards that literal arguments never fire add no possible throw; the policy is v16',()=>{
  const c=prepare('value-guards-never-throw');
- assert.equal(c.model.authoring.dependencyPolicy,'scoped-effect-analysis-v17');
+ assert.equal(c.model.authoring.dependencyPolicy,DEPENDENCY_POLICY);
  c.check(c.swap("const first = new Account('a1', 5);","const second = new Account('b2', 0);"),true,'!id, limit < 0 and id.length > 8 are all false');
  c.check(c.swap("first.rename('A');","second.rename(`B${1}`);"),true,"value === '' is false for 'A' and for the template");
  assert.ok(!c.reasons("second.rename(`B${1}`);").includes('may-throw'),'no possible throw remains');

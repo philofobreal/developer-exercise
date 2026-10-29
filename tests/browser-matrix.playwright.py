@@ -231,9 +231,11 @@ try:
             expect(page.locator('.solution-zone .code-text code')).to_have_text(before)
             assert values(page)==before
         case('model/session files and opt-in local save survive reload',transfers)
+        # Admitting the 436-row service runs the full publication gate (every adjacent swap and the
+        # hard probes, ADR-036): about 0.75 s in Node, longer in a loaded browser, so the board waits longer.
         def full_ts():
             page.locator('[data-step="source"]').click();page.locator('[data-author-sample]').click();expect(page.locator('#author-editor')).to_have_value(__import__('re').compile('CopyFieldUtilityService'))
-            page.locator('[data-author-format]').click();expect(page.locator('.author-status')).to_contain_text('Formázva');page.locator('[data-author-apply]').click();expect(page.locator('[data-board-line]')).to_have_count(436);to_try(page);expect(page.locator('.solution-zone .code-row')).to_have_count(436)
+            page.locator('[data-author-format]').click();expect(page.locator('.author-status')).to_contain_text('Formázva');page.locator('[data-author-apply]').click();expect(page.locator('[data-board-line]')).to_have_count(436,timeout=20_000);to_try(page);expect(page.locator('.solution-zone .code-row')).to_have_count(436)
             page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
             m=model(page);assert len(m['blocks'])>20;assert len([x for x in m['lines'] if x['functionBlock']])>200
             page.locator('.solution-zone').evaluate('(x)=>x.scrollTop=3000');saved=page.locator('.solution-zone').evaluate('(x)=>x.scrollTop');visible_index=page.locator('.solution-zone').evaluate('(zone)=>Math.floor(zone.scrollTop/zone.querySelector(".code-row").getBoundingClientRect().height)+3');page.locator(f'[data-down="{visible_index}"]').click();assert abs(page.locator('.solution-zone').evaluate('(x)=>x.scrollTop')-saved)<2

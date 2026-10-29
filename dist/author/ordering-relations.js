@@ -5,7 +5,7 @@ export function mergeOrderingEntries(entries) {
         const target = merged.get(entry.row) ?? { after: new Set(), reasons: new Map() };
         entry.after.forEach(row => target.after.add(row));
         for (const reason of entry.reasons ?? [])
-            target.reasons.set(reason.before + ':' + reason.category + ':' + reason.code, reason);
+            target.reasons.set(reason.before + ':' + reason.code, reason);
         merged.set(entry.row, target);
     }
     return [...merged].map(([row, { after, reasons }]) => ({ row, after: [...after], ...(reasons.size ? { reasons: [...reasons.values()] } : {}) }));

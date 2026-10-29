@@ -44,4 +44,9 @@ const byCode = new Map(entries.map(entry => [entry.code, entry]));
 export function reasonCode(code) {
     return byCode.get(code) ?? (/^[A-Z][A-Za-z]*$/.test(code) ? { ...statementBarrier, code } : undefined);
 }
+/** The category of `code`, the only place the analysis learns it: `unknown` for an unregistered
+ * code, which the register's test rejects wherever it is emitted. */
+export function categoryOf(code) {
+    return reasonCode(code)?.category ?? 'unknown';
+}
 //# sourceMappingURL=reason-codes.js.map

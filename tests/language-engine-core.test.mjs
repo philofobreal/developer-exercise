@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import ts from 'typescript';
 import Ajv from 'ajv/dist/2020.js';
-import { generateCodeLineExercise } from '../src/author/generator.mjs';
+import { generateCodeLineExercise, DEPENDENCY_POLICY } from '../src/author/generator.mjs';
 import { compileCodeLineExercise, compileCodeLineExerciseV3, compileVersionedExercise, compileDefinition, upgradeCodeLineExerciseV2, validateSubmission, prepareRenderPlan, projectDisplayRows } from '../dist/index.js';
 import { validateIR, validateV3 } from '../dist/schema-check.js';
 import { irExercise, suiteExercise, permutations } from './fixtures/language-ir.mjs';
@@ -142,7 +142,7 @@ test('full TS fixture retains scoped dependency policy, omitted-block decisions 
   const m = generateCodeLineExercise({ source, language: 'typescript' }, ts), v3 = upgradeCodeLineExerciseV2(m, source);
   assert.equal(v3.schemaVersion, 3, v3.message);
   assert.deepEqual(v3.ir.analysis.legacyAuthoring, m.authoring);
-  assert.equal(v3.ir.analysis.legacyAuthoring.dependencyPolicy, 'scoped-effect-analysis-v17');
+  assert.equal(v3.ir.analysis.legacyAuthoring.dependencyPolicy, DEPENDENCY_POLICY);
   assert.deepEqual(v3.ir.lines.map(l => l.sourceSpan.start.line), m.lines.map(l => l.sourceLine));
   assert.equal(submit(compile(v3), m.lines.map(l => l.code)).status, 'accepted');
 });

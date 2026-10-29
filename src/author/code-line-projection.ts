@@ -7,6 +7,7 @@
  * emits carries its reasons (ADR-014). */
 import {codeLineDigest, type ConstraintProvenance} from '../../dist/index.js';
 import {reduceGeneratedDependencies, sealMultiRowUnits, type OrderingReason, type OrderingRelations} from './ordering-relations.js';
+import {categoryOf} from './reason-codes.js';
 
 /** A block interval from the adapter. `clause`: one clause of a compound statement
  * (if/else, try/catch/finally) that may share its first or last row with the next
@@ -97,18 +98,18 @@ export function projectCodeLine({physical, exact, structure, ordering}: Projecti
  const scopeOf = (line: number): Retained | null => retained.filter(block => block.start < line && line < block.end).at(-1) ?? null;
  // Reasons per line ID, then per predecessor ID; replaced together with a line's dependencies.
  const why = new Map<number, Map<number, Omit<OrderingReason, 'before'>[]>>();
- const explain = (before: number, after: number, category: OrderingReason['category'], code: OrderingReason['code']): void => {
+ const explain = (before: number, after: number, code: OrderingReason['code']): void => {
   const own = why.get(after) ?? new Map<number, Omit<OrderingReason, 'before'>[]>();
-  own.set(before, [...own.get(before) ?? [], {category, code}]); why.set(after, own);
+  own.set(before, [...own.get(before) ?? [], {code}]); why.set(after, own);
  };
  // An unlisted row keeps its source predecessor: a closing row for its block, a continued
  // row for its multi-row unit, any other row because no analysis freed it.
  const closers = new Set(retained.map(block => block.end)), spans = ordering?.spans ?? [];
  rows.forEach(({line}, i) => {
   if (!i) return;
-  if (closers.has(line)) explain(i, i + 1, 'structure', 'block-close');
-  else if (spans.some(span => span.first < line && line <= span.last)) explain(i, i + 1, 'unit', 'continued-row');
-  else explain(i, i + 1, 'conservative', 'source-order');
+  if (closers.has(line)) explain(i, i + 1, 'block-close');
+  else if (spans.some(span => span.first < line && line <= span.last)) explain(i, i + 1, 'continued-row');
+  else explain(i, i + 1, 'source-order');
  });
  const lines: ProjectedCodeLine[] = rows.map(({code, line}, i) => {
   const boundary = retained.find(block => block.start === line || block.end === line), scope = scopeOf(line);
@@ -125,7 +126,7 @@ export function projectCodeLine({physical, exact, structure, ordering}: Projecti
    lines[id - 1]!.dependencies = toIds(entry.after); why.delete(id);
    for (const before of entry.after) {
     const own = (entry.reasons ?? []).filter(reason => reason.before === before), from = byPhysical.get(before);
-    if (from !== undefined) for (const {category, code} of own.length ? own : [{category: 'unknown' as const, code: 'adapter-unspecified' as const}]) explain(from, id, category, code);
+    if (from !== undefined) for (const {code} of own.length ? own : [{code: 'adapter-unspecified' as const}]) explain(from, id, code);
    }
   }
   for (const [row, inputs] of ordering.protectedInputs) {const id = byPhysical.get(row); if (id !== undefined) protectedById.set(id, new Set(toIds(inputs)));}
@@ -139,14 +140,14 @@ export function projectCodeLine({physical, exact, structure, ordering}: Projecti
   chain.separators.forEach((separator, i) => {
    const id = byPhysical.get(separator)!, previous = segment(boundaries[i]!, separator);
    lines[id - 1]!.dependencies = [...new Set([byPhysical.get(boundaries[i]!)!, ...previous])]; why.delete(id);
-   explain(byPhysical.get(boundaries[i]!)!, id, 'structure', 'clause-boundary');
-   for (const before of previous) explain(before, id, 'structure', 'clause-segment');
-   for (const after of segment(separator, boundaries[i + 2]!)) {const dependencies = lines[after - 1]!.dependencies; if (!dependencies.includes(id)) dependencies.push(id); explain(id, after, 'structure', 'clause-separator');}
+   explain(byPhysical.get(boundaries[i]!)!, id, 'clause-boundary');
+   for (const before of previous) explain(before, id, 'clause-segment');
+   for (const after of segment(separator, boundaries[i + 2]!)) {const dependencies = lines[after - 1]!.dependencies; if (!dependencies.includes(id)) dependencies.push(id); explain(id, after, 'clause-separator');}
   });
  }
  if (ordering) {
   const units = ordering.spans.flatMap(unit => {const first = byPhysical.get(unit.first), last = byPhysical.get(unit.last); return first === undefined || last === undefined ? [] : [{first, last}];});
-  sealMultiRowUnits(lines, units, new Map(retained.map(block => [byPhysical.get(block.start)!, block.id])), (before, after) => explain(before, after, 'unit', 'sealed-unit'));
+  sealMultiRowUnits(lines, units, new Map(retained.map(block => [byPhysical.get(block.start)!, block.id])), (before, after) => explain(before, after, 'sealed-unit'));
  }
  reduceGeneratedDependencies(lines, protectedById);
  // A row can still close and open unrelated blocks; lock only each such unrepresentable interval.
@@ -158,10 +159,10 @@ export function projectCodeLine({physical, exact, structure, ordering}: Projecti
  const provenance: ConstraintProvenance[] = [];
  const emit = (before: number, after: number, reasons: readonly Omit<OrderingReason, 'before'>[]): void => {
   const seen = new Set<string>();
-  for (const {category, code} of reasons) if (!seen.has(category + ':' + code)) {seen.add(category + ':' + code); provenance.push({before, after, category, code});}
+  for (const {code} of reasons) if (!seen.has(code)) {seen.add(code); provenance.push({before, after, category: categoryOf(code), code});}
  };
- for (const line of lines) for (const before of line.dependencies) emit(before, line.id, why.get(line.id)?.get(before) ?? [{category: 'unknown', code: 'projection-unspecified'}]);
- for (const edge of edgeMap.values()) emit(edge.before, edge.after, [{category: 'conservative', code: 'shared-boundary-lock'}]);
+ for (const line of lines) for (const before of line.dependencies) emit(before, line.id, why.get(line.id)?.get(before) ?? [{code: 'projection-unspecified'}]);
+ for (const edge of edgeMap.values()) emit(edge.before, edge.after, [{code: 'shared-boundary-lock'}]);
  provenance.sort((a, b) => a.after - b.after || a.before - b.before);
  // Freedom lost in projection (ADR-017): within one list (same enclosing unit, scope and clause
  // segment), a unit pair the adapter leaves unordered must stay unordered in the model.

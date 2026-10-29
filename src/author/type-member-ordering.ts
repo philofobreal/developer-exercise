@@ -42,7 +42,7 @@ export interface TypeMemberOrdering {entries: OrderingEntry[]; spans: {first: nu
 export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, options: {reflectedKeys?: boolean; enumeratedKeys?: boolean} = {}): TypeMemberOrdering {
  const physical = file.text.split('\n'), entries: OrderingEntry[] = [], spans: {first: number; last: number}[] = [];
  /** `row` follows every row of `after` for the same reason. */
- const order = (row: number, after: number[], category: OrderingReason['category'], code: OrderingReason['code']): void => {entries.push({row, after, reasons: after.map(before => ({before, category, code}))});};
+ const order = (row: number, after: number[], code: OrderingReason['code']): void => {entries.push({row, after, reasons: after.map(before => ({before, code}))});};
  let hasClass = false, hasTypes = false;
  const first = (node: ts.Node): number => file.getLineAndCharacterOfPosition(node.getStart(file)).line;
  const last = (node: ts.Node): number => file.getLineAndCharacterOfPosition(node.end - 1).line;
@@ -152,7 +152,7 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
     // Definitions only need the class open; the remaining units keep their own order,
     // wired explicitly so that no barrier inherits a definition's row as predecessor.
     const wired = new Set<number>();
-    for (const member of free) order(member.first, [first(open)], 'structure', 'block-open');
+    for (const member of free) order(member.first, [first(open)], 'block-open');
     for (const unit of [...units, ...free]) spans.push({first: unit.first, last: unit.last});
     for (let start = 0; start < units.length;) {
      if (!units[start]!.pure) {start++; continue;}
@@ -160,8 +160,8 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
      if (end - start > 1) {
       const previous = start ? units[start - 1]!.last : first(open), run = units.slice(start, end);
       // The run commutes; it stays between its ordered neighbours, which are conservative barriers.
-      for (const member of run) {order(member.first, [previous], 'conservative', 'type-member-barrier'); wired.add(member.first);}
-      order(units[end]?.first ?? first(close), run.map(member => member.last), 'conservative', 'type-member-barrier'); wired.add(units[end]?.first ?? first(close));
+      for (const member of run) {order(member.first, [previous], 'type-member-barrier'); wired.add(member.first);}
+      order(units[end]?.first ?? first(close), run.map(member => member.last), 'type-member-barrier'); wired.add(units[end]?.first ?? first(close));
      }
      start = end;
     }
@@ -174,15 +174,15 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
      // A shared phase is an evaluation order; a phase-less unit on either side is conservative.
      for (const unit of units) {
       const reasons: OrderingReason[] = [];
-      for (const [key, other] of latest) if (!unit.phases || key === 'none' || unit.phases.includes(key)) reasons.push({before: other.last, category: unit.phases && key !== 'none' ? 'effect' : 'conservative', code: unit.phases && key !== 'none' ? 'class-evaluation-order' : 'unclassified-member'});
+      for (const [key, other] of latest) if (!unit.phases || key === 'none' || unit.phases.includes(key)) reasons.push({before: other.last, code: unit.phases && key !== 'none' ? 'class-evaluation-order' : 'unclassified-member'});
       // Any other unit that runs at construction (or may) follows every loose field: its code could observe them.
-      if (!unit.loose && (!unit.phases || unit.phases.includes('instance'))) for (const field of loose) reasons.push({before: field.last, category: unit.phases ? 'effect' : 'conservative', code: unit.phases ? 'class-evaluation-order' : 'unclassified-member'});
-      entries.push(reasons.length ? {row: unit.first, after: [...new Set(reasons.map(reason => reason.before))], reasons} : {row: unit.first, after: [first(open)], reasons: [{before: first(open), category: 'structure', code: 'block-open'}]});
+      if (!unit.loose && (!unit.phases || unit.phases.includes('instance'))) for (const field of loose) reasons.push({before: field.last, code: unit.phases ? 'class-evaluation-order' : 'unclassified-member'});
+      entries.push(reasons.length ? {row: unit.first, after: [...new Set(reasons.map(reason => reason.before))], reasons} : {row: unit.first, after: [first(open)], reasons: [{before: first(open), code: 'block-open'}]});
       if (unit.loose) {loose.push(unit); continue;}
       if (!unit.phases || unit.phases.includes('instance')) loose = [];
       for (const key of unit.phases ?? ['none' as const]) latest.set(key, unit);
      }
-    } else if (free.length) units.forEach((unit, i) => {if (!wired.has(unit.first)) order(unit.first, [i ? units[i - 1]!.last : first(open)], i ? 'conservative' : 'structure', i ? 'type-member-barrier' : 'block-open');});
+    } else if (free.length) units.forEach((unit, i) => {if (!wired.has(unit.first)) order(unit.first, [i ? units[i - 1]!.last : first(open)], i ? 'type-member-barrier' : 'block-open');});
     // Reflectable key order: consecutive key-creating members on the same object stay ordered.
     // The two halves of an accessor pair that are adjacent in that chain create one
     // key at the earlier half and form one group: both follow the previous group and
@@ -192,7 +192,7 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
      const chain = chains.get(member.reflect) ?? {last: [], before: []};
      const joins = !!member.pair && chain.last.length === 1 && chain.last[0]!.pair === member.pair;
      const predecessors = joins ? chain.before : chain.last;
-     if (predecessors.length) order(member.first, predecessors.map(unit => unit.last), 'policy', 'reflected-key-order');
+     if (predecessors.length) order(member.first, predecessors.map(unit => unit.last), 'reflected-key-order');
      chains.set(member.reflect, joins ? {last: [...chain.last, member], before: chain.before} : {last: [member], before: chain.last});
     }
    }

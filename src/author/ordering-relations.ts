@@ -7,11 +7,10 @@
  *
  * Rows are 0-based physical rows of the normalised reference source.
  */
-import type {ConstraintCategory} from '../../dist/index.js';
 import type {ReasonCodeName} from './reason-codes.js';
 /** Why `before` must precede the entry's row (ADR-014): explanation only, never a grading rule. */
-/** `code` is a registered reason code (reason-codes.ts, ADR-038). */
-export interface OrderingReason {before: number; category: ConstraintCategory; code: ReasonCodeName;}
+/** `code` is a registered reason code; its category is the register's (reason-codes.ts, ADR-038). */
+export interface OrderingReason {before: number; code: ReasonCodeName;}
 /** `reasons` should cover every row of `after`; an uncovered one is projected as `unknown`. */
 export interface OrderingEntry {row: number; after: number[]; reasons?: OrderingReason[];}
 export interface OrderingRelations {
@@ -31,7 +30,7 @@ export function mergeOrderingEntries(entries: Iterable<OrderingEntry>): Ordering
  for (const entry of entries) {
   const target = merged.get(entry.row) ?? {after: new Set<number>(), reasons: new Map<string, OrderingReason>()};
   entry.after.forEach(row => target.after.add(row));
-  for (const reason of entry.reasons ?? []) target.reasons.set(reason.before + ':' + reason.category + ':' + reason.code, reason);
+  for (const reason of entry.reasons ?? []) target.reasons.set(reason.before + ':' + reason.code, reason);
   merged.set(entry.row, target);
  }
  return [...merged].map(([row, {after, reasons}]) => ({row, after: [...after], ...(reasons.size ? {reasons: [...reasons.values()]} : {})}));

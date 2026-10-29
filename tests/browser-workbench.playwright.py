@@ -5,6 +5,8 @@ import json,os,re,socket,subprocess,threading,time,urllib.request
 from http.server import SimpleHTTPRequestHandler
 from playwright.sync_api import sync_playwright,expect
 from browser_support import ROOT,ARTIFACTS,launch,StaticServer
+# The generator's current rule version, read from its single definition (ADR-039).
+CURRENT_POLICY=re.search(r"export const DEPENDENCY_POLICY='([^']+)'",(ROOT/'src/author/generator.mjs').read_text(encoding='utf8')).group(1)
 with socket.socket() as sock:sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
 BASE=f'http://127.0.0.1:{port}'
 proc=subprocess.Popen(['node','server.mjs'],cwd=ROOT,env={**os.environ,'HOST':'127.0.0.1','PORT':str(port)},stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
@@ -142,7 +144,7 @@ def legacy_dependency_refresh(page):
     rules_json(page);after=json.loads(page.locator('#model-editor').input_value())
     assert [l['dependencies'] for l in after['lines']]==[[],[1],[1],[2,3],[1],[4,5],[6]]
     assert [(l['id'],l['code'],l['fixed']) for l in after['lines']]==[(l['id'],l['code'],l['fixed']) for l in legacy['lines']]
-    assert after['authoring']['dependencyPolicy']=='scoped-effect-analysis-v17'
+    assert after['authoring']['dependencyPolicy']==CURRENT_POLICY
     page.screenshot(path=str(ARTIFACTS/('ux-legacy-dependency-refresh-'+('node' if page.url.startswith(BASE) else 'pages')+'.png')),full_page=True)
 
 def stale_file_import(page):

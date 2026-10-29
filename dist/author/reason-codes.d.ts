@@ -1,8 +1,8 @@
 /** Reason codes of the generated ordering constraints (plan phase 3, ADR-038). This is the one
  * register of every `code` the JS/TS analysis writes into `authoring.provenance`: its category,
- * what it means and the ADR that introduced it. The analysis asks it for a code's category
- * instead of deciding that again, and `ReasonCodeName` makes the compiler reject an
- * unregistered literal code. Tests require evidence for every entry: an arrangement that breaks
+ * what it means and the ADR that introduced it. The analysis names only codes; the projection
+ * and the barrier commutation rule ask `categoryOf`, and `ReasonCodeName` makes the compiler
+ * reject an unregistered literal code. Tests require evidence for every entry: an arrangement that breaks
  * only this kind of constraint and is rejected, with the oracle confirming a different
  * behaviour, or, for a conservative code, at least one occurrence (reason-codes.test.mjs).
  *
@@ -198,4 +198,7 @@ export type ReasonCodeName = (typeof entries)[number]['code'] | SyntaxKindName;
 export declare const REASON_CODES: readonly ReasonCodeEntry[];
 /** The entry of `code`, or undefined when it is not registered. */
 export declare function reasonCode(code: string): ReasonCodeEntry | undefined;
+/** The category of `code`, the only place the analysis learns it: `unknown` for an unregistered
+ * code, which the register's test rejects wherever it is emitted. */
+export declare function categoryOf(code: string): ConstraintCategory;
 export {};

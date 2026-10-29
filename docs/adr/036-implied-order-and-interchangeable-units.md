@@ -106,6 +106,7 @@ Az elutasítás oka: „A referencia vagy egy kapupróba (szomszédos csere, neh
 
 **Korlátok:**
 - A nagy, elfogadott referenciákon a hívásonkénti keresési állapot és a burokellenőrzés kb. 1,2–1,4-szeres időt jelent.
+- **A teljes kapu ára:** mivel minden szomszédos cserét vizsgál, egy 436 soros szerzői piszkozat befogadása Node alatt kb. 0,75 s; a régi, 100 cserés minta kb. 0,26 s volt. A hívásonkénti keresés közben nem lassabb (435 csere: 480 ms, a régi kereséssel 527 ms), a többlet a nagyobb lefedettség ára. A böngészős mátrixteszt ennél a lépésnél ezért hosszabban vár.
 - Az egységszerkezetes modelleken csak az implikált sorrend működik.
 - A szimmetriát csak testvér-részfák cseréjeként ismerjük fel; más automorfizmust nem keresünk.
 - A keret továbbra is véges: a 0 eldöntetlen mért eredmény, nem bizonyított felső korlát minden modellre. A kapu ezért minden publikálandó modellt a fenti próbákkal ellenőriz.

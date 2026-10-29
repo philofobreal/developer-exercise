@@ -6,7 +6,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import ts from 'typescript';
-import {generateCodeLineExercise} from '../src/author/generator.mjs';
+import {generateCodeLineExercise,DEPENDENCY_POLICY} from '../src/author/generator.mjs';
 import {compileCodeLineExercise,validateSubmission} from '../dist/index.js';
 import {createOracle} from './support/semantic-oracle.mjs';
 import {objectFixtures} from './fixtures/object-programs.mjs';
@@ -30,7 +30,7 @@ function expectOrder(context,lines,accepted,why){
 
 test('prompt reference: a stored reference, a distinct object and the store order',()=>{
  const c=prepare(objectFixtures.get('prompt-store-alias'));
- assert.equal(c.model.authoring.dependencyPolicy,'scoped-effect-analysis-v17');
+ assert.equal(c.model.authoring.dependencyPolicy,DEPENDENCY_POLICY);
  expectOrder(c,c.move("store.add(first);","first.alias = 'A';"),true,'the store keeps the reference: the alias may follow the add');
  expectOrder(c,c.move("second.activate();","first.alias = 'A';"),true,'two distinct objects commute');
  expectOrder(c,c.move("const store = new Store();","const first = new Item('a');"),true,'independent constructions commute');

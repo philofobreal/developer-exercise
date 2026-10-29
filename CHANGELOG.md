@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased – 2026-10-29 a kategória a jegyzéké; a `declare` változók szabadok (ADR-039, v18)
+
+- **Tervezési adósság rendezve:** az elemzés kibocsátó helyei már csak kódot neveznek meg. A kategóriát egyetlen hely, a projekció kéri a jegyzéktől (`categoryOf`). Megszűnt két rejtett kategóriaszabály. 237 program generált modellje bájtra azonos a változás előtt és után.
+- **Szabályhiba javítva (v18):** a `declare const/let/var` és az `export declare` utasítás pozíciófüggetlen, ha minden deklarátora egyedi azonosító, és a sorait birtokolja. A többsoros, objektumtípusú alak is ide tartozik, mint az `interface`. A destrukturáló és a közös sorú alak konzervatív marad.
+- **Mérés:** a gyors generatív mérésben a TS-szkriptek indokolatlan elutasítási aránya 18,6%-ról 0%-ra esett. A többi csoport változatlan, nincs hibás elfogadás.
+- **Változásfelerősítés megszüntetése:** a generátor exportálja a jelenlegi szabályverziót (`DEPENDENCY_POLICY`). A Node- és a böngészős tesztek ezt használják, a böngészős workbench-teszt a generátor forrásából olvassa ki.
+- **Böngészős mátrixteszt:** a 436 soros szolgáltatás befogadásánál hosszabban vár. Ennek oka, hogy a teljes kapu (ADR-036) Node alatt kb. 0,75 s, böngészőben terhelés alatt több.
+- **Címkék:** a v18 a sémában additív enumérték. A frissített `class-inventory-ts` példa és a `evaluate-legacy-serial.corrected.json` dokumentum őrzött újrafrissítéssel csak a szabályverzió-címkét kapta meg; a függőségeik változatlanok.
+- **Tesztek:** a `declare-erasure` (v18-rögzítés, pozitív, negatív és orákulumos esetek), és a jegyzék új bizonyító programja.
+
 ## Unreleased – 2026-10-29 mérési infrastruktúra és indokkód-jegyzék (ADR-038)
 
 - **Egy osztályozó:** a kampány és a korpuszmérés ugyanazt az osztályozót használja (`order-classification.mjs`). Ez megnevezi minden elutasítás okát (a megsértett kényszerek indokkódjait), és külön kezeli azokat a referenciákat, amelyek a próbán kivételt dobnak.

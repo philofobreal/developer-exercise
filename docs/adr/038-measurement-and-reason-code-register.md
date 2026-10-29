@@ -80,6 +80,4 @@ Mindegyik helyes, és nincs eldöntetlen eset.
 
 A korábbi összesített szám tehát részben mérési torzítás volt.
 
-**Hátralévő tervezési adósság (ADR-037 szerint rögzítve):**
-- A kibocsátó helyek a kód mellett még kézzel is megadják a kategóriát. Mindenhol a jegyzékből kellene levezetni; ez kb. 60 hely négy elemzőmodulban.
-- Addig a teszt kikényszeríti, hogy a kibocsátott kategória egyezzen a jegyzékkel. A levezetés a 4. fázis első tétele.
+**Tervezési adósság (ADR-037 szerint rögzítve), azóta rendezve:** a kibocsátó helyek a kód mellett kézzel is megadták a kategóriát. Az [ADR-039](039-ambient-variable-declarations.md) óta a kategóriát kizárólag a jegyzék adja, a generált modellek bájtra változatlanok.

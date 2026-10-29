@@ -15,6 +15,11 @@
   - indokkód-jegyzék bizonyítékokkal;
   - öt nyelvi lefedettségi fixture.
 - **G fázis:** az AI governance teljessé tételének tervezése ütemezve; az Ousterhout-féle tervezési governance már része.
+- **4. fázis:** a 0. és az 1. tétel kész ([ADR-039](adr/039-ambient-variable-declarations.md), v18).
+  - a kategóriát kizárólag a jegyzék adja, a modellek bájtra azonosak;
+  - a `declare` változók pozíciófüggetlenek;
+  - a TS-szkriptek indokolatlan elutasítási aránya a gyors mérésben 18,6%-ról 0%-ra esett.
+  - **Következik:** a 2. tétel (szökésanalízis).
 
 ## 1. Összefoglaló ítélet
 

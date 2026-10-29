@@ -1,68 +1,68 @@
 {
- "class javascript scoped-effect-analysis-v17 returns": {
+ "class javascript scoped-effect-analysis-v18 returns": {
   "programs": 3,
   "orders": 160,
   "gap": 0,
   "gapRate": 0
  },
- "class typescript scoped-effect-analysis-v17 returns": {
+ "class typescript scoped-effect-analysis-v18 returns": {
   "programs": 3,
   "orders": 231,
   "gap": 5,
   "gapRate": 0.0556
  },
- "flow javascript scoped-effect-analysis-v17 returns": {
+ "flow javascript scoped-effect-analysis-v18 returns": {
   "programs": 3,
   "orders": 251,
   "gap": 11,
   "gapRate": 0.1571
  },
- "flow typescript scoped-effect-analysis-v17 returns": {
+ "flow typescript scoped-effect-analysis-v18 returns": {
   "programs": 3,
   "orders": 247,
   "gap": 3,
   "gapRate": 0.0462
  },
- "function javascript scoped-effect-analysis-v17 returns": {
+ "function javascript scoped-effect-analysis-v18 returns": {
   "programs": 3,
   "orders": 203,
   "gap": 13,
   "gapRate": 0.2653
  },
- "object javascript scoped-effect-analysis-v17 returns": {
+ "object javascript scoped-effect-analysis-v18 returns": {
   "programs": 2,
   "orders": 165,
   "gap": 17,
   "gapRate": 0.2656
  },
- "object javascript scoped-effect-analysis-v17 throws": {
+ "object javascript scoped-effect-analysis-v18 throws": {
   "programs": 1,
   "orders": 85,
   "gap": 16,
   "gapRate": 0.4324
  },
- "object typescript scoped-effect-analysis-v17 returns": {
+ "object typescript scoped-effect-analysis-v18 returns": {
   "programs": 2,
   "orders": 165,
   "gap": 7,
   "gapRate": 0.1129
  },
- "object typescript scoped-effect-analysis-v17 throws": {
+ "object typescript scoped-effect-analysis-v18 throws": {
   "programs": 1,
   "orders": 83,
   "gap": 5,
   "gapRate": 0.1667
  },
- "script javascript scoped-effect-analysis-v17 returns": {
+ "script javascript scoped-effect-analysis-v18 returns": {
   "programs": 3,
   "orders": 211,
   "gap": 23,
   "gapRate": 0.284
  },
- "script typescript scoped-effect-analysis-v17 returns": {
+ "script typescript scoped-effect-analysis-v18 returns": {
   "programs": 3,
-  "orders": 218,
-  "gap": 13,
-  "gapRate": 0.1857
+  "orders": 221,
+  "gap": 0,
+  "gapRate": 0
  }
 }

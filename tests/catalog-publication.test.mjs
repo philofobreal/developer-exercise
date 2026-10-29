@@ -6,7 +6,7 @@ import path from 'node:path';
 import {ExerciseCatalog} from '../src/server/catalog.mjs';
 import {publicationRefusal} from '../dist/index.js';
 import {refreshAuthorModel} from '../dist/author/engine.js';
-import {generateCodeLineExercise} from '../src/author/generator.mjs';
+import {generateCodeLineExercise,DEPENDENCY_POLICY} from '../src/author/generator.mjs';
 import {auditReference} from '../src/author/audit.mjs';
 /** ADR-027: what a trusted catalog serves is one typed rule; a refused model is skipped, never rewritten. */
 test('publication rule: budget-undecided models never, unverified ones only under the default policy',()=>{
@@ -42,7 +42,7 @@ test('a refreshed example re-derives exactly: a further refresh changes nothing'
   const {model:again,report}=await refreshAuthorModel(model,ports);
   assert.deepEqual(again,model,id);
   assert.deepEqual(report,{authorRules:0,legacyEdges:0,supersededEdges:0,relaxations:[],droppedNotes:0},id);
-  assert.equal(model.authoring.dependencyPolicy,'scoped-effect-analysis-v17',id);
+  assert.equal(model.authoring.dependencyPolicy,DEPENDENCY_POLICY,id);
  }
 });
 test('verified-only still fails closed when only legacy models remain',async t=>{

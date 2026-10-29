@@ -8,7 +8,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import ts from 'typescript';
-import {generateCodeLineExercise} from '../src/author/generator.mjs';
+import {generateCodeLineExercise,DEPENDENCY_POLICY} from '../src/author/generator.mjs';
 import {compileCodeLineExercise,validateSubmission} from '../dist/index.js';
 import {createOracle} from './support/semantic-oracle.mjs';
 import {objectFixtures} from './fixtures/object-programs.mjs';
@@ -28,7 +28,7 @@ const prepare=id=>{
 
 test('an if/else if/else chain on one object commutes with another object; the policy is v17',()=>{
  const c=prepare('flow-else-if');
- assert.equal(c.model.authoring.dependencyPolicy,'scoped-effect-analysis-v17');
+ assert.equal(c.model.authoring.dependencyPolicy,DEPENDENCY_POLICY);
  c.check(c.move('second.activate();',"if (first.name === 'x') {"),true,'the chain only touches first');
  c.check(c.move('second.activate();',"const second = new Item('b');"),false,'a use before its declaration');
 });

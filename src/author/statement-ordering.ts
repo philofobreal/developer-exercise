@@ -31,7 +31,7 @@ import type ts from 'typescript';
 import type {OrderingEntry, OrderingReason} from './ordering-relations.js';
 import {footprintConflicts, objectFootprints, type Footprint} from './object-footprints.js';
 import {freeCommentRows} from './comment-rows.js';
-import {reasonCode, type ReasonCodeName, type SyntaxKindName} from './reason-codes.js';
+import {categoryOf, type ReasonCodeName, type SyntaxKindName} from './reason-codes.js';
 type Compiler = typeof ts;
 
 export type UnitKind = 'pure' | 'local-write' | 'position-free' | 'barrier' | 'opaque';
@@ -44,10 +44,7 @@ export interface StatementOrdering {entries: OrderingEntry[]; protectedInputs: M
 interface Summary extends StatementUnit {code?: ReasonCodeName; reads: Set<number>; start: number; global?: boolean; readSet: Set<ts.Symbol>; writeSet: Set<ts.Symbol>; node?: ts.Statement; footprint?: Footprint;}
 interface Binding {row: number | null; primitiveInitializer: ts.Expression | null;}
 
-/** A barrier's category is its reason code's (ADR-038): an unsupported shape is conservative,
- * an overload group structural, everything else an effect. Every barrier is created with a
- * registered code; an unregistered one would surface as `unknown` and fail the register's test. */
-const barrierCategory = (reason: string): OrderingReason['category'] => reasonCode(reason)?.category ?? 'unknown';
+
 
 /** Separate, browser-safe checker host: only the reference file is visible. */
 export function bindingChecker(file: ts.SourceFile, compiler: Compiler): ts.TypeChecker {
@@ -330,9 +327,11 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
   };
   const mods = modifiers(node);
   if (mods.includes(S.DeclareKeyword) || compiler.isInterfaceDeclaration(node) || compiler.isTypeAliasDeclaration(node)) {
-   const shape = compiler.isInterfaceDeclaration(node) ? node : compiler.isTypeAliasDeclaration(node) && compiler.isTypeLiteralNode(node.type) ? node.type : undefined;
-   const name = 'name' in node && node.name && compiler.isIdentifier(node.name as ts.Node) ? node.name as ts.Identifier : undefined;
-   if (name && unique(checker.getSymbolAtLocation(name)) && ownsRows(node, ...braces(shape))) return {...base, kind: 'position-free', reason: 'erased-type-declaration'};
+   const declared = compiler.isVariableStatement(node) && node.declarationList.declarations.length === 1 ? node.declarationList.declarations[0]!.type : undefined;
+   const shape = compiler.isInterfaceDeclaration(node) ? node : compiler.isTypeAliasDeclaration(node) && compiler.isTypeLiteralNode(node.type) ? node.type : declared && compiler.isTypeLiteralNode(declared) ? declared : undefined;
+   // v18 (ADR-039): a `declare` variable statement names its bindings in the declaration list.
+   const names = compiler.isVariableStatement(node) ? node.declarationList.declarations.map(declaration => declaration.name) : 'name' in node && node.name ? [node.name as ts.Node] : [];
+   if (names.length && names.every(name => compiler.isIdentifier(name) && unique(checker.getSymbolAtLocation(name))) && ownsRows(node, ...braces(shape))) return {...base, kind: 'position-free', reason: 'erased-type-declaration'};
    return barrier('erased-declaration-shape');
   }
   if (compiler.isFunctionDeclaration(node)) {
@@ -415,7 +414,7 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
   * closure could observe a block-scoped binding. */
  const commutes = (unit: Summary, barrier: Summary): boolean => {
   const own = unit.node, other = barrier.node;
-  if (unit.kind !== 'pure' || barrier.kind !== 'barrier' || !(barrierCategory(barrier.reason) === 'effect' || barrier.reason === 'declaration-shape' || barrier.reason === 'shared-or-continued-rows') || !own || !other) return false;
+  if (unit.kind !== 'pure' || barrier.kind !== 'barrier' || !(categoryOf(barrier.reason) === 'effect' || barrier.reason === 'declaration-shape' || barrier.reason === 'shared-or-continued-rows') || !own || !other) return false;
   const scope = context(own);
   if (scope === file || withArguments.has(scope) || transfers(other)) return false;
   // Uses are matched by binding and, like the independent oracle, also by name: a shadowing
@@ -441,31 +440,31 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
  /** ADR-025: two statements on the list's own objects are ordered only by an object conflict or
   * a possible throw; one that cannot throw commutes with a local write (no binding is shared:
   * its callees run in other function contexts). Null when the rule does not apply. */
- const objectOrder = (a: Summary, b: Summary): [OrderingReason['category'], OrderingReason['code']][] | null => {
-  if (a.footprint && b.footprint) return footprintConflicts(a.footprint, b.footprint).map(code => [code === 'may-throw' ? 'effect' : 'data', code]);
+ const objectOrder = (a: Summary, b: Summary): OrderingReason['code'][] | null => {
+  if (a.footprint && b.footprint) return footprintConflicts(a.footprint, b.footprint);
   const [object, other] = a.footprint ? [a.footprint, b] : b.footprint ? [b.footprint, a] : [];
   if (!object || other!.kind !== 'local-write') return null;
-  return object.mayThrow ? [['effect', 'may-throw']] : [];
+  return object.mayThrow ? ['may-throw'] : [];
  };
- const pairReasons = (a: Summary, b: Summary): [OrderingReason['category'], OrderingReason['code']][] => {
+ const pairReasons = (a: Summary, b: Summary): OrderingReason['code'][] => {
   if (a.reason === 'free-comment' || b.reason === 'free-comment') return [];
-  if (a.kind === 'opaque' || b.kind === 'opaque') return [['conservative', 'opaque-row']];
-  const found: [OrderingReason['category'], OrderingReason['code']][] = [];
+  if (a.kind === 'opaque' || b.kind === 'opaque') return ['opaque-row'];
+  const found: OrderingReason['code'][] = [];
   const objects = objectOrder(a, b);
   if (objects) found.push(...objects);
-  else if (a.kind !== 'position-free' && b.kind !== 'position-free' && !commutes(a, b) && !commutes(b, a)) for (const unit of [a, b]) if (unit.kind === 'barrier') found.push(unit.code ? [barrierCategory(unit.code), unit.code] : ['unknown', 'projection-unspecified']);
+  else if (a.kind !== 'position-free' && b.kind !== 'position-free' && !commutes(a, b) && !commutes(b, a)) for (const unit of [a, b]) if (unit.kind === 'barrier') found.push(unit.code ?? 'projection-unspecified');
   // v11 (ADR-020): a hoisted function's global key counts only if the program reflects keys; vars and emitted vars keep their order.
-  if (a.global && b.global && (options.reflectedKeys || !hoisted(a) && !hoisted(b))) found.push(['policy', 'script-global-order']);
-  if (meets(a.writeSet, b.readSet)) found.push(['data', 'read-after-write']);
-  if (meets(a.readSet, b.writeSet)) found.push(['data', 'write-after-read']);
-  if (meets(a.writeSet, b.writeSet)) found.push(['data', 'write-after-write']);
+  if (a.global && b.global && (options.reflectedKeys || !hoisted(a) && !hoisted(b))) found.push('script-global-order');
+  if (meets(a.writeSet, b.readSet)) found.push('read-after-write');
+  if (meets(a.readSet, b.writeSet)) found.push('write-after-read');
+  if (meets(a.writeSet, b.writeSet)) found.push('write-after-write');
   return found;
  };
- const add = (before: number, after: number, category: OrderingReason['category'], code: OrderingReason['code'], essential = false): void => {
+ const add = (before: number, after: number, code: OrderingReason['code'], essential = false): void => {
   if (before >= after) return;
   if (!entries.has(after)) entries.set(after, new Set());
   entries.get(after)!.add(before);
-  reasons.set(after, [...reasons.get(after) ?? [], {before, category, code}]);
+  reasons.set(after, [...reasons.get(after) ?? [], {before, code}]);
   if (essential) {if (!protectedInputs.has(after)) protectedInputs.set(after, new Set()); protectedInputs.get(after)!.add(before);}
  };
  /** A statement list whose var/function declarations become global-object properties (classic script). */
@@ -560,12 +559,12 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
     for (const unit of complete) {
      units.push({first: unit.first, last: unit.last, kind: unit.kind, reason: unit.reason});
      entries.set(unit.first, new Set()); reasons.delete(unit.first);
-     for (const row of unit.reads) add(row, unit.first, 'data', 'binding-input', true);
-     if (!sourceFile && !entries.get(unit.first)!.size) add(line(node), unit.first, 'structure', 'block-open');
+     for (const row of unit.reads) add(row, unit.first, 'binding-input', true);
+     if (!sourceFile && !entries.get(unit.first)!.size) add(line(node), unit.first, 'block-open');
     }
     for (let i = 0; i < complete.length; i++) for (let j = i + 1; j < complete.length; j++) {
      const a = complete[i]!, b = complete[j]!;
-     for (const [category, code] of pairReasons(a, b)) add(a.last, b.first, category, code);
+     for (const code of pairReasons(a, b)) add(a.last, b.first, code);
     }
    }
   }

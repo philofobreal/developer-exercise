@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import ts from 'typescript';
-import {generateCodeLineExercise} from '../src/author/generator.mjs';
+import {generateCodeLineExercise,DEPENDENCY_POLICY} from '../src/author/generator.mjs';
 import {refreshLegacyDependencies} from '../dist/author/engine.js';
 import {auditReference} from '../src/author/audit.mjs';
 import {inspectModule} from '../dist-tools/architecture-rules.js';
@@ -74,7 +74,7 @@ test('refresh rebinds the regenerated provenance to the original line IDs',async
  const refreshed=await refreshLegacyDependencies(original,ports);
  assert.equal(evidenceStatus(refreshed),'current');
  assert.equal(explained(refreshed).provenance,'complete');
- assert.equal(refreshed.authoring.evidence.analyzer,'scoped-effect-analysis-v17');
+ assert.equal(refreshed.authoring.evidence.analyzer,DEPENDENCY_POLICY);
 });
 
 test('architecture: only the projection may call the core digest from typed author code',()=>{
