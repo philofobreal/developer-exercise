@@ -5,6 +5,12 @@ export interface Violation {file:string;rule:string;message:string;}
 // ADR-011/013: the generator reaches only the typed language-independent projection; the registry wires the JS/TS analysis.
 // ADR-015: the projection binds its provenance with the core's digest, the only definition of it.
 const typedAuthorWiring=new Set(['src/author/generator.mjs -> dist/author/code-line-projection.js','src/author/languages.mjs -> dist/author/js-ts-ordering.js','src/author/code-line-projection.ts -> dist/index.js']);
+// ADR-037: core-internal modules hide one decision for named owners; no other module, not even
+// the public index, may import them. A new caller is a design decision, recorded here.
+const internalOwners:Record<string,readonly string[]>={
+ 'src/core/placement.js':['src/core/validator.ts'],
+ 'src/core/reachability.js':['src/core/placement.ts','src/core/diagnostics.ts'],
+};
 export function inspectModule(file:string,source:string):Violation[]{
  const out:Violation[]=[],normalized=file.replaceAll('\\','/'),generatedSchema=normalized==='src/core/schema-check.ts';
  const core=normalized.startsWith('src/core/'),ui=normalized.startsWith('src/workbench/'),author=normalized.startsWith('src/author/'),python=normalized.startsWith('src/python/');
@@ -14,6 +20,8 @@ export function inspectModule(file:string,source:string):Violation[]{
  function importRule(specifier:string,typeOnly:boolean):void{
   const resolved=specifier.startsWith('.')?path.posix.normalize(path.posix.join(path.posix.dirname(normalized),specifier)):specifier;
   if(core&&!resolved.startsWith('src/core/'))report('core-boundary','Core must remain independent of browser, author, transport and Node libraries: '+specifier);
+  const owners=internalOwners[resolved.replace(/^dist\//,'src/core/').replace(/\.ts$/,'.js')];
+  if(owners&&!owners.includes(normalized))report('information-hiding',`${specifier} hides one decision for ${owners.join(', ')} only (ADR-037).`);
   if(ui&&!(resolved.startsWith('src/workbench/')||specifier==='../formatter.js'||typeOnly&&resolved.startsWith('dist/')))report('presentation-boundary','Presentation may use only its own modules, explicit formatter port and domain types: '+specifier);
   const authorEngine=normalized==='src/author/engine.ts'&&resolved==='dist/index.js';
   // Explicit ADR-007/008/011 migration wiring: legacy author MJS → compiled typed author modules.

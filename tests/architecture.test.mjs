@@ -39,6 +39,19 @@ test('the generator may wire only the language-independent projection',()=>{
  assert.ok(inspectModule('src/author/another.mjs',"import {projectCodeLine} from '../../dist/author/code-line-projection.js';").some(error=>error.rule==='author-boundary'));
 });
 
+// ADR-037: a core-internal module hides one decision for its named owners only.
+test('information hiding: core-internal modules are imported by their owners only',()=>{
+ assert.deepEqual(inspectModule('src/core/validator.ts',"import {createPlacement} from './placement.js';"),[]);
+ for(const owner of ['src/core/placement.ts','src/core/diagnostics.ts'])assert.deepEqual(inspectModule(owner,"import {reachability} from './reachability.js';"),[],owner);
+ const hidden=(file,source)=>inspectModule(file,source).some(error=>error.rule==='information-hiding');
+ assert.ok(hidden('src/core/diagnostics.ts',"import {createPlacement} from './placement.js';"),'another core module');
+ assert.ok(hidden('src/core/model-verification.ts',"import {reachability} from './reachability.js';"),'a non-owner of the closure');
+ assert.ok(hidden('src/core/index.ts',"export {createPlacement} from './placement.js';"),'the public index may not re-export it');
+ assert.ok(hidden('src/core/index.ts',"export * from './reachability.js';"),'nor re-export everything');
+ assert.ok(hidden('src/author/engine.ts',"import {createPlacement} from '../../dist/placement.js';"),'compiled output is the same module');
+ assert.ok(!hidden('src/core/validator.ts',"import type {Placement} from './placement.js';import {matchContent} from './content-match.js';"),'owners and public modules stay free');
+});
+
 test('only the language registry may wire the JS/TS ordering analysis',()=>{
  const source="import {jsTsOrderingRelations} from '../../dist/author/js-ts-ordering.js';";
  assert.deepEqual(inspectModule('src/author/languages.mjs',source),[]);

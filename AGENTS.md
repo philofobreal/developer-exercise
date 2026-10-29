@@ -16,6 +16,9 @@ Read this file, docs/architecture.md, docs/ai-governance.md and the applicable A
 - Do not duplicate graph/schema/normalization rules in a view or controller. Do not pass infrastructure through the core. Avoid speculative abstractions and empty pass-through layers.
 - Before widening a public interface, document what knowledge remains hidden, which callers change and why the interface is needed. Record architectural changes in an ADR.
 - Complexity, cohesion and interface quality require human review; automated checks enforce only explicit dependency and safety constraints.
+- The modular architecture of John Ousterhout's *A Philosophy of Software Design* is mandatory for every change, refactoring and review ([ADR-037](docs/adr/037-standing-design-review.md)). Run the [design review checklist](docs/design-review.md) when designing (design it twice), before committing your own code, and in every code review; report its findings with category `design` beside correctness findings. A refactoring is done only when its design findings are fixed or explicitly recorded.
+- Pull complexity downward: a module owns its state and gives callers one operation, rather than callers keeping parallel state in sync or calling in a required order. Define errors out of existence where the semantics allow it.
+- Core-internal modules that hide one decision for named owners are listed in `scripts/architecture-rules.ts` (`information-hiding`); add a new caller there only as a recorded design decision.
 
 ## TypeScript and generated code
 

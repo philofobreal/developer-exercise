@@ -9,11 +9,13 @@ A gyökér [AGENTS.md](../AGENTS.md) a humán és AI közreműködők munkaszerz
 | Tartalmi, függőségi, scope- és fixed-helyesség | core / schema, gráf, bijekció, budget | Strict TS + referenciamodellek + permutációs és scope-regressziók |
 | Szerzői nyelvi elemzés külön a tanulói kiértékeléstől | author / parser, binding, tisztasági politika | Tiltott runtime hívások és importhatárok kapuja + trust-boundary tesztek |
 | Egyetlen rendezési szabály | attempt / insertion és fixed slotok | Minden inputút ugyanazt az API-t használja; 36 húzási böngészőeset |
-| Kis felületű, mély modulok | Koherens döntéstulajdonosok | Importhatárok automatizáltak; kohézió és felületmélység ADR/review-feladat |
+| Kis felületű, mély modulok | Koherens döntéstulajdonosok | Importhatárok és belső modulok tulajdonosai (`information-hiding`) automatizáltak; kohézió és felületmélység kötelező tervezési review ([ellenőrzőlista](design-review.md)) |
 | Adatszerkezet egyetlen szerződése | docs/schema.json és compiler | Ajv-generálás + runtime/Schema egyezés |
 | UI nem minősít tanulói kódot | workbench / megjelenítés, fókusz, státusz | Import- és tiltott műveletkapu; domainhívások typed porton |
 | Native TypeScript új megoldásokhoz | src/workbench és core | strict build; kézi any/ts-ignore tiltás; generált JS forrásgazda-térkép |
 | Emberi kontroll és követhetőség | User request + ADR + auditjelentés | Nincs automatikus push/deploy; változások és teszteredmények rögzítve |
+
+Az Ousterhout-féle tervezési review minden változtatásnál és review-nál kötelező; az ellenőrzőlista a [design-review.md](design-review.md), a döntés az [ADR-037](adr/037-standing-design-review.md). A belső modulok tulajdonosait az `information-hiding` architektúra-kapu kényszeríti ki.
 
 Ousterhout alapján a cél nem a minél több modul, hanem az információ elrejtése és a változtatások tovagyűrűzésének csökkentése. A renderer nem ismeri a gráfkeresést; a DOM-input nem birtokol beszúrási algoritmust; a mag nem ismeri a böngészőt vagy hálózatot. Tudatos migrációs port átmenetileg indokolt, de egy üres továbbító réteg önmagában nem mély modul. Ezekhez manuális tervfelülvizsgálat is kell: egy statikus ellenőrző nem tud minden tervezési elvet bizonyítani.
 
