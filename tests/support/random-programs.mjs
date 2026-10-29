@@ -142,10 +142,25 @@ export function randomScriptProgram(seed,{language='javascript',items=8}={}){
 export function randomObjectProgram(seed,{language='javascript',operations=8}={}){
  const rng=random(seed),pick=items=>items[Math.floor(rng()*items.length)],chance=p=>rng()<p,typescript=language==='typescript';
  const t=type=>typescript?`: ${type}`:'';
+ const names=['a','b','c'].slice(0,2+Math.floor(rng()*2));
+ const body=[`function run()${t('string')} {`,...names.map(name=>`  const ${name} = new Box('${name}');`),`  const shared${t('string[]')} = [];`];
+ let counter=0;
+ for(let i=0;i<operations;i++){
+  const x=pick(names),n=counter++;
+  body.push('  '+boxOperation(x,pick(['tag','tag','bump','keep','attach','note','note','copy','rename','shout','push']),{names,n,pick,chance,throwChance:0.25}));
+ }
+ body.push(`  return JSON.stringify([${names.join(', ')}, shared]);`,'}');
+ return {id:`object-${language}-${seed}`,language,origin:'object',probe:objectProbe,source:[...boxClass(typescript),...body]};
+}
+const objectProbe="(() => { try { return run(); } catch (error) { return 'throws ' + error.message; } })()";
+
+/** The small class every object and flow program operates on (ADR-025). */
+function boxClass(typescript){
+ const t=type=>typescript?`: ${type}`:'';
  const head=typescript?[
   'class Box {','  count = 0;','  items: unknown[] = [];','  log: string[] = [];',"  private _tag = '';",'  constructor(public label: string) {}']:[
   'class Box {','  constructor(label) {','    this.label = label;','    this.count = 0;','    this.items = [];','    this.log = [];',"    this._tag = '';",'  }'];
- const source=[...head,
+ return [...head,
   `  set tag(value${t('string')}) {`,'    this._tag = value;','  }',
   `  get tag()${t('string')} {`,'    return this._tag;','  }',
   `  bump()${t('void')} {`,'    this.count = this.count + 1;','  }',
@@ -156,22 +171,73 @@ export function randomObjectProgram(seed,{language='javascript',operations=8}={}
   `  rename(text${t('string')})${t('void')} {`,"    if (text === '') {","      throw new Error('empty ' + this.label);",'    }','    this.label = text;','  }',
   `  shout()${t('void')} {`,"    record('shout', this.label);",'  }',
   '}'];
+}
+
+/** One statement on the own objects, without indentation. `keep` only points to a later object, so
+ * the state stays acyclic; a kind that does not apply to `x` falls back to a push on `shared`. */
+function boxOperation(x,kind,{names,n,pick,chance,throwChance}){
+ const others=names.filter(name=>name!==x),later=names.slice(names.indexOf(x)+1);
+ if(kind==='tag')return `${x}.tag = 't${n}';`;
+ if(kind==='bump')return `${x}.bump();`;
+ if(kind==='keep'&&later.length)return `${x}.keep(${pick(later)});`;
+ if(kind==='attach')return `${x}.attach(shared);`;
+ if(kind==='note')return `${x}.note('n${n}');`;
+ if(kind==='copy'&&others.length)return `${x}.copy(${pick(others)});`;
+ if(kind==='rename')return `${x}.rename('${chance(throwChance)?'':'r'+n}');`;
+ if(kind==='shout')return `${x}.shout();`;
+ return `shared.push('s${n}');`;
+}
+
+/** ADR-034 (v17): the object programs with list-level control flow around the operations — if /
+ * else if / else chains with known and unknown tests, a guarded throw, switch with fall-through,
+ * try/catch and try/finally, for…of over an own array of objects (the loop variable aliases them)
+ * and over the shared array (once also writing it), a loop local whose value changes per iteration,
+ * and the shapes that stay barriers: a counting for, a while and a labelled break. Every loop is
+ * bounded in every order: the counting loops have fixed bounds, `while` only waits for bump(), and
+ * a loop over `shared` pushes a value its own guard never matches. */
+export function randomFlowProgram(seed,{language='javascript',statements=7}={}){
+ const rng=random(seed),pick=items=>items[Math.floor(rng()*items.length)],chance=p=>rng()<p,typescript=language==='typescript';
+ const t=type=>typescript?`: ${type}`:'';
  const names=['a','b','c'].slice(0,2+Math.floor(rng()*2));
- const body=[`function run()${t('string')} {`,...names.map(name=>`  const ${name} = new Box('${name}');`),`  const shared${t('string[]')} = [];`];
+ const body=[`function run()${t('string')} {`,...names.map(name=>`  const ${name} = new Box('${name}');`),`  const shared${t('string[]')} = [];`,`  const boxes${t('Box[]')} = [${names.join(', ')}];`];
  let counter=0;
- for(let i=0;i<operations;i++){
-  const x=pick(names),others=names.filter(name=>name!==x),later=names.slice(names.indexOf(x)+1),n=counter++;
-  const kind=pick(['tag','tag','bump','keep','attach','note','note','copy','rename','shout','push']);
-  if(kind==='tag')body.push(`  ${x}.tag = 't${n}';`);
-  else if(kind==='bump')body.push(`  ${x}.bump();`);
-  else if(kind==='keep'&&later.length)body.push(`  ${x}.keep(${pick(later)});`);
-  else if(kind==='attach')body.push(`  ${x}.attach(shared);`);
-  else if(kind==='note')body.push(`  ${x}.note('n${n}');`);
-  else if(kind==='copy'&&others.length)body.push(`  ${x}.copy(${pick(others)});`);
-  else if(kind==='rename')body.push(`  ${x}.rename('${chance(0.25)?'':'r'+n}');`);
-  else if(kind==='shout')body.push(`  ${x}.shout();`);
-  else body.push(`  shared.push('s${n}');`);
+ /** A simple operation; on a loop alias only the kinds that store no reference apply. */
+ const simple=(pad,receiver=null)=>{
+  const n=counter++,x=receiver??pick(names);
+  const kinds=receiver?['tag','bump','note','rename','shout']:['tag','bump','keep','attach','note','copy','rename','shout','push'];
+  return pad+boxOperation(x,pick(kinds),{names:receiver?[x]:names,n,pick,chance,throwChance:0.15});
+ };
+ const block=(pad,receiver)=>Array.from({length:1+Math.floor(rng()*2)},()=>simple(pad,receiver));
+ const test=()=>{const x=pick(names);return pick([`${x}.count > 0`,`${x}.tag === 't${counter}'`,`${x}.label === '${x}'`,`'k' === 'k'`,'1 > 2']);};
+ const kinds=['simple','simple','if','guard','switch','try-catch','try-finally','for-boxes','for-shared','loop-local','counting-for','while','labelled'];
+ for(let i=0;i<statements;i++){
+  const kind=pick(kinds),p='  ',q='    ',n=counter++;
+  if(kind==='simple')body.push(simple(p));
+  else if(kind==='if'){
+   body.push(`${p}if (${test()}) {`,...block(q));
+   if(chance(0.6))body.push(`${p}} else if (${test()}) {`,...block(q));
+   if(chance(0.6))body.push(`${p}} else {`,...block(q));
+   body.push(`${p}}`);
+  }
+  else if(kind==='guard'){const x=pick(names);body.push(`${p}if (${test()}) {`,`${q}throw new Error('stop ' + ${x}.label);`,`${p}}`);}
+  else if(kind==='switch'){
+   const x=pick(names);body.push(`${p}switch (${x}.${pick(['label','tag'])}) {`);
+   for(const value of [`'${x}'`,`'t${n}'`,null]){body.push(`${q}${value?`case ${value}:`:'default:'}`,...block(q+'  '));if(value&&chance(0.6))body.push(`${q}  break;`);}
+   body.push(`${p}}`);
+  }
+  else if(kind==='try-catch')body.push(`${p}try {`,...block(q),`${p}} catch (error) {`,...block(q),`${p}}`);
+  else if(kind==='try-finally')body.push(`${p}try {`,...block(q),`${p}} finally {`,...block(q),`${p}}`);
+  else if(kind==='for-boxes')body.push(`${p}for (const entry of boxes) {`,...block(q,'entry'),`${p}}`);
+  else if(kind==='for-shared'){
+   const x=pick(names);body.push(`${p}for (const text of shared) {`,`${q}${x}.note(text);`);
+   if(chance(0.3))body.push(`${q}if (text === 's${n}') {`,`${q}  shared.push('w${n}');`,`${q}}`);
+   body.push(`${p}}`);
+  }
+  else if(kind==='loop-local'){const seen=`seen${n}`;body.push(`${p}let ${seen} = 0;`,`${p}for (const entry of boxes) {`,`${q}if (${seen} > 0) {`,`${q}  entry.note('again');`,`${q}}`,`${q}${seen} = ${seen} + 1;`,`${p}}`);}
+  else if(kind==='counting-for')body.push(`${p}for (let i = 0; i < 2; i++) {`,...block(q),`${p}}`);
+  else if(kind==='while'){const x=pick(names);body.push(`${p}while (${x}.count < 3) {`,`${q}${x}.bump();`,`${p}}`);}
+  else body.push(`${p}outer: for (const entry of boxes) {`,...block(q,'entry'),`${q}break outer;`,`${p}}`);
  }
  body.push(`  return JSON.stringify([${names.join(', ')}, shared]);`,'}');
- return {id:`object-${language}-${seed}`,language,origin:'object',probe:"(() => { try { return run(); } catch (error) { return 'throws ' + error.message; } })()",source:[...source,...body]};
+ return {id:`flow-${language}-${seed}`,language,origin:'object',probe:objectProbe,source:[...boxClass(typescript),...body]};
 }

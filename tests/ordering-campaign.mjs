@@ -1,5 +1,5 @@
 /** Manual long generative campaign (not part of check:all):
- *   node tests/ordering-campaign.mjs [--from=1] [--to=200] [--kinds=class,script,function,object]
+ *   node tests/ordering-campaign.mjs [--from=1] [--to=200] [--kinds=class,script,function,object,flow]
  *        [--languages=javascript,typescript] [--output=campaign.json]
  * For every seeded program it grades sampled linear extensions, the single-row
  * neighbourhood and every whole-unit block move with the structural validator and
@@ -12,11 +12,11 @@ import ts from 'typescript';
 import {generateCodeLineExercise} from '../src/author/generator.mjs';
 import {compileCodeLineExercise,validateSubmission} from '../dist/index.js';
 import {createOracle,codesOf,neighbourhood,extensions,blockMoves,random,shrink} from './support/semantic-oracle.mjs';
-import {randomProgram,randomClassProgram,randomScriptProgram,randomObjectProgram} from './support/random-programs.mjs';
+import {randomProgram,randomClassProgram,randomScriptProgram,randomObjectProgram,randomFlowProgram} from './support/random-programs.mjs';
 
 const option=(name,fallback)=>process.argv.find(arg=>arg.startsWith(`--${name}=`))?.slice(name.length+3)??fallback;
-const from=Number(option('from','1')),to=Number(option('to','200')),kinds=option('kinds','class,script,function,object').split(','),languages=option('languages','javascript,typescript').split(','),output=option('output',null);
-const makers={class:randomClassProgram,script:randomScriptProgram,object:randomObjectProgram,function:(seed,{language})=>language==='javascript'?randomProgram(seed,{extended:seed%2===0}):null};
+const from=Number(option('from','1')),to=Number(option('to','200')),kinds=option('kinds','class,script,function,object,flow').split(','),languages=option('languages','javascript,typescript').split(','),output=option('output',null);
+const makers={class:randomClassProgram,script:randomScriptProgram,object:randomObjectProgram,flow:randomFlowProgram,function:(seed,{language})=>language==='javascript'?randomProgram(seed,{extended:seed%2===0}):null};
 const rows=[];let violations=0;
 for(const kind of kinds)for(const language of languages){
  const totals={kind,language,programs:0,orders:0,accepted:0,unsound:0,gaps:0,justified:0,undecided:0,indeterminate:0,blockMoves:0,ms:0};

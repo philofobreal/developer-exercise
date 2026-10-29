@@ -3,7 +3,8 @@
  * statements. A loop's body that writes the iterated array, a try without catch around a possible
  * throw, a loop whose local changes per iteration and a labelled jump stay conservative. Each
  * verdict is checked against the runtime oracle; the object-footprint suite checks every
- * accepted single-row move of every fixture. */
+ * accepted single-row move of every fixture. Seeded flow programs (randomFlowProgram, also the
+ * campaign's `flow` kind) mix all these shapes, and every order they accept is checked too. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import ts from 'typescript';
@@ -68,6 +69,47 @@ test('a loop local that changes per iteration keeps no known value: the second-r
  assert.ok(c.reasons('second.fail();').includes('may-throw'),'run() may throw on its second iteration');
  const lines=c.move('second.fail();','first.run();');
  c.check(lines,false,'two possible throws: which message surfaces depends on the order');
+});
+
+test('generative flow programs: every control-flow shape occurs, deterministically, and every reference keeps its behaviour',async()=>{
+ const {randomFlowProgram}=await import('./support/random-programs.mjs');
+ const shapes={'else if':/^ {2}\} else if \(/,'else':/^ {2}\} else \{$/,'known test':/\('k' === 'k'\)|\(1 > 2\)/,'guarded throw':/throw new Error\('stop /,'switch':/^ {2}switch \(/,'switch break':/^ {6}break;$/,
+  'try/catch':/\} catch \(error\) \{/,'try/finally':/\} finally \{/,'for…of over objects':/^ {2}for \(const entry of boxes\)/,'for…of over shared':/for \(const text of shared\)/,
+  'loop writes the iterated array':/shared\.push\('w/,'loop local':/let seen\d+ = 0;/,'counting for':/for \(let i = 0;/,'while':/while \(\w\.count < 3\)/,'labelled break':/break outer;/};
+ const seen=new Set();
+ for(const language of ['javascript','typescript'])for(let seed=1;seed<=30;seed++){
+  const fixture=randomFlowProgram(seed,{language});
+  assert.deepEqual(randomFlowProgram(seed,{language}).source,fixture.source,fixture.id+': seeded');
+  for(const [name,pattern] of Object.entries(shapes))if(fixture.source.some(line=>pattern.test(line)))seen.add(language+': '+name);
+  if(seed>6)continue;
+  const model=generate(fixture.source.join('\n'),language),{compiled}=compileCodeLineExercise(model),reference=model.lines.map(line=>line.code);
+  assert.equal(validateSubmission(compiled,{exerciseId:model.id,revision:model.revision,lines:reference}).status,'accepted',fixture.id);
+  assert.equal(createOracle(fixture)(reference).ok,true,fixture.id+': the reference is its own behaviour');
+ }
+ for(const language of ['javascript','typescript'])for(const name of Object.keys(shapes))assert.ok(seen.has(language+': '+name),`${language}: no seed in 1–30 emits ${name}`);
+});
+
+test('generative flow programs: every accepted neighbour and sampled order keeps behaviour',async()=>{
+ const {randomFlowProgram}=await import('./support/random-programs.mjs');
+ const {neighbourhood,extensions,random,codesOf}=await import('./support/semantic-oracle.mjs');
+ const totals={programs:0,orders:0,accepted:0,compound:0};
+ for(const [language,seeds] of [['javascript',4],['typescript',2]])for(let seed=1;seed<=seeds;seed++){
+  const fixture=randomFlowProgram(seed,{language,statements:4}),model=generate(fixture.source.join('\n'),language),{compiled}=compileCodeLineExercise(model);
+  const judge=createOracle(fixture),reference=model.lines.map(line=>line.id),rng=random(seed*37),seen=new Set();
+  const heads=new Set(model.lines.filter(line=>/^ {2}(if|switch|try|for) /.test(line.code)).map(line=>line.id));
+  totals.programs++;
+  for(const order of [...neighbourhood(reference),...Array.from({length:10},()=>extensions(model,{limit:1,rng})[0])]){
+   const lines=codesOf(model,order),key=lines.join('\n');if(seen.has(key))continue;seen.add(key);totals.orders++;
+   if(validateSubmission(compiled,{exerciseId:model.id,revision:model.revision,lines},{maxStates:200_000}).status!=='accepted')continue;
+   totals.accepted++;
+   const verdict=judge(lines);
+   assert.notEqual(verdict.ok,false,`${fixture.id}: accepted order changes behaviour (${verdict.reason})\n${lines.join('\n')}`);
+   if(order.some((id,i)=>heads.has(id)&&id!==reference[i]))totals.compound++;
+  }
+ }
+ assert.ok(totals.accepted>totals.programs,'the footprints free some orders');
+ assert.ok(totals.compound>0,'some accepted order moves a compound statement');
+ console.log(JSON.stringify(totals));
 });
 
 test('conservative: a body writing the iterated array, a labelled jump and an early return stay barriers',()=>{

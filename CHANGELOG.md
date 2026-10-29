@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased – 2026-10-29 vezérlési szerkezetek a generatív kampányban, frissített korlátlista
+
+- **Rés lezárva:** a véletlen programok eddig nem tartalmaztak vezérlési szerkezetet, így a v17 újításait csak kézi fixture-ök ellenőrizték. Az új `flow` kampányfajta (`randomFlowProgram`, JS és TS) a saját objektumokon végzett műveleteket vezérlési szerkezetekbe ágyazza:
+  - szabad alakok: `if / else if / else` ismert és ismeretlen feltétellel, őrzött `throw`, `switch` továbbcsorgással, `try/catch`, `try/finally`, `for…of`;
+  - barrier alakok: a bejárt tömböt író ciklus, a ciklusban változó helyi érték, a számlálós `for`, a `while` és a címkés `break`.
+- **Mérés (1–5. mag):** JS-ben 48 488, TS-ben 46 443 sorrend, **0 hibás elfogadás**. A futásidőben azonos sorrendek 9,9%-a, illetve 7,4%-a elutasított.
+- **A meglévő objektumprogramok** betűre azonosak maradtak (a közös `Box` osztály és művelet kiemelése után 120 programon ellenőrizve).
+- **Dokumentáció:** a formális szerződés „Ismert korlátok” szakasza a v13–v17 szerinti állapotot írja le (saját objektumok, vezérlési szerkezetek, laza példánymezők, `may-throw`). Az aktuális címke `v17`, és a policytábla sorrendje növekvő.
+- **Tesztek:** a `control-flow-footprints` két új esete. Az egyik igazolja, hogy 30 magon minden alak előfordul, mindkét nyelven. A másik minden elfogadott szomszédot és mintavett sorrendet a futásidejű orákulummal ellenőriz.
+
 ## Unreleased – 2026-10-29 vezérlési szerkezetek a függvénytörzsben (ADR-034, v17)
 
 - **Rés lezárva:** saját objektumokon dolgozó `else if` lánc, `switch`, `try/catch/finally` és `for…of` (saját tömbön) már nem köt minden más utasítást.

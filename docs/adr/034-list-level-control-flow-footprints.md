@@ -66,3 +66,16 @@ Sorrendjükről a futásidejű P3 dönt.
 - `for…of` és a tömbírás;
 - a második körben dobó ciklus;
 - konzervatív esetek: a bejárt tömb írása, címkés `break`, korai `return`.
+
+**Generatív ellenőrzés (2026-10-29 utómunka):** a `randomFlowProgram` véletlen magból vezérlési szerkezetekkel kevert objektumprogramot állít elő, JS-ben és TS-ben. Benne van minden fenti alak, a barrierek is (számlálós `for`, `while`, címkés `break`, ciklusban változó helyi érték). Minden ciklus minden sorrendben véget ér.
+
+- **Kampány:** a `flow` fajta minden elfogadott sorrendet a futásidejű orákulummal ellenőriz. Az 1–5. mag eredménye:
+
+  | | JS | TS |
+  | --- | --- | --- |
+  | vizsgált sorrend | 48 488 | 46 443 |
+  | elfogadva | 852 | 1 081 |
+  | hibás elfogadás | **0** | **0** |
+  | futásidőben azonos, mégis elutasított | 94 (9,9%) | 86 (7,4%) |
+  | futásidő | 5 perc | 11 perc |
+- **Teszt:** a `control-flow-footprints` két új esete. Az egyik igazolja, hogy 30 magon minden alak előfordul, és a referencia elfogadott. A másik minden elfogadott szomszédot és mintavett sorrendet a futásidejű orákulummal ellenőriz.
