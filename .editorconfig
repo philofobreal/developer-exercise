@@ -1,0 +1,13 @@
+# Editors write what .gitattributes stores: LF everywhere, UTF-8, a final newline.
+# The line-ending gate (scripts/verify-line-endings.mjs) fails `npm run check` on any CRLF
+# in a tracked text file, so a stray Windows editor or tool cannot slip one in.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+
+# Windows command scripts require CRLF (.gitattributes).
+[*.{bat,cmd}]
+end_of_line = crlf

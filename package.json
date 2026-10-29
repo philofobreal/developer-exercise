@@ -8,7 +8,7 @@
     "build": "node scripts/sync-vendor.mjs && node scripts/sync-schema.mjs && tsc -p tsconfig.json && tsc -p tsconfig.author.json && tsc -p tsconfig.python.json && tsc -p tsconfig.server.json &&tsc -p tsconfig.workbench.json && tsc -p tsconfig.governance.json && node dist-tools/build-typescript-samples.js",
     "test": "npm run build:pages && node --test tests/*.test.mjs",
     "start": "npm run build && node server.mjs",
-    "check": "npm run test && node dist-tools/verify-architecture.js && node scripts/verify-models.mjs && node scripts/verify-docs.mjs",
+    "check": "npm run test && node dist-tools/verify-architecture.js && node scripts/verify-models.mjs && node scripts/verify-docs.mjs && node scripts/verify-line-endings.mjs",
     "verify:models": "npm run build && node scripts/verify-models.mjs",
     "test:browser": "python -X utf8 tests/browser-v7-offline.playwright.py",
     "test:browser:server": "python -X utf8 tests/browser-v7.playwright.py",

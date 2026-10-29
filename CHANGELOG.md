@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased – 2026-10-29 sorvég-kapu; a szökésanalízis terve és tanúi (ADR-040, javasolt)
+
+- **Sorvégek:**
+  - a `.gitattributes` már LF-et írt elő mindenhol; mostantól az `.editorconfig` is ezt mondja a szerkesztőknek;
+  - a `check` bukik, ha bármely követett szövegfájl CRLF-es (`scripts/verify-line-endings.mjs`, `line-endings.test.mjs`);
+  - az AGENTS.md rögzíti, hogy az eszközök LF-et írnak (Pythonban `newline='\n'`).
+  - **Az ok:** két tesztfájlba Python szöveges írás tett CRLF-et Windows alatt.
+- **4. fázis, 2a részfeladat:** a szökésanalízis 2a–2e részfeladatokra bontva.
+  - **Az ADR-040 javasolt szabálya:** a metódustörzsben a primitív argumentumú ismeretlen hívás `external` hatásnyomot kap, és az objektum nem szökik meg.
+  - **Mit mutattak a tanúk:** az eredeti elképzelést (ismeretlen hívás és saját objektumművelet szabad cseréje) a szerződés (P2) kizárja, ezért elvetettük.
+  - **Rögzített állapot:** `escape-witnesses.test.mjs` rögzíti a mai 11 indokolatlan elutasítást és a megtartandó sorrendeket.
+
 ## Unreleased – 2026-10-29 a kategória a jegyzéké; a `declare` változók szabadok (ADR-039, v18)
 
 - **Tervezési adósság rendezve:** az elemzés kibocsátó helyei már csak kódot neveznek meg. A kategóriát egyetlen hely, a projekció kéri a jegyzéktől (`categoryOf`). Megszűnt két rejtett kategóriaszabály. 237 program generált modellje bájtra azonos a változás előtt és után.

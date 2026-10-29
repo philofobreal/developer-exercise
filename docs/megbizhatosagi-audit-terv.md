@@ -165,7 +165,12 @@ Minden tétel új policyverzió, ADR, pozitív és negatív fixture, és utána 
 
 0. **Tervezési előfeltétel (ADR-038 adóssága):** a kibocsátó helyek ne adják meg kézzel a kategóriát, hanem a jegyzékből vezessék le. Ez kb. 60 hely; a kimenet nem változhat, amit a kódleltár, a korpusz és a generatív küszöbök igazolnak.
 1. **`declare const` és társai (gyors javítás).** A változódeklaráló `declare` utasítás pozíciófüggetlen, ha a név egyedi.
-2. **Szökésanalízis az ismeretlen hívásokra** (a legnagyobb tétel).
+2. **Szökésanalízis az ismeretlen hívásokra** (a legnagyobb tétel). Részfeladatok, ebben a sorrendben:
+   - **2a – tervezés és tanúk (kész):** az [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) javasolt szabálya és helyességi érve; tanúprogramok a mostani túlszigorúság és a megtartandó sorrendek rögzítésére ([escape-witnesses.test.mjs](../tests/escape-witnesses.test.mjs)).
+   - **2b – implementáció (v19):** a `statement-ordering` páronkénti szabálya. Egy nem dobó, hatásnyomos utasítás felcserélhető egy hatásnyom nélküli, nem vezérlésátadó barrierrel.
+   - **2c – tesztek és mérés:** a tanúk átállítása (a rés 0), pozitív és negatív fixture-ök, a jegyzék bizonyítékai, a generatív és a korpusz-baseline tudatos újrarögzítése, kampány.
+   - **2d – kiterjesztés:** ismeretlen hívás, amelynek argumentuma saját objektum mezőjét olvassa (primitív érték). Ilyenkor a hívás olvasási hatásnyomot kap, és nem szökteti meg az objektumot.
+   - **2e – dokumentáció:** ADR elfogadva, formális szerződés v19, CHANGELOG.
    - Ha egy ismeretlen hívás csak primitív értéket kap, nem fér hozzá egyetlen még meg nem szökött saját objektumhoz sem, ezért azok műveleteivel felcserélhető.
    - Megmarad a sorrend a többi ismeretlen hívással, a globálisokkal és a lehetséges kivételekkel (`may-throw`).
    - Egy objektum megszökik, ha ismeretlen kódnak adják át, globálisba vagy closure-ba kerül, vagy ilyen objektumban tárolják.
