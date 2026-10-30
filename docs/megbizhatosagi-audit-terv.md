@@ -23,8 +23,8 @@
   - a szkriptszintű, sehol nem írt globálisok kódmentes olvasása ([ADR-041](adr/041-code-free-script-reads.md), v20): a mért fő ok a JS-szkriptekben; az arány 21,4%-ról 0,4%-ra esett (12 mag).
   - a 6. tétel mért esete, a címkés objektumművelet kész ([ADR-042](adr/042-labelled-object-operations.md), v21); azonos (új) orákulummal a flow JS rései 19-ről 17-re, a flow TS-éi 7-ről 4-re csökkentek.
   - az 5. tétel eldöntve és kész: A-politika ([ADR-043](adr/043-dead-code-intent-policy.md)); a dobó JS-objektumprogramok gyors résaránya 32,4%-ról 19,4%-ra esett, mert a halott kódot érintő elutasítás szándékhű. Mellé a szerzői lazítás a jóváhagyott forráshoz kötődik ([ADR-044](adr/044-relaxation-source-fingerprint.md)).
-  - **Új mért tétel:** a konstruktorban értékadással létrehozott mező már létező kulcs; ma az írása egész objektum írásnak számít. Ez a nem dobó JS-objektumprogramok fő maradék oka. Egy naiv kísérlet hibás elfogadást okozott, ezért külön ADR-rel kell megtervezni.
-  - **Következik:** a konstruktoros mezők, majd a 4. tétel (bizonyítottan véget érő ciklusok, a `while` miatti szökés) és a 3. tétel (hatásösszegzés); a 2d nem mért ok, dokumentált korlát.
+  - a konstruktorban létrehozott kulcsok kész ([ADR-045](adr/045-constructor-created-keys.md), v22): a nem dobó JS-objektumprogramok rései 56-ról 3-ra estek (12 mag), hibás elfogadás nélkül.
+  - **Következik:** a 4. tétel (bizonyítottan véget érő ciklusok, a `while` miatti szökés), majd a 3. tétel (hatásösszegzés); a 2d nem mért ok, dokumentált korlát.
 
 ## 1. Összefoglaló ítélet
 

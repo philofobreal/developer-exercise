@@ -6,7 +6,7 @@ import {getLanguageAdapter} from './languages.mjs';
 import {projectCodeLine,projectedRows} from '../../dist/author/code-line-projection.js';
 export {AuthoringError} from './errors.mjs';
 /** The generation-rule version (formal contract, policy versions); provenance is bound to it (ADR-015). */
-export const DEPENDENCY_POLICY='scoped-effect-analysis-v21';
+export const DEPENDENCY_POLICY='scoped-effect-analysis-v22';
 const POLICY=DEPENDENCY_POLICY;
 /** `importEmit` (TypeScript only, ADR-013): 'verbatim' (default; unknown build) keeps every
  * non-`import type` import in order, 'elide-unused' is TypeScript's default emit. */

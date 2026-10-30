@@ -27,8 +27,8 @@ const typed=program('labelled-typescript',[...typedBox,'function run(): string {
 const labelledBlock=program('labelled-block',[...box,...run('  outer: {','    a.add(1);','    break outer;','  }','  b.add(2);')]);
 const whileLoop=program('labelled-while',[...box,...run('  outer: while (a.log.length < 2) {','    a.add(1);','  }','  b.add(2);')]);
 
-test('the generation rule is v21, introduced by ADR-042 in the formal contract',async()=>{
- assert.equal(DEPENDENCY_POLICY,'scoped-effect-analysis-v21');
+test('v21 is introduced by ADR-042 in the formal contract and is at most the generation rule',async()=>{
+ assert.ok(Number(DEPENDENCY_POLICY.split('-v')[1])>=21,DEPENDENCY_POLICY);
  const contract=await readFile(new URL('../docs/formal-ordering-contract.md',import.meta.url),'utf8');
  assert.match(contract,/\| `scoped-effect-analysis-v21` \| \[ADR-042\]/);
 });

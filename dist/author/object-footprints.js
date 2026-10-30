@@ -63,7 +63,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
         classes.set(declaration, null);
         if (declaration.heritageClauses?.some(clause => clause.token === S.ExtendsKeyword) || has(declaration, S.AbstractKeyword) || compiler.getDecorators(declaration)?.length)
             return null;
-        const info = { fields: new Map(), methods: new Map(), getters: new Map(), setters: new Map(), parameterFields: [] };
+        const info = { fields: new Map(), methods: new Map(), getters: new Map(), setters: new Map(), parameterFields: [], created: new Set() };
         const names = new Set(), claim = (name, accessor = false) => {
             if (name === undefined || name === 'constructor' || !accessor && names.has(name))
                 return unknown();
@@ -125,6 +125,18 @@ export function objectFootprints(list, file, compiler, checker, host) {
                 return null;
             throw error;
         }
+        // ADR-045: a constructor without `return` runs every top-level statement before the object
+        // exists outside it, so a plain `this.x = …` there creates key x in every constructed object.
+        const body = info.ctor?.body;
+        if (body && !leaves(body))
+            for (const statement of body.statements) {
+                const expr = compiler.isExpressionStatement(statement) ? unwrap(statement.expression) : undefined;
+                if (!expr || !compiler.isBinaryExpression(expr) || expr.operatorToken.kind !== S.EqualsToken)
+                    continue;
+                const target = unwrap(expr.left), name = compiler.isPropertyAccessExpression(target) && target.expression.kind === S.ThisKeyword ? nameOf(target.name) : undefined;
+                if (name !== undefined && !info.getters.has(name) && !info.setters.has(name) && !info.methods.has(name))
+                    info.created.add(name);
+            }
         classes.set(declaration, info);
         return info;
     }
@@ -213,7 +225,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
             return;
         info.ctor.parameters.forEach((parameter, index) => { if (info.parameterFields.includes(parameter.name.text))
             addField(id, parameter.name.text, args[index] ?? PRIM); });
-        invoke(info.ctor, id, args, frame);
+        invoke(info.ctor, id, args, { ...frame, constructing: new Set([...frame.constructing ?? [], id]) });
     }
     function block(statements, frame) {
         let returned = PRIM;
@@ -384,7 +396,8 @@ export function objectFootprints(list, file, compiler, checker, host) {
             }
             // A field the construction already created keeps the key order; any other name may add a key.
             // ADR-031: unless the program lists keys, adding a key is a write of that field alone.
-            const existing = !host.enumeratedKeys || kind.kind === 'class' && (kind.info.fields.get(name) !== undefined || kind.info.parameterFields.includes(name));
+            // ADR-045: or one every finished construction created, once this object's construction is over.
+            const existing = !host.enumeratedKeys || kind.kind === 'class' && (kind.info.fields.get(name) !== undefined || kind.info.parameterFields.includes(name) || kind.info.created.has(name) && !frame.constructing?.has(object));
             frame.fp.writes.add(at(object, existing ? name : WHOLE));
             addField(object, name, value);
         }
@@ -636,7 +649,8 @@ export function objectFootprints(list, file, compiler, checker, host) {
     }
     /** One list-level statement: a construction, or an operation on own objects. */
     function statementFootprint(statement, budget) {
-        const frame = { self: null, env: new Map(), fp: { reads: new Set(), writes: new Set(), mayThrow: false, external: false }, stack: new Set(), budget };
+        // ADR-031/045: the statements of a constructor body run while `this` is being constructed.
+        const frame = { self: null, env: new Map(), fp: { reads: new Set(), writes: new Set(), mayThrow: false, external: false }, stack: new Set(), budget, ...self ? { constructing: new Set([self]) } : {} };
         if (compiler.isVariableStatement(statement)) {
             const declaration = statement.declarationList.declarations[0], symbol = checker.getSymbolAtLocation(declaration.name), own = symbol && owned.get(symbol);
             if (!own || own.statement !== statement)

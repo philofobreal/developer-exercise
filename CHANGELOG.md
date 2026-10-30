@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-10-30 a konstruktorban létrehozott kulcsok (ADR-045, v22)
+
+- **Szabály (v22):** a `return` nélküli konstruktor legfelső szintű `this.x = …` értékadása (accessor és metódus nélkül) a konstrukció után létező kulcs, ezért későbbi írása csak az adott mező írása. Az objektum saját konstrukciója alatt az írás továbbra is kulcsot hozhat létre.
+- **Miért nem a naiv változat:** ha a kulcs a konstruktoron belül is létezőnek számít, a konstruktor sorai felcserélhetők lesznek, pedig a kulcssorrend látszik; ez 173 hibás elfogadást adott, ezért a hatásnyom-értelmezés követi, mely objektum konstrukciója fut.
+- **Mérés (12 mag):** nem dobó JS-objektumprogramok 13,8% → 0,7%, JS-osztályok 3,1% → 2,1%; hibás elfogadás nincs. A gyors baseline újrarögzítve.
+- **Tesztek:** `constructor-keys.test.mjs` (szabad, kötött és rendezett maradó esetek, JS és TS, orákulummal); a v21-címketeszt verziófüggetlen.
+- **Címkék:** a v22 additív sémaenumérték; a példák és a minták csak az új címkét kapták.
+
 ## Unreleased – 2026-10-30 halott kód: A-politika; a lazítás a jóváhagyott forráshoz kötődik (ADR-043, ADR-044)
 
 - **A-politika (ADR-043, felhasználói döntés):** a referencia futásában le nem futó kód és a semmit nem változtató írás sorrendjét úgy ítéljük meg, mintha lefutna. A tanulónak nincs változás, a generátor eddig is így elemzett.
