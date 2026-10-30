@@ -31,7 +31,7 @@ export function measureFixture(fixture,{model=generate(fixture),exhaustiveLimit=
  const started=performance.now();for(let i=0;i<repeats;i++)generate(fixture);const generationMs=repeats?(performance.now()-started)/repeats:0;
  const classifier=createClassifier(fixture,model,{policy}),reference=model.lines.map(line=>line.id);
  const result={id:fixture.id,origin:fixture.origin,language:fixture.language,rows:model.lines.length,unsupported:analysisDisabled(fixture),...edgeStats(model),generationMs:+generationMs.toFixed(2),
-  orders:0,ordersExhaustive:true,unsound:0,undecidedAccepted:0,neighbours:0,accepted:0,completenessGaps:0,justifiedRejections:0,undecided:0,indeterminate:0,states:0,counterexamples:[],gaps:[],gapCauses:{}};
+  orders:0,ordersExhaustive:true,unsound:0,undecidedAccepted:0,neighbours:0,accepted:0,completenessGaps:0,justifiedRejections:0,intentRejections:0,undecided:0,indeterminate:0,states:0,counterexamples:[],gaps:[],gapCauses:{}};
  const unsound=order=>classifier.classify(order).kind==='unsound';
  const counterexample=(order,reason)=>{result.unsound++;if(result.counterexamples.length<3)result.counterexamples.push({order:shrink(reference,order,unsound),reason});};
  // A(M): exhaustive when small, otherwise a seeded random sample of linear extensions.
@@ -54,6 +54,7 @@ export function measureFixture(fixture,{model=generate(fixture),exhaustiveLimit=
   else if(outcome.kind==='accepted'||outcome.kind==='undecided-accepted')result.accepted++;
   else if(outcome.kind==='gap'){result.completenessGaps++;if(result.gaps.length<5)result.gaps.push(order);for(const code of outcome.causes)result.gapCauses[code]=(result.gapCauses[code]??0)+1;}
   else if(outcome.kind==='undecided')result.undecided++;
+  else if(outcome.kind==='intent')result.intentRejections++;
   else result.justifiedRejections++;
  }
  return result;

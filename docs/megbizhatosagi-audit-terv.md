@@ -22,7 +22,9 @@
   - a 2. tétel 2a–2c és 2e része kész ([ADR-040](adr/040-unknown-calls-and-unescaped-objects.md), v19): a metódustörzsben a primitív argumentumú ismeretlen hívás külső hatásnyomot kap; a JS objektumprogramok aránya 26,6%-ról 10,9%-ra, a TS objektumprogramoké 11,3%-ról 0%-ra esett.
   - a szkriptszintű, sehol nem írt globálisok kódmentes olvasása ([ADR-041](adr/041-code-free-script-reads.md), v20): a mért fő ok a JS-szkriptekben; az arány 21,4%-ról 0,4%-ra esett (12 mag).
   - a 6. tétel mért esete, a címkés objektumművelet kész ([ADR-042](adr/042-labelled-object-operations.md), v21); azonos (új) orákulummal a flow JS rései 19-ről 17-re, a flow TS-éi 7-ről 4-re csökkentek.
-  - **Következik:** a 4. tétel (bizonyítottan véget érő ciklusok, a `while` miatti szökés), majd a 3. tétel (hatásösszegzés). Az 5. tétel felhasználói döntésre vár; a 2d nem mért ok, dokumentált korlát.
+  - az 5. tétel eldöntve és kész: A-politika ([ADR-043](adr/043-dead-code-intent-policy.md)); a dobó JS-objektumprogramok gyors résaránya 32,4%-ról 19,4%-ra esett, mert a halott kódot érintő elutasítás szándékhű. Mellé a szerzői lazítás a jóváhagyott forráshoz kötődik ([ADR-044](adr/044-relaxation-source-fingerprint.md)).
+  - **Új mért tétel:** a konstruktorban értékadással létrehozott mező már létező kulcs; ma az írása egész objektum írásnak számít. Ez a nem dobó JS-objektumprogramok fő maradék oka. Egy naiv kísérlet hibás elfogadást okozott, ezért külön ADR-rel kell megtervezni.
+  - **Következik:** a konstruktoros mezők, majd a 4. tétel (bizonyítottan véget érő ciklusok, a `while` miatti szökés) és a 3. tétel (hatásösszegzés); a 2d nem mért ok, dokumentált korlát.
 
 ## 1. Összefoglaló ítélet
 
@@ -179,7 +181,7 @@ Minden tétel új policyverzió, ADR, pozitív és negatív fixture, és utána 
    - Egy objektum megszökik, ha ismeretlen kódnak adják át, globálisba vagy closure-ba kerül, vagy ilyen objektumban tárolják.
 3. **Hatásösszegzés a felső szintű és szkriptszintű függvényekre.** A `var v = f()` és a `new Box()` a hívott, elemezhető törzs összegzése alapján rendeződik, ugyanazzal a hatásnyommal, mint a függvénytörzsben.
 4. **Bizonyítottan véget érő ciklusok:** a `for (let i = 0; i < N; i++)` literál korláttal, ha a magja nem írja `i`-t. Ugyanez a csak `bump()`-szerű, monoton változó `while` feltételre, ha bizonyítható.
-5. **A mezőirások pontosítása:** holt írás és azonos értékű írás. Csak a 3. fázis tisztított mérése után; ha a valódi arány kicsi, dokumentált korlát marad.
+5. **A mezőirások pontosítása:** holt írás és azonos értékű írás. **Eldöntve (A-politika, ADR-043):** sorrendjük úgy ítélendő meg, mintha lefutnának; a mérés a halott kódot érintő elutasítást szándékhűnek számolja.
 6. **Osztálytag-fázisok és a `switch`, `try` maradékai:** a mért esetekre egyenként.
 
 ### 5. fázis – az orákulum erősítése (P2)
@@ -236,4 +238,4 @@ Minden tétel új policyverzió, ADR, pozitív és negatív fixture, és utána 
 - **A példák migrációja.** Az 1. fázis 3. lépése átírja a régi feladatok függőségeit. Ez csak a felhasználó jóváhagyásával, tételes eltéréslistával történhet.
 - **Az alapértelmezés átállítása `verified-only`-ra.** A régi modelleket kiszolgáló telepítéseknél viselkedésváltozás.
 - **A szimmetriatörés ADR-je.** Ez a core validátor algoritmusát érinti, a döntési szabályát nem.
-- **A holt írások és az azonos értékű írások pedagógiai megítélése.** Ilyen esetekben két sorrend futásidőben azonos, de szándékában eltérő lehet. Ezt a felhasználónak kell eldöntenie.
+- ~~**A holt írások és az azonos értékű írások pedagógiai megítélése.**~~ Eldöntve 2026-10-30: A-politika ([ADR-043](adr/043-dead-code-intent-policy.md)), a szerzői lazítás forráshoz kötésével ([ADR-044](adr/044-relaxation-source-fingerprint.md)).

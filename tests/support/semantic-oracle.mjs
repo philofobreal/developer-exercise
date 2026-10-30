@@ -581,7 +581,7 @@ function analyse(code,language,ordered=false,enumerated=true){
  * (names come from the reference analysis), read right after evaluation.
  * `nested` (from this code's own analysis) registers the nested classes; their
  * snapshots are sorted by key, as declaration order is not itself observable. */
-function execute(code,{language,probe,strict=true,asynchronous=false},{classNames=[],globals=[],functions=[],ordered=false,enumerated=true}={},nested=[]){
+function execute(code,{language,probe,strict=true,asynchronous=false,hit=()=>{}},{classNames=[],globals=[],functions=[],ordered=false,enumerated=true}={},nested=[]){
  for(const {key,name,end} of [...nested].sort((a,b)=>b.end-a.end))code=code.slice(0,end)+`;__classes.push([${JSON.stringify(key)}, ${name}]);`+code.slice(end);
  const keys=`const keys=o=>Reflect.ownKeys(o).map(k=>{const d=Object.getOwnPropertyDescriptor(o,k);return [String(k),'get' in d||'set' in d?'accessor':'value',d.enumerable,d.configurable,d.writable===undefined?null:d.writable];}),own=o=>{const all=keys(o);if(${ordered})return all;return [...all.filter(k=>!k[2]).sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0),...all.filter(k=>k[2])];};`;
  const reflect=`;var __reflection=(()=>{try{${keys}`
@@ -589,7 +589,7 @@ function execute(code,{language,probe,strict=true,asynchronous=false},{className
  // Nested classes exist only once the probe ran: snapshot them afterwards.
  const nestedSnapshot=`(()=>{try{${keys}return JSON.stringify(__classes.map(([k,c])=>JSON.stringify([k,own(c.prototype),own(c)])).sort());}catch(error){return 'throws:'+(error&&error.name);}})()`;
  const attempt=(js,timeout)=>{
-  const context=createContext({trace:[],__classes:[],exports:{}},asynchronous?{microtaskMode:'afterEvaluate'}:{});
+  const context=createContext({trace:[],__classes:[],exports:{},__hit:hit},asynchronous?{microtaskMode:'afterEvaluate'}:{});
   // ADR-029: unless the program lists enumerable keys itself, an object's key order is not part of the result.
   const replacer=enumerated?'null':`(key,value)=>value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(name=>[name,value[name]])):value`;
   const tail=asynchronous
@@ -610,6 +610,45 @@ function execute(code,{language,probe,strict=true,asynchronous=false},{className
   outputs.push(run(output.outputText));
  }
  return {call:outputs.map(o=>o.call).join(' | '),reflection:outputs.map(o=>o.reflection).join(' | ')};
+}
+
+/** ADR-043: the 0-based source rows the reference executes. Every statement of a statement list
+ * (not a directive, not a TypeScript declaration without runtime code) is prefixed with
+ * `__hit(row)` on its own row, so rows keep their numbers; a row counts as executed when the
+ * innermost listed statement covering it ran. Only the fixed reference runs, once. */
+function executedRows(code,fixture){
+ const statements=[];
+ if(fixture.language==='typescript'){
+  const file=ts.createSourceFile('fixture.ts',code,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);
+  const erased=node=>ts.isInterfaceDeclaration(node)||ts.isTypeAliasDeclaration(node)||ts.isFunctionDeclaration(node)&&!node.body||(ts.canHaveModifiers(node)?ts.getModifiers(node)??[]:[]).some(m=>m.kind===ts.SyntaxKind.DeclareKeyword)||ts.isModuleDeclaration(node)||ts.isImportDeclaration(node)||ts.isExportDeclaration(node)||ts.isImportEqualsDeclaration(node);
+  const list=items=>{for(const item of items)if(!erased(item)&&!(ts.isExpressionStatement(item)&&ts.isStringLiteral(item.expression)))statements.push([item.getStart(file),item.end]);};
+  const visit=node=>{if(ts.isSourceFile(node)||ts.isBlock(node))list(node.statements);else if(ts.isCaseClause(node)||ts.isDefaultClause(node))list(node.statements);ts.forEachChild(node,visit);};
+  visit(file);
+ }else{
+  const visit=node=>{
+   if(!node||typeof node!=='object')return;
+   if(Array.isArray(node)){node.forEach(visit);return;}
+   const items=node.type==='Program'||node.type==='BlockStatement'||node.type==='StaticBlock'?node.body:node.type==='SwitchCase'?node.consequent:null;
+   if(items)for(const item of items)if(!item.directive)statements.push([item.start,item.end]);
+   for(const [key,value] of Object.entries(node))if(key!=='type'&&value&&typeof value==='object')visit(value);
+  };
+  visit(parseScript(code,{ecmaVersion:'latest',sourceType:'script'}));
+ }
+ const starts=[0];for(let i=0;i<code.length;i++)if(code[i]==='\n')starts.push(i+1);
+ const rowOf=offset=>{let low=0,high=starts.length-1;while(low<high){const mid=(low+high+1)>>1;if(starts[mid]<=offset)low=mid;else high=mid-1;}return low;};
+ const spans=statements.map(([start,end])=>({start,first:rowOf(start),last:rowOf(Math.max(start,end-1))}));
+ let instrumented=code;
+ for(const {start,first} of [...spans].sort((a,b)=>b.start-a.start))instrumented=instrumented.slice(0,start)+`__hit(${first});`+instrumented.slice(start);
+ const hits=new Set();
+ execute(instrumented,{...fixture,hit:row=>hits.add(row)});
+ const executed=new Set();
+ for(let row=0;row<starts.length;row++){
+  // The innermost listed statement covering the row decides.
+  let owner=null;
+  for(const span of spans)if(span.first<=row&&span.last>=row&&(!owner||span.start>=owner.start))owner=span;
+  if(!owner||hits.has(owner.first))executed.add(row);
+ }
+ return executed;
 }
 
 /** Returns judge(lines) → {ok: true|false|null, reason}. ok=null means undecided.
@@ -642,6 +681,9 @@ export function createOracle(fixture,{policy='reflective'}={}){
   cache.set(code,verdict);return verdict;
  };
  judge.referenceValue=JSON.parse(baseline.call.split(' | ')[0]).value;
+ // ADR-043: computed on first use, as only a rejected equivalent order needs it.
+ let executed=null;
+ judge.executedRows=()=>executed??=executedRows(source,fixture);
  return judge;
 }
 

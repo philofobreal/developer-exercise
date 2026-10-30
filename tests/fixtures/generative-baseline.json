@@ -26,8 +26,8 @@
  "function javascript scoped-effect-analysis-v21 returns": {
   "programs": 3,
   "orders": 203,
-  "gap": 13,
-  "gapRate": 0.2653
+  "gap": 12,
+  "gapRate": 0.25
  },
  "object javascript scoped-effect-analysis-v21 returns": {
   "programs": 2,
@@ -38,8 +38,8 @@
  "object javascript scoped-effect-analysis-v21 throws": {
   "programs": 1,
   "orders": 85,
-  "gap": 12,
-  "gapRate": 0.3243
+  "gap": 6,
+  "gapRate": 0.1935
  },
  "object typescript scoped-effect-analysis-v21 returns": {
   "programs": 2,

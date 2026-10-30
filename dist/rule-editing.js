@@ -21,7 +21,7 @@
 import { validateSubmission } from './validator.js';
 import { compileCodeLineExercise } from './code-line.js';
 import { editabilityOrder, explainConstraints } from './constraint-explanation.js';
-import { evidenceStatus } from './evidence.js';
+import { evidenceStatus, sourceTextDigest } from './evidence.js';
 const AUTHOR_RULE = 'author-rule';
 const fail = (error, message, index, acknowledge) => ({ ok: false, error, message, index, ...(acknowledge ? { acknowledge } : {}) });
 const isId = (value) => Number.isSafeInteger(value) && value > 0;
@@ -189,7 +189,7 @@ function apply(draft, explanation, edit) {
                 const reasons = (authoring.provenance ?? []).filter(entry => pairOf(entry, before, after) && entry.category !== 'author').map(({ category, code }) => ({ category, code }));
                 const ruleNote = authoring.ruleNotes?.find(entry => pairOf(entry, before, after))?.note;
                 const removed = origins.length ? { removed: { origins, reasons, ...(ruleNote ? { note: ruleNote } : {}) } } : {};
-                authoring.relaxations = [...(authoring.relaxations ?? []).filter(entry => !pairOf(entry, before, after)), { before, after, editability, ...(note ? { note } : {}), ...removed }];
+                authoring.relaxations = [...(authoring.relaxations ?? []).filter(entry => !pairOf(entry, before, after)), { before, after, editability, ...(note ? { note } : {}), sourceDigest: sourceTextDigest(draft.lines), ...removed }];
             }
             dropPair(before, after);
             return;
@@ -363,6 +363,11 @@ function assessEffect(before, after) {
     }
     return effect;
 }
+/** ADR-044: whether a recorded relaxation still holds for these lines: it was confirmed on this
+ * source, or recorded before fingerprints existed. The one place that decides it. */
+export function relaxationHolds(relaxation, lines) {
+    return relaxation.sourceDigest === undefined || relaxation.sourceDigest === sourceTextDigest(lines);
+}
 /** Re-applies the author's rules to a regenerated model of the same lines and blocks
  * (ADR-018). `regenerated` carries only regenerated dependencies, edges and provenance;
  * `original` is the model before the refresh. Nothing is dropped silently: the report
@@ -403,7 +408,7 @@ export function mergeAuthorRules(original, regenerated) {
     const admitted = () => { const result = explainConstraints(model); if ('status' in result)
         throw Error(result.message); return result; };
     let explanation = admitted();
-    const relaxations = [];
+    const relaxations = [], source = sourceTextDigest(model.lines);
     for (const relaxation of original.authoring?.relaxations ?? []) {
         const { before, after } = relaxation, line = explanation.lines.find(item => item.id === after);
         const constraint = line.predecessors.find(item => item.before === before);
@@ -416,6 +421,11 @@ export function mergeAuthorRules(original, regenerated) {
             report.relaxations.push({ before, after, outcome: 'revoked' });
             continue;
         }
+        // ADR-044: the author's reason (for example code that never runs) held for the source they saw.
+        if (!relaxationHolds(relaxation, model.lines)) {
+            report.relaxations.push({ before, after, outcome: 'reconfirm', ...(relaxation.note ? { note: relaxation.note } : {}) });
+            continue;
+        }
         const target = model.lines.find(item => item.id === after);
         // The regenerated analysis says what a later restore must bring back.
         const origins = constraint.origins.filter((origin) => origin !== 'block');
@@ -424,8 +434,8 @@ export function mergeAuthorRules(original, regenerated) {
         model.edges = model.edges.filter(edge => !pairOf(edge, before, after));
         authoring.provenance = authoring.provenance.filter(entry => !pairOf(entry, before, after));
         const { removed: previous, ...kept } = relaxation;
-        relaxations.push({ ...kept, editability: current, ...(origins.length ? { removed: { origins, reasons, ...(previous?.note ? { note: previous.note } : {}) } } : {}) });
-        report.relaxations.push({ before, after, outcome: 'reapplied' });
+        relaxations.push({ ...kept, editability: current, sourceDigest: source, ...(origins.length ? { removed: { origins, reasons, ...(previous?.note ? { note: previous.note } : {}) } } : {}) });
+        report.relaxations.push({ before, after, outcome: relaxation.sourceDigest === undefined ? 'unchecked' : 'reapplied' });
         explanation = admitted();
     }
     if (relaxations.length)

@@ -4,6 +4,8 @@
  *  - `unsound`: accepted, but the oracle sees a different behaviour;
  *  - `accepted`: accepted and equivalent (or undecided by the oracle: `undecided-accepted`);
  *  - `gap`: rejected although the oracle sees the same behaviour (incompleteness);
+ *  - `intent` (ADR-043, policy A): rejected, the same behaviour, but every broken constraint
+ *    touches a row the reference never executes: its order counts as if that code ran;
  *  - `justified`: rejected, and the behaviour differs;
  *  - `undecided`: rejected, oracle undecided; `indeterminate`: the validator's budget ran out.
  * A rejection's `causes` are the provenance codes of the direct constraints the order breaks,
@@ -18,11 +20,18 @@ export function createClassifier(fixture,model,{maxStates=200_000,policy='reflec
  const reasons=new Map();
  for(const entry of model.authoring?.provenance??[]){const key=entry.before+'>'+entry.after;reasons.set(key,[...reasons.get(key)??[],entry.code]);}
  const constraints=[...model.lines.flatMap(line=>line.dependencies.map(before=>[before,line.id])),...(model.edges??[]).map(edge=>[edge.before,edge.after])];
+ const broken=order=>{const at=new Map(order.map((id,i)=>[id,i]));return constraints.filter(([before,after])=>at.get(before)>at.get(after));};
  function causes(order){
-  const at=new Map(order.map((id,i)=>[id,i])),found=new Set();
-  for(const [before,after] of constraints)if(at.get(before)>at.get(after))for(const code of reasons.get(before+'>'+after)??['unexplained'])found.add(code);
+  const found=new Set();
+  for(const [before,after] of broken(order))for(const code of reasons.get(before+'>'+after)??['unexplained'])found.add(code);
   return found.size?[...found].sort():['scope'];
  }
+ // ADR-043: rows the reference never executes, by line id (sourceLine is 1-based).
+ const row=new Map(model.lines.map((line,i)=>[line.id,(line.sourceLine??i+1)-1]));
+ const dead=id=>!judge.executedRows().has(row.get(id));
+ /** Policy A: an equivalent order rejected only for constraints that touch code the reference
+  * never runs keeps the reference's intent, judged as if that code ran; not a gap. */
+ const intent=order=>{const pairs=broken(order);return pairs.length>0&&pairs.every(([before,after])=>dead(before)||dead(after));};
  return {
   /** Whether the reference itself ended in a caught exception (the fixture's own probe convention). */
   referenceThrew:fixture.threw?.(judge.referenceValue)??false,
@@ -32,13 +41,13 @@ export function createClassifier(fixture,model,{maxStates=200_000,policy='reflec
    if(report.status==='indeterminate')return {kind:'indeterminate',states:report.exploredStates};
    const verdict=judge(lines);
    if(report.status==='accepted')return {kind:verdict.ok===false?'unsound':verdict.ok===null?'undecided-accepted':'accepted',reason:verdict.reason,states:report.exploredStates};
-   const kind=verdict.ok===true?'gap':verdict.ok===null?'undecided':'justified';
+   const kind=verdict.ok===true?(intent(order)?'intent':'gap'):verdict.ok===null?'undecided':'justified';
    return {kind,reason:verdict.reason,states:report.exploredStates,causes:causes(order)};
   }
  };
 }
 
-const KINDS=['accepted','unsound','undecided-accepted','gap','justified','undecided','indeterminate'];
+const KINDS=['accepted','unsound','undecided-accepted','gap','intent','justified','undecided','indeterminate'];
 /** Counts classifications per group and ranks the causes of the gaps. The gap rate is the share
  * of rejected orders among the equivalent ones: gaps / (accepted + gaps). */
 export function createTally(){

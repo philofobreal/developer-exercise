@@ -70,12 +70,15 @@ export interface RuleNote {
 /** A generated constraint the author removed (ADR-018). `editability` records how strong it
  * was: `conservative` is an unproven author judgement, `proven` and `legacy` a policy override.
  * `removed` (ADR-024): what the removal took out of the model (where it stated the constraint,
- * its generated reasons, its rule note), so adding the pair again restores it exactly. */
+ * its generated reasons, its rule note), so adding the pair again restores it exactly.
+ * `sourceDigest` (ADR-044): the source the author confirmed it on (`sourceTextDigest`); a
+ * refresh of a changed source restores the constraint and asks for a new confirmation. */
 export interface RuleRelaxation {
     before: number;
     after: number;
     editability: 'conservative' | 'proven' | 'legacy';
     note?: string;
+    sourceDigest?: string;
     removed?: {
         origins: ('dependency' | 'edge')[];
         reasons: {

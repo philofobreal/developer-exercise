@@ -1,5 +1,5 @@
 /** Typed author-time entry point. ASTs and parser infrastructure stay inside adapters. */
-import { applyRuleEdits, codeLineDigest, compileCodeLineExercise, compileCodeLineExerciseV3, evidenceStatus, explainConstraints, mergeAuthorRules, prepareRenderPlan, upgradeCodeLineExerciseV2, verifyModel } from '../../dist/index.js';
+import { applyRuleEdits, codeLineDigest, compileCodeLineExercise, relaxationHolds, compileCodeLineExerciseV3, evidenceStatus, explainConstraints, mergeAuthorRules, prepareRenderPlan, upgradeCodeLineExerciseV2, verifyModel } from '../../dist/index.js';
 import { reconcileDependencies } from './dependency-refresh.js';
 export class AdapterContractError extends Error {
     constructor(message) { super(message); this.name = 'AdapterContractError'; }
@@ -119,7 +119,9 @@ export async function verifyAuthorModel(model, ports, input = {}) {
         projectionLoss = generated.authoring?.evidence?.projectionLoss?.pairs;
         reconcileDependencies(model, generated);
         const id = (generatedId) => model.lines[generatedId - 1].id;
-        const relaxed = new Set((model.authoring?.relaxations ?? []).map(entry => entry.before + ':' + entry.after)), kept = (edge) => !relaxed.has(edge.before + ':' + edge.after);
+        // ADR-044: a relaxation confirmed on another source no longer explains a missing constraint.
+        const confirmed = (model.authoring?.relaxations ?? []).filter(entry => relaxationHolds(entry, model.lines));
+        const relaxed = new Set(confirmed.map(entry => entry.before + ':' + entry.after)), kept = (edge) => !relaxed.has(edge.before + ':' + edge.after);
         const author = new Set(evidenceStatus(model) === 'current' ? (model.authoring?.provenance ?? []).filter(entry => entry.category === 'author').map(entry => entry.before + ':' + entry.after) : []);
         const pairs = (edges) => edges.map(edge => edge.before + ':' + edge.after).sort().join();
         const sameDependencies = generated.lines.every((line, index) => pairs(line.dependencies.map(before => ({ before: id(before), after: model.lines[index].id })).filter(kept)) === pairs(model.lines[index].dependencies.map(before => ({ before, after: model.lines[index].id }))));

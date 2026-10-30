@@ -1,4 +1,4 @@
-import { type CodeLineExercise } from './code-line.js';
+import { type CodeLineExercise, type RuleRelaxation } from './code-line.js';
 export type RuleEdit = {
     kind: 'add-rule';
     before: number;
@@ -61,6 +61,9 @@ export type RuleEditResult = {
 };
 /** Applies a batch atomically and reports its effect; the input model is never mutated. */
 export declare function applyRuleEdits(model: CodeLineExercise, edits: readonly RuleEdit[]): RuleEditResult;
+/** ADR-044: whether a recorded relaxation still holds for these lines: it was confirmed on this
+ * source, or recorded before fingerprints existed. The one place that decides it. */
+export declare function relaxationHolds(relaxation: Pick<RuleRelaxation, 'sourceDigest'>, lines: CodeLineExercise['lines']): boolean;
 export interface RefreshReport {
     /** Author rules kept as mandatory edges (including former author dependencies). */
     authorRules: number;
@@ -69,11 +72,16 @@ export interface RefreshReport {
     /** Generated edges of the previous analysis, superseded by the regenerated ones. */
     supersededEdges: number;
     /** `reapplied`: removed again; `revoked`: the regenerated constraint is stronger and stays;
-     * `implied`: now only a transitive consequence; `obsolete`: no longer constrained at all. */
+     * `implied`: now only a transitive consequence; `obsolete`: no longer constrained at all.
+     * ADR-044: `reconfirm`: the source changed since the author confirmed it, so the constraint
+     * stays until a new removal confirms it again (the note travels with the report);
+     * `unchecked`: removed again, but recorded before fingerprints, so it was confirmed on an
+     * unknown source; it carries the current one from now on. */
     relaxations: {
         before: number;
         after: number;
-        outcome: 'reapplied' | 'revoked' | 'implied' | 'obsolete';
+        outcome: 'reapplied' | 'revoked' | 'implied' | 'obsolete' | 'reconfirm' | 'unchecked';
+        note?: string;
     }[];
     droppedNotes: number;
 }

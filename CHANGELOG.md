@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased – 2026-10-30 halott kód: A-politika; a lazítás a jóváhagyott forráshoz kötődik (ADR-043, ADR-044)
+
+- **A-politika (ADR-043, felhasználói döntés):** a referencia futásában le nem futó kód és a semmit nem változtató írás sorrendjét úgy ítéljük meg, mintha lefutna. A tanulónak nincs változás, a generátor eddig is így elemzett.
+  - **Mérés:** az orákulum megmondja, mely sorokat futtatja a referencia (`executedRows`); az osztályozó a csak halott kódot érintő, futásidőben egyenértékű elutasítást `intent`-ként számolja, nem résként.
+  - **Gyors baseline:** dobó JS-objektumprogramok 32,4% → 19,4%, `function` csoport 26,5% → 25%; a korpusz változatlan.
+  - **Határ:** a halott kódban a mérés a generátor pontatlanságát sem látja; az azonos értékű írást a mérés nem választja külön.
+- **A lazítás forráshoz kötése (ADR-044):** a szerzői lazítás a jóváhagyott forrás ujjlenyomatát őrzi (`sourceDigest`, additív sémamező).
+  - újraszámításkor változatlan forrásnál `reapplied`; megváltozott forrásnál `reconfirm`: a kényszer visszakerül, a megjegyzés a jelentésben marad, az újraerősítés a megszokott megerősített eltávolítás;
+  - a régi, ujjlenyomat nélküli lazítás `unchecked`: változatlanul érvényes, mostantól figyelt;
+  - a kapu a más forrásra jóváhagyott lazítást nem fogadja el magyarázatnak (`differs`); az érvényesség egyetlen helyen dől el (`relaxationHolds`);
+  - a minősítés panel megmondja, miért nem alkalmazta, és mit tehet a tanár.
+- **Felismerés:** a konstruktorban értékadással létrehozott mezők írása ma egész objektum írásnak számít; ez a nem dobó JS-objektumprogramok fő maradék oka. Egy naiv javítás hibás elfogadást okozott, ezért külön tervezést kap.
+- **Tesztek:** `dead-code-intent.test.mjs`, az ADR-044 esetei a `rule-editing` és az `author-rule-panel` tesztekben, a böngészős workbench-teszt az ujjlenyomatot is ellenőrzi.
+
 ## Unreleased – 2026-10-30 címkés objektumműveletek (ADR-042, v21)
 
 - **Szabály (v21):** a címkés `for…of`, `switch`, `if`, `try` vagy egysoros művelet a saját objektumokon az a művelet, amelyet címkéz; a körülvevő címkére mutató `break`/`continue` úgy értelmeződik, mint a címke nélküli. A címkés többsoros blokk és a címkés `while`/`for` barrier marad.

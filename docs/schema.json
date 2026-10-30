@@ -323,6 +323,10 @@
                 "minLength": 1,
                 "maxLength": 500
               },
+              "sourceDigest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{16}$"
+              },
               "removed": {
                 "type": "object",
                 "additionalProperties": false,

@@ -21,7 +21,7 @@
 import { validateSubmission } from './validator.js';
 import { compileCodeLineExercise, type CodeLineExercise, type RuleRelaxation } from './code-line.js';
 import { editabilityOrder, explainConstraints, type ConstraintExplanation, type DirectConstraint } from './constraint-explanation.js';
-import { evidenceStatus } from './evidence.js';
+import { evidenceStatus, sourceTextDigest } from './evidence.js';
 
 export type RuleEdit =
   | { kind: 'add-rule'; before: number; after: number; note?: string }
@@ -171,7 +171,7 @@ function apply(draft: CodeLineExercise, explanation: ConstraintExplanation, edit
         const reasons = (authoring.provenance ?? []).filter(entry => pairOf(entry, before, after) && entry.category !== 'author').map(({ category, code }) => ({ category, code }));
         const ruleNote = authoring.ruleNotes?.find(entry => pairOf(entry, before, after))?.note;
         const removed = origins.length ? { removed: { origins, reasons, ...(ruleNote ? { note: ruleNote } : {}) } } : {};
-        authoring.relaxations = [...(authoring.relaxations ?? []).filter(entry => !pairOf(entry, before, after)), { before, after, editability, ...(note ? { note } : {}), ...removed }];
+        authoring.relaxations = [...(authoring.relaxations ?? []).filter(entry => !pairOf(entry, before, after)), { before, after, editability, ...(note ? { note } : {}), sourceDigest: sourceTextDigest(draft.lines), ...removed }];
       }
       dropPair(before, after);
       return;
@@ -312,6 +312,12 @@ function assessEffect(before: CodeLineExercise, after: CodeLineExercise): EditEf
 }
 
 
+/** ADR-044: whether a recorded relaxation still holds for these lines: it was confirmed on this
+ * source, or recorded before fingerprints existed. The one place that decides it. */
+export function relaxationHolds(relaxation: Pick<RuleRelaxation, 'sourceDigest'>, lines: CodeLineExercise['lines']): boolean {
+  return relaxation.sourceDigest === undefined || relaxation.sourceDigest === sourceTextDigest(lines);
+}
+
 export interface RefreshReport {
   /** Author rules kept as mandatory edges (including former author dependencies). */
   authorRules: number;
@@ -320,8 +326,12 @@ export interface RefreshReport {
   /** Generated edges of the previous analysis, superseded by the regenerated ones. */
   supersededEdges: number;
   /** `reapplied`: removed again; `revoked`: the regenerated constraint is stronger and stays;
-   * `implied`: now only a transitive consequence; `obsolete`: no longer constrained at all. */
-  relaxations: { before: number; after: number; outcome: 'reapplied' | 'revoked' | 'implied' | 'obsolete' }[];
+   * `implied`: now only a transitive consequence; `obsolete`: no longer constrained at all.
+   * ADR-044: `reconfirm`: the source changed since the author confirmed it, so the constraint
+   * stays until a new removal confirms it again (the note travels with the report);
+   * `unchecked`: removed again, but recorded before fingerprints, so it was confirmed on an
+   * unknown source; it carries the current one from now on. */
+  relaxations: { before: number; after: number; outcome: 'reapplied' | 'revoked' | 'implied' | 'obsolete' | 'reconfirm' | 'unchecked'; note?: string }[];
   droppedNotes: number;
 }
 
@@ -350,13 +360,15 @@ export function mergeAuthorRules(original: CodeLineExercise, regenerated: CodeLi
   for (const line of original.lines) for (const before of line.dependencies) if (reasons(before, line.id).some(entry => entry.category === 'author') && !(original.edges ?? []).some(edge => pairOf(edge, before, line.id))) { keep(before, line.id, true); report.authorRules++; }
   const admitted = (): ConstraintExplanation => { const result = explainConstraints(model); if ('status' in result) throw Error(result.message); return result; };
   let explanation = admitted();
-  const relaxations: RuleRelaxation[] = [];
+  const relaxations: RuleRelaxation[] = [], source = sourceTextDigest(model.lines);
   for (const relaxation of original.authoring?.relaxations ?? []) {
     const { before, after } = relaxation, line = explanation.lines.find(item => item.id === after)!;
     const constraint = line.predecessors.find(item => item.before === before);
     if (!constraint) { report.relaxations.push({ before, after, outcome: line.ancestors.includes(before) ? 'implied' : 'obsolete' }); continue; }
     const current = constraint.editability;
     if (current === 'hard' || current === 'pedagogical' || editabilityOrder.indexOf(current) > editabilityOrder.indexOf(relaxation.editability)) { report.relaxations.push({ before, after, outcome: 'revoked' }); continue; }
+    // ADR-044: the author's reason (for example code that never runs) held for the source they saw.
+    if (!relaxationHolds(relaxation, model.lines)) { report.relaxations.push({ before, after, outcome: 'reconfirm', ...(relaxation.note ? { note: relaxation.note } : {}) }); continue; }
     const target = model.lines.find(item => item.id === after)!;
     // The regenerated analysis says what a later restore must bring back.
     const origins = constraint.origins.filter((origin): origin is 'dependency' | 'edge' => origin !== 'block');
@@ -365,8 +377,8 @@ export function mergeAuthorRules(original: CodeLineExercise, regenerated: CodeLi
     model.edges = model.edges!.filter(edge => !pairOf(edge, before, after));
     authoring.provenance = authoring.provenance!.filter(entry => !pairOf(entry, before, after));
     const { removed: previous, ...kept } = relaxation;
-    relaxations.push({ ...kept, editability: current, ...(origins.length ? { removed: { origins, reasons, ...(previous?.note ? { note: previous.note } : {}) } } : {}) });
-    report.relaxations.push({ before, after, outcome: 'reapplied' });
+    relaxations.push({ ...kept, editability: current, sourceDigest: source, ...(origins.length ? { removed: { origins, reasons, ...(previous?.note ? { note: previous.note } : {}) } } : {}) });
+    report.relaxations.push({ before, after, outcome: relaxation.sourceDigest === undefined ? 'unchecked' : 'reapplied' });
     explanation = admitted();
   }
   if (relaxations.length) authoring.relaxations = relaxations; else delete authoring.relaxations;

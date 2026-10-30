@@ -1,6 +1,13 @@
 /** 64-bit, non-cryptographic digest of the ordered line IDs, texts and scopes, as 16 hex digits. */
 export function codeLineDigest(lines) {
-    const text = JSON.stringify(lines.map(line => [line.id, line.code, line.scopeId]));
+    return digest(JSON.stringify(lines.map(line => [line.id, line.code, line.scopeId])));
+}
+/** ADR-044: digest of the reference source alone (the line texts in reference order). An author
+ * relaxation holds for the source it was confirmed on; IDs and scopes do not change what runs. */
+export function sourceTextDigest(lines) {
+    return digest(JSON.stringify(lines.map(line => line.code)));
+}
+function digest(text) {
     let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
     for (let i = 0; i < text.length; i++) {
         const unit = text.charCodeAt(i);
