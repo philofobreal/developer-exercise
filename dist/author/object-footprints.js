@@ -250,6 +250,11 @@ export function objectFootprints(list, file, compiler, checker, host) {
                 continue;
             else if (compiler.isContinueStatement(statement) && !statement.label && frame.loops)
                 continue;
+            // ADR-042: a jump to an enclosing label of this statement, interpreted the same way.
+            else if ((compiler.isBreakStatement(statement) || compiler.isContinueStatement(statement)) && statement.label && frame.labels?.has(statement.label.text))
+                continue;
+            else if (compiler.isLabeledStatement(statement))
+                returned = union(returned, block([statement.statement], { ...frame, labels: new Set([...frame.labels ?? [], statement.label.text]) }));
             // ADR-034: every clause (fall-through included) may run; a break leaves the switch.
             else if (compiler.isSwitchStatement(statement)) {
                 expression(statement.expression, frame);
@@ -663,7 +668,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
             return frame.fp;
         }
         // ADR-028: an if/else on own objects, both branches over-approximated; it must not leave the list early.
-        if (compiler.isIfStatement(statement) || compiler.isSwitchStatement(statement) || compiler.isTryStatement(statement) || compiler.isForOfStatement(statement)) {
+        if (compiler.isIfStatement(statement) || compiler.isSwitchStatement(statement) || compiler.isTryStatement(statement) || compiler.isForOfStatement(statement) || compiler.isLabeledStatement(statement)) {
             if (leaves(statement))
                 unknown();
             block([statement], frame);

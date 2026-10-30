@@ -112,10 +112,11 @@ test('generative flow programs: every accepted neighbour and sampled order keeps
  console.log(JSON.stringify(totals));
 });
 
-test('conservative: a body writing the iterated array, a labelled jump and an early return stay barriers',()=>{
+test('conservative: a body writing the iterated array, a jump to a label outside the loop and an early return stay barriers',()=>{
  const shapes={
   'writes the iterated array':['function f() {','  const list = [1];','  const other = [2];','  for (const entry of list) {','    if (list.length < 3) {','      list.push(entry);','    }','  }','  other.push(3);','  return [list, other];','}'],
-  'labelled break':['function f() {','  const list = [1];','  const other = [2];','  outer: for (const entry of list) {','    break outer;','  }','  other.push(3);','  return [list, other];','}'],
+  // ADR-042 (v21): a jump to a label of the loop itself is interpreted (labelled-footprints.test.mjs); one that leaves it for an enclosing label is not.
+  'jump to an outer label':['function f() {','  const list = [1];','  const other = [2];','  outer: {','    for (const entry of list) {','      break outer;','    }','    other.push(3);','  }','  return [list, other];','}'],
   'early return':['function f() {','  const list = [1];','  const other = [2];','  for (const entry of list) {','    return entry;','  }','  other.push(3);','  return [list, other];','}']
  };
  for(const [name,source] of Object.entries(shapes)){
@@ -124,4 +125,11 @@ test('conservative: a body writing the iterated array, a labelled jump and an ea
   const ordered=model.authoring.provenance.some(p=>p.after===push.id&&p.before>=loop.id);
   assert.ok(ordered||push.dependencies.some(id=>id>=loop.id),name+': the loop stays ordered before the later write');
  }
+});
+
+test('ADR-042 (v21): a labelled loop left by a jump to its own label is free beside an independent write',()=>{
+ const source=['function f() {','  const list = [1];','  const other = [2];','  outer: for (const entry of list) {','    break outer;','  }','  other.push(3);','  return [list, other];','}'];
+ const model=generate(source.join('\n')),push=model.lines.find(line=>line.code.trim()==='other.push(3);');
+ const loop=model.lines.find(line=>/outer: for/.test(line.code)),close=model.lines.find(line=>line.id>loop.id&&line.code.trim()==='}');
+ assert.ok(!model.authoring.provenance.some(p=>p.after===push.id&&p.before>=loop.id&&p.before<=close.id),'no constraint from the labelled loop to the independent write');
 });

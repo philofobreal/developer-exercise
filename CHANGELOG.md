@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-10-30 címkés objektumműveletek (ADR-042, v21)
+
+- **Szabály (v21):** a címkés `for…of`, `switch`, `if`, `try` vagy egysoros művelet a saját objektumokon az a művelet, amelyet címkéz; a körülvevő címkére mutató `break`/`continue` úgy értelmeződik, mint a címke nélküli. A címkés többsoros blokk és a címkés `while`/`for` barrier marad.
+- **Orákulum:** a P2 objektumművelet-definíciója (JS és TS) a címkés műveletet is ismeri, ezért ezek sorrendjét a P3 dönti el.
+- **Mérés azonos mércével:** az új orákulummal a v20-as generátor 19, a v21-es 17 rést ad a flow JS-ben (TS: 7 → 4), a többi csoport változatlan. A baseline újrarögzítve; a régi orákulumhoz mért számok nem összevethetők (lásd ADR-042).
+- **Tesztek:** `labelled-footprints.test.mjs` (szabad, kötött és barrier maradó esetek, JS és TS, a címkés `switch` azonos kényszerei); a v20-címketeszt verziófüggetlen.
+- **Címkék:** a v21 additív sémaenumérték; a példák és a minták csak az új címkét kapták.
+
 ## Unreleased – 2026-10-30 szkriptszintű globálisok kódmentes olvasása (ADR-041, v20)
 
 - **Szabály (v20):** a szkriptszintű, egyszer deklarált, név szerint sehol nem írt `var`/`let` primitív kezdőértékkel a szkript szintjén olvasva primitív, ha a referencia-sorrendben az olvasó előtt nincs kódot futtató szkriptszintű utasítás. A függvénytörzsből való olvasás változatlan.

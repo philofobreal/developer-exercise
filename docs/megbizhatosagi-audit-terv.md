@@ -21,7 +21,8 @@
   - a TS-szkriptek indokolatlan elutasítási aránya a gyors mérésben 18,6%-ról 0%-ra esett.
   - a 2. tétel 2a–2c és 2e része kész ([ADR-040](adr/040-unknown-calls-and-unescaped-objects.md), v19): a metódustörzsben a primitív argumentumú ismeretlen hívás külső hatásnyomot kap; a JS objektumprogramok aránya 26,6%-ról 10,9%-ra, a TS objektumprogramoké 11,3%-ról 0%-ra esett.
   - a szkriptszintű, sehol nem írt globálisok kódmentes olvasása ([ADR-041](adr/041-code-free-script-reads.md), v20): a mért fő ok a JS-szkriptekben; az arány 21,4%-ról 0,4%-ra esett (12 mag).
-  - **Következik:** a 3. tétel (hatásösszegzés); a 2d nem mért ok, dokumentált korlát.
+  - a 6. tétel mért esete, a címkés objektumművelet kész ([ADR-042](adr/042-labelled-object-operations.md), v21); azonos (új) orákulummal a flow JS rései 19-ről 17-re, a flow TS-éi 7-ről 4-re csökkentek.
+  - **Következik:** a 4. tétel (bizonyítottan véget érő ciklusok, a `while` miatti szökés), majd a 3. tétel (hatásösszegzés). Az 5. tétel felhasználói döntésre vár; a 2d nem mért ok, dokumentált korlát.
 
 ## 1. Összefoglaló ítélet
 

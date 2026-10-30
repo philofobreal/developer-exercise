@@ -50,23 +50,27 @@ export function statementOrdering(file, compiler, options = {}) {
             return false;
         return physical[first]?.trim() === file.text.slice(node.getStart(file), open.end).trim() && physical[last]?.trim() === file.text.slice(close.getStart(file), node.end).trim();
     };
-    /** ADR-028/034: a compound statement owns its first row (up to its opening brace) and its last row
-     * (the closing brace of its last block): if/else if chains, switch, try/catch/finally, for…of. */
-    const ownsCompound = (statement) => {
+    /** ADR-028/034: the opening and closing brace that end a compound statement's first and last row:
+     * if/else if chains, switch, try/catch/finally, for…of, and (ADR-042) a labelled one of these. */
+    const compoundBraces = (statement) => {
+        if (compiler.isLabeledStatement(statement))
+            return compoundBraces(statement.statement);
         if (compiler.isIfStatement(statement)) {
             let last = statement;
             while (compiler.isIfStatement(last))
                 last = last.elseStatement ?? last.thenStatement;
-            return ownsRows(statement, braces(statement.thenStatement)[0], braces(last)[1]);
+            return [braces(statement.thenStatement)[0], braces(last)[1]];
         }
         if (compiler.isSwitchStatement(statement))
-            return ownsRows(statement, ...braces(statement.caseBlock));
+            return braces(statement.caseBlock);
         if (compiler.isTryStatement(statement))
-            return ownsRows(statement, braces(statement.tryBlock)[0], braces(statement.finallyBlock ?? statement.catchClause?.block)[1]);
+            return [braces(statement.tryBlock)[0], braces(statement.finallyBlock ?? statement.catchClause?.block)[1]];
         if (compiler.isForOfStatement(statement))
-            return ownsRows(statement, ...braces(statement.statement));
-        return ownsRows(statement);
+            return braces(statement.statement);
+        return [];
     };
+    /** A compound statement owns its first row (up to its opening brace) and its last row. */
+    const ownsCompound = (statement) => ownsRows(statement, ...compoundBraces(statement));
     const braces = (node) => {
         if (!node)
             return [];

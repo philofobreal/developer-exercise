@@ -1,65 +1,65 @@
 {
- "class javascript scoped-effect-analysis-v20 returns": {
+ "class javascript scoped-effect-analysis-v21 returns": {
   "programs": 3,
   "orders": 160,
   "gap": 0,
   "gapRate": 0
  },
- "class typescript scoped-effect-analysis-v20 returns": {
+ "class typescript scoped-effect-analysis-v21 returns": {
   "programs": 3,
   "orders": 231,
   "gap": 5,
   "gapRate": 0.0556
  },
- "flow javascript scoped-effect-analysis-v20 returns": {
+ "flow javascript scoped-effect-analysis-v21 returns": {
   "programs": 3,
   "orders": 251,
-  "gap": 11,
-  "gapRate": 0.1571
+  "gap": 17,
+  "gapRate": 0.2179
  },
- "flow typescript scoped-effect-analysis-v20 returns": {
+ "flow typescript scoped-effect-analysis-v21 returns": {
   "programs": 3,
   "orders": 247,
-  "gap": 3,
-  "gapRate": 0.0462
+  "gap": 4,
+  "gapRate": 0.058
  },
- "function javascript scoped-effect-analysis-v20 returns": {
+ "function javascript scoped-effect-analysis-v21 returns": {
   "programs": 3,
   "orders": 203,
   "gap": 13,
   "gapRate": 0.2653
  },
- "object javascript scoped-effect-analysis-v20 returns": {
+ "object javascript scoped-effect-analysis-v21 returns": {
   "programs": 2,
   "orders": 165,
   "gap": 7,
   "gapRate": 0.1094
  },
- "object javascript scoped-effect-analysis-v20 throws": {
+ "object javascript scoped-effect-analysis-v21 throws": {
   "programs": 1,
   "orders": 85,
   "gap": 12,
   "gapRate": 0.3243
  },
- "object typescript scoped-effect-analysis-v20 returns": {
+ "object typescript scoped-effect-analysis-v21 returns": {
   "programs": 2,
   "orders": 165,
   "gap": 0,
   "gapRate": 0
  },
- "object typescript scoped-effect-analysis-v20 throws": {
+ "object typescript scoped-effect-analysis-v21 throws": {
   "programs": 1,
   "orders": 83,
   "gap": 1,
   "gapRate": 0.0333
  },
- "script javascript scoped-effect-analysis-v20 returns": {
+ "script javascript scoped-effect-analysis-v21 returns": {
   "programs": 3,
   "orders": 212,
   "gap": 2,
   "gapRate": 0.0244
  },
- "script typescript scoped-effect-analysis-v20 returns": {
+ "script typescript scoped-effect-analysis-v21 returns": {
   "programs": 3,
   "orders": 221,
   "gap": 0,

@@ -202,10 +202,14 @@ function jsObjectOperations(program){
    ||node.type==='ObjectExpression'&&node.properties.every(property=>property.type==='Property'&&!property.computed&&property.kind==='init'&&!property.method&&value(property.value))
    ||node.type==='UnaryExpression'&&node.operator!=='delete'&&value(node.argument)||node.type==='BinaryExpression'&&value(node.left)&&value(node.right);
   const thrown=item=>item.type==='ThrowStatement'&&item.argument.type==='NewExpression'&&item.argument.callee.type==='Identifier'&&['Error','TypeError','RangeError'].includes(item.argument.callee.name)&&item.argument.arguments.every(value);
-  const jump=item=>(item.type==='BreakStatement'||item.type==='ContinueStatement')&&!item.label;
+  // ADR-042: a labelled jump may name an enclosing label of the same operation.
+  const labels=new Set();
+  const jump=item=>(item.type==='BreakStatement'||item.type==='ContinueStatement')&&(!item.label||labels.has(item.label.name));
   const body=branch=>!branch||branch.type==='BlockStatement'&&branch.body.every(statement=>statement.type!=='VariableDeclaration'&&(operation(statement)||thrown(statement)||jump(statement)));
   const operation=item=>{
    if(item.type==='VariableDeclaration')return [...owned.values()].includes(item);
+   // ADR-042: a labelled operation is the operation it labels.
+   if(item.type==='LabeledStatement'){if(labels.has(item.label.name))return false;labels.add(item.label.name);const ok=operation(item.body);labels.delete(item.label.name);return ok;}
    // ADR-028/034: an if/else (if) chain whose tests and branches only operate on own objects (or throw).
    if(item.type==='IfStatement')return value(item.test)&&body(item.consequent)&&(!item.alternate||(item.alternate.type==='IfStatement'?operation(item.alternate):body(item.alternate)));
    // ADR-034: switch, try/catch/finally and for…of over an own object, built the same way.
@@ -320,10 +324,12 @@ function tsObjectOperations(file){
    ||ts.isArrayLiteralExpression(node)&&node.elements.every(value)||ts.isObjectLiteralExpression(node)&&node.properties.every(property=>ts.isPropertyAssignment(property)&&(ts.isIdentifier(property.name)||ts.isStringLiteral(property.name))&&value(property.initializer))
    ||ts.isPrefixUnaryExpression(node)&&value(node.operand)||ts.isBinaryExpression(node)&&!assignment.has(node.operatorToken.kind)&&value(node.left)&&value(node.right);
   const thrown=item=>ts.isThrowStatement(item)&&ts.isNewExpression(item.expression)&&ts.isIdentifier(item.expression.expression)&&['Error','TypeError','RangeError'].includes(item.expression.expression.text)&&(item.expression.arguments??[]).every(value);
-  const jump=item=>(ts.isBreakStatement(item)||ts.isContinueStatement(item))&&!item.label;
+  const labels=new Set();
+  const jump=item=>(ts.isBreakStatement(item)||ts.isContinueStatement(item))&&(!item.label||labels.has(item.label.text));
   const body=branch=>!branch||ts.isBlock(branch)&&branch.statements.every(statement=>!ts.isVariableStatement(statement)&&(operation(statement)||thrown(statement)||jump(statement)));
   const operation=item=>{
    if(ts.isVariableStatement(item))return [...owned.values()].includes(item);
+   if(ts.isLabeledStatement(item)){if(labels.has(item.label.text))return false;labels.add(item.label.text);const ok=operation(item.statement);labels.delete(item.label.text);return ok;}
    // ADR-028/034: an if/else (if) chain whose tests and branches only operate on own objects (or throw).
    if(ts.isIfStatement(item))return value(item.expression)&&body(item.thenStatement)&&(!item.elseStatement||(ts.isIfStatement(item.elseStatement)?operation(item.elseStatement):body(item.elseStatement)));
    // ADR-034: switch, try/catch/finally and for…of over an own object, built the same way.

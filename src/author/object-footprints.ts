@@ -182,8 +182,9 @@ export function objectFootprints(list: readonly ts.Statement[], file: ts.SourceF
  };
  const fresh = (owner: string, node: ts.Node, kind: Kind): string => {const id = owner + '|' + node.pos; if (!kinds.has(id)) {kinds.set(id, kind); changed = true;} return id;};
 
- /** `exits` (ADR-034): enclosing switches and loops an unlabelled `break` may leave; `loops`: those a `continue` may. */
-interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; stack: Set<string>; budget: {steps: number}; exits?: number; loops?: number;}
+ /** `exits` (ADR-034): enclosing switches and loops an unlabelled `break` may leave; `loops`: those a
+  * `continue` may; `labels` (ADR-042): enclosing labels a labelled jump may name. */
+interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; stack: Set<string>; budget: {steps: number}; exits?: number; loops?: number; labels?: ReadonlySet<string>;}
  const step = (frame: Frame): void => {if (++frame.budget.steps > 20_000) unknown();};
  const prim = (value: Value): void => {if (!value.prim || value.objs.size || value.other) unknown();};
 
@@ -232,6 +233,9 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
    // ADR-034: a jump out of the enclosing switch or loop. Interpreting what follows anyway only adds effects.
    else if (compiler.isBreakStatement(statement) && !statement.label && frame.exits) continue;
    else if (compiler.isContinueStatement(statement) && !statement.label && frame.loops) continue;
+   // ADR-042: a jump to an enclosing label of this statement, interpreted the same way.
+   else if ((compiler.isBreakStatement(statement) || compiler.isContinueStatement(statement)) && statement.label && frame.labels?.has(statement.label.text)) continue;
+   else if (compiler.isLabeledStatement(statement)) returned = union(returned, block([statement.statement], {...frame, labels: new Set([...frame.labels ?? [], statement.label.text])}));
    // ADR-034: every clause (fall-through included) may run; a break leaves the switch.
    else if (compiler.isSwitchStatement(statement)) {
     expression(statement.expression, frame);
@@ -515,7 +519,7 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
    return frame.fp;
   }
   // ADR-028: an if/else on own objects, both branches over-approximated; it must not leave the list early.
-  if (compiler.isIfStatement(statement) || compiler.isSwitchStatement(statement) || compiler.isTryStatement(statement) || compiler.isForOfStatement(statement)) {
+  if (compiler.isIfStatement(statement) || compiler.isSwitchStatement(statement) || compiler.isTryStatement(statement) || compiler.isForOfStatement(statement) || compiler.isLabeledStatement(statement)) {
    if (leaves(statement)) unknown();
    block([statement], frame);
    return frame.fp;
