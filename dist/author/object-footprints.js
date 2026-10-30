@@ -294,7 +294,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
                     if (frame.env.has(name))
                         frame.env.set(name, union(frame.env.get(name), PRIM));
                 frame.env.set(head.declarations[0].name.text, union(...[...iterated.objs].map(id => elements.get(id) ?? PRIM)));
-                const body = { reads: new Set(), writes: new Set(), mayThrow: false };
+                const body = { reads: new Set(), writes: new Set(), mayThrow: false, external: false };
                 returned = union(returned, block([statement.statement], { ...frame, fp: body, exits: (frame.exits ?? 0) + 1, loops: (frame.loops ?? 0) + 1 }));
                 // Writing the iterated array may extend the iteration: not shown to end.
                 if ([...iterated.objs].some(id => body.writes.has(at(id, WHOLE))))
@@ -302,6 +302,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
                 body.reads.forEach(key => frame.fp.reads.add(key));
                 body.writes.forEach(key => frame.fp.writes.add(key));
                 frame.fp.mayThrow ||= body.mayThrow;
+                frame.fp.external ||= body.external;
             }
             else
                 unknown();
@@ -537,6 +538,13 @@ export function objectFootprints(list, file, compiler, checker, host) {
         }
         if (compiler.isCallExpression(expr)) {
             const callee = unwrap(expr.expression);
+            if (compiler.isIdentifier(callee) && external(callee, frame) && !expr.questionDotToken) {
+                for (const argument of expr.arguments)
+                    prim(compiler.isSpreadElement(argument) ? unknown() : expression(argument, frame));
+                frame.fp.external = frame.fp.mayThrow = true;
+                // Its result is no own object: nothing it could return was reachable to it.
+                return OTHER;
+            }
             if (expr.questionDotToken || !compiler.isPropertyAccessExpression(callee) || callee.questionDotToken || expr.arguments.some(argument => compiler.isSpreadElement(argument)))
                 unknown();
             const access = callee;
@@ -613,9 +621,17 @@ export function objectFootprints(list, file, compiler, checker, host) {
         }
         return unknown();
     }
+    /** ADR-040: a callee name inside a body (never at list level, policy P2) that is no local of the
+     * body and that the program does not declare, or declares only ambiently (`declare function`).
+     * Direct `eval` sees the body's `this` and locals, so it is never external. */
+    function external(callee, frame) {
+        if (frame.self === null || frame.env.has(callee.text) || callee.text === 'eval' || callee.text === 'arguments')
+            return false;
+        return !(checker.getSymbolAtLocation(callee)?.declarations ?? []).some(declaration => declaration.getSourceFile() === file && !has(declaration, S.DeclareKeyword));
+    }
     /** One list-level statement: a construction, or an operation on own objects. */
     function statementFootprint(statement, budget) {
-        const frame = { self: null, env: new Map(), fp: { reads: new Set(), writes: new Set(), mayThrow: false }, stack: new Set(), budget };
+        const frame = { self: null, env: new Map(), fp: { reads: new Set(), writes: new Set(), mayThrow: false, external: false }, stack: new Set(), budget };
         if (compiler.isVariableStatement(statement)) {
             const declaration = statement.declarationList.declarations[0], symbol = checker.getSymbolAtLocation(declaration.name), own = symbol && owned.get(symbol);
             if (!own || own.statement !== statement)
@@ -705,7 +721,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
     // ADR-031: the state the body starts from, as a construction leaves it.
     if (self) {
         try {
-            const frame = { self, env: new Map(), fp: { reads: new Set(), writes: new Set(), mayThrow: false }, stack: new Set(), budget };
+            const frame = { self, env: new Map(), fp: { reads: new Set(), writes: new Set(), mayThrow: false, external: false }, stack: new Set(), budget };
             for (const [name, initializer] of selfInfo.fields)
                 addField(self, name, initializer ? expression(initializer, frame) : PRIM);
             for (const name of selfInfo.parameterFields)
@@ -775,7 +791,11 @@ export function footprintConflicts(a, b) {
     // ADR-028: only two possible throws race for the surfacing exception. A statement that cannot
     // throw touches only this list's own, unescaped objects, which no one observes once the other
     // throws out of the block, and any state the throw depends on is a read conflict below.
-    if (a.mayThrow && b.mayThrow)
+    // ADR-040: two external calls write outside state in order (and either may throw); an external
+    // call may also never return, which orders it with a possible throw like a throw of its own.
+    if (a.external && b.external)
+        found.push('external-call-order');
+    else if ((a.mayThrow || a.external) && (b.mayThrow || b.external))
         found.push('may-throw');
     if (meets(a.writes, b.reads))
         found.push('object-read-after-write');

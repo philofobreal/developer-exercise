@@ -12,19 +12,27 @@
  *    reference (an item in a store, a shared log in two objects) is seen by every later read or
  *    mutation through it, whatever the order;
  *  - a fresh array or object created inside a body is an object of its own, per owner and site.
- * Anything outside this subset — unknown or global calls, statics, closures that escape,
+ * Anything outside this subset — unknown calls at list level, statics, closures that escape,
  * implicit conversion of an object, inheritance, prototype or reflection tricks — makes the
  * statement unknown (no footprint), and it stays an ordinary barrier. An object that occurs in
  * any statement without a footprint (other than the list's `return`) escapes: unknown code may
  * reach it, so no statement touching it gets a footprint either. Two footprinted statements
  * commute when neither may throw and neither writes an object the other reads or writes.
+ *
+ * ADR-040 (v19): inside a body that runs on an own object, a call of a function the program does
+ * not declare, with primitive arguments only, is external: unknown code that cannot reach any
+ * own object (it receives no reference, and every name of an own object is in this list), but
+ * may throw, never return or write outside state. It marks the footprint `external`; two
+ * external footprints keep their order, and an external one orders like a possible throw.
  */
 import type ts from 'typescript';
 type Compiler = typeof ts;
+/** `external` (ADR-040): the statement runs code outside the program (a trace, outside state). */
 export interface Footprint {
     reads: Set<string>;
     writes: Set<string>;
     mayThrow: boolean;
+    external: boolean;
 }
 /** `primitive`: whether a list-level expression is an effect-free primitive (the analyser's own test). */
 /** `enumeratedKeys` (ADR-029): the program may list enumerable keys, so a write that adds a key orders like a whole-object write. */
@@ -34,5 +42,5 @@ export interface FootprintHost {
 }
 export declare function objectFootprints(list: readonly ts.Statement[], file: ts.SourceFile, compiler: Compiler, checker: ts.TypeChecker, host: FootprintHost): Map<ts.Statement, Footprint>;
 /** Why two footprinted statements must keep their order; empty when they commute. */
-export declare function footprintConflicts(a: Footprint, b: Footprint): ('may-throw' | 'object-read-after-write' | 'object-write-after-read' | 'object-write-after-write')[];
+export declare function footprintConflicts(a: Footprint, b: Footprint): ('external-call-order' | 'may-throw' | 'object-read-after-write' | 'object-write-after-read' | 'object-write-after-write')[];
 export {};

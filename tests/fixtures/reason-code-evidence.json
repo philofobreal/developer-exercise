@@ -279,6 +279,27 @@
    10
   ]
  },
+ "external-call-order": {
+  "kind": "justified",
+  "fixture": "prompt-unknown-call",
+  "order": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   13,
+   12,
+   14,
+   15
+  ]
+ },
  "function-declaration-not-hoistable": {
   "kind": "occurrence",
   "fixture": "ch-block-function-declaration"

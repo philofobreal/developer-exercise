@@ -12,10 +12,9 @@ const generate=source=>generateCodeLineExercise({source:source.join('\n'),langua
 const codes=model=>[...new Set(model.authoring.provenance.map(entry=>entry.code))].sort();
 const free=(model,row)=>model.lines[row-1].dependencies.length===0&&!model.lines.some(line=>line.dependencies.includes(row));
 
-test('the generation rule is v18 and the formal contract names it as the current label',async()=>{
- assert.equal(DEPENDENCY_POLICY,'scoped-effect-analysis-v18');
+test('the formal contract names the generation rule as the current label, and v18 as ADR-039',async()=>{
  const contract=await readFile(new URL('../docs/formal-ordering-contract.md',import.meta.url),'utf8');
- assert.match(contract,/új generáláskor `scoped-effect-analysis-v18`/);
+ assert.ok(contract.includes(`új generáláskor \`${DEPENDENCY_POLICY}\``),DEPENDENCY_POLICY);
  assert.match(contract,/\| `scoped-effect-analysis-v18` \| \[ADR-039\]/);
 });
 

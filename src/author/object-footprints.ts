@@ -12,17 +12,24 @@
  *    reference (an item in a store, a shared log in two objects) is seen by every later read or
  *    mutation through it, whatever the order;
  *  - a fresh array or object created inside a body is an object of its own, per owner and site.
- * Anything outside this subset — unknown or global calls, statics, closures that escape,
+ * Anything outside this subset — unknown calls at list level, statics, closures that escape,
  * implicit conversion of an object, inheritance, prototype or reflection tricks — makes the
  * statement unknown (no footprint), and it stays an ordinary barrier. An object that occurs in
  * any statement without a footprint (other than the list's `return`) escapes: unknown code may
  * reach it, so no statement touching it gets a footprint either. Two footprinted statements
  * commute when neither may throw and neither writes an object the other reads or writes.
+ *
+ * ADR-040 (v19): inside a body that runs on an own object, a call of a function the program does
+ * not declare, with primitive arguments only, is external: unknown code that cannot reach any
+ * own object (it receives no reference, and every name of an own object is in this list), but
+ * may throw, never return or write outside state. It marks the footprint `external`; two
+ * external footprints keep their order, and an external one orders like a possible throw.
  */
 import type ts from 'typescript';
 type Compiler = typeof ts;
 
-export interface Footprint {reads: Set<string>; writes: Set<string>; mayThrow: boolean;}
+/** `external` (ADR-040): the statement runs code outside the program (a trace, outside state). */
+export interface Footprint {reads: Set<string>; writes: Set<string>; mayThrow: boolean; external: boolean;}
 /** `primitive`: whether a list-level expression is an effect-free primitive (the analyser's own test). */
 /** `enumeratedKeys` (ADR-029): the program may list enumerable keys, so a write that adds a key orders like a whole-object write. */
 export interface FootprintHost {primitive(expr: ts.Expression): boolean; enumeratedKeys?: boolean;}
@@ -260,12 +267,12 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
     // Locals the body assigns lose a known value: a later iteration may see another one.
     for (const name of assignedNames(statement.statement)) if (frame.env.has(name)) frame.env.set(name, union(frame.env.get(name)!, PRIM));
     frame.env.set(((head as ts.VariableDeclarationList).declarations[0]!.name as ts.Identifier).text, union(...[...iterated.objs].map(id => elements.get(id) ?? PRIM)));
-    const body: Footprint = {reads: new Set(), writes: new Set(), mayThrow: false};
+    const body: Footprint = {reads: new Set(), writes: new Set(), mayThrow: false, external: false};
     returned = union(returned, block([statement.statement], {...frame, fp: body, exits: (frame.exits ?? 0) + 1, loops: (frame.loops ?? 0) + 1}));
     // Writing the iterated array may extend the iteration: not shown to end.
     if ([...iterated.objs].some(id => body.writes.has(at(id, WHOLE)))) unknown();
     body.reads.forEach(key => frame.fp.reads.add(key));body.writes.forEach(key => frame.fp.writes.add(key));
-    frame.fp.mayThrow ||= body.mayThrow;
+    frame.fp.mayThrow ||= body.mayThrow;frame.fp.external ||= body.external;
    } else unknown();
   }
   return returned;
@@ -421,6 +428,12 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
   }
   if (compiler.isCallExpression(expr)) {
    const callee = unwrap(expr.expression);
+   if (compiler.isIdentifier(callee) && external(callee, frame) && !expr.questionDotToken) {
+    for (const argument of expr.arguments) prim(compiler.isSpreadElement(argument) ? unknown() : expression(argument, frame));
+    frame.fp.external = frame.fp.mayThrow = true;
+    // Its result is no own object: nothing it could return was reachable to it.
+    return OTHER;
+   }
    if (expr.questionDotToken || !compiler.isPropertyAccessExpression(callee) || callee.questionDotToken || expr.arguments.some(argument => compiler.isSpreadElement(argument))) unknown();
    const access = callee as ts.PropertyAccessExpression;
    return call(expression(access.expression, frame), nameOf(access.name)!, expr.arguments, frame);
@@ -473,9 +486,17 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
   return unknown();
  }
 
+ /** ADR-040: a callee name inside a body (never at list level, policy P2) that is no local of the
+  * body and that the program does not declare, or declares only ambiently (`declare function`).
+  * Direct `eval` sees the body's `this` and locals, so it is never external. */
+ function external(callee: ts.Identifier, frame: Frame): boolean {
+  if (frame.self === null || frame.env.has(callee.text) || callee.text === 'eval' || callee.text === 'arguments') return false;
+  return !(checker.getSymbolAtLocation(callee)?.declarations ?? []).some(declaration => declaration.getSourceFile() === file && !has(declaration, S.DeclareKeyword));
+ }
+
  /** One list-level statement: a construction, or an operation on own objects. */
  function statementFootprint(statement: ts.Statement, budget: {steps: number}): Footprint {
-  const frame: Frame = {self: null, env: new Map(), fp: {reads: new Set(), writes: new Set(), mayThrow: false}, stack: new Set(), budget};
+  const frame: Frame = {self: null, env: new Map(), fp: {reads: new Set(), writes: new Set(), mayThrow: false, external: false}, stack: new Set(), budget};
   if (compiler.isVariableStatement(statement)) {
    const declaration = statement.declarationList.declarations[0]!, symbol = checker.getSymbolAtLocation(declaration.name), own = symbol && owned.get(symbol);
    if (!own || own.statement !== statement) unknown();
@@ -542,7 +563,7 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
  // ADR-031: the state the body starts from, as a construction leaves it.
  if (self) {
   try {
-   const frame: Frame = {self, env: new Map(), fp: {reads: new Set(), writes: new Set(), mayThrow: false}, stack: new Set(), budget};
+   const frame: Frame = {self, env: new Map(), fp: {reads: new Set(), writes: new Set(), mayThrow: false, external: false}, stack: new Set(), budget};
    for (const [name, initializer] of selfInfo!.fields) addField(self, name, initializer ? expression(initializer, frame) : PRIM);
    for (const name of selfInfo!.parameterFields) addField(self, name, OTHER);
   } catch (error) {if (!(error instanceof Unknown)) throw error; escaped.add(self);}
@@ -577,7 +598,7 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
 }
 
 /** Why two footprinted statements must keep their order; empty when they commute. */
-export function footprintConflicts(a: Footprint, b: Footprint): ('may-throw' | 'object-read-after-write' | 'object-write-after-read' | 'object-write-after-write')[] {
+export function footprintConflicts(a: Footprint, b: Footprint): ('external-call-order' | 'may-throw' | 'object-read-after-write' | 'object-write-after-read' | 'object-write-after-write')[] {
  // ADR-028: fields of one object meet when equal or when either side is the whole object.
  const field = (key: string): string => key.slice(key.lastIndexOf('::') + 2);
  const meets = (x: Set<string>, y: Set<string>): boolean => [...x].some(p => [...y].some(q => objectOf(p) === objectOf(q) && (field(p) === WHOLE || field(q) === WHOLE || field(p) === field(q))));
@@ -585,7 +606,10 @@ export function footprintConflicts(a: Footprint, b: Footprint): ('may-throw' | '
  // ADR-028: only two possible throws race for the surfacing exception. A statement that cannot
  // throw touches only this list's own, unescaped objects, which no one observes once the other
  // throws out of the block, and any state the throw depends on is a read conflict below.
- if (a.mayThrow && b.mayThrow) found.push('may-throw');
+ // ADR-040: two external calls write outside state in order (and either may throw); an external
+ // call may also never return, which orders it with a possible throw like a throw of its own.
+ if (a.external && b.external) found.push('external-call-order');
+ else if ((a.mayThrow || a.external) && (b.mayThrow || b.external)) found.push('may-throw');
  if (meets(a.writes, b.reads)) found.push('object-read-after-write');
  if (meets(a.reads, b.writes)) found.push('object-write-after-read');
  if (meets(a.writes, b.writes)) found.push('object-write-after-write');

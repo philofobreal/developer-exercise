@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased – 2026-10-30 külső hívás a metódustörzsben (ADR-040, v19)
+
+- **Szabály (v19):** a saját objektumon futó törzsben a program által nem deklarált függvény hívása csak primitív argumentumokkal (saját mezőt olvasó argumentummal is) `external` hatásnyomot kap, és az objektum nem szökik meg.
+  - két külső hívás kötött: új indokkód, `external-call-order` (`effect`);
+  - külső hívás és lehetséges kivétel kötött (`may-throw`), elkapott hívással is, mert a külső kód nem is térhet vissza;
+  - listaszintű ismeretlen hívás barrier marad (P2); a közvetlen `eval`, az objektum argumentum, a deklarált és az árnyékolt hívott név ismeretlen kód.
+- **Mérés (gyors generatív, v18 → v19):** JS objektumprogramok 26,6% → 10,9%, dobó referenciával 43,2% → 32,4%; TS objektumprogramok 11,3% → 0%, dobó referenciával 16,7% → 3,3%. A többi csoport változatlan, nincs hibás elfogadás. A korpusz-baseline változatlan.
+- **Tesztek:** a tanúk átállítva (`escape-free-shout-beside-writes`: 11 → 0 indokolatlan elutasítás), új szabad, kötött és ismeretlen maradó tanúk; az escape-programok a fixture-katalógusba kerültek; az `external-call-order` bizonyítéka a jegyzékben; a verziócímke-teszt verziófüggetlen lett.
+- **Címkék:** a v19 additív sémaenumérték. A `class-inventory-ts` példa, a `evaluate-legacy-serial.corrected.json` és a TypeScript-minták csak az új címkét kapták; a függőségeik változatlanok.
+
 ## Unreleased – 2026-10-29 sorvég-kapu; a szökésanalízis terve és tanúi (ADR-040, javasolt)
 
 - **Sorvégek:**

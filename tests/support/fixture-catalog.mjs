@@ -1,9 +1,10 @@
 /** Every fixed or seeded program the measurements may name by id: the corpus, the object
- * fixtures and the seeded random programs (author tooling). Pinned evidence refers to programs
+ * fixtures, the escape witnesses and the seeded random programs (author tooling). Pinned evidence refers to programs
  * by id only, so the program text stays defined in one place. */
 import {corpus} from '../fixtures/ordering-corpus.mjs';
 import {objectFixtures} from '../fixtures/object-programs.mjs';
 import {reasonCodePrograms} from '../fixtures/reason-code-programs.mjs';
+import {escapePrograms} from '../fixtures/escape-programs.mjs';
 import {randomProgram,randomClassProgram,randomScriptProgram,randomObjectProgram,randomFlowProgram} from './random-programs.mjs';
 
 const seeded=[
@@ -15,7 +16,7 @@ const seeded=[
 ];
 /** The program named `id`; throws for an unknown id. */
 export function fixtureById(id){
- const fixed=corpus.get(id)??objectFixtures.get(id)??reasonCodePrograms.get(id);
+ const fixed=corpus.get(id)??objectFixtures.get(id)??reasonCodePrograms.get(id)??escapePrograms.get(id);
  if(fixed)return {language:'javascript',...fixed};
  for(const [pattern,make] of seeded){const match=pattern.exec(id);if(match)return make(match);}
  throw Error('unknown fixture '+id);
@@ -28,7 +29,7 @@ export const LANGUAGES=['javascript','typescript'];
 
 /** The fixed programs and `seeds` seeded programs of every kind and language. */
 export function catalog(seeds=8){
- const programs=[...corpus.values(),...objectFixtures.values(),...reasonCodePrograms.values()].map(fixture=>({language:'javascript',...fixture}));
+ const programs=[...corpus.values(),...objectFixtures.values(),...reasonCodePrograms.values(),...escapePrograms.values()].map(fixture=>({language:'javascript',...fixture}));
  for(let seed=1;seed<=seeds;seed++)for(const make of Object.values(PROGRAM_KINDS))for(const language of LANGUAGES){const program=make(seed,{language});if(program)programs.push(program);}
  return programs;
 }

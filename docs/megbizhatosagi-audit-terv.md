@@ -19,7 +19,8 @@
   - a kategóriát kizárólag a jegyzék adja, a modellek bájtra azonosak;
   - a `declare` változók pozíciófüggetlenek;
   - a TS-szkriptek indokolatlan elutasítási aránya a gyors mérésben 18,6%-ról 0%-ra esett.
-  - **Következik:** a 2. tétel (szökésanalízis).
+  - a 2. tétel 2a–2c és 2e része kész ([ADR-040](adr/040-unknown-calls-and-unescaped-objects.md), v19): a metódustörzsben a primitív argumentumú ismeretlen hívás külső hatásnyomot kap; a JS objektumprogramok aránya 26,6%-ról 10,9%-ra, a TS objektumprogramoké 11,3%-ról 0%-ra esett.
+  - **Következik:** a 2d (objektumot átadó argumentum), majd a 3. tétel (hatásösszegzés).
 
 ## 1. Összefoglaló ítélet
 
@@ -166,11 +167,11 @@ Minden tétel új policyverzió, ADR, pozitív és negatív fixture, és utána 
 0. **Tervezési előfeltétel (ADR-038 adóssága):** a kibocsátó helyek ne adják meg kézzel a kategóriát, hanem a jegyzékből vezessék le. Ez kb. 60 hely; a kimenet nem változhat, amit a kódleltár, a korpusz és a generatív küszöbök igazolnak.
 1. **`declare const` és társai (gyors javítás).** A változódeklaráló `declare` utasítás pozíciófüggetlen, ha a név egyedi.
 2. **Szökésanalízis az ismeretlen hívásokra** (a legnagyobb tétel). Részfeladatok, ebben a sorrendben:
-   - **2a – tervezés és tanúk (kész):** az [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) javasolt szabálya és helyességi érve; tanúprogramok a mostani túlszigorúság és a megtartandó sorrendek rögzítésére ([escape-witnesses.test.mjs](../tests/escape-witnesses.test.mjs)).
-   - **2b – implementáció (v19):** a `statement-ordering` páronkénti szabálya. Egy nem dobó, hatásnyomos utasítás felcserélhető egy hatásnyom nélküli, nem vezérlésátadó barrierrel.
-   - **2c – tesztek és mérés:** a tanúk átállítása (a rés 0), pozitív és negatív fixture-ök, a jegyzék bizonyítékai, a generatív és a korpusz-baseline tudatos újrarögzítése, kampány.
-   - **2d – kiterjesztés:** ismeretlen hívás, amelynek argumentuma saját objektum mezőjét olvassa (primitív érték). Ilyenkor a hívás olvasási hatásnyomot kap, és nem szökteti meg az objektumot.
-   - **2e – dokumentáció:** ADR elfogadva, formális szerződés v19, CHANGELOG.
+   - **2a – tervezés és tanúk (kész):** az [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) szabálya és helyességi érve; tanúprogramok ([escape-witnesses.test.mjs](../tests/escape-witnesses.test.mjs)).
+   - **2b – implementáció (kész, v19):** a hatásnyom-értelmezés a törzsben a primitív argumentumú ismeretlen hívást `external` hatásnyomként fogadja el. A saját mezőt olvasó argumentum (eredetileg 2d) ide került, mert a mért minta (`record('shout', this.name)`) ezt igényli.
+   - **2c – tesztek és mérés (kész):** a tanúk átállítva (a rés 0), edge case-ek (`eval`, objektum argumentum, deklarált és árnyékolt hívott név, elkapott hívás, ambiens TS-függvény, konstruktor, callback), az `external-call-order` bizonyítéka, a generatív baseline újrarögzítve.
+   - **2d – kiterjesztés (nyitott):** ismeretlen hívás, amely saját objektumot kap argumentumként. Ehhez a referencia megtartását is modellezni kell, ezért ma szökés.
+   - **2e – dokumentáció (kész):** ADR elfogadva, formális szerződés v19, CHANGELOG.
    - Ha egy ismeretlen hívás csak primitív értéket kap, nem fér hozzá egyetlen még meg nem szökött saját objektumhoz sem, ezért azok műveleteivel felcserélhető.
    - Megmarad a sorrend a többi ismeretlen hívással, a globálisokkal és a lehetséges kivételekkel (`may-throw`).
    - Egy objektum megszökik, ha ismeretlen kódnak adják át, globálisba vagy closure-ba kerül, vagy ilyen objektumban tárolják.
