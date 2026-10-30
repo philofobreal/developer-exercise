@@ -19,8 +19,8 @@ function swapped(model,first,second){
 }
 const classify=(id,first,second)=>{const fixture=escapePrograms.get(id),model=generate(fixture);return createClassifier(fixture,model).classify(swapped(model,first,second));};
 
-test('the generation rule is v19, introduced by ADR-040 in the formal contract',async()=>{
- assert.equal(DEPENDENCY_POLICY,'scoped-effect-analysis-v19');
+test('v19 is introduced by ADR-040 in the formal contract and is at most the generation rule',async()=>{
+ assert.ok(Number(DEPENDENCY_POLICY.split('-v')[1])>=19,DEPENDENCY_POLICY);
  const contract=await readFile(new URL('../docs/formal-ordering-contract.md',import.meta.url),'utf8');
  assert.match(contract,/\| `scoped-effect-analysis-v19` \| \[ADR-040\]/);
 });

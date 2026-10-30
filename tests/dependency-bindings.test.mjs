@@ -41,9 +41,17 @@ for(const language of ['javascript','typescript']){
   for(const order of permute([2,3,4,5]))assert.equal(check(m,[1,...order,6,7]).status,order.indexOf(2)<order.indexOf(4)&&order.indexOf(3)<order.indexOf(4)?'accepted':'rejected');
  });
 }
-for(const statement of ['const c = call();','const c = obj.value;','const c = ++a;','const c = new Thing();','const { c } = obj;','const c = unknown;','const c = a = 3;','const c = a[0];','const c = `value ${a}`;','const c = 1n;','const c = [...b];','const c = { [b]: 1 };','const c = { __proto__: null };','const c = a + 1;','let c = a * 2;','const c = { ...b };','class C extends a {}'])test('unsupported or effectful declaration remains a barrier: '+statement,()=>{
+for(const statement of ['const c = call();','const c = obj.value;','const c = ++a;','const c = new Thing();','const { c } = obj;','const c = unknown;','const c = a = 3;','const c = a[0];','const c = 1n;','const c = [...b];','const c = { [b]: 1 };','const c = { __proto__: null };','const c = { ...b };','class C extends a {}'])test('unsupported or effectful declaration remains a barrier: '+statement,()=>{
  const m=generate('let a = 1;\nconst b = 2;\n'+statement+'\nconst x = 3;\nconst y = 4;');
  assert.equal(check(m,[1,2,4,3,5]).status,'rejected');assert.equal(check(m,[1,2,3,5,4]).status,'accepted');
+});
+// ADR-041 (v20): a script-level `let a = 1` is writable through the global scope, so reading it
+// is primitive only while no script-level statement that may run code precedes the read.
+for(const statement of ['const c = `value ${a}`;','const c = a + 1;','let c = a * 2;'])test('a script-level read of a never-written let is primitive only before any code ran: '+statement,()=>{
+ const free=generate('let a = 1;\nconst b = 2;\n'+statement+'\nconst x = 3;\nconst y = 4;');
+ assert.equal(check(free,[1,2,4,3,5]).status,'accepted');
+ const after=generate('let a = 1;\nrun();\n'+statement+'\nconst x = 3;\nconst y = 4;');
+ assert.equal(check(after,[1,2,4,3,5]).status,'rejected');assert.equal(check(after,[1,2,3,5,4]).status,'accepted');
 });
 // ADR-008: allocations of fresh literals and binding reads cannot run user code
 // or throw once their inputs exist. The swap is accepted AND an independent

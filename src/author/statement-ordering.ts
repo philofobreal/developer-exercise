@@ -161,6 +161,16 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
  };
  collectUses(file);
 
+ /** Script-level units summarised so far, in source order (filled while the file's list is summarised). */
+ const scriptUnits: Summary[] = [];
+ /** ADR-041 (v20): a read at script level that no script-level statement able to run code precedes.
+  * A pure unit and a barrier of the script list keep their order (P2), so every accepted order has
+  * no such statement before the read either: no code ran yet, through the global scope or not. */
+ const codeFreeBefore = (identifier: ts.Node): boolean => {
+  if (context(identifier) !== file) return false;
+  const index = file.statements.findIndex(statement => within(statement, identifier));
+  return index >= 0 && scriptUnits.length >= index && scriptUnits.slice(0, index).every(unit => unit.kind === 'pure' || unit.kind === 'position-free');
+ };
  /** Resolves an evaluation-time identifier read to a binding that is initialised whenever the read runs. */
  function binding(identifier: ts.Identifier, symbol: ts.Symbol | undefined): Binding | null {
   const declaration = unique(symbol);
@@ -181,8 +191,9 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
    const lexical = (list.flags & compiler.NodeFlags.BlockScoped) !== 0, row = sameContext(owner);
    // From another function context a let/const may still be in its TDZ when the read runs.
    if (lexical && row === null) return null;
-   // Never-written let/var behave like const; script-level ones stay writable through the global scope.
-   const constant = (list.flags & compiler.NodeFlags.BlockScoped) === compiler.NodeFlags.Const || !!symbol && !written.has(symbol) && context(owner) !== file;
+   // Never-written let/var behave like const; script-level ones stay writable through the global
+   // scope, so only a script-level read that no code-running statement precedes sees them unchanged.
+   const constant = (list.flags & compiler.NodeFlags.BlockScoped) === compiler.NodeFlags.Const || !!symbol && !written.has(symbol) && (context(owner) !== file || codeFreeBefore(identifier));
    return {row, primitiveInitializer: (constant || counter()) && declaration.initializer ? declaration.initializer : null};
   }
   if (compiler.isParameter(declaration) && compiler.isIdentifier(declaration.name)) {
@@ -504,7 +515,8 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
  };
  function visit(node: ts.Node): void {
   if (compiler.isSourceFile(node) || compiler.isBlock(node) || compiler.isModuleBlock(node)) {
-   const summaries = node.statements.map(statement => summary(statement, node)), sourceFile = compiler.isSourceFile(node);
+   const sourceFile = compiler.isSourceFile(node), summaries = sourceFile ? scriptUnits : [];
+   for (const statement of node.statements) summaries.push(summary(statement, node));
    // ADR-025: in a function-context list, statements on the list's own objects get footprints.
    if (compiler.isBlock(node) && context(node) !== file) {
     const footprints = objectFootprints(node.statements, file, compiler, checker, {primitive: expr => primitive(expr, new Set()), enumeratedKeys: options.enumeratedKeys ?? true});

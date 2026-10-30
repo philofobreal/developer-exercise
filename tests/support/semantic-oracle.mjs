@@ -426,7 +426,7 @@ function effectPairs(lists,key,classify,positionFree,commutes,objectOperations=(
    if(operation(a)&&operation(b))continue;
    // ADR-025 (v12): a local object operation and a statement without external effect (a local
    // write) are ordered only by their name conflicts; P3 judges whether a throw is observed.
-   if(operation(a)&&!cb.external||operation(b)&&!ca.external){if(meets(ca.writes,cb.reads)||meets(ca.writes,cb.writes)||meets(ca.reads,cb.writes))pairs.push(key(a)+' '+key(b));continue;}
+   if(operation(a)&&!cb.external||operation(b)&&!ca.external){if(meets(ca.writes,cb.reads)||meets(ca.writes,cb.writes)||meets(ca.reads,cb.writes))pairs.push(key(a)+'\u0000'+key(b));continue;}
    // ADR-019: an effect-free statement may cross an external one that cannot observe it.
    if(ca.external!==cb.external&&(ca.external?commutes(b,a,chain):commutes(a,b,chain)))continue;
    if(ca.external||cb.external||meets(ca.writes,cb.reads)||meets(ca.writes,cb.writes)||meets(ca.reads,cb.writes))pairs.push(key(a)+'\u0000'+key(b));

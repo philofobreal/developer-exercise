@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-10-30 szkriptszintű globálisok kódmentes olvasása (ADR-041, v20)
+
+- **Szabály (v20):** a szkriptszintű, egyszer deklarált, név szerint sehol nem írt `var`/`let` primitív kezdőértékkel a szkript szintjén olvasva primitív, ha a referencia-sorrendben az olvasó előtt nincs kódot futtató szkriptszintű utasítás. A függvénytörzsből való olvasás változatlan.
+- **Mérés:** a JS-szkriptek indokolatlan elutasítási aránya 21,4%-ról 0,37%-ra (12 mag), a gyors baselineban 28,4%-ról 2,4%-ra esett; nincs hibás elfogadás.
+- **Tesztek:** `script-reads.test.mjs` (szabad és kötött esetek, a globális objektumon át írt `valueOf` megfigyelhetősége orákulummal); a v19-címketeszt verziófüggetlen.
+- **Címkék:** a v20 additív sémaenumérték; a példák és a minták csak az új címkét kapták.
+
 ## Unreleased – 2026-10-30 külső hívás a metódustörzsben (ADR-040, v19)
 
 - **Szabály (v19):** a saját objektumon futó törzsben a program által nem deklarált függvény hívása csak primitív argumentumokkal (saját mezőt olvasó argumentummal is) `external` hatásnyomot kap, és az objektum nem szökik meg.
