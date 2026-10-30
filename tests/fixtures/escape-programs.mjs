@@ -20,6 +20,9 @@ export const escapePrograms=new Map([
  ['escape-free-caught-external',{free:true,source:[...boxWith('  safeShout() {','    try {',"      record('safe', this.name);",'    } catch (error) {','      this.log.push(0);','    }','  }'),...run('  a.add(1);','  b.safeShout();','  a.check(-1);')]}],
  // TypeScript: an ambient declaration names the environment's function, still external.
  ['escape-free-ambient-typescript',{free:true,language:'typescript',source:['declare function record(...args: unknown[]): void;','class Box {','  log: number[] = [];','  constructor(public name: string) {}','  add(value: number): void {','    this.log.push(value);','  }','  shout(): void {',"    record('shout', this.name);",'  }','}','function run(): string {',"  const a = new Box('a');","  const b = new Box('b');",'  a.add(1);','  b.shout();','  a.add(2);','  return JSON.stringify([a, b]);','}']}],
+ // A caught external call beside a local write: free when the write reads only this function's
+ // bindings, ordered when it reads a script binding that external code could write.
+ ['escape-free-caught-beside-local-write',{free:true,source:['var g = 1;',...boxWith('  safeShout() {','    try {',"      record('safe', this.name);",'    } catch (error) {','      this.log.push(0);','    }','  }'),'function run() {',"  const a = new Box('a');",'  let k = 2;','  let x = 0;','  let y = 0;','  a.safeShout();','  x = k;','  y = g;','  return JSON.stringify([a, x, y]);','}']}],
  // Policy P2: a list-level unknown call is external and stays ordered with object operations.
  ['escape-bound-list-level-call',{free:false,source:[...box,'function run() {',"  const a = new Box('a');","  record('start');",'  a.add(1);','  return JSON.stringify(a);','}']}],
  // Two external calls: the recorded trace changes with their order.

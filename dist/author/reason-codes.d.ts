@@ -85,7 +85,7 @@ declare const entries: readonly [{
 }, {
     readonly code: "external-call-order";
     readonly category: "effect";
-    readonly meaning: "két, a programon kívüli kódot hívó művelet (nyomkövetés, külső állapot)";
+    readonly meaning: "programon kívüli kódot hívó művelet egy másikkal, vagy egy általa írható kötés olvasásával";
     readonly adr: "ADR-040";
 }, {
     readonly code: "reflected-key-order";

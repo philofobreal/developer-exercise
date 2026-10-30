@@ -17,7 +17,9 @@
  *                   cross an external one that cannot observe it (ADR-019,
  *                   by name: see commutation()); two local object
  *                   operations (ADR-025, see jsObjectOperations()) are not
- *                   ordered here: P3 compares their runtime result;
+ *                   ordered here, and one beside a statement without external
+ *                   effect only by name conflicts: P3 compares the runtime
+ *                   result;
  *   P3 runtime    – value, thrown exception and record() trace agree with the
  *                   reference on the fixture probe (TS: both class-field modes).
  * P3 is empirical evidence on finite inputs, not an equivalence proof.
@@ -422,6 +424,9 @@ function effectPairs(lists,key,classify,positionFree,commutes,objectOperations=(
    if(positionFree(a,hoisting)||positionFree(b,hoisting))continue;
    // ADR-025: the order of two local object operations is judged by P3 alone.
    if(operation(a)&&operation(b))continue;
+   // ADR-025 (v12): a local object operation and a statement without external effect (a local
+   // write) are ordered only by their name conflicts; P3 judges whether a throw is observed.
+   if(operation(a)&&!cb.external||operation(b)&&!ca.external){if(meets(ca.writes,cb.reads)||meets(ca.writes,cb.writes)||meets(ca.reads,cb.writes))pairs.push(key(a)+' '+key(b));continue;}
    // ADR-019: an effect-free statement may cross an external one that cannot observe it.
    if(ca.external!==cb.external&&(ca.external?commutes(b,a,chain):commutes(a,b,chain)))continue;
    if(ca.external||cb.external||meets(ca.writes,cb.reads)||meets(ca.writes,cb.writes)||meets(ca.reads,cb.writes))pairs.push(key(a)+'\u0000'+key(b));

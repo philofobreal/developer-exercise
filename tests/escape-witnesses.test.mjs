@@ -49,6 +49,7 @@ for(const [id,first,second,why] of [
  ['escape-free-callback-records','b.flush();','a.add(1);','a recording callback beside another object'],
  ['escape-free-caught-external','a.add(1);','b.safeShout();','a caught external call beside a non-throwing write'],
  ['escape-free-ambient-typescript','a.add(1);','b.shout();','an ambient TypeScript function'],
+ ['escape-free-caught-beside-local-write','a.safeShout();','x = k;','a caught external call beside a write that reads a function local'],
 ])test(`free order: ${why}`,()=>{
  assert.equal(classify(id,first,second).kind,'accepted');
 });
@@ -73,4 +74,13 @@ for(const [id,call,cause,why] of [
 ])test(`still unknown: ${why}`,()=>{
  // Conservative, not wrong: the order is equivalent, and v19 still rejects it.
  assert.deepEqual(Object.entries(classify(id,'a.add(1);',call)).filter(([key])=>key==='kind'||key==='causes'),[['kind','gap'],['causes',[cause]]]);
+});
+
+test('kept order: a caught external call may write a script binding a local write reads',()=>{
+ const fixture=escapePrograms.get('escape-free-caught-beside-local-write'),model=generate(fixture),order=model.lines.map(line=>line.id);
+ const at=code=>model.lines.findIndex(line=>line.code.trim()===code),[row]=order.splice(at('y = g;'),1);
+ order.splice(at('a.safeShout();'),0,row);
+ // The oracle's record() writes no binding, so this conservative order is a gap, never unsound.
+ const result=createClassifier(fixture,model).classify(order);
+ assert.deepEqual([result.kind,result.causes],['gap',['external-call-order']]);
 });

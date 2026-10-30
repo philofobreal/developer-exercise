@@ -12,7 +12,7 @@ const entries = [
     { code: 'class-evaluates-code', category: 'effect', meaning: 'az osztálydefiníció kiértékeléskor kódot futtat', adr: 'ADR-012' },
     { code: 'class-evaluation-order', category: 'effect', meaning: 'osztálytagok ugyanabban a kiértékelési fázisban', adr: 'ADR-012' },
     { code: 'may-throw', category: 'effect', meaning: 'két esetleg kivételt dobó művelet', adr: 'ADR-028' },
-    { code: 'external-call-order', category: 'effect', meaning: 'két, a programon kívüli kódot hívó művelet (nyomkövetés, külső állapot)', adr: 'ADR-040' },
+    { code: 'external-call-order', category: 'effect', meaning: 'programon kívüli kódot hívó művelet egy másikkal, vagy egy általa írható kötés olvasásával', adr: 'ADR-040' },
     { code: 'reflected-key-order', category: 'policy', meaning: 'a program felsorolja a kulcsokat, ezért a létrehozás sorrendje megfigyelhető', adr: 'ADR-010' },
     { code: 'script-global-order', category: 'policy', meaning: 'szkriptszintű globális kötések létrehozási sorrendje', adr: 'ADR-010' },
     { code: 'block-open', category: 'structure', meaning: 'a sor a blokk nyitó sora után áll', adr: 'ADR-014' },

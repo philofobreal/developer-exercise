@@ -439,12 +439,16 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
  const hoisted = (unit: Summary): boolean => unit.kind === 'position-free' && unit.reason === 'hoisted-function-declaration';
  /** ADR-025: two statements on the list's own objects are ordered only by an object conflict or
   * a possible throw; one that cannot throw commutes with a local write (no binding is shared:
-  * its callees run in other function contexts). Null when the rule does not apply. */
+  * its callees run in other function contexts), unless it calls external code and the write reads
+  * a binding of another context (ADR-040). Null when the rule does not apply. */
  const objectOrder = (a: Summary, b: Summary): OrderingReason['code'][] | null => {
   if (a.footprint && b.footprint) return footprintConflicts(a.footprint, b.footprint);
   const [object, other] = a.footprint ? [a.footprint, b] : b.footprint ? [b.footprint, a] : [];
   if (!object || other!.kind !== 'local-write') return null;
-  return object.mayThrow ? ['may-throw'] : [];
+  if (object.mayThrow) return ['may-throw'];
+  // ADR-040: external code may write a binding declared outside this function, which the local write reads.
+  const outside = (symbol: ts.Symbol): boolean => {const declaration = unique(symbol); return !declaration || !other!.node || context(declaration) !== context(other!.node);};
+  return object.external && [...other!.readSet].some(outside) ? ['external-call-order'] : [];
  };
  const pairReasons = (a: Summary, b: Summary): OrderingReason['code'][] => {
   if (a.reason === 'free-comment' || b.reason === 'free-comment') return [];

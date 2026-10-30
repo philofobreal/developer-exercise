@@ -31,6 +31,7 @@ Az első elképzelés az volt, hogy minden nem dobó, hatásnyomos utasítás fe
 2. **Ütközés** ([`footprintConflicts`](../../src/author/object-footprints.ts)):
    - két `external` hatásnyom kötött, új indokkóddal: `external-call-order` (`effect`);
    - egy `external` hatásnyom kivételként viselkedik akkor is, ha a hívást `try/catch` fogja meg, mert a külső kód nem is térhet vissza. Egy másik esetleg dobó hatásnyommal ezért `may-throw` köti;
+   - egy elkapott (nem dobó) külső hívás és egy lokális írás csak akkor kötött (`external-call-order`), ha az írás a függvényen kívül deklarált kötést olvas, mert azt a külső kód átírhatja;
    - a többi pár az eddigi szabály szerint dől el: objektumütközés vagy két lehetséges kivétel köti.
 3. **Listaszintű ismeretlen hívás:** barrier marad, a P2 szerint (a lista saját szintjén `frame.self` nincs).
 4. **Szabályverzió:** v19. A régi címkéjű modellek változatlanok, újragenerálás csak explicit frissítésre történik.
@@ -47,9 +48,12 @@ Az első elképzelés az volt, hogy minden nem dobó, hatásnyomos utasítás fe
 
 ## Bizonyítékok
 
+- **Orákulum-igazítás:** a független orákulum statikus P2-je eddig sorrendhez kötötte az objektumműveletet és a lokális írást. A v12 szerződéssora szerint ezek kommutálnak, ha a művelet nem dob. Mostantól a P2 ezt a párt csak névütközés alapján köti, a többit a P3 futásidejű összevetése dönti el, ahogy két objektumművelet esetén is. Az eltérés v12 óta fennállt, csak a mért programokban nem volt lokális írás objektumművelet mellett. A korpusz- és a generatív mérés változatlan.
+
 - **Tanúk:** [escape-programs.mjs](../../tests/fixtures/escape-programs.mjs) és [escape-witnesses.test.mjs](../../tests/escape-witnesses.test.mjs), mindegyik orákulummal ellenőrizve:
   - `escape-free-shout-beside-writes`: v18-ban 11 indokolatlan elutasítás (10 `ExpressionStatement`), v19-ben 0;
-  - szabad párok: rögzítő konstruktor, rögzítő callback, elkapott külső hívás, ambiens TypeScript-függvény;
+  - szabad párok: rögzítő konstruktor, rögzítő callback, elkapott külső hívás, függvénylokálist olvasó lokális írás, ambiens TypeScript-függvény;
+  - konzervatív (orákulum szerint egyenértékű) pár: elkapott külső hívás és szkriptszintű kötést olvasó lokális írás (`external-call-order`);
   - kötött párok: listaszintű hívás (`ExpressionStatement`), két külső hívás (`external-call-order`, a konstruktorban is), külső hívás és dobás (`may-throw`, elkapott hívással is), callback és írás (`object-read-after-write`);
   - ismeretlen marad: közvetlen `eval`, objektum argumentum, a program által deklarált hívott függvény, paraméterrel árnyékolt név.
 - **Indokkód-bizonyíték:** az `external-call-order` indokolt, a `prompt-unknown-call` fixture két `activate()` hívásának cseréje.
