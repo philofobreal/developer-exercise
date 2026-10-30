@@ -51,7 +51,8 @@ export function statementOrdering(file, compiler, options = {}) {
         return physical[first]?.trim() === file.text.slice(node.getStart(file), open.end).trim() && physical[last]?.trim() === file.text.slice(close.getStart(file), node.end).trim();
     };
     /** ADR-028/034: the opening and closing brace that end a compound statement's first and last row:
-     * if/else if chains, switch, try/catch/finally, for…of, and (ADR-042) a labelled one of these. */
+     * if/else if chains, switch, try/catch/finally, for…of, (ADR-046) while, do…while and for, and
+     * (ADR-042) a labelled one of these. */
     const compoundBraces = (statement) => {
         if (compiler.isLabeledStatement(statement))
             return compoundBraces(statement.statement);
@@ -66,6 +67,9 @@ export function statementOrdering(file, compiler, options = {}) {
         if (compiler.isTryStatement(statement))
             return [braces(statement.tryBlock)[0], braces(statement.finallyBlock ?? statement.catchClause?.block)[1]];
         if (compiler.isForOfStatement(statement))
+            return braces(statement.statement);
+        // ADR-046: a loop ends with its body's closing brace (a do…while with its `} while (…);` row).
+        if (compiler.isWhileStatement(statement) || compiler.isDoStatement(statement) || compiler.isForStatement(statement))
             return braces(statement.statement);
         return [];
     };

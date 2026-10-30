@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased – 2026-10-31 ciklusok a saját objektumokon (ADR-046, v23)
+
+- **Szabály (v23):** a `while`, a `do…while` és a `let` fejű `for` a saját objektumokon hatásnyomot kap; a ciklus által írt lokálisok ismert értéke elvész, ez lefed minden iterációt.
+  - a literál korlátú számlálós `for`, amelynek törzse nem írja a számlálót, bizonyítottan véget ér;
+  - minden más ciklus „esetleg nem ér véget” (`mayHang`), ezért egy lehetséges kivétellel, külső hívással vagy elakadással kötött (`may-throw`, a jegyzék jelentése bővült).
+- **Orákulum (JS és TS):** a fenti ciklusok objektumműveletek, a törzsük a saját fejváltozót írhatja; a P3 dönt. Egy tanú egy eltérést tárt fel (a fejváltozó írása), amelyet az orákulum igazításával zártunk.
+- **Mérés azonos (új) orákulummal, 12 mag:** flow JS 22,2% → 15,0%, flow TS 18,7% → 11,8%, dobó változataik 23,6% → 17,6% és 7,5% → 5,6%; hibás elfogadás nincs. A gyors baseline újrarögzítve.
+- **Tesztek:** `loop-footprints.test.mjs` (szabad, kötött, konzervatív és barrier maradó esetek, JS és TS); a v22-címketeszt verziófüggetlen.
+- **Címkék:** a v23 additív sémaenumérték; a példák és a minták csak az új címkét kapták.
+
 ## Unreleased – 2026-10-30 a konstruktorban létrehozott kulcsok (ADR-045, v22)
 
 - **Szabály (v22):** a `return` nélküli konstruktor legfelső szintű `this.x = …` értékadása (accessor és metódus nélkül) a konstrukció után létező kulcs, ezért későbbi írása csak az adott mező írása. Az objektum saját konstrukciója alatt az írás továbbra is kulcsot hozhat létre.

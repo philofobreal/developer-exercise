@@ -55,6 +55,10 @@ test('a labelled switch left by a labelled break has exactly the constraints of 
  assert.deepEqual(constraints(labelledSwitch),constraints(unlabelled));
 });
 
+test('ADR-046 (v23): a labelled while loop is a loop footprint too, free beside another object',()=>{
+ assert.equal(moveBefore(whileLoop,'b.add(2);','outer: while (a.log.length < 2) {').kind,'accepted');
+});
+
 test('kept: the labelled loop writes what a later operation reads',()=>{
  const fixture=program('labelled-conflict',[...box,...run('  outer: for (const entry of boxes) {','    entry.add(1);','    break outer;','  }','  a.add(2);')]);
  const result=moveBefore(fixture,'a.add(2);','outer: for (const entry of boxes) {');
@@ -64,7 +68,6 @@ test('kept: the labelled loop writes what a later operation reads',()=>{
 
 for(const [fixture,row,anchor,why] of [
  [labelledBlock,'b.add(2);','outer: {','a labelled multi-row block owns no compound rows'],
- [whileLoop,'b.add(2);','outer: while (a.log.length < 2) {','a labelled while loop is not shown to end'],
 ])test(`still a barrier: ${why}`,()=>{
  const result=moveBefore(fixture,row,anchor);
  assert.ok(result.kind==='gap'||result.kind==='justified',JSON.stringify(result));

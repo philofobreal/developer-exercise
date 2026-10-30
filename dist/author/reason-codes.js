@@ -11,7 +11,7 @@ const entries = [
     { code: 'branch-contains-barrier', category: 'effect', meaning: 'az elágazás feltétele vagy ága sorrendhez kötő', adr: 'ADR-028' },
     { code: 'class-evaluates-code', category: 'effect', meaning: 'az osztálydefiníció kiértékeléskor kódot futtat', adr: 'ADR-012' },
     { code: 'class-evaluation-order', category: 'effect', meaning: 'osztálytagok ugyanabban a kiértékelési fázisban', adr: 'ADR-012' },
-    { code: 'may-throw', category: 'effect', meaning: 'két esetleg kivételt dobó művelet', adr: 'ADR-028' },
+    { code: 'may-throw', category: 'effect', meaning: 'két esetleg rendellenesen végződő művelet (kivétel, külső kód, végtelen ciklus)', adr: 'ADR-028' },
     { code: 'external-call-order', category: 'effect', meaning: 'programon kívüli kódot hívó művelet egy másikkal, vagy egy általa írható kötés olvasásával', adr: 'ADR-040' },
     { code: 'reflected-key-order', category: 'policy', meaning: 'a program felsorolja a kulcsokat, ezért a létrehozás sorrendje megfigyelhető', adr: 'ADR-010' },
     { code: 'script-global-order', category: 'policy', meaning: 'szkriptszintű globális kötések létrehozási sorrendje', adr: 'ADR-010' },

@@ -80,7 +80,7 @@ declare const entries: readonly [{
 }, {
     readonly code: "may-throw";
     readonly category: "effect";
-    readonly meaning: "két esetleg kivételt dobó művelet";
+    readonly meaning: "két esetleg rendellenesen végződő művelet (kivétel, külső kód, végtelen ciklus)";
     readonly adr: "ADR-028";
 }, {
     readonly code: "external-call-order";

@@ -27,12 +27,14 @@
  */
 import type ts from 'typescript';
 type Compiler = typeof ts;
-/** `external` (ADR-040): the statement runs code outside the program (a trace, outside state). */
+/** `external` (ADR-040): the statement runs code outside the program (a trace, outside state).
+ * `mayHang` (ADR-046): it runs a loop not shown to end. */
 export interface Footprint {
     reads: Set<string>;
     writes: Set<string>;
     mayThrow: boolean;
     external: boolean;
+    mayHang: boolean;
 }
 /** `primitive`: whether a list-level expression is an effect-free primitive (the analyser's own test). */
 /** `enumeratedKeys` (ADR-029): the program may list enumerable keys, so a write that adds a key orders like a whole-object write. */

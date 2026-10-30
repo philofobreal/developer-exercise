@@ -198,14 +198,19 @@ function jsObjectOperations(program){
   const receiver=node=>node.type==='MemberExpression'&&!node.computed&&(node.object.type==='Identifier'&&(owned.has(node.object.name)||aliases.has(node.object.name))||self&&node.object.type==='ThisExpression');
   // ADR-031: a value built only from simple values and own objects' fields: literals, arrays and
   // objects of them, arithmetic and comparisons. Its effects stay on own objects, so P3 sees them.
-  const value=node=>simple(node)||receiver(node)||node.type==='TemplateLiteral'&&node.expressions.every(value)||node.type==='ArrayExpression'&&node.elements.every(element=>element&&element.type!=='SpreadElement'&&value(element))
+  // ADR-046: a property chain read from an own object (a.log.length) is a value too, as for the generator.
+  const path=node=>receiver(node)||node.type==='MemberExpression'&&!node.computed&&path(node.object);
+  const value=node=>simple(node)||path(node)||node.type==='TemplateLiteral'&&node.expressions.every(value)||node.type==='ArrayExpression'&&node.elements.every(element=>element&&element.type!=='SpreadElement'&&value(element))
    ||node.type==='ObjectExpression'&&node.properties.every(property=>property.type==='Property'&&!property.computed&&property.kind==='init'&&!property.method&&value(property.value))
    ||node.type==='UnaryExpression'&&node.operator!=='delete'&&value(node.argument)||node.type==='BinaryExpression'&&value(node.left)&&value(node.right);
   const thrown=item=>item.type==='ThrowStatement'&&item.argument.type==='NewExpression'&&item.argument.callee.type==='Identifier'&&['Error','TypeError','RangeError'].includes(item.argument.callee.name)&&item.argument.arguments.every(value);
   // ADR-042: a labelled jump may name an enclosing label of the same operation.
   const labels=new Set();
   const jump=item=>(item.type==='BreakStatement'||item.type==='ContinueStatement')&&(!item.label||labels.has(item.label.name));
-  const body=branch=>!branch||branch.type==='BlockStatement'&&branch.body.every(statement=>statement.type!=='VariableDeclaration'&&(operation(statement)||thrown(statement)||jump(statement)));
+  // ADR-046: a loop's own head variables may be written in its body, like the generator's locals.
+  const locals=new Set();
+  const local=item=>item.type==='ExpressionStatement'&&(item.expression.type==='AssignmentExpression'&&item.expression.operator==='='&&item.expression.left.type==='Identifier'&&locals.has(item.expression.left.name)&&value(item.expression.right)||item.expression.type==='UpdateExpression'&&item.expression.argument.type==='Identifier'&&locals.has(item.expression.argument.name));
+  const body=branch=>!branch||branch.type==='BlockStatement'&&branch.body.every(statement=>statement.type!=='VariableDeclaration'&&(operation(statement)||thrown(statement)||jump(statement)||local(statement)));
   const operation=item=>{
    if(item.type==='VariableDeclaration')return [...owned.values()].includes(item);
    // ADR-042: a labelled operation is the operation it labels.
@@ -215,6 +220,15 @@ function jsObjectOperations(program){
    // ADR-034: switch, try/catch/finally and for…of over an own object, built the same way.
    if(item.type==='SwitchStatement')return value(item.discriminant)&&item.cases.every(clause=>(!clause.test||value(clause.test))&&clause.consequent.every(statement=>operation(statement)||thrown(statement)||jump(statement)));
    if(item.type==='TryStatement')return body(item.block)&&(!item.handler||body(item.handler.body))&&body(item.finalizer);
+   // ADR-046: while, do…while and a for with a let head and a counter step, built the same way.
+   if(item.type==='WhileStatement'||item.type==='DoWhileStatement')return value(item.test)&&body(item.body);
+   if(item.type==='ForStatement'){
+    const head=!item.init||item.init.type==='VariableDeclaration'&&item.init.kind==='let'&&item.init.declarations.every(d=>d.id.type==='Identifier'&&(!d.init||value(d.init)));
+    const step=!item.update||item.update.type==='UpdateExpression'&&item.update.argument.type==='Identifier';
+    if(!head||!step)return false;
+    const names=(item.init?.declarations??[]).map(d=>d.id.name).filter(name=>!locals.has(name));names.forEach(name=>locals.add(name));
+    const ok=(!item.test||value(item.test))&&body(item.body);names.forEach(name=>locals.delete(name));return ok;
+   }
    if(item.type==='ForOfStatement'){
     if(item.await||item.right.type!=='Identifier'||!owned.has(item.right.name)||item.left.type!=='VariableDeclaration'||item.left.declarations.length!==1||item.left.declarations[0].id.type!=='Identifier')return false;
     const name=item.left.declarations[0].id.name;aliases.add(name);const ok=body(item.body);aliases.delete(name);return ok;
@@ -320,13 +334,16 @@ function tsObjectOperations(file){
   const receiver=node=>ts.isPropertyAccessExpression(node)&&(ts.isIdentifier(node.expression)&&(owned.has(node.expression.text)||aliases.has(node.expression.text))||self&&node.expression.kind===ts.SyntaxKind.ThisKeyword);
   // ADR-031: a value built only from simple values and own objects' fields: literals, arrays and
   // objects of them, arithmetic and comparisons. Its effects stay on own objects, so P3 sees them.
-  const value=node=>simple(node)||receiver(node)||ts.isParenthesizedExpression(node)&&value(node.expression)||ts.isNoSubstitutionTemplateLiteral(node)||ts.isTemplateExpression(node)&&node.templateSpans.every(span=>value(span.expression))
+  const path=node=>receiver(node)||ts.isPropertyAccessExpression(node)&&path(node.expression);
+  const value=node=>simple(node)||path(node)||ts.isParenthesizedExpression(node)&&value(node.expression)||ts.isNoSubstitutionTemplateLiteral(node)||ts.isTemplateExpression(node)&&node.templateSpans.every(span=>value(span.expression))
    ||ts.isArrayLiteralExpression(node)&&node.elements.every(value)||ts.isObjectLiteralExpression(node)&&node.properties.every(property=>ts.isPropertyAssignment(property)&&(ts.isIdentifier(property.name)||ts.isStringLiteral(property.name))&&value(property.initializer))
    ||ts.isPrefixUnaryExpression(node)&&value(node.operand)||ts.isBinaryExpression(node)&&!assignment.has(node.operatorToken.kind)&&value(node.left)&&value(node.right);
   const thrown=item=>ts.isThrowStatement(item)&&ts.isNewExpression(item.expression)&&ts.isIdentifier(item.expression.expression)&&['Error','TypeError','RangeError'].includes(item.expression.expression.text)&&(item.expression.arguments??[]).every(value);
   const labels=new Set();
   const jump=item=>(ts.isBreakStatement(item)||ts.isContinueStatement(item))&&(!item.label||labels.has(item.label.text));
-  const body=branch=>!branch||ts.isBlock(branch)&&branch.statements.every(statement=>!ts.isVariableStatement(statement)&&(operation(statement)||thrown(statement)||jump(statement)));
+  const locals=new Set();
+  const local=item=>{if(!ts.isExpressionStatement(item))return false;const e=item.expression;return ts.isBinaryExpression(e)&&e.operatorToken.kind===ts.SyntaxKind.EqualsToken&&ts.isIdentifier(e.left)&&locals.has(e.left.text)&&value(e.right)||(ts.isPostfixUnaryExpression(e)||ts.isPrefixUnaryExpression(e))&&ts.isIdentifier(e.operand)&&locals.has(e.operand.text);};
+  const body=branch=>!branch||ts.isBlock(branch)&&branch.statements.every(statement=>!ts.isVariableStatement(statement)&&(operation(statement)||thrown(statement)||jump(statement)||local(statement)));
   const operation=item=>{
    if(ts.isVariableStatement(item))return [...owned.values()].includes(item);
    if(ts.isLabeledStatement(item)){if(labels.has(item.label.text))return false;labels.add(item.label.text);const ok=operation(item.statement);labels.delete(item.label.text);return ok;}
@@ -335,6 +352,14 @@ function tsObjectOperations(file){
    // ADR-034: switch, try/catch/finally and for…of over an own object, built the same way.
    if(ts.isSwitchStatement(item))return value(item.expression)&&item.caseBlock.clauses.every(clause=>(!ts.isCaseClause(clause)||value(clause.expression))&&clause.statements.every(statement=>operation(statement)||thrown(statement)||jump(statement)));
    if(ts.isTryStatement(item))return body(item.tryBlock)&&(!item.catchClause||body(item.catchClause.block))&&body(item.finallyBlock);
+   if(ts.isWhileStatement(item)||ts.isDoStatement(item))return value(item.expression)&&body(item.statement);
+   if(ts.isForStatement(item)){
+    const init=item.initializer,head=!init||ts.isVariableDeclarationList(init)&&(init.flags&ts.NodeFlags.Let)!==0&&init.declarations.every(d=>ts.isIdentifier(d.name)&&(!d.initializer||value(d.initializer)));
+    const update=item.incrementor,step=!update||(ts.isPostfixUnaryExpression(update)||ts.isPrefixUnaryExpression(update))&&ts.isIdentifier(update.operand);
+    if(!head||!step)return false;
+    const names=(init?init.declarations:[]).map(d=>d.name.text).filter(name=>!locals.has(name));names.forEach(name=>locals.add(name));
+    const ok=(!item.condition||value(item.condition))&&body(item.statement);names.forEach(name=>locals.delete(name));return ok;
+   }
    if(ts.isForOfStatement(item)){
     const head=item.initializer;
     if(item.awaitModifier||!ts.isIdentifier(item.expression)||!owned.has(item.expression.text)||!ts.isVariableDeclarationList(head)||head.declarations.length!==1||!ts.isIdentifier(head.declarations[0].name))return false;

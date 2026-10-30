@@ -24,7 +24,8 @@
   - a 6. tétel mért esete, a címkés objektumművelet kész ([ADR-042](adr/042-labelled-object-operations.md), v21); azonos (új) orákulummal a flow JS rései 19-ről 17-re, a flow TS-éi 7-ről 4-re csökkentek.
   - az 5. tétel eldöntve és kész: A-politika ([ADR-043](adr/043-dead-code-intent-policy.md)); a dobó JS-objektumprogramok gyors résaránya 32,4%-ról 19,4%-ra esett, mert a halott kódot érintő elutasítás szándékhű. Mellé a szerzői lazítás a jóváhagyott forráshoz kötődik ([ADR-044](adr/044-relaxation-source-fingerprint.md)).
   - a konstruktorban létrehozott kulcsok kész ([ADR-045](adr/045-constructor-created-keys.md), v22): a nem dobó JS-objektumprogramok rései 56-ról 3-ra estek (12 mag), hibás elfogadás nélkül.
-  - **Következik:** a 4. tétel (bizonyítottan véget érő ciklusok, a `while` miatti szökés), majd a 3. tétel (hatásösszegzés); a 2d nem mért ok, dokumentált korlát.
+  - a 4. tétel kész ([ADR-046](adr/046-loops-over-own-objects.md), v23): a ciklusok hatásnyomot kapnak, a nem bizonyítottan véget érők „esetleg nem ér véget” jelöléssel; azonos orákulummal a flow JS 22,2%-ról 15,0%-ra, a flow TS 18,7%-ról 11,8%-ra esett.
+  - **Következik:** a 3. tétel (hatásösszegzés), majd a 6. tétel maradékai (`sealed-unit`); a 2d nem mért ok, dokumentált korlát.
 
 ## 1. Összefoglaló ítélet
 

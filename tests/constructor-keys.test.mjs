@@ -26,8 +26,8 @@ const fixtures={
  typed:program('keys-typescript',['class Box {','  label: string;','  count: number;','  constructor(label: string) {','    this.label = label;','    this.count = 0;','  }','}'],["  b.label = 'x';",'  b.count = 1;'],'typescript'),
 };
 
-test('the generation rule is v22, introduced by ADR-045 in the formal contract',async()=>{
- assert.equal(DEPENDENCY_POLICY,'scoped-effect-analysis-v22');
+test('v22 is introduced by ADR-045 in the formal contract and is at most the generation rule',async()=>{
+ assert.ok(Number(DEPENDENCY_POLICY.split('-v')[1])>=22,DEPENDENCY_POLICY);
  const contract=await readFile(new URL('../docs/formal-ordering-contract.md',import.meta.url),'utf8');
  assert.match(contract,/\| `scoped-effect-analysis-v22` \| \[ADR-045\]/);
 });

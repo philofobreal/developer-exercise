@@ -311,7 +311,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
                     if (frame.env.has(name))
                         frame.env.set(name, union(frame.env.get(name), PRIM));
                 frame.env.set(head.declarations[0].name.text, union(...[...iterated.objs].map(id => elements.get(id) ?? PRIM)));
-                const body = { reads: new Set(), writes: new Set(), mayThrow: false, external: false };
+                const body = { reads: new Set(), writes: new Set(), mayThrow: false, external: false, mayHang: false };
                 returned = union(returned, block([statement.statement], { ...frame, fp: body, exits: (frame.exits ?? 0) + 1, loops: (frame.loops ?? 0) + 1 }));
                 // Writing the iterated array may extend the iteration: not shown to end.
                 if ([...iterated.objs].some(id => body.writes.has(at(id, WHOLE))))
@@ -320,11 +320,53 @@ export function objectFootprints(list, file, compiler, checker, host) {
                 body.writes.forEach(key => frame.fp.writes.add(key));
                 frame.fp.mayThrow ||= body.mayThrow;
                 frame.fp.external ||= body.external;
+                frame.fp.mayHang ||= body.mayHang;
+            }
+            // ADR-046: while, do…while and for over own objects. The body and the test are interpreted
+            // once with the locals they assign widened, which covers every iteration; a loop not shown to
+            // end may hang, which orders it like a throw.
+            else if (compiler.isWhileStatement(statement) || compiler.isDoStatement(statement) || compiler.isForStatement(statement)) {
+                const head = compiler.isForStatement(statement) ? statement.initializer : undefined;
+                if (head && !(compiler.isVariableDeclarationList(head) && (head.flags & compiler.NodeFlags.BlockScoped) !== 0))
+                    unknown();
+                for (const declaration of head ? head.declarations : []) {
+                    if (!compiler.isIdentifier(declaration.name))
+                        unknown();
+                    frame.env.set(declaration.name.text, declaration.initializer ? expression(declaration.initializer, frame) : literal(undefined));
+                }
+                for (const name of assignedNames(statement))
+                    if (frame.env.has(name))
+                        frame.env.set(name, union(frame.env.get(name), PRIM));
+                const inner = { ...frame, exits: (frame.exits ?? 0) + 1, loops: (frame.loops ?? 0) + 1 };
+                const test = compiler.isForStatement(statement) ? statement.condition : statement.expression;
+                if (test)
+                    expression(test, inner);
+                returned = union(returned, block([statement.statement], inner));
+                if (compiler.isForStatement(statement) && statement.incrementor)
+                    effect(statement.incrementor, inner);
+                if (!counted(statement))
+                    frame.fp.mayHang = true;
             }
             else
                 unknown();
         }
         return returned;
+    }
+    /** ADR-046: `for (let i = <number>; i < <number>; i++)` (or `<=`, or the descending `>`, `>=`
+     * with `i--`) whose body does not assign `i`: it ends. */
+    function counted(statement) {
+        if (!compiler.isForStatement(statement))
+            return false;
+        const head = statement.initializer, test = statement.condition && unwrap(statement.condition), step = statement.incrementor && unwrap(statement.incrementor);
+        if (!head || !compiler.isVariableDeclarationList(head) || head.declarations.length !== 1 || !test || !step || !compiler.isBinaryExpression(test))
+            return false;
+        const declaration = head.declarations[0], name = compiler.isIdentifier(declaration.name) ? declaration.name.text : undefined;
+        const numeric = (expr) => !!expr && (compiler.isNumericLiteral(unwrap(expr)) || compiler.isPrefixUnaryExpression(unwrap(expr)) && unwrap(expr).operator === S.MinusToken && compiler.isNumericLiteral(unwrap(expr).operand));
+        if (!name || !numeric(declaration.initializer) || !compiler.isIdentifier(unwrap(test.left)) || unwrap(test.left).text !== name || !numeric(test.right))
+            return false;
+        const operator = test.operatorToken.kind, up = operator === S.LessThanToken || operator === S.LessThanEqualsToken, down = operator === S.GreaterThanToken || operator === S.GreaterThanEqualsToken;
+        const stepOperator = (compiler.isPrefixUnaryExpression(step) || compiler.isPostfixUnaryExpression(step)) && compiler.isIdentifier(step.operand) && step.operand.text === name ? step.operator : undefined;
+        return (up && stepOperator === S.PlusPlusToken || down && stepOperator === S.MinusMinusToken) && !assignedNames(statement.statement).has(name);
     }
     /** Identifiers assigned anywhere in `root`, nested functions included (they may run in it). */
     function assignedNames(root) {
@@ -364,6 +406,12 @@ export function objectFootprints(list, file, compiler, checker, host) {
         }
         if ((compiler.isPrefixUnaryExpression(expr) || compiler.isPostfixUnaryExpression(expr)) && (expr.operator === S.PlusPlusToken || expr.operator === S.MinusMinusToken)) {
             const target = unwrap(expr.operand);
+            // ADR-046: a local counter of a body or loop; ++/-- keep a primitive number.
+            if (compiler.isIdentifier(target) && frame.env.has(target.text)) {
+                prim(frame.env.get(target.text));
+                frame.env.set(target.text, PRIM);
+                return;
+            }
             if (!compiler.isPropertyAccessExpression(target))
                 unknown();
             const access = target, base = expression(access.expression, frame), name = nameOf(access.name);
@@ -650,7 +698,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
     /** One list-level statement: a construction, or an operation on own objects. */
     function statementFootprint(statement, budget) {
         // ADR-031/045: the statements of a constructor body run while `this` is being constructed.
-        const frame = { self: null, env: new Map(), fp: { reads: new Set(), writes: new Set(), mayThrow: false, external: false }, stack: new Set(), budget, ...self ? { constructing: new Set([self]) } : {} };
+        const frame = { self: null, env: new Map(), fp: { reads: new Set(), writes: new Set(), mayThrow: false, external: false, mayHang: false }, stack: new Set(), budget, ...self ? { constructing: new Set([self]) } : {} };
         if (compiler.isVariableStatement(statement)) {
             const declaration = statement.declarationList.declarations[0], symbol = checker.getSymbolAtLocation(declaration.name), own = symbol && owned.get(symbol);
             if (!own || own.statement !== statement)
@@ -682,7 +730,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
             return frame.fp;
         }
         // ADR-028: an if/else on own objects, both branches over-approximated; it must not leave the list early.
-        if (compiler.isIfStatement(statement) || compiler.isSwitchStatement(statement) || compiler.isTryStatement(statement) || compiler.isForOfStatement(statement) || compiler.isLabeledStatement(statement)) {
+        if (compiler.isIfStatement(statement) || compiler.isSwitchStatement(statement) || compiler.isTryStatement(statement) || compiler.isForOfStatement(statement) || compiler.isLabeledStatement(statement) || compiler.isWhileStatement(statement) || compiler.isDoStatement(statement) || compiler.isForStatement(statement)) {
             if (leaves(statement))
                 unknown();
             block([statement], frame);
@@ -740,7 +788,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
     // ADR-031: the state the body starts from, as a construction leaves it.
     if (self) {
         try {
-            const frame = { self, env: new Map(), fp: { reads: new Set(), writes: new Set(), mayThrow: false, external: false }, stack: new Set(), budget };
+            const frame = { self, env: new Map(), fp: { reads: new Set(), writes: new Set(), mayThrow: false, external: false, mayHang: false }, stack: new Set(), budget };
             for (const [name, initializer] of selfInfo.fields)
                 addField(self, name, initializer ? expression(initializer, frame) : PRIM);
             for (const name of selfInfo.parameterFields)
@@ -812,9 +860,11 @@ export function footprintConflicts(a, b) {
     // throws out of the block, and any state the throw depends on is a read conflict below.
     // ADR-040: two external calls write outside state in order (and either may throw); an external
     // call may also never return, which orders it with a possible throw like a throw of its own.
+    // ADR-046: so does a loop not shown to end.
+    const abrupt = (f) => f.mayThrow || f.external || f.mayHang;
     if (a.external && b.external)
         found.push('external-call-order');
-    else if ((a.mayThrow || a.external) && (b.mayThrow || b.external))
+    else if (abrupt(a) && abrupt(b))
         found.push('may-throw');
     if (meets(a.writes, b.reads))
         found.push('object-read-after-write');
