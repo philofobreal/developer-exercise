@@ -2,9 +2,7 @@
 
 A vizsgálatkor a validátormag strict TypeScript volt, de a böngészős vezérlés és állapotkezelés, a formatter, a szerzői parser/generátor és a szerver JavaScript/MJS. Architektúraleírás és tesztkapuk léteztek, külön AGENTS.md és gépi modulhatár-kapu nem. Ez részleges mérnöki kontroll, nem teljes AI governance.
 
-**Mostani állapot (2026-10-29):**
-- **Ami van:** a munkaszerződés (AGENTS.md), az elvek és bizonyítékok táblája, a gépi architektúra-kapu és a kötelező Ousterhout-féle tervezési governance.
-- **Ami még részleges:** a governance teljessé tételét külön feladat tervezi meg ([megbízhatósági terv, G fázis](megbizhatosagi-audit-terv.md)). Ilyen rész például az AI-hozzájárulások eredetének és felülvizsgálatának rögzítése, a kockázati besorolás és a jóváhagyási pontok egységes leírása.
+**Mostani állapot (2026-10-31, [ADR-049](adr/049-ai-governance-completion.md)):** a G fázis után minden governance-elemnek van tulajdonosa, kikényszerítése és bizonyítéka (lásd a [Governance-elemek](#governance-elemek) táblát). Ami nem gépi, azt a tábla kimondottan review-kontrollnak nevezi. A tervezési minőség, a pedagógiai döntés, a jóváhagyás és az eredet statikus eszközzel nem bizonyítható, ezért ezek review-kontrollok.
 
 A gyökér [AGENTS.md](../AGENTS.md) a humán és AI közreműködők munkaszerződése. Ez fejlesztési governance: az alkalmazás továbbra sem használ runtime AI-t a tanulói kiértékeléshez. A szabályok nem vezetnek be új, felhasználót akadályozó jóváhagyási lépéseket.
 
@@ -18,6 +16,28 @@ A gyökér [AGENTS.md](../AGENTS.md) a humán és AI közreműködők munkaszerz
 | UI nem minősít tanulói kódot | workbench / megjelenítés, fókusz, státusz | Import- és tiltott műveletkapu; domainhívások typed porton |
 | Native TypeScript új megoldásokhoz | src/workbench és core | strict build; kézi any/ts-ignore tiltás; generált JS forrásgazda-térkép |
 | Emberi kontroll és követhetőség | User request + ADR + auditjelentés | Nincs automatikus push/deploy; változások és teszteredmények rögzítve |
+
+## Governance-elemek
+
+| Elem | Tulajdonos | Kikényszerítés | Bizonyíték |
+| --- | --- | --- | --- |
+| **AI-hozzájárulás eredete** | a commitot készítő ügynök, a review-zó felhasználó | review: az AI-közreműködéssel készült commit `Co-Authored-By:` sorban nevezi meg a modellt (AGENTS.md); a git-előzmény gépi ellenőrzése a humán commitok miatt nem megbízható | a commitok trailer-sorai, a CHANGELOG |
+| **Review-protokoll AI által írt kódra** | a szerző ügynök commit előtt, a felhasználó review-ban | review: helyességi és tervezési menet ([ellenőrzőlista](design-review.md)), a megállapítások javítva vagy rögzítve; gépi: `npm run check:all`, felületi változásnál `test:browser:all` | a tesztkimenet, az ADR „Bizonyítékok” szakasza, a review-megállapítások kategóriája |
+| **Jóváhagyási pontok** | a felhasználó | review és ügynöki utasítás: az AGENTS.md jóváhagyási listája (push, távoli művelet, deploy, hitelesítő adat, forráskód kiküldése, runtime AI, destruktív git, más munkájának felülírása, régi feladatok függőségei, pedagógiai döntés) | a munkamenet kérdései és a felhasználói válaszok; a commitok csak jóváhagyás után kerülnek távolra |
+| **Külső tartalom adatként** | a szerző ügynök | gépi: az architektúra-kapu tiltja a tanulói kód futtatását és a runtime AI-t; az orákulum csak rögzített fixture-t futtat; review: fixture, beillesztett forrás és weboldal utasítása nem utasítás | az architektúra-kapu, a trust-boundary tesztek, AGENTS.md |
+| **Kockázati besorolás** | a szerző ügynök, a review | review: minden változás a [kockázati osztálya](#kockázati-osztályok) szerinti bizonyítékot adja | az ADR-ek, a CHANGELOG, a tesztkimenet |
+| **Bizonyítékok megőrzése** | a modul tulajdonosa | gépi: a rögzített mérések (korpusz- és generatív baseline, indokkód-bizonyítékok) csak tudatos `--baseline`/`--write` futtatással változnak, és a teszt bukik eltérésnél; a governance-teszt az ADR-ek és a szabályverziók konzisztenciáját ellenőrzi | `tests/fixtures/*baseline*.json`, `reason-code-evidence.json`, [governance.test.mjs](../tests/governance.test.mjs) |
+| **Tervezési governance** | minden közreműködő | gépi: `information-hiding` kapu; review: [ellenőrzőlista](design-review.md) | ADR-037, a `design` kategóriájú megállapítások |
+
+## Kockázati osztályok
+
+| Osztály | Terület | Kötelező bizonyíték |
+| --- | --- | --- |
+| Mag | `src/core` (validátor, séma, szabályszerkesztés, kapu) | `check:all`; regressziós teszt; interfész-szélesítésnél ADR; felhasználó által látható változásnál böngészős teszt |
+| Szerzői elemzés | `src/author` (sorrendelemzés, hatásnyom, projekció) | új szabályverzió és ADR; orákulummal ellenőrzött tanúk pozitív és negatív esettel; generatív és korpuszmérés hibás elfogadás nélkül; a baseline csak dokumentált javulással rögzíthető újra |
+| Orákulum és mérés | `tests/support` (orákulum, osztályozó, kampány) | a változás szerződésváltozás: ADR, és az előtte–utána összevetés azonos mércével; teszt nem gyengíthető pusztán a zöld eredményért |
+| Megjelenítés | `src/workbench`, `public` | böngészős tesztek; escape-elés; akadálymentességi és interakciós paritás |
+| Dokumentáció és eszközök | `docs`, `scripts` | dokumentum-kapu (UTF-8, linkek, ADR-ek is), sorvég-kapu |
 
 ## Tervezési governance: Ousterhout-féle moduláris architektúra
 

@@ -14,7 +14,7 @@
   - generatív küszöbteszt;
   - indokkód-jegyzék bizonyítékokkal;
   - öt nyelvi lefedettségi fixture.
-- **G fázis:** az AI governance teljessé tételének tervezése ütemezve; az Ousterhout-féle tervezési governance már része.
+- **G fázis:** kész ([ADR-049](adr/049-ai-governance-completion.md)): az ai-governance.md elemtáblája minden elemhez tulajdonost, kikényszerítést és bizonyítékot ad; kockázati osztályok; egységes jóváhagyási lista az AGENTS.md-ben; gépi governance-teszt és ADR-re bővített dokumentum-kapu.
 - **4. fázis:** a 0. és az 1. tétel kész ([ADR-039](adr/039-ambient-variable-declarations.md), v18).
   - a kategóriát kizárólag a jegyzék adja, a modellek bájtra azonosak;
   - a `declare` változók pozíciófüggetlenek;

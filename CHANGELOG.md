@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-10-31 az AI governance teljessé tétele (ADR-049, G fázis)
+
+- **Governance-elemek:** az ai-governance.md táblája minden elemhez (eredet, review-protokoll, jóváhagyási pontok, külső tartalom, kockázati besorolás, bizonyítékok, tervezési governance) tulajdonost, kikényszerítést és bizonyítékot ad; a nem gépi elemek kimondottan review-kontrollok.
+- **Kockázati osztályok:** mag, szerzői elemzés, orákulum és mérés, megjelenítés, dokumentáció és eszközök, mindegyik a kötelező bizonyítékával.
+- **AGENTS.md:** egy helyen a jóváhagyási pontok (push, távoli művelet, deploy, hitelesítő adat, forráskód kiküldése, runtime AI, destruktív git, más munkája, régi feladatok függőségei, pedagógiai döntés) és az eredetszabály (`Co-Authored-By:`).
+- **Gépi kontrollok:** `governance.test.mjs` (az ADR-ek épsége; a szabályverzió-címkék egyezése a sémában, a típusban, a szerződésben és a generátorban; az AGENTS.md hivatkozásai; az elemtábla szerkezete); a dokumentum-kapu az ADR-eket és az AGENTS.md-t is ellenőrzi.
+- **Szerződés:** a v6 és a v7 külön sort kapott a szabályverzió-táblában.
+
 ## Unreleased – 2026-10-31 primitív lokálisok (ADR-048, v25)
 
 - **Szabály (v25):** a függvénylokális `let`/`var`, amelynek minden írása primitívet tárol (kezdőérték, `=` vagy aritmetikai összetett értékadás primitívvel, `++`/`--`), primitív; a legnagyobb ilyen halmaz, így `seen = seen + 1` is. Egy saját objektumokon dolgozó utasítás írhatja, és név szerinti RAW/WAR/WAW köti.

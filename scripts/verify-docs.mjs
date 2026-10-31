@@ -1,7 +1,7 @@
-/** Fail publication on malformed UTF-8, NULs or broken local Markdown links. */
+/** Fail publication on malformed UTF-8, NULs or broken local Markdown links (ADRs included, ADR-049). */
 import {readFile,readdir,stat} from 'node:fs/promises';
 import path from 'node:path';
-const files=['README.md','CHANGELOG.md','LICENSE-STATUS.md',...(await readdir('docs')).filter(x=>x.endsWith('.md')).map(x=>'docs/'+x)];
+const files=['README.md','CHANGELOG.md','LICENSE-STATUS.md','AGENTS.md',...(await readdir('docs')).filter(x=>x.endsWith('.md')).map(x=>'docs/'+x),...(await readdir('docs/adr')).filter(x=>x.endsWith('.md')).map(x=>'docs/adr/'+x)];
 for(const file of files){
  const text=new TextDecoder('utf-8',{fatal:true}).decode(await readFile(file));
  if(text.includes('\0'))throw Error('NUL in '+file);

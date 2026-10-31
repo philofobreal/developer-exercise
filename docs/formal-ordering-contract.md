@@ -141,7 +141,8 @@ A `dependencyPolicy` címke a generálási szabályok verziója. Egy modell áll
 | `scoped-type-members-v3` | [ADR-007](adr/007-typescript-erased-member-ordering.md) | törölt TS-adattagok futamai szabadok |
 | `scoped-effect-analysis-v4` | [ADR-008](adr/008-effect-based-statement-ordering.md) | P2: minden hatásos utasítás (az értékadás is) barrier; a tiszta egységek kommutálnak |
 | `scoped-effect-analysis-v5` | [ADR-009](adr/009-sealed-units-and-throw-free-reads.md) | lezárás, dobásmentes olvasás |
-| `scoped-effect-analysis-v6`, `-v7` | [ADR-010](adr/010-reflective-property-order.md) | P4 bekerül: kulcslánc, szkriptszintű globális lánc; v7: `accessor` mező, TS-kibocsátott globálisok |
+| `scoped-effect-analysis-v6` | [ADR-010](adr/010-reflective-property-order.md) | P4 bekerül: kulcslánc, szkriptszintű globális lánc |
+| `scoped-effect-analysis-v7` | [ADR-010](adr/010-reflective-property-order.md) | P4 kiegészítése: `accessor` mező, TS-kibocsátott globálisok |
 | `scoped-effect-analysis-v8` | [ADR-012](adr/012-class-evaluation-phases-and-accessor-pairs.md) | osztálykiértékelési fázisok, accessorpárok |
 | `scoped-effect-analysis-v9` | [ADR-013](adr/013-local-writes-clause-chains-and-imports.md) | **P2 explicit pontosítása:** a függvénylokális írás tiszta jobb oldallal csak RAW/WAR/WAW konfliktusnál kötött; az emit által törölt import pozíciófüggetlen; klauzulaláncok |
 | `scoped-effect-analysis-v10` | [ADR-019](adr/019-pure-effect-commutation.md) | **P2 pontosítása:** egy tiszta, blokkszintű, lokális deklaráció átléphet egy olyan hatás-barriert, amely korán nem hagyja el önmagát, és sem közvetlenül, sem closure-ön át nem éri el a deklaráció kötéseit; a csak `++`/`--` által írt primitív számláló olvasása primitív |
