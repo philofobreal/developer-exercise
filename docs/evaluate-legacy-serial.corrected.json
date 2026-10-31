@@ -113,7 +113,7 @@
         "usageLine": 4
       }
     ],
-    "dependencyPolicy": "scoped-effect-analysis-v24",
+    "dependencyPolicy": "scoped-effect-analysis-v25",
     "provenance": [
       {
         "before": 1,
@@ -190,7 +190,7 @@
     ],
     "evidence": {
       "sourceDigest": "b9bcbe506b0483ea",
-      "analyzer": "scoped-effect-analysis-v24",
+      "analyzer": "scoped-effect-analysis-v25",
       "environment": {
         "typescript": "5.8.3",
         "sourceKind": "script",

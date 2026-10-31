@@ -207,9 +207,10 @@ function jsObjectOperations(program){
   // ADR-042: a labelled jump may name an enclosing label of the same operation.
   const labels=new Set();
   const jump=item=>(item.type==='BreakStatement'||item.type==='ContinueStatement')&&(!item.label||labels.has(item.label.name));
-  // ADR-046: a loop's own head variables may be written in its body, like the generator's locals.
-  const locals=new Set();
-  const local=item=>item.type==='ExpressionStatement'&&(item.expression.type==='AssignmentExpression'&&item.expression.operator==='='&&item.expression.left.type==='Identifier'&&locals.has(item.expression.left.name)&&value(item.expression.right)||item.expression.type==='UpdateExpression'&&item.expression.argument.type==='Identifier'&&locals.has(item.expression.argument.name));
+  // ADR-046: a loop's own head variables may be written in its body, like the generator's locals;
+  // ADR-048: so may the list's own let/var bindings.
+  const locals=new Set(items.flatMap(item=>item.type==='VariableDeclaration'&&item.kind!=='const'?item.declarations.flatMap(d=>d.id.type==='Identifier'?[d.id.name]:[]):[]));
+  const local=item=>item.type==='ExpressionStatement'&&(item.expression.type==='AssignmentExpression'&&['=','+=','-=','*=','/=','%='].includes(item.expression.operator)&&item.expression.left.type==='Identifier'&&locals.has(item.expression.left.name)&&value(item.expression.right)||item.expression.type==='UpdateExpression'&&item.expression.argument.type==='Identifier'&&locals.has(item.expression.argument.name));
   const body=branch=>!branch||branch.type==='BlockStatement'&&branch.body.every(statement=>statement.type!=='VariableDeclaration'&&(operation(statement)||thrown(statement)||jump(statement)||local(statement)));
   const operation=item=>{
    if(item.type==='VariableDeclaration')return [...owned.values()].includes(item);
@@ -341,8 +342,8 @@ function tsObjectOperations(file){
   const thrown=item=>ts.isThrowStatement(item)&&ts.isNewExpression(item.expression)&&ts.isIdentifier(item.expression.expression)&&['Error','TypeError','RangeError'].includes(item.expression.expression.text)&&(item.expression.arguments??[]).every(value);
   const labels=new Set();
   const jump=item=>(ts.isBreakStatement(item)||ts.isContinueStatement(item))&&(!item.label||labels.has(item.label.text));
-  const locals=new Set();
-  const local=item=>{if(!ts.isExpressionStatement(item))return false;const e=item.expression;return ts.isBinaryExpression(e)&&e.operatorToken.kind===ts.SyntaxKind.EqualsToken&&ts.isIdentifier(e.left)&&locals.has(e.left.text)&&value(e.right)||(ts.isPostfixUnaryExpression(e)||ts.isPrefixUnaryExpression(e))&&ts.isIdentifier(e.operand)&&locals.has(e.operand.text);};
+  const locals=new Set(items.flatMap(item=>ts.isVariableStatement(item)&&!(item.declarationList.flags&ts.NodeFlags.Const)?item.declarationList.declarations.flatMap(d=>ts.isIdentifier(d.name)?[d.name.text]:[]):[]));
+  const local=item=>{if(!ts.isExpressionStatement(item))return false;const e=item.expression;return ts.isBinaryExpression(e)&&[ts.SyntaxKind.EqualsToken,ts.SyntaxKind.PlusEqualsToken,ts.SyntaxKind.MinusEqualsToken,ts.SyntaxKind.AsteriskEqualsToken,ts.SyntaxKind.SlashEqualsToken,ts.SyntaxKind.PercentEqualsToken].includes(e.operatorToken.kind)&&ts.isIdentifier(e.left)&&locals.has(e.left.text)&&value(e.right)||(ts.isPostfixUnaryExpression(e)||ts.isPrefixUnaryExpression(e))&&ts.isIdentifier(e.operand)&&locals.has(e.operand.text);};
   const body=branch=>!branch||ts.isBlock(branch)&&branch.statements.every(statement=>!ts.isVariableStatement(statement)&&(operation(statement)||thrown(statement)||jump(statement)||local(statement)));
   const operation=item=>{
    if(ts.isVariableStatement(item))return [...owned.values()].includes(item);

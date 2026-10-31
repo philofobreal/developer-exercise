@@ -18,8 +18,8 @@ function moveBefore(fixture,row,anchor){
  return createClassifier(fixture,model).classify(order);
 }
 
-test('the generation rule is v24, introduced by ADR-047 in the formal contract',async()=>{
- assert.equal(DEPENDENCY_POLICY,'scoped-effect-analysis-v24');
+test('v24 is introduced by ADR-047 in the formal contract and is at most the generation rule',async()=>{
+ assert.ok(Number(DEPENDENCY_POLICY.split('-v')[1])>=24,DEPENDENCY_POLICY);
  const contract=await readFile(new URL('../docs/formal-ordering-contract.md',import.meta.url),'utf8');
  assert.match(contract,/\| `scoped-effect-analysis-v24` \| \[ADR-047\]/);
 });

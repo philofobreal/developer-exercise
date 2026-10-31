@@ -26,7 +26,8 @@
   - a konstruktorban létrehozott kulcsok kész ([ADR-045](adr/045-constructor-created-keys.md), v22): a nem dobó JS-objektumprogramok rései 56-ról 3-ra estek (12 mag), hibás elfogadás nélkül.
   - a 4. tétel kész ([ADR-046](adr/046-loops-over-own-objects.md), v23): a ciklusok hatásnyomot kapnak, a nem bizonyítottan véget érők „esetleg nem ér véget” jelöléssel; azonos orákulummal a flow JS 22,2%-ról 15,0%-ra, a flow TS 18,7%-ról 11,8%-ra esett.
   - a mért fő ok a `sealed-unit` lett, ezért a 6. tétel `switch`-része előrébb került: a `switch` törzse saját blokk ([ADR-047](adr/047-switch-body-scope.md), v24); a flow JS 15,0%-ról 13,7%-ra, a flow TS dobó változata 5,6%-ról 2,8%-ra esett.
-  - **Következik:** a többsoros kifejezések lezárása (`function` csoport, a v2-ben nem finomítható, 6. fázis), a 3. tétel (hatásösszegzés, ma kevés mért rés); a 2d nem mért ok, dokumentált korlát.
+  - a ciklusban számolt lokális miatti szökés megszűnt: primitív lokálisok ([ADR-048](adr/048-primitive-locals.md), v25); azonos orákulummal a flow JS 16,0%-ról 10,6%-ra, a flow TS 12,0%-ról 8,3%-ra esett.
+  - **Következik:** a `flow` maradéka ma főleg objektumütközés (a ciklus túlbecslése) és a `while` nem bizonyított terminálása; a többsoros kifejezések lezárása (`function` csoport) a v2-ben nem finomítható (6. fázis); a 3. tétel (hatásösszegzés) ma kevés mért rés; a 2d nem mért ok.
 
 ## 1. Összefoglaló ítélet
 

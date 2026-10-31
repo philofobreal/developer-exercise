@@ -343,8 +343,8 @@
  },
  "prec-try-catch-finally": {
   "neighbours": 425,
-  "accepted": 8,
-  "completenessGaps": 1,
+  "accepted": 9,
+  "completenessGaps": 0,
   "justifiedRejections": 416
  },
  "prec-ts-clause-chain": {

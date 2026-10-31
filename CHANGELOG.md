@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-10-31 primitív lokálisok (ADR-048, v25)
+
+- **Szabály (v25):** a függvénylokális `let`/`var`, amelynek minden írása primitívet tárol (kezdőérték, `=` vagy aritmetikai összetett értékadás primitívvel, `++`/`--`), primitív; a legnagyobb ilyen halmaz, így `seen = seen + 1` is. Egy saját objektumokon dolgozó utasítás írhatja, és név szerinti RAW/WAR/WAW köti.
+- **Orákulum (JS és TS):** az objektumművelet törzsében a lista saját `let`/`var` kötésének írása megengedett; a P3 dönt.
+- **Mérés (12 mag, azonos új orákulum):** flow JS 16,0% → 10,6%, flow TS 12,0% → 8,3%; hibás elfogadás nincs. A gyors baseline és a korpusz-baseline (`prec-try-catch-finally`: 1 → 0 rés) újrarögzítve.
+- **Tesztek:** `primitive-locals.test.mjs` (szabad, kötött és konzervatív esetek, JS és TS); a v24-címketeszt verziófüggetlen.
+- **Címkék:** a v25 additív sémaenumérték; a példák és a minták csak az új címkét kapták.
+
 ## Unreleased – 2026-10-31 a `switch` törzse saját blokk (ADR-047, v24)
 
 - **Projekció (v24):** a `switch` törzse (`CaseBlock`) megtartott blokk, ezért a sorai a scope-ban maradnak, és a `switch` nem zárul le minden testvérével szemben; a hatásnyoma szerint mozoghat. A belső sorrend változatlanul forrásbeli.

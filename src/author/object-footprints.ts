@@ -33,7 +33,8 @@ type Compiler = typeof ts;
 export interface Footprint {reads: Set<string>; writes: Set<string>; mayThrow: boolean; external: boolean; mayHang: boolean;}
 /** `primitive`: whether a list-level expression is an effect-free primitive (the analyser's own test). */
 /** `enumeratedKeys` (ADR-029): the program may list enumerable keys, so a write that adds a key orders like a whole-object write. */
-export interface FootprintHost {primitive(expr: ts.Expression): boolean; enumeratedKeys?: boolean;}
+/** `assignable` (ADR-048): a list-level identifier is a primitive local of the list's function, which a statement may assign. */
+export interface FootprintHost {primitive(expr: ts.Expression): boolean; assignable?(identifier: ts.Identifier): boolean; enumeratedKeys?: boolean;}
 
 /** `text`: every primitive the value may be is a string (ADR-028). */
 /** `known` (ADR-032): the one primitive the value certainly is. */
@@ -342,6 +343,12 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
   if (compiler.isBinaryExpression(expr) && expr.operatorToken.kind >= S.FirstAssignment && expr.operatorToken.kind <= S.LastAssignment) {
    const target = unwrap(expr.left);
    if (compiler.isIdentifier(target)) {
+    // ADR-048: a primitive local of the list's function; the analysis orders it by binding conflicts.
+    if (!frame.env.has(target.text) && frame.self === null && host.assignable?.(target as ts.Identifier)) {
+     prim(expression(expr.right, frame));
+     if (expr.operatorToken.kind !== S.EqualsToken) prim(expression(target, frame));
+     return;
+    }
     if (!frame.env.has(target.text) || expr.operatorToken.kind !== S.EqualsToken) unknown();
     frame.env.set(target.text, union(frame.env.get(target.text)!, expression(expr.right, frame)));
     return;
@@ -357,6 +364,7 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
    const target = unwrap(expr.operand);
    // ADR-046: a local counter of a body or loop; ++/-- keep a primitive number.
    if (compiler.isIdentifier(target) && frame.env.has(target.text)) {prim(frame.env.get(target.text)!); frame.env.set(target.text, PRIM); return;}
+   if (compiler.isIdentifier(target) && frame.self === null && host.assignable?.(target)) {prim(expression(target, frame)); return;}
    if (!compiler.isPropertyAccessExpression(target)) unknown();
    const access = target as ts.PropertyAccessExpression, base = expression(access.expression, frame), name = nameOf(access.name)!;
    prim(read(base, name, frame));write(base, name, PRIM, frame);

@@ -387,6 +387,13 @@ export function objectFootprints(list, file, compiler, checker, host) {
         if (compiler.isBinaryExpression(expr) && expr.operatorToken.kind >= S.FirstAssignment && expr.operatorToken.kind <= S.LastAssignment) {
             const target = unwrap(expr.left);
             if (compiler.isIdentifier(target)) {
+                // ADR-048: a primitive local of the list's function; the analysis orders it by binding conflicts.
+                if (!frame.env.has(target.text) && frame.self === null && host.assignable?.(target)) {
+                    prim(expression(expr.right, frame));
+                    if (expr.operatorToken.kind !== S.EqualsToken)
+                        prim(expression(target, frame));
+                    return;
+                }
                 if (!frame.env.has(target.text) || expr.operatorToken.kind !== S.EqualsToken)
                     unknown();
                 frame.env.set(target.text, union(frame.env.get(target.text), expression(expr.right, frame)));
@@ -410,6 +417,10 @@ export function objectFootprints(list, file, compiler, checker, host) {
             if (compiler.isIdentifier(target) && frame.env.has(target.text)) {
                 prim(frame.env.get(target.text));
                 frame.env.set(target.text, PRIM);
+                return;
+            }
+            if (compiler.isIdentifier(target) && frame.self === null && host.assignable?.(target)) {
+                prim(expression(target, frame));
                 return;
             }
             if (!compiler.isPropertyAccessExpression(target))

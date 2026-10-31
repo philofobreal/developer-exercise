@@ -180,7 +180,7 @@ export function statementOrdering(file, compiler, options = {}) {
             // Never-written let/var behave like const; script-level ones stay writable through the global
             // scope, so only a script-level read that no code-running statement precedes sees them unchanged.
             const constant = (list.flags & compiler.NodeFlags.BlockScoped) === compiler.NodeFlags.Const || !!symbol && !written.has(symbol) && (context(owner) !== file || codeFreeBefore(identifier));
-            return { row, primitiveInitializer: (constant || counter()) && declaration.initializer ? declaration.initializer : null };
+            return { row, primitiveInitializer: (constant || counter() || !!symbol && primitiveLocals.has(symbol)) && declaration.initializer ? declaration.initializer : null };
         }
         if (compiler.isParameter(declaration) && compiler.isIdentifier(declaration.name)) {
             const body = declaration.parent.body;
@@ -270,6 +270,51 @@ export function statementOrdering(file, compiler, options = {}) {
             return pure(expr.left, reads) && pure(expr.right, reads);
         return false;
     }
+    /** ADR-048 (v25): function-local let/var bindings whose every write stores a primitive: an
+     * initializer, `=` or an arithmetic compound assignment of a primitive, or ++/--. The greatest set
+     * closed under that rule, so an assignment may read the binding itself (`seen = seen + 1`): by
+     * induction over the run, every value it ever holds is primitive. Computed once, before any
+     * summary; the primitive cache is cleared after each round, as rounds may refute a binding. */
+    const primitiveLocals = new Set();
+    {
+        const compound = new Set([S.EqualsToken, S.PlusEqualsToken, S.MinusEqualsToken, S.AsteriskEqualsToken, S.SlashEqualsToken, S.PercentEqualsToken, S.AsteriskAsteriskEqualsToken, S.LessThanLessThanEqualsToken, S.GreaterThanGreaterThanEqualsToken, S.GreaterThanGreaterThanGreaterThanEqualsToken, S.AmpersandEqualsToken, S.BarEqualsToken, S.CaretEqualsToken]);
+        const sides = new Map();
+        for (const [symbol, list] of uses) {
+            const declaration = unique(symbol), declarations = declaration && compiler.isVariableDeclaration(declaration) ? declaration.parent : undefined;
+            if (!declaration || !compiler.isVariableDeclaration(declaration) || !compiler.isIdentifier(declaration.name) || !declaration.initializer || !declarations || !compiler.isVariableDeclarationList(declarations) || disposable(declarations) || (declarations.flags & compiler.NodeFlags.Const) !== 0 || !compiler.isVariableStatement(declarations.parent) || context(declaration) === file)
+                continue;
+            const right = [declaration.initializer];
+            const allowed = list.every(use => {
+                if (!use.write || declarationName(use.node))
+                    return true;
+                const parent = use.node.parent;
+                if (compiler.isPrefixUnaryExpression(parent) || compiler.isPostfixUnaryExpression(parent))
+                    return true;
+                if (compiler.isBinaryExpression(parent) && parent.left === use.node && compound.has(parent.operatorToken.kind)) {
+                    right.push(parent.right);
+                    return true;
+                }
+                return false;
+            });
+            if (allowed)
+                sides.set(symbol, right);
+        }
+        sides.forEach((_, symbol) => primitiveLocals.add(symbol));
+        for (let changed = true; changed;) {
+            changed = false;
+            for (const [symbol, right] of sides)
+                if (primitiveLocals.has(symbol) && !right.every(side => primitive(side, new Set()))) {
+                    primitiveLocals.delete(symbol);
+                    changed = true;
+                }
+            primitiveCache.clear();
+        }
+    }
+    /** ADR-048: an identifier a list-level footprint may assign: a primitive local of the same function. */
+    const assignable = (identifier) => {
+        const symbol = checker.getSymbolAtLocation(identifier), declaration = unique(symbol);
+        return !!symbol && primitiveLocals.has(symbol) && !!declaration && context(declaration) === context(identifier);
+    };
     /** A use in a type position: a type node, an `implements` clause or an interface's `extends`. */
     const typePosition = (node) => {
         for (let current = node; current && !compiler.isSourceFile(current); current = current.parent) {
@@ -629,7 +674,7 @@ export function statementOrdering(file, compiler, options = {}) {
                 summaries.push(summary(statement, node));
             // ADR-025: in a function-context list, statements on the list's own objects get footprints.
             if (compiler.isBlock(node) && context(node) !== file) {
-                const footprints = objectFootprints(node.statements, file, compiler, checker, { primitive: expr => primitive(expr, new Set()), enumeratedKeys: options.enumeratedKeys ?? true });
+                const footprints = objectFootprints(node.statements, file, compiler, checker, { primitive: expr => primitive(expr, new Set()), assignable, enumeratedKeys: options.enumeratedKeys ?? true });
                 summaries.forEach((unit, i) => {
                     const statement = node.statements[i], footprint = footprints.get(statement);
                     // ADR-028: an if/else owns its first and last rows; its branch rows follow their own block.
@@ -643,6 +688,9 @@ export function statementOrdering(file, compiler, options = {}) {
                             const symbol = checker.getSymbolAtLocation(current), found = binding(current, symbol);
                             if (symbol)
                                 unit.readSet.add(symbol);
+                            // ADR-048: a primitive local the footprint assigns orders by RAW/WAR/WAW like a local write.
+                            if (symbol && writeTarget(current))
+                                unit.writeSet.add(symbol);
                             if (found?.row != null && found.row < unit.first)
                                 unit.reads.add(found.row);
                         }
