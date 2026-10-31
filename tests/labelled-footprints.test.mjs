@@ -49,9 +49,10 @@ for(const [fixture,row,anchor,why] of [
  assert.equal(moveBefore(fixture,row,anchor).kind,'accepted');
 });
 
-test('a labelled switch left by a labelled break has exactly the constraints of the unlabelled one',()=>{
+test('a labelled switch left by a labelled break has the constraints of the unlabelled one; only the barrier kind is named after the label',()=>{
  const unlabelled=program('unlabelled-switch',labelledSwitch.source.map(line=>line.replace('pick: ','').replace('break pick;','break;')));
- const constraints=fixture=>generate(fixture).authoring.provenance.map(({before,after,code})=>[before,after,code]);
+ // ADR-047: without the seal, a pure row beside the switch is ordered by the switch as a barrier, named by its syntax kind.
+ const constraints=fixture=>generate(fixture).authoring.provenance.map(({before,after,code})=>[before,after,code==='LabeledStatement'?'SwitchStatement':code]);
  assert.deepEqual(constraints(labelledSwitch),constraints(unlabelled));
 });
 

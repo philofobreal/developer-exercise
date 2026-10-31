@@ -33,13 +33,13 @@ test('an if/else if/else chain on one object commutes with another object; the p
  c.check(c.move('second.activate();',"const second = new Item('b');"),false,'a use before its declaration');
 });
 
-test('a switch with breaks and a default has a footprint: only the v2 unit seal orders it (JavaScript and TypeScript)',()=>{
- // The case rows form one multi-row unit without blocks of its own; CodeLine v2 seals such a unit
- // against its neighbours (ADR-009, a documented projection loss). No semantic reason remains.
+test('a switch with breaks and a default has a footprint and, as a block since v24, no seal orders it (JavaScript and TypeScript)',()=>{
+ // Until v24 the case rows formed one multi-row unit without a block, which CodeLine v2 sealed
+ // against its neighbours (ADR-009). ADR-047 makes the switch body a block: no reason remains.
  for(const [id,row,head] of [['flow-switch','second.activate();','switch (first.name) {'],['flow-switch-ts','second.level = 3;','switch (first.state) {']]){
   const c=prepare(id),after=c.model.lines.find(line=>line.code.trim()===row),unit=c.model.lines.find(line=>line.code.trim()===head);
   const between=c.model.authoring.provenance.filter(p=>p.after===after.id&&p.before>=unit.id).map(p=>p.code);
-  assert.deepEqual([...new Set(between)],['sealed-unit'],id+': only the unit seal');
+  assert.deepEqual([...new Set(between)],[],id+': nothing orders the independent row after the switch');
  }
 });
 

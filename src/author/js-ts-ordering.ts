@@ -9,13 +9,14 @@ import {combineOrderingRelations, type OrderingRelations} from './ordering-relat
 import type {StructureBlock} from './code-line-projection.js';
 import type {AnalysisEnvironment} from '../../dist/index.js';
 
-/** Brace-delimited blocks as 0-based row intervals. A block of an if/else, try,
+/** Brace-delimited blocks (a switch body included) as 0-based row intervals. A block of an if/else, try,
  * catch or finally clause is marked `clause`: its boundary row may be shared with
  * the next clause (`} else {`), which the projection represents as a separator. */
 export function jsTsStructure(file: ts.SourceFile, compiler: typeof ts): StructureBlock[] {
  const result: StructureBlock[] = [];
  const visit = (node: ts.Node): void => {
-  const eligible = compiler.isBlock(node) || compiler.isModuleBlock(node) || compiler.isClassLike(node) || compiler.isInterfaceDeclaration(node) || compiler.isTypeLiteralNode(node) || compiler.isObjectLiteralExpression(node) || compiler.isEnumDeclaration(node);
+  // ADR-047: a switch body is a block too, so its rows stay inside it without sealing the switch.
+  const eligible = compiler.isBlock(node) || compiler.isCaseBlock(node) || compiler.isModuleBlock(node) || compiler.isClassLike(node) || compiler.isInterfaceDeclaration(node) || compiler.isTypeLiteralNode(node) || compiler.isObjectLiteralExpression(node) || compiler.isEnumDeclaration(node);
   if (eligible) {
    const children = node.getChildren(file), open = children.find(child => child.kind === compiler.SyntaxKind.OpenBraceToken), close = children.filter(child => child.kind === compiler.SyntaxKind.CloseBraceToken).at(-1);
    if (open && close) {

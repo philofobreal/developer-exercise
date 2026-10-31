@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-10-31 a `switch` törzse saját blokk (ADR-047, v24)
+
+- **Projekció (v24):** a `switch` törzse (`CaseBlock`) megtartott blokk, ezért a sorai a scope-ban maradnak, és a `switch` nem zárul le minden testvérével szemben; a hatásnyoma szerint mozoghat. A belső sorrend változatlanul forrásbeli.
+- **Mérés (12 mag, azonos orákulum):** flow JS 15,0% → 13,7%, dobó 17,6% → 15,6%; flow TS 11,8% → 11,0%, dobó 5,6% → 2,8%; hibás elfogadás nincs. A gyors baseline újrarögzítve.
+- **Maradék:** a többsoros kifejezések folytatósorai lezártak maradnak (a `function` csoport fő oka); ez a v2-ben nem finomítható, a 6. fázis v3-modelljének tárgya.
+- **Tesztek:** `switch-scope.test.mjs` (blokk és scope, szabad mozgás, tiltott be- és kilépés, JS és TS); a v23-címketeszt verziófüggetlen.
+- **Címkék:** a v24 additív sémaenumérték; a példák és a minták csak az új címkét kapták.
+
 ## Unreleased – 2026-10-31 ciklusok a saját objektumokon (ADR-046, v23)
 
 - **Szabály (v23):** a `while`, a `do…while` és a `let` fejű `for` a saját objektumokon hatásnyomot kap; a ciklus által írt lokálisok ismert értéke elvész, ez lefed minden iterációt.

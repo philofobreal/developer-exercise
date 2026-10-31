@@ -7,7 +7,7 @@ import { type OrderingOptions } from './statement-ordering.js';
 import { type OrderingRelations } from './ordering-relations.js';
 import type { StructureBlock } from './code-line-projection.js';
 import type { AnalysisEnvironment } from '../../dist/index.js';
-/** Brace-delimited blocks as 0-based row intervals. A block of an if/else, try,
+/** Brace-delimited blocks (a switch body included) as 0-based row intervals. A block of an if/else, try,
  * catch or finally clause is marked `clause`: its boundary row may be shared with
  * the next clause (`} else {`), which the projection represents as a separator. */
 export declare function jsTsStructure(file: ts.SourceFile, compiler: typeof ts): StructureBlock[];
