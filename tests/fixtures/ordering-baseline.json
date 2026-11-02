@@ -472,5 +472,149 @@
   "accepted": 27,
   "completenessGaps": 0,
   "justifiedRejections": 1032
+ },
+ "task-word-frequency-js": {
+  "neighbours": 208,
+  "accepted": 3,
+  "completenessGaps": 0,
+  "justifiedRejections": 205
+ },
+ "task-word-frequency-js-valid": {
+  "neighbours": 208,
+  "accepted": 3,
+  "completenessGaps": 0,
+  "justifiedRejections": 205
+ },
+ "task-matrix-stats-js": {
+  "neighbours": 475,
+  "accepted": 9,
+  "completenessGaps": 0,
+  "justifiedRejections": 466
+ },
+ "task-matrix-stats-js-valid": {
+  "neighbours": 475,
+  "accepted": 9,
+  "completenessGaps": 0,
+  "justifiedRejections": 466
+ },
+ "task-ledger-js": {
+  "neighbours": 1994,
+  "accepted": 27,
+  "completenessGaps": 5,
+  "justifiedRejections": 1962
+ },
+ "task-ledger-js-valid": {
+  "neighbours": 1994,
+  "accepted": 27,
+  "completenessGaps": 5,
+  "justifiedRejections": 1962
+ },
+ "task-group-by-js": {
+  "neighbours": 774,
+  "accepted": 4,
+  "completenessGaps": 0,
+  "justifiedRejections": 770
+ },
+ "task-group-by-js-valid": {
+  "neighbours": 774,
+  "accepted": 4,
+  "completenessGaps": 0,
+  "justifiedRejections": 770
+ },
+ "task-form-validation-js": {
+  "neighbours": 414,
+  "accepted": 9,
+  "completenessGaps": 0,
+  "justifiedRejections": 405
+ },
+ "task-form-validation-js-valid": {
+  "neighbours": 414,
+  "accepted": 12,
+  "completenessGaps": 0,
+  "justifiedRejections": 402
+ },
+ "task-search-tree-js": {
+  "neighbours": 2835,
+  "accepted": 58,
+  "completenessGaps": 0,
+  "justifiedRejections": 2777
+ },
+ "task-search-tree-js-valid": {
+  "neighbours": 2835,
+  "accepted": 58,
+  "completenessGaps": 0,
+  "justifiedRejections": 2777
+ },
+ "task-memoize-js": {
+  "neighbours": 530,
+  "accepted": 4,
+  "completenessGaps": 0,
+  "justifiedRejections": 526
+ },
+ "task-memoize-js-valid": {
+  "neighbours": 530,
+  "accepted": 6,
+  "completenessGaps": 0,
+  "justifiedRejections": 524
+ },
+ "task-bracket-stack-ts": {
+  "neighbours": 1136,
+  "accepted": 34,
+  "completenessGaps": 0,
+  "justifiedRejections": 1102
+ },
+ "task-bracket-stack-ts-valid": {
+  "neighbours": 1136,
+  "accepted": 34,
+  "completenessGaps": 0,
+  "justifiedRejections": 1102
+ },
+ "task-cart-total-ts": {
+  "neighbours": 582,
+  "accepted": 9,
+  "completenessGaps": 1,
+  "justifiedRejections": 572
+ },
+ "task-cart-total-ts-valid": {
+  "neighbours": 582,
+  "accepted": 9,
+  "completenessGaps": 1,
+  "justifiedRejections": 572
+ },
+ "task-priority-queue-ts": {
+  "neighbours": 1142,
+  "accepted": 19,
+  "completenessGaps": 0,
+  "justifiedRejections": 1123
+ },
+ "task-priority-queue-ts-valid": {
+  "neighbours": 1142,
+  "accepted": 19,
+  "completenessGaps": 0,
+  "justifiedRejections": 1123
+ },
+ "task-grade-report-ts": {
+  "neighbours": 2109,
+  "accepted": 22,
+  "completenessGaps": 0,
+  "justifiedRejections": 2087
+ },
+ "task-grade-report-ts-valid": {
+  "neighbours": 2109,
+  "accepted": 22,
+  "completenessGaps": 0,
+  "justifiedRejections": 2087
+ },
+ "task-graph-reach-ts": {
+  "neighbours": 1491,
+  "accepted": 31,
+  "completenessGaps": 0,
+  "justifiedRejections": 1460
+ },
+ "task-graph-reach-ts-valid": {
+  "neighbours": 1491,
+  "accepted": 31,
+  "completenessGaps": 0,
+  "justifiedRejections": 1460
  }
 }

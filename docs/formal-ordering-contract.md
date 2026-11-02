@@ -651,6 +651,10 @@ Mindkettőt `conservative` státusz jelzi.
 - **az overload-szignatúrák sorrendje:** konzervatív;
 - **a lyukas overload-csoport körüli lezárás:** projekciós veszteség.
 
+### ADR-051: feladatkorpusz
+
+A [feladatkorpusz](../tests/fixtures/task-programs.mjs) 12 tanórai jellegű JS/TS feladat (13–45 sor), mindegyik `any` és `valid` bemeneti szerződéssel (`origin: 'task'`). 24 mérés, 27 380 szomszédos sorrend: hibás elfogadás nincs, 463 elfogadott, 12 completeness-rés két feladatban. Részletek: [ADR-051](adr/051-task-corpus-and-linear-shapes.md).
+
 ## Ismert korlátok
 
 - **Reflexió (ADR-010, ADR-020):** a szkriptszintű `var`/`enum`/`namespace` deklarációk sorrendje kötött. A különböző nevű metódusok, `accessor` mezők és a szkriptszintű függvények egymáshoz képesti sorrendje v11 óta csak reflektáló programban kötött; az `accessor` mező mezőként a mezők között a helyén marad. Egy namespace csak akkor szabad, ha törzse kizárólag típus- vagy `declare` deklarációkat tartalmaz. A duplikált nevű tag és a számított nevű mező konzervatív. Az accessorpár két fele nem állhat a következő kulcs két oldalán, akkor sem, ha a kulcs az első fél helyén keletkezik (precedenciával nem kifejezhető). A beágyazott osztályokat a probe utáni futásidejű pillanatkép és a szintaktikus P4-szabály ellenőrzi. A forrásszöveg-reflexió kizárt.

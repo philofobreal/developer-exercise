@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-02 feladatkorpusz és lineáris alakkódolás (ADR-051)
+
+- **Feladatkorpusz:** 12 tanórai jellegű, összetettebb feladat (7 JavaScript, 5 TypeScript: osztályok, kivételek, closure, `Map`/`Set`, generikus osztály, enum, uniótípus, `switch`), mindegyik `any` és `valid` bemeneti szerződéssel; 24 új rögzített korpuszmérés, a mérőfuttató külön `task` csoportja.
+- **Mérés:** 27 380 szomszédos sorrend, hibás elfogadás nincs; 12 completeness-rés két feladatban (a `keyEnumeration` az `entries` mezőnevet kulcslistázásnak veszi; többsoros literál lezárása). A `valid` szerződés két feladatban ad szabadságot.
+- **Orákulumjavítás:** a `tsShape`/`jsShape` minden szinten újra-escape-elte a gyerekek JSON-alakját, ezért a hossz a mélységgel exponenciálisan nőtt, és egy mély TS-feladaton `RangeError` lett. Az új kódolás lineáris és ugyanúgy injektív: a korábbi 79 fixture alapértéke bájtra azonos, a korpuszteszt kb. 3,5-szer gyorsabb.
+
 ## Unreleased – 2026-11-02 választható bemeneti szerződés (ADR-050, v26)
 
 - **Kapcsoló:** a szerző feladatonként választ: szigorú (`any`, alapértelmezett: bármilyen érték, getter, Proxy is) vagy érvényes egyszerű adat (`valid`). A választás a modell `authoring.evidence.environment.inputs` mezőjében rögzül; a modellminősítés és a frissítés ezzel generál újra. Felület: „Bemenetek” választó a szerzői forrásnézetben.

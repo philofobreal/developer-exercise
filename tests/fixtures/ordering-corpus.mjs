@@ -2,6 +2,7 @@
  * metrics runner. Every fixture is author-trusted test data; probes call only
  * the fixture itself and record(). Nothing here comes from learners. */
 import {readFile} from 'node:fs/promises';
+import {taskPrograms} from './task-programs.mjs';
 
 const library={
  'algo-bfs-js':'(() => { const grid = [[0, 0, 0, 0], [1, 1, 0, 1], [0, 0, 0, 0], [0, 1, 1, 0]]; return [shortestPath(grid, [0, 0], [3, 3]), shortestPath(grid, [0, 0], [2, 0]), shortestPath(grid, [3, 0], [0, 3]), shortestPath([[0, 1], [1, 0]], [0, 0], [1, 1]), shortestPath(grid, [2, 2], [2, 2]), shortestPath([[0, 0], [0, 0]], [0, 0], [5, 5])]; })()',
@@ -179,6 +180,12 @@ for(const [id,probe] of Object.entries(library)){
  fixtures.push({id,origin:'library',language:model.language,probe,source:model.lines.map(line=>line.code)});
  // ADR-050: the same example under the `valid` input contract; its probe passes valid data.
  fixtures.push({id:id+'-valid',origin:'contract',inputs:'valid',language:model.language,probe,source:model.lines.map(line=>line.code)});
+}
+// The task corpus: classroom-style exercises, each under both input contracts (ADR-050).
+for(const [id,task] of Object.entries(taskPrograms)){
+ const source=task.source.split('\n');
+ fixtures.push({id,origin:'task',language:task.language,source});
+ fixtures.push({id:id+'-valid',origin:'task',inputs:'valid',language:task.language,source});
 }
 
 /** id → {id, origin, language, source: string[], probe = 'evaluate()', strict = true, asynchronous = false, inputs = 'any'} */

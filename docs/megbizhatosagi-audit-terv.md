@@ -28,6 +28,7 @@
   - a mért fő ok a `sealed-unit` lett, ezért a 6. tétel `switch`-része előrébb került: a `switch` törzse saját blokk ([ADR-047](adr/047-switch-body-scope.md), v24); a flow JS 15,0%-ról 13,7%-ra, a flow TS dobó változata 5,6%-ról 2,8%-ra esett.
   - a ciklusban számolt lokális miatti szökés megszűnt: primitív lokálisok ([ADR-048](adr/048-primitive-locals.md), v25); azonos orákulummal a flow JS 16,0%-ról 10,6%-ra, a flow TS 12,0%-ról 8,3%-ra esett.
   - a régi példák újravizsgálata után a választható bemeneti szerződés ([ADR-050](adr/050-input-contract.md), v26): `valid` szerződésnél a bemenetek olvasása és a nem módosító beépített hívások egymáshoz képest szabadok; az `algo-bfs-js` hat tanári szabadságából öt visszajön ([eltéréslista](peldak-migracioja.md)).
+  - a valódi feladatokra hasonlító mérőkorpusz ([ADR-051](adr/051-task-corpus-and-linear-shapes.md)): 12 feladat mindkét bemeneti szerződéssel, hibás elfogadás nélkül; közben az orákulum alakkódolása lineáris lett.
   - **Következik:** a `flow` maradéka ma főleg objektumütközés (a ciklus túlbecslése) és a `while` nem bizonyított terminálása; a többsoros kifejezések lezárása (`function` csoport) a v2-ben nem finomítható (6. fázis); a 3. tétel (hatásösszegzés) ma kevés mért rés; a 2d nem mért ok.
 
 ## 1. Összefoglaló ítélet

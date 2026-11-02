@@ -39,10 +39,13 @@ const TIMEOUTS_MS=[250,2000];
 /* ----------------------------- JavaScript (Acorn) ---------------------------- */
 const jsFunction=new Set(['FunctionDeclaration','FunctionExpression','ArrowFunctionExpression']);
 const jsEffect=new Set(['CallExpression','NewExpression','AssignmentExpression','UpdateExpression','AwaitExpression','YieldExpression','ThrowStatement','ReturnStatement','BreakStatement','ContinueStatement','TaggedTemplateExpression','MemberExpression','ImportExpression','SpreadElement','ObjectPattern','ArrayPattern','ForStatement','ForInStatement','ForOfStatement','WhileStatement','DoWhileStatement','WithStatement','DebuggerStatement','StaticBlock']);
+/* Shapes are injective encodings compared for equality. Only the atoms are JSON-escaped and the
+ * nesting is written around already encoded children, so the length grows linearly with the
+ * tree; re-escaping every level grew it exponentially with depth. */
 function jsShape(value,key=''){
- if(Array.isArray(value)){const items=value.map(item=>jsShape(item));return key==='body'?items.sort():items;}
- if(value&&typeof value==='object')return JSON.stringify(Object.entries(value).filter(([name])=>!['start','end','raw','loc','range'].includes(name)).map(([name,item])=>[name,jsShape(item,name)]));
- return JSON.stringify(value);
+ if(Array.isArray(value)){const items=value.map(item=>jsShape(item));return '['+(key==='body'?items.sort():items).join(',')+']';}
+ if(value&&typeof value==='object')return '{'+Object.entries(value).filter(([name])=>!['start','end','raw','loc','range'].includes(name)).map(([name,item])=>JSON.stringify(name)+':'+jsShape(item,name)).join(',')+'}';
+ return typeof value==='bigint'?value+'n':JSON.stringify(value)??'null';
 }
 function jsHasEffect(node){
  if(!node||typeof node!=='object')return false;
@@ -326,17 +329,18 @@ function jsObjectOperations(program){
 /* ------------------------- TypeScript (compiler AST walk) -------------------- */
 const tsFunction=node=>ts.isFunctionDeclaration(node)||ts.isFunctionExpression(node)||ts.isArrowFunction(node)||ts.isMethodDeclaration(node)||ts.isConstructorDeclaration(node)||ts.isGetAccessorDeclaration(node)||ts.isSetAccessorDeclaration(node);
 const assignment=new Set([ts.SyntaxKind.EqualsToken,ts.SyntaxKind.PlusEqualsToken,ts.SyntaxKind.MinusEqualsToken,ts.SyntaxKind.AsteriskEqualsToken,ts.SyntaxKind.AsteriskAsteriskEqualsToken,ts.SyntaxKind.SlashEqualsToken,ts.SyntaxKind.PercentEqualsToken,ts.SyntaxKind.LessThanLessThanEqualsToken,ts.SyntaxKind.GreaterThanGreaterThanEqualsToken,ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken,ts.SyntaxKind.AmpersandEqualsToken,ts.SyntaxKind.BarEqualsToken,ts.SyntaxKind.CaretEqualsToken,ts.SyntaxKind.AmpersandAmpersandEqualsToken,ts.SyntaxKind.BarBarEqualsToken,ts.SyntaxKind.QuestionQuestionEqualsToken,ts.SyntaxKind.InKeyword,ts.SyntaxKind.InstanceOfKeyword]);
+/** `(head,child…)` with a JSON head; a node list is `[node,…]`. Linear in the tree, like jsShape. */
 function tsShape(node){
  const head=[ts.SyntaxKind[node.kind]];
  if(!ts.isSourceFile(node)&&typeof node.text==='string')head.push(node.text);
  if(ts.isVariableDeclarationList(node))head.push(node.flags&(ts.NodeFlags.Let|ts.NodeFlags.Const|ts.NodeFlags.Using|ts.NodeFlags.AwaitUsing));
  if(ts.isPrefixUnaryExpression(node)||ts.isPostfixUnaryExpression(node))head.push(node.operator);
- const children=[];
- ts.forEachChild(node,child=>{children.push(tsShape(child));},list=>{
+ const parts=[JSON.stringify(head)];
+ ts.forEachChild(node,child=>{parts.push(tsShape(child));},list=>{
   const items=list.map(tsShape),free=list===node.statements||list===node.members&&!ts.isEnumDeclaration(node);
-  children.push(JSON.stringify(free?items.sort():items));
+  parts.push('['+(free?items.sort():items).join(',')+']');
  });
- return JSON.stringify([head,children]);
+ return '('+parts.join(',')+')';
 }
 const erased=node=>ts.isInterfaceDeclaration(node)||ts.isTypeAliasDeclaration(node)||!!ts.canHaveModifiers(node)&&!!ts.getModifiers(node)?.some(m=>m.kind===ts.SyntaxKind.DeclareKeyword);
 /** An effect of this node itself (children aside); assignments are classified separately. */
