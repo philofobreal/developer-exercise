@@ -56,6 +56,11 @@ export class LanguageEngine {
         return { ...formatted };
     }
 }
+/** The generation assumptions a model records (ADR-015): its import emit and input contract. */
+function recordedAssumptions(model) {
+    const environment = model.authoring?.evidence?.environment;
+    return { ...(environment?.importEmit ? { importEmit: environment.importEmit } : {}), ...(environment?.inputs ? { inputs: environment.inputs } : {}) };
+}
 /** Explicit author reanalysis: preserve reference identity/content, fixed slots and manual edges/profiles. */
 export async function refreshLegacyDependencies(input, ports) {
     return (await refreshAuthorModel(input, ports)).model;
@@ -67,9 +72,8 @@ export async function refreshAuthorModel(input, ports) {
     if ('status' in initial)
         throw new AdapterContractError(initial.message);
     await ports.audit(snapshot);
-    // The recorded import emit (ADR-013, ADR-015) is part of what the refresh re-derives.
-    const importEmit = snapshot.authoring?.evidence?.environment?.importEmit;
-    const generated = await ports.generate({ source: snapshot.lines.map(line => line.code).join('\n'), language: snapshot.language, title: snapshot.title, description: snapshot.description, ...(importEmit ? { importEmit } : {}) });
+    // The recorded import emit (ADR-013, ADR-015) and input contract (ADR-050) are part of what the refresh re-derives.
+    const generated = await ports.generate({ source: snapshot.lines.map(line => line.code).join('\n'), language: snapshot.language, title: snapshot.title, description: snapshot.description, ...recordedAssumptions(snapshot) });
     const checked = compileCodeLineExercise(generated);
     if ('status' in checked)
         throw new AdapterContractError(checked.message);
@@ -113,8 +117,7 @@ export function authorRuleSheet(model) {
 export async function verifyAuthorModel(model, ports, input = {}) {
     let rederivation = 'differs', currentAnalyzer, projectionLoss;
     try {
-        const importEmit = model.authoring?.evidence?.environment?.importEmit;
-        const generated = await ports.generate({ source: model.lines.map(line => line.code).join('\n'), language: model.language, title: model.title, description: model.description, ...(importEmit ? { importEmit } : {}) });
+        const generated = await ports.generate({ source: model.lines.map(line => line.code).join('\n'), language: model.language, title: model.title, description: model.description, ...recordedAssumptions(model) });
         currentAnalyzer = generated.authoring?.evidence?.analyzer;
         projectionLoss = generated.authoring?.evidence?.projectionLoss?.pairs;
         reconcileDependencies(model, generated);

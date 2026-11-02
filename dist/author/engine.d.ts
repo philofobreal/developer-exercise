@@ -43,6 +43,7 @@ export interface LegacyJSTSPorts {
     generate(input: AuthorSource & {
         language: 'javascript' | 'typescript';
         importEmit?: 'verbatim' | 'elide-unused';
+        inputs?: 'any' | 'valid';
     }): CodeLineExercise | Promise<CodeLineExercise>;
     audit(model: CodeLineExercise): void | Promise<void>;
     format(source: string, language: 'javascript' | 'typescript'): FormatResult | Promise<FormatResult>;

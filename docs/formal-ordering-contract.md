@@ -110,6 +110,32 @@ Egy S permutáció akkor egyenértékű P-vel, ha egyszerre teljesül:
 
    **Kivétel:** ha a program maga listázhatja ezeket a kulcsokat, a teljes ADR-010 sorrend érvényes. Ez akkor áll fenn, ha a forrásszöveg megnevez egy reflexiós API-t vagy a globális objektumot (`getOwnPropertyNames`, `ownKeys`, `getOwnPropertyDescriptors`, `Reflect`, `globalThis`, `window`, `self`, `frames`, `global`, `Function`, `eval`), vagy szkriptszinten `this`-t használ.
 
+### Bemeneti szerződés (ADR-050, v26)
+
+A feladat szerzője választja meg, milyen értékeket kaphat a program kívülről (paraméterként, hívótól). A választás a modell `authoring.evidence.environment.inputs` mezőjében rögzül, és a P2 egy szabályát változtatja meg.
+
+| Szerződés | Kívülről érkező érték | Mi következik belőle |
+| --- | --- | --- |
+| `any` (alapértelmezett) | bármi: getter, setter, Proxy, saját `valueOf`/`toString`, hibás alak | a P2 fenti listája változatlan: a property-olvasás és a spread külső hatás |
+| `valid` | érvényes egyszerű adat: primitív (szimbólum nélkül), sima tömb és objektum adattulajdonságokkal, `Set`/`Map`, közvetlen paraméterként függvény (callback); az alakja olyan, amilyet a kód elvár | az **olvasási hatás** nem külső hatás (lásd lent) |
+
+A harmadik valós helyzet, az egyszerű, de hibás alakú adat (például `null` ott, ahol tömb kell), sorrend szempontjából az `any` alá esik. Ilyenkor a két olvasás közül az elsőként hibázó dönti el a kivétel üzenetét, ezért a sorrendjük megfigyelhető.
+
+**Olvasási hatás `valid` szerződésnél:**
+- egy property- vagy elemolvasás (`a.b`, `a?.b`, `a[k]`), kivéve a `super` olvasását és azt a nevet, amelyet a program maga accessorként definiál;
+- spread tömb- vagy objektumliterálban, ha a program nem definiál generátort, illetve accessort;
+- a listázott beépített függvények és nem módosító, callbacket nem hívó metódusok hívása, ha a program nem definiál ilyen nevű tagot (`Math.*`, `Number`, `String`, `Object.keys`/`values`/`entries`, `Array.isArray`, egyargumentumú `Array.from`; `join`, `slice`, `indexOf`, `includes`, `at`, `concat`, `split`, `has`, `get` és társaik), valamint az `new Set(…)` / `new Map(…)` legfeljebb egy argumentummal.
+
+Az olvasási hatású utasítás egy külső hatásúhoz képest sorrendben marad (az ADR-019 kommutációja rá nem vonatkozik), egy másik olvasásihoz és egy hatásmentes utasításhoz képest csak név szerinti RAW/WAR/WAW köti.
+
+**Ha a program maga módosíthatja, mit csinál egy olvasás**, a szerződés nem alkalmazható, és az `any` szabály érvényes. Ilyenkor a modell megjegyzése ezt kimondja. Ez akkor áll fenn, ha a forrásszöveg megnevezi a következők valamelyikét:
+- `Proxy`, `Reflect`;
+- `defineProperty`, `defineProperties`, `setPrototypeOf`, `__proto__`, `.prototype`;
+- egy jól ismert szimbólumot (`Symbol.`);
+- `eval`, `Function`, `with`;
+
+vagy ha számított nevű accessort definiál.
+
 ### Megfigyelhető állapot
 
 A P3 és a P4 a következőket figyeli. Ugyanezt hasonlítja össze a független orákulum ([semantic-oracle.mjs](../tests/support/semantic-oracle.mjs)): a generátor és az orákulum ugyanabban az értelemben használja az egyenértékűséget.
@@ -161,6 +187,7 @@ A `dependencyPolicy` címke a generálási szabályok verziója. Egy modell áll
 | `scoped-effect-analysis-v23` | [ADR-046](adr/046-loops-over-own-objects.md) | **P2 pontosítása:** a `while`, a `do…while` és a `let` fejű `for` a saját objektumokon helyi objektumművelet (az orákulumban is; a törzs a saját fejváltozóját írhatja). A literál korlátú számlálós `for`, amelynek törzse nem írja a számlálót, véget ér; minden más ciklus esetleg nem ér véget, ezért egy lehetséges kivétellel, külső hívással vagy elakadással kötött |
 | `scoped-effect-analysis-v24` | [ADR-047](adr/047-switch-body-scope.md) | **Projekció pontosítása:** a `switch` törzse saját blokk, ezért sorai a scope-ban maradnak, és a `switch` nem zárul le minden testvérével szemben; a belső sorrend változatlanul forrásbeli |
 | `scoped-effect-analysis-v25` | [ADR-048](adr/048-primitive-locals.md) | **P2 pontosítása:** a függvénylokális `let`/`var`, amelynek minden írása primitívet tárol (kezdőérték, `=` vagy aritmetikai összetett értékadás primitívvel, `++`/`--`; a legnagyobb ilyen halmaz), primitív; egy helyi objektumművelet írhatja, és név szerinti RAW/WAR/WAW köti (az orákulumban is) |
+| `scoped-effect-analysis-v26` | [ADR-050](adr/050-input-contract.md) | **Bemeneti szerződés:** `valid` szerződésnél az olvasási hatás (property-olvasás, spread, listázott beépített hívás) csak a külső hatásokhoz képest kötött; minden szerződésben a szétbontott (`const [a, b] = …`) név olvasása kötésolvasás |
 
 A v9 P2-je **szigorúan bővebb** a v4–v8 P2-jénél: minden, amit a régi szabály megengedett, az újban is megengedett. Az új szabadságnak két forrása van, és egyiknek sincs megfigyelhető hatása a felcserélt párra nézve (lásd a [megfigyelhető állapotot](#megfigyelhető-állapot)): a lokális írás csak a saját kötését módosítja és nem dob; az emit által törölt import futásidőben nem létezik. Ez nem a régi P2 csendes gyengítése, hanem verziózott újradefiniálás: a régi címkéjű modellek a régi szabállyal maradnak érvényesek, és az orákulum a v9 P2-t saját, független implementációval követi (ADR-013).
 
@@ -650,7 +677,7 @@ Mindkettőt `conservative` státusz jelzi.
 ## Kompatibilitás és nyelvi határ
 
 - **Régi modellek:** az importált modellek függőségei nem változnak. Újragenerálás csak explicit „Sorfüggőségek újraszámítása” műveletre történik.
-- **Policy-címke:** új generáláskor `scoped-effect-analysis-v25` (ADR-048). A régi enumértékek, köztük a v4–v24, érvényesek maradnak (additív sémabővítés).
+- **Policy-címke:** új generáláskor `scoped-effect-analysis-v26` (ADR-050). A régi enumértékek, köztük a v4–v25, érvényesek maradnak (additív sémabővítés).
 - **Generatív lefedettség:** a kampány `flow` fajtája ([random-programs.mjs](../tests/support/random-programs.mjs), `randomFlowProgram`) a saját objektumokon dolgozó műveleteket vezérlési szerkezetekbe ágyazza, JS-ben és TS-ben. Tartalmazza a fenti szabad és barrier alakokat is (`else if`, `switch`, `try`, `for…of`, számlálós `for`, `while`, címkés ugrás).
 - **Belső szerződés (ADR-011):** az adapter `orderingRelations` metódusa nyelvfüggetlen [`OrderingRelations`](../src/author/ordering-relations.ts) relációt ad: előzmények, védett bemenetek, egységhatárok, megjegyzés, 0-alapú fizikai sorokon. A projekciót a típusos [code-line-projection.ts](../src/author/code-line-projection.ts) végzi (ADR-013), a validátor nem változik.
 - **Proveniencia (ADR-014):** minden előzményhez ok tartozik (kategória és kód), a projekció a saját éleinek okát is rögzíti, és a modell `authoring.provenance` mezőjébe csak a redukció után megmaradt élek okai kerülnek. Ez magyarázat, nem szabály: a validáció nem olvassa. Csak addig érvényes, amíg az `authoring.evidence` digestje egyezik a sorokkal (ADR-015); különben `unbound`.

@@ -11,7 +11,9 @@ export interface ExerciseSummary {id:string;revision:number;language:string;titl
 export type Report=Pick<ValidationResult,'status'|'message'>&Partial<ValidationResult>&{feedback?:{author?:Feedback;learner:Feedback};slots?:number[]};
 export interface AttemptSnapshot {answer:(LineId|null)[];pool:LineId[];draft:string;report:Report|null;feedback:string;generation:number;editorDirty?:boolean;editorGeneration?:number;}
 export type ImportEmit='verbatim'|'elide-unused';
-export interface AuthorDraft {title:string;description:string;language:string;source:string;message:string;importEmit?:ImportEmit;}
+/** The exercise's input contract (ADR-050): `any` (default) or valid plain data. */
+export type InputContract='any'|'valid';
+export interface AuthorDraft {title:string;description:string;language:string;source:string;message:string;importEmit?:ImportEmit;inputs?:InputContract;}
 /** What the API reported with the active author draft: presentation data, never a rule source (ADR-021). */
 export interface AuthorInsight {rules?:AuthorRuleSheet;verification?:ModelVerification;audit?:ReferenceAudit;refresh?:RefreshReport;effect?:EditEffect;}
 export type RemoveRule=Extract<RuleEdit,{kind:'remove-rule'}>;

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-11-02 választható bemeneti szerződés (ADR-050, v26)
+
+- **Kapcsoló:** a szerző feladatonként választ: szigorú (`any`, alapértelmezett: bármilyen érték, getter, Proxy is) vagy érvényes egyszerű adat (`valid`). A választás a modell `authoring.evidence.environment.inputs` mezőjében rögzül; a modellminősítés és a frissítés ezzel generál újra. Felület: „Bemenetek” választó a szerzői forrásnézetben.
+- **Szabály (v26):** `valid` szerződésnél az olvasási egység (property-olvasás, konverzió, spread, listázott beépített hívás, `new Set`/`Map`) csak a külső hatásokhoz képest kötött. Ha a program maga módosíthatja az olvasást (Proxy, prototípus, `eval` stb.), az elemzés szigorú marad, és a modell megjegyzése ezt kimondja. Minden szerződésben: a szétbontott nevek olvasása kötésolvasás.
+- **Orákulum (JS és TS):** ugyanez a politika független kóddal, `inputs: 'valid'` fixture-ökre.
+- **Mérés:** hat dedikált szerződéses fixture és a könyvtári példák `-valid` változata, hibás elfogadás nélkül; az `algo-bfs-js-valid` 25 szomszédot fogad el (az `any` alatt 5-öt), rés nélkül.
+- **Tesztek:** `input-contract.test.mjs`, a szerzői munkaterület és a böngészős forgatókönyv.
+
 ## Unreleased – 2026-10-31 az AI governance teljessé tétele (ADR-049, G fázis)
 
 - **Governance-elemek:** az ai-governance.md táblája minden elemhez (eredet, review-protokoll, jóváhagyási pontok, külső tartalom, kockázati besorolás, bizonyítékok, tervezési governance) tulajdonost, kikényszerítést és bizonyítékot ad; a nem gépi elemek kimondottan review-kontrollok.

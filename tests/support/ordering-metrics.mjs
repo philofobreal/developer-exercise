@@ -11,7 +11,7 @@ import {createClassifier} from './order-classification.mjs';
 export const CORPUS_CAPS={exhaustiveLimit:200,samples:100,repeats:0};
 /** Cap-independent numbers pinned per fixture. */
 export const pinned=row=>({neighbours:row.neighbours,accepted:row.accepted,completenessGaps:row.completenessGaps,justifiedRejections:row.justifiedRejections});
-export function generate(fixture){return generateCodeLineExercise({source:fixture.source.join('\n'),language:fixture.language},ts);}
+export function generate(fixture){return generateCodeLineExercise({source:fixture.source.join('\n'),language:fixture.language,...(fixture.inputs?{inputs:fixture.inputs}:{})},ts);}
 /** True when the statement analysis declines the whole reference (with, direct eval). */
 function analysisDisabled(fixture){
  const typescript=fixture.language==='typescript',file=ts.createSourceFile('reference.'+(typescript?'ts':'js'),fixture.source.join('\n'),ts.ScriptTarget.Latest,true,typescript?ts.ScriptKind.TS:ts.ScriptKind.JS);

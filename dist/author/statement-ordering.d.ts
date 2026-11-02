@@ -6,6 +6,9 @@
  *    it reads is initialised whenever it runs (same-context declaration with a
  *    protected edge, parameter, catch/loop binding, hoisted function, or a var);
  *    it may initialise its own binding;
+ *  - read (ADR-050, only under the `valid` input contract): like pure, but it may
+ *    read object state (property reads, conversions, spread), so it keeps its order
+ *    against every unit that may write objects (barriers, footprinted operations);
  *  - position-free: no evaluation event at its position (hoisted function
  *    declaration in a function/script list, erased TypeScript declaration);
  *  - barrier: everything else (calls, property access, writes, loops, control
@@ -29,8 +32,9 @@
  */
 import type ts from 'typescript';
 import type { OrderingEntry } from './ordering-relations.js';
+import { type InputContract } from './input-contract.js';
 type Compiler = typeof ts;
-export type UnitKind = 'pure' | 'local-write' | 'position-free' | 'barrier' | 'opaque';
+export type UnitKind = 'pure' | 'local-write' | 'read' | 'position-free' | 'barrier' | 'opaque';
 /** Evidence for one unit: why it may move, or why it may not. */
 export interface StatementUnit {
     first: number;
@@ -38,10 +42,12 @@ export interface StatementUnit {
     kind: UnitKind;
     reason: string;
 }
+/** `inputsUnavailable` (ADR-050): the `valid` input contract was asked for, but the program itself can make property access or conversion run code, so the analysis stayed strict. */
 export interface StatementOrdering {
     entries: OrderingEntry[];
     protectedInputs: Map<number, Set<number>>;
     units: StatementUnit[];
+    inputsUnavailable?: boolean;
 }
 /** Separate, browser-safe checker host: only the reference file is visible. */
 export declare function bindingChecker(file: ts.SourceFile, compiler: Compiler): ts.TypeChecker;
@@ -50,12 +56,14 @@ export declare function bindingChecker(file: ts.SourceFile, compiler: Compiler):
  * verbatimModuleSyntax; `elide-unused` is TypeScript's default emit, which drops an
  * import none of whose bindings is used as a value. */
 export type ImportEmit = 'verbatim' | 'elide-unused';
+export type { InputContract };
+/** `inputs`: the input contract (ADR-050). */
 /** `reflectedKeys` (ADR-020): the program may list global keys, so function declarations keep their global order. */
 /** `enumeratedKeys` (ADR-029/031): the program may list enumerable keys, so adding a key to an own object is ordered. */
 export interface OrderingOptions {
     imports?: ImportEmit;
+    inputs?: InputContract;
     reflectedKeys?: boolean;
     enumeratedKeys?: boolean;
 }
 export declare function statementOrdering(file: ts.SourceFile, compiler: Compiler, options?: OrderingOptions): StatementOrdering;
-export {};

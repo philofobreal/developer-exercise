@@ -1,6 +1,7 @@
 import { footprintConflicts, objectFootprints } from './object-footprints.js';
 import { freeCommentRows } from './comment-rows.js';
 import { categoryOf } from './reason-codes.js';
+import { inputFacts } from './input-contract.js';
 /** Separate, browser-safe checker host: only the reference file is visible. */
 export function bindingChecker(file, compiler) {
     const options = { allowJs: true, noLib: true, noResolve: true, target: compiler.ScriptTarget.Latest };
@@ -153,13 +154,18 @@ export function statementOrdering(file, compiler, options = {}) {
     };
     /** Resolves an evaluation-time identifier read to a binding that is initialised whenever the read runs. */
     function binding(identifier, symbol) {
-        const declaration = unique(symbol);
+        // v26 (ADR-050): a destructured name is initialised with its whole declaration or parameter.
+        let declaration = unique(symbol), destructured = false;
+        while (declaration && compiler.isBindingElement(declaration)) {
+            destructured = true;
+            declaration = declaration.parent.parent;
+        }
         if (!declaration)
             return null;
         const sameContext = (statement) => context(statement) === context(identifier) ? line(statement) : null;
         // A switch shares one scope between clauses: a jump can skip the declaration.
         const caseClause = (statement) => compiler.isCaseClause(statement.parent) || compiler.isDefaultClause(statement.parent);
-        if (compiler.isVariableDeclaration(declaration) && compiler.isIdentifier(declaration.name)) {
+        if (compiler.isVariableDeclaration(declaration) && (destructured || compiler.isIdentifier(declaration.name))) {
             const list = declaration.parent;
             if (compiler.isCatchClause(list))
                 return within(list.block, identifier) ? { row: null, primitiveInitializer: null } : null;
@@ -167,7 +173,7 @@ export function statementOrdering(file, compiler, options = {}) {
                 return null;
             const owner = list.parent;
             // ADR-019: ++/-- keep a primitive number a number, so a counter whose only writes are updates stays primitive.
-            const counter = () => !!symbol && context(owner) !== file && (uses.get(symbol) ?? []).every(use => !use.write || declarationName(use.node) || compiler.isPrefixUnaryExpression(use.node.parent) || compiler.isPostfixUnaryExpression(use.node.parent));
+            const counter = () => !destructured && !!symbol && context(owner) !== file && (uses.get(symbol) ?? []).every(use => !use.write || declarationName(use.node) || compiler.isPrefixUnaryExpression(use.node.parent) || compiler.isPostfixUnaryExpression(use.node.parent));
             if ((compiler.isForStatement(owner) || compiler.isForOfStatement(owner) || compiler.isForInStatement(owner)) && owner.initializer === list)
                 return within(owner.statement, identifier) ? { row: null, primitiveInitializer: compiler.isForStatement(owner) && list.declarations.length === 1 && declaration.initializer && counter() ? declaration.initializer : null } : null;
             // The read must follow the whole declaration: `const a = a` throws.
@@ -180,9 +186,9 @@ export function statementOrdering(file, compiler, options = {}) {
             // Never-written let/var behave like const; script-level ones stay writable through the global
             // scope, so only a script-level read that no code-running statement precedes sees them unchanged.
             const constant = (list.flags & compiler.NodeFlags.BlockScoped) === compiler.NodeFlags.Const || !!symbol && !written.has(symbol) && (context(owner) !== file || codeFreeBefore(identifier));
-            return { row, primitiveInitializer: (constant || counter() || !!symbol && primitiveLocals.has(symbol)) && declaration.initializer ? declaration.initializer : null };
+            return { row, primitiveInitializer: !destructured && (constant || counter() || !!symbol && primitiveLocals.has(symbol)) && declaration.initializer ? declaration.initializer : null };
         }
-        if (compiler.isParameter(declaration) && compiler.isIdentifier(declaration.name)) {
+        if (compiler.isParameter(declaration) && (destructured || compiler.isIdentifier(declaration.name))) {
             const body = declaration.parent.body;
             return body && within(body, identifier) ? { row: null, primitiveInitializer: null } : null;
         }
@@ -248,26 +254,84 @@ export function statementOrdering(file, compiler, options = {}) {
         if (compiler.isArrowFunction(expr) || compiler.isFunctionExpression(expr))
             return true;
         if (compiler.isObjectLiteralExpression(expr))
-            return expr.properties.every(property => {
-                if (compiler.isShorthandPropertyAssignment(property)) {
-                    if (property.objectAssignmentInitializer)
-                        return false;
-                    const found = binding(property.name, checker.getShorthandAssignmentValueSymbol(property));
-                    if (found?.row != null)
-                        reads.add(found.row);
-                    return !!found;
-                }
-                if (compiler.isPropertyAssignment(property))
-                    return plainName(property.name) && pure(property.initializer, reads);
-                // Defining a method or accessor does not invoke it.
-                return (compiler.isMethodDeclaration(property) || compiler.isGetAccessorDeclaration(property) || compiler.isSetAccessorDeclaration(property)) && plainName(property.name);
-            });
+            return expr.properties.every(property => pureProperty(property, reads, pure));
         if (compiler.isArrayLiteralExpression(expr))
             return expr.elements.every(element => compiler.isOmittedExpression(element) || !compiler.isSpreadElement(element) && pure(element, reads));
         if (compiler.isConditionalExpression(expr))
             return pure(expr.condition, reads) && pure(expr.whenTrue, reads) && pure(expr.whenFalse, reads);
         if (compiler.isBinaryExpression(expr) && [S.AmpersandAmpersandToken, S.BarBarToken, S.QuestionQuestionToken].includes(expr.operatorToken.kind))
             return pure(expr.left, reads) && pure(expr.right, reads);
+        return false;
+    }
+    /** An object literal property whose evaluation is effect-free when `value` holds for its value. */
+    function pureProperty(property, reads, value) {
+        if (compiler.isShorthandPropertyAssignment(property)) {
+            if (property.objectAssignmentInitializer)
+                return false;
+            const found = binding(property.name, checker.getShorthandAssignmentValueSymbol(property));
+            if (found?.row != null)
+                reads.add(found.row);
+            return !!found;
+        }
+        if (compiler.isPropertyAssignment(property))
+            return plainName(property.name) && value(property.initializer, reads);
+        // Defining a method or accessor does not invoke it.
+        return (compiler.isMethodDeclaration(property) || compiler.isGetAccessorDeclaration(property) || compiler.isSetAccessorDeclaration(property)) && plainName(property.name);
+    }
+    // ADR-050 (v26): what the input contract lets the analysis assume in this program.
+    const facts = inputFacts(file, compiler, options.inputs);
+    /** A name the program does not declare, so it is the global built-in (with no lib, the checker resolves no global). */
+    const builtin = (identifier) => compiler.isIdentifier(identifier) && !checker.getSymbolAtLocation(identifier) && !names.get(identifier.text)?.some(use => declarationName(use));
+    /** ADR-050: effect-free and non-throwing under the `valid` input contract. Unlike `pure`, it may
+     * read object state: property reads, conversions and spread of valid plain data run only the
+     * built-in algorithms, which neither throw nor write on well-formed values. */
+    function readOnly(raw, reads) {
+        if (pure(raw, reads))
+            return true;
+        if (!facts.applies)
+            return false;
+        const expr = unwrap(raw);
+        const converts = (operand) => readOnly(operand, reads) && (facts.conversions || primitive(operand, new Set()));
+        if (expr.kind === S.ThisKeyword)
+            return true;
+        if (compiler.isPropertyAccessExpression(expr))
+            return expr.expression.kind !== S.SuperKeyword && !facts.accessor(expr.name.text) && readOnly(expr.expression, reads);
+        if (compiler.isElementAccessExpression(expr))
+            return expr.expression.kind !== S.SuperKeyword && !facts.anyAccessor && readOnly(expr.expression, reads) && converts(expr.argumentExpression);
+        if (compiler.isPrefixUnaryExpression(expr))
+            return expr.operator === S.ExclamationToken ? readOnly(expr.operand, reads) : [S.PlusToken, S.MinusToken, S.TildeToken].includes(expr.operator) && converts(expr.operand);
+        if (compiler.isTypeOfExpression(expr) || compiler.isVoidExpression(expr))
+            return readOnly(expr.expression, reads);
+        if (compiler.isTemplateExpression(expr))
+            return expr.templateSpans.every(span => converts(span.expression));
+        if (compiler.isBinaryExpression(expr)) {
+            const operator = expr.operatorToken.kind;
+            if ([S.EqualsEqualsEqualsToken, S.ExclamationEqualsEqualsToken, S.AmpersandAmpersandToken, S.BarBarToken, S.QuestionQuestionToken].includes(operator))
+                return readOnly(expr.left, reads) && readOnly(expr.right, reads);
+            return coercing.has(operator) && converts(expr.left) && converts(expr.right);
+        }
+        if (compiler.isConditionalExpression(expr))
+            return readOnly(expr.condition, reads) && readOnly(expr.whenTrue, reads) && readOnly(expr.whenFalse, reads);
+        if (compiler.isArrayLiteralExpression(expr))
+            return expr.elements.every(element => compiler.isOmittedExpression(element) || (compiler.isSpreadElement(element) ? !facts.generators && readOnly(element.expression, reads) : readOnly(element, reads)));
+        if (compiler.isObjectLiteralExpression(expr))
+            return expr.properties.every(property => compiler.isSpreadAssignment(property) ? !facts.anyAccessor && readOnly(property.expression, reads) : pureProperty(property, reads, readOnly));
+        // Built-in functions and methods that neither call back, nor write, nor throw on valid data.
+        if (compiler.isCallExpression(expr) && !expr.questionDotToken && expr.arguments.every(argument => !compiler.isSpreadElement(argument) && converts(argument))) {
+            const callee = unwrap(expr.expression);
+            if (builtin(callee))
+                return facts.builtinFunction(callee.text);
+            if (!compiler.isPropertyAccessExpression(callee) || callee.questionDotToken)
+                return false;
+            const name = callee.name.text, owner = unwrap(callee.expression);
+            if (builtin(owner) && facts.builtinStatic(owner.text, name, expr.arguments.length))
+                return true;
+            return facts.builtinMethod(name) && readOnly(callee.expression, reads);
+        }
+        if (compiler.isNewExpression(expr) && builtin(expr.expression)) {
+            const args = expr.arguments ?? [];
+            return facts.builtinConstructor(expr.expression.text, args.length) && args.every(argument => !compiler.isSpreadElement(argument) && readOnly(argument, reads));
+        }
         return false;
     }
     /** ADR-048 (v25): function-local let/var bindings whose every write stores a primitive: an
@@ -415,14 +479,17 @@ export function statementOrdering(file, compiler, options = {}) {
     function summary(node, list) {
         const reads = new Set(), readSet = new Set(), writeSet = new Set(), base = { first: line(node), last: end(node), start: node.getStart(file), reads, readSet, writeSet, node };
         const barrier = (reason) => ({ ...base, kind: 'barrier', reason, code: reason });
-        /** Pure or local-write children compose; the unit reads and may write their unions. */
-        const compose = (children, kind) => {
-            if (!children.every(child => child.kind === 'pure' || child.kind === 'local-write'))
+        /** Pure, local-write or read children compose; the unit reads and may write their unions. A
+         * read child (ADR-050), or a read test, makes it a read unit. */
+        const compose = (children, kind, readTest = false) => {
+            if (!children.every(child => child.kind === 'pure' || child.kind === 'local-write' || child.kind === 'read'))
                 return null;
             for (const child of children) {
                 child.readSet.forEach(symbol => readSet.add(symbol));
                 child.writeSet.forEach(symbol => writeSet.add(symbol));
             }
+            if (readTest || children.some(child => child.kind === 'read'))
+                return { ...base, kind: 'read', reason: 'read-' + kind };
             return children.some(child => child.kind === 'local-write') ? { ...base, kind: 'local-write', reason: 'local-write-' + kind } : { ...base, kind: 'pure', reason: 'pure-' + kind };
         };
         const mods = modifiers(node);
@@ -451,12 +518,14 @@ export function statementOrdering(file, compiler, options = {}) {
             if (mods.length || list.declarations.length !== 1 || !declaration || !compiler.isIdentifier(declaration.name) || disposable(list) || !unique(checker.getSymbolAtLocation(declaration.name)))
                 return barrier('declaration-shape');
             const initializer = declaration.initializer ? unwrap(declaration.initializer) : undefined;
-            if (!initializer ? flags === compiler.NodeFlags.Const : !pure(declaration.initializer, reads))
+            // ADR-050: under the `valid` input contract an initializer that only reads object state makes a read unit.
+            const read = !!initializer && !pure(declaration.initializer, reads);
+            if (!initializer ? flags === compiler.NodeFlags.Const : read && !readOnly(declaration.initializer, reads))
                 return barrier('effectful-or-unknown-initializer');
             const delimited = initializer && (compiler.isObjectLiteralExpression(initializer) ? initializer : (compiler.isArrowFunction(initializer) || compiler.isFunctionExpression(initializer)) && compiler.isBlock(initializer.body) ? initializer.body : undefined);
             symbolReads(declaration.initializer, readSet);
             writeSet.add(checker.getSymbolAtLocation(declaration.name));
-            return ownsRows(node, ...braces(delimited)) ? { ...base, kind: 'pure', reason: initializer ? 'pure-declaration' : 'uninitialised-declaration' } : barrier('shared-or-continued-rows');
+            return ownsRows(node, ...braces(delimited)) ? { ...base, kind: read ? 'read' : 'pure', reason: read ? 'read-declaration' : initializer ? 'pure-declaration' : 'uninitialised-declaration' } : barrier('shared-or-continued-rows');
         }
         if (compiler.isClassDeclaration(node)) {
             const heritage = node.heritageClauses?.find(clause => clause.token === S.ExtendsKeyword)?.types[0]?.expression;
@@ -494,10 +563,11 @@ export function statementOrdering(file, compiler, options = {}) {
                 for (const row of branch.reads)
                     if (row < base.first)
                         reads.add(row);
-            if (!pure(node.expression, reads))
+            const readTest = !pure(node.expression, reads);
+            if (readTest && !readOnly(node.expression, reads))
                 return barrier('branch-contains-barrier');
             symbolReads(node.expression, readSet);
-            return compose(branches, 'branch') ?? barrier('branch-contains-barrier');
+            return compose(branches, 'branch', readTest) ?? barrier('branch-contains-barrier');
         }
         if (compiler.isReturnStatement(node) && node.expression)
             pure(node.expression, reads);
@@ -766,6 +836,6 @@ export function statementOrdering(file, compiler, options = {}) {
         compiler.forEachChild(node, visit);
     }
     visit(file);
-    return { entries: [...entries].map(([row, after]) => ({ row, after: [...after], reasons: reasons.get(row) ?? [] })), protectedInputs, units };
+    return { entries: [...entries].map(([row, after]) => ({ row, after: [...after], reasons: reasons.get(row) ?? [] })), protectedInputs, units, ...(facts.unavailable ? { inputsUnavailable: true } : {}) };
 }
 //# sourceMappingURL=statement-ordering.js.map

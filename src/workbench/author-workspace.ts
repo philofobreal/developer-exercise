@@ -4,11 +4,12 @@
 import type {AuthorDraft,ExerciseSummary,WorkbenchState} from './contracts.js';
 import type {CodeLineExercise} from '../../dist/index.js';
 
-const same=(a:AuthorDraft,b:AuthorDraft):boolean=>a.source===b.source&&a.language===b.language&&a.title===b.title&&a.description===b.description&&(a.importEmit??'verbatim')===(b.importEmit??'verbatim');
-/** The generation request for the reference; the import emit is a TypeScript-only assumption (ADR-013). */
+const same=(a:AuthorDraft,b:AuthorDraft):boolean=>a.source===b.source&&a.language===b.language&&a.title===b.title&&a.description===b.description&&(a.importEmit??'verbatim')===(b.importEmit??'verbatim')&&(a.inputs??'any')===(b.inputs??'any');
+/** The generation request for the reference; the import emit is a TypeScript-only assumption (ADR-013),
+ * the input contract (ADR-050) one of either language. */
 export function authorRequest(author:AuthorDraft):Omit<AuthorDraft,'message'> {
- const {title,description,language,source,importEmit}=author;
- return {title,description,language,source,...(language==='typescript'&&importEmit?{importEmit}:{})};
+ const {title,description,language,source,importEmit,inputs}=author;
+ return {title,description,language,source,...(language==='typescript'&&importEmit?{importEmit}:{}),...(inputs==='valid'?{inputs}:{})};
 }
 /** The reference differs from the one the applied model was built from (or none was built yet). */
 export function authorDraftPending(state:WorkbenchState):boolean {
@@ -47,7 +48,7 @@ export function revertAuthorDraft(state:WorkbenchState):void {
  * `keepPending`: a rule edit changes no line, so an unapplied reference draft stays pending. */
 export function admitAuthorModel(state:WorkbenchState,model:CodeLineExercise,source?:string,{keepPending=false}:{keepPending?:boolean}={}):void {
  nextRequest(state);
- const pending=keepPending&&authorDraftPending(state)?state.author:undefined,importEmit=model.authoring?.evidence?.environment?.importEmit;
- const author:AuthorDraft={title:model.title,description:model.description,language:model.language,source:source??model.lines.map(l=>l.code).join('\n'),message:'',...(importEmit?{importEmit}:{})};
+ const pending=keepPending&&authorDraftPending(state)?state.author:undefined,environment=model.authoring?.evidence?.environment,importEmit=environment?.importEmit,inputs=environment?.inputs;
+ const author:AuthorDraft={title:model.title,description:model.description,language:model.language,source:source??model.lines.map(l=>l.code).join('\n'),message:'',...(importEmit?{importEmit}:{}),...(inputs==='valid'?{inputs}:{})};
  state.author=pending??author;state.authorBaseline={...author};
 }

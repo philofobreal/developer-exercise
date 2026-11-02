@@ -231,6 +231,13 @@
                 },
                 "classFields": {
                   "const": "either"
+                },
+                "inputs": {
+                  "type": "string",
+                  "enum": [
+                    "any",
+                    "valid"
+                  ]
                 }
               }
             },
@@ -590,7 +597,8 @@
         "scoped-effect-analysis-v22",
         "scoped-effect-analysis-v23",
         "scoped-effect-analysis-v24",
-        "scoped-effect-analysis-v25"
+        "scoped-effect-analysis-v25",
+        "scoped-effect-analysis-v26"
       ]
     }
   }

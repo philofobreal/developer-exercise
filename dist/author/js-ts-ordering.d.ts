@@ -13,7 +13,8 @@ import type { AnalysisEnvironment } from '../../dist/index.js';
 export declare function jsTsStructure(file: ts.SourceFile, compiler: typeof ts): StructureBlock[];
 /** The emit and runtime assumptions behind the JS/TS analysis (ADR-015): the compiler that
  * analysed it, the TypeScript import emit, script or module semantics (as the global-order
- * rule decides it) and class-field-mode independence (ADR-012 holds in both modes). */
+ * rule decides it), class-field-mode independence (ADR-012 holds in both modes) and, when the
+ * author chose it, the `valid` input contract (ADR-050). */
 export declare function jsTsEnvironment(file: ts.SourceFile, compiler: typeof ts, options?: OrderingOptions): AnalysisEnvironment;
 /** ADR-020: whether the program itself may observe the creation order of method,
  * accessor or top-level function keys: it names a reflection API or the global
@@ -22,5 +23,6 @@ export declare function jsTsEnvironment(file: ts.SourceFile, compiler: typeof ts
 export declare function observesKeyOrder(file: ts.SourceFile, compiler: typeof ts): boolean;
 /** ADR-029: whether the program itself may observe the creation order of instance fields. */
 export declare function enumeratesKeys(file: ts.SourceFile, compiler: typeof ts): boolean;
-/** `options.imports` describes the TypeScript emit (ADR-013); JavaScript imports always load their module. */
+/** `options.imports` describes the TypeScript emit (ADR-013); JavaScript imports always load their module.
+ * `options.inputs` is the input contract (ADR-050) of either language. */
 export declare function jsTsOrderingRelations(file: ts.SourceFile, compiler: typeof ts, options?: OrderingOptions): OrderingRelations;

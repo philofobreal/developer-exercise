@@ -32,9 +32,10 @@ export function jsTsStructure(file: ts.SourceFile, compiler: typeof ts): Structu
 
 /** The emit and runtime assumptions behind the JS/TS analysis (ADR-015): the compiler that
  * analysed it, the TypeScript import emit, script or module semantics (as the global-order
- * rule decides it) and class-field-mode independence (ADR-012 holds in both modes). */
+ * rule decides it), class-field-mode independence (ADR-012 holds in both modes) and, when the
+ * author chose it, the `valid` input contract (ADR-050). */
 export function jsTsEnvironment(file: ts.SourceFile, compiler: typeof ts, options: OrderingOptions = {}): AnalysisEnvironment {
- return {typescript: compiler.version, ...(file.fileName.endsWith('.ts') ? {importEmit: options.imports ?? 'verbatim'} : {}), sourceKind: compiler.isExternalModule(file) ? 'module' : 'script', classFields: 'either'};
+ return {typescript: compiler.version, ...(file.fileName.endsWith('.ts') ? {importEmit: options.imports ?? 'verbatim'} : {}), sourceKind: compiler.isExternalModule(file) ? 'module' : 'script', classFields: 'either', ...(options.inputs === 'valid' ? {inputs: 'valid'} : {})};
 }
 
 /** Names through which a program can list non-enumerable or global keys in creation order. */
@@ -64,12 +65,15 @@ export function enumeratesKeys(file: ts.SourceFile, compiler: typeof ts): boolea
  return observesKeyOrder(file, compiler) || keyEnumeration.test(file.text);
 }
 
-/** `options.imports` describes the TypeScript emit (ADR-013); JavaScript imports always load their module. */
+/** `options.imports` describes the TypeScript emit (ADR-013); JavaScript imports always load their module.
+ * `options.inputs` is the input contract (ADR-050) of either language. */
 export function jsTsOrderingRelations(file: ts.SourceFile, compiler: typeof ts, options: OrderingOptions = {}): OrderingRelations {
  const reflectedKeys = observesKeyOrder(file, compiler), enumeratedKeys = enumeratesKeys(file, compiler);
- const statements = statementOrdering(file, compiler, {...(file.fileName.endsWith('.ts') ? options : {}), reflectedKeys, enumeratedKeys}), members = typeMemberOrdering(file, compiler, {reflectedKeys, enumeratedKeys});
+ const {imports, inputs} = options;
+ const statements = statementOrdering(file, compiler, {...(file.fileName.endsWith('.ts') && imports ? {imports} : {}), ...(inputs ? {inputs} : {}), reflectedKeys, enumeratedKeys}), members = typeMemberOrdering(file, compiler, {reflectedKeys, enumeratedKeys});
+ const unavailable = statements.inputsUnavailable ? 'Az érvényes bemenet szerződése nem alkalmazható: a program maga módosíthatja a tulajdonságolvasást vagy a konverziót (például Proxy, Reflect, prototípus, eval), ezért a sorrendelemzés szigorú maradt.' : '';
  return combineOrderingRelations([
-  {entries: statements.entries, protectedInputs: statements.protectedInputs, spans: statements.units.map(({first, last}) => ({first, last})), note: ''},
+  {entries: statements.entries, protectedInputs: statements.protectedInputs, spans: statements.units.map(({first, last}) => ({first, last})), note: unavailable},
   {entries: members.entries, protectedInputs: new Map(), spans: members.spans, note: members.note}
  ]);
 }

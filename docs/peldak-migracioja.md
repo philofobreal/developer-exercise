@@ -21,6 +21,19 @@
 | [algo-sort-search-js](../examples/algo-sort-search-js.json) | **nem** | – | – | – | új feladatként kell felvenni |
 | [profiles-js](../examples/profiles-js.json) | **nem** | – | – | – | a forrást vagy a profilt kell újragondolni |
 
+### Frissítés: v26, bemeneti szerződés (2026-11-02)
+
+A v25-ös újravizsgálat megmutatta, hogy a `class-accounts-ts` és az `algo-bfs-js` elvesztett elfogadásainak oka a tanár hallgatólagos feltevése: a bemenetek egyszerű adatok. Ezért készült el a választható bemeneti szerződés ([ADR-050](adr/050-input-contract.md)). A lenti számok a tanár által a leírásban kifejezetten megengedett párokra vonatkoznak, a rögzített sorokból és a blokkhatárokból adódó kötések nélkül.
+
+| Példa | Új modell `any` szerződéssel | Új modell `valid` szerződéssel |
+| --- | --- | --- |
+| `algo-bfs-js` | 6 tanári pár kötött | 1 pár kötött: `visited.add(key)` / `queue.push(…)` (a `Set` nincs modellezve) |
+| `class-accounts-ts` | 2 pár kötött | 2 pár kötött: `this.balance += …` / `this.history.push(…)` (öröklő osztály mezői) |
+| `algo-sort-search-js` | elfogadás változatlan, a blokkszerkezet eltér | ugyanaz |
+| `profiles-js` | a profilbemutató ütközik | ugyanaz |
+
+**Javaslat:** az `algo-bfs-js` `valid` szerződéssel frissíthető, egyetlen tanári pár elvesztésével. Ez a pár szerzői lazításként megtartható, ujjlenyomattal (ADR-044). A többi példa döntési pontja változatlan. Az átírás jóváhagyáshoz kötött.
+
 **Fogalmak:**
 - **`effect-order`:** az orákulum szintaktikus hatásrend-ellenőrzése szerint a sorrend eltér, mert két esetleg kivételt dobó vagy hatásos művelet cserélődik fel.
   - Ilyen például a `grid.length` és a `grid[0].length` cseréje. `grid = null` esetén a két hibaüzenet eltér.

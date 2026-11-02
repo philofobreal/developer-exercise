@@ -22,6 +22,10 @@
  *                   result;
  *   P3 runtime    – value, thrown exception and record() trace agree with the
  *                   reference on the fixture probe (TS: both class-field modes).
+ * A fixture with `inputs: 'valid'` (ADR-050) assumes valid plain-data inputs: a
+ * property read, a spread and a call of a listed built-in are then a read
+ * effect (see readWorld()): ordered against external statements only, apart
+ * from name conflicts.
  * P3 is empirical evidence on finite inputs, not an equivalence proof.
  */
 import {parse as parseScript} from 'acorn';
@@ -80,9 +84,10 @@ function jsDeclares(scope,name){
  if(scope.type==='CatchClause')return jsPatternNames(scope.param,[]).includes(name);
  return false;
 }
-/** {external, reads, writes}: external = an effect outside function-local bindings. */
-function jsClassify(statement,chain){
- let external=false;const reads=new Set(),writes=new Set();
+/** {external, reads, writes, heap}: external = an effect outside function-local bindings;
+ * heap (ADR-050, `world` given) = it reads object state without running code. */
+function jsClassify(statement,chain,world=null){
+ let external=false,heap=false;const reads=new Set(),writes=new Set();
  const local=(name,scopes)=>scopes[0]?.type!=='Program'&&scopes.some(scope=>jsDeclares(scope,name));
  const visit=(node,scopes)=>{
   if(!node||typeof node!=='object'||external)return;
@@ -90,6 +95,7 @@ function jsClassify(statement,chain){
   if(jsFunction.has(node.type))return;
   if(node.type==='AssignmentExpression'){if(node.operator==='='&&node.left.type==='Identifier'&&local(node.left.name,scopes)){writes.add(node.left.name);visit(node.right,scopes);}else external=true;return;}
   if(node.type==='ClassDeclaration'||node.type==='ClassExpression'){if(jsHasEffect(node)){external=true;return;}if(node.type==='ClassDeclaration')writes.add(node.id.name);visit(node.superClass,scopes);return;}
+  if(world){const parts=jsRead(node,world);if(parts){heap=true;parts.forEach(part=>visit(part,scopes));return;}}
   if(jsEffect.has(node.type)||node.type==='UnaryExpression'&&node.operator==='delete'||node.type==='BinaryExpression'&&['in','instanceof'].includes(node.operator)||node.type==='Identifier'&&node.name==='eval'){external=true;return;}
   if(node.type==='VariableDeclarator'){if(node.id.type!=='Identifier'){external=true;return;}writes.add(node.id.name);visit(node.init,scopes);return;}
   if(node.type==='Identifier'){reads.add(node.name);return;}
@@ -99,7 +105,81 @@ function jsClassify(statement,chain){
   for(const [key,value] of Object.entries(node))if(key!=='type'&&value&&typeof value==='object')visit(value,inner);
  };
  visit(statement,chain);
- return {external,reads,writes};
+ return {external,reads,writes,heap};
+}
+/* ADR-050: the `valid` input contract. Outside values are valid plain data, so reading a property,
+ * spreading, and calling a listed built-in run no code and cannot throw, unless the program itself
+ * supplies the code: an accessor of that name, a generator to spread, a method of that name, or a
+ * hook that changes property access (then the contract does not apply at all). */
+const contractHooks=/\bProxy\b|\bReflect\b|defineProperty|defineProperties|setPrototypeOf|__proto__|__define[GS]etter__|\.prototype\b|\bSymbol\.|\beval\b|\bFunction\b|\bwith\s*\(/;
+const builtinFunctions=new Set(['Number','String','Boolean','parseInt','parseFloat','isNaN','isFinite']);
+const builtinStatics={Math:['abs','ceil','floor','round','trunc','sign','sqrt','cbrt','pow','max','min','hypot','log','log2','log10','exp'],Number:['isInteger','isFinite','isNaN','isSafeInteger','parseInt','parseFloat'],Object:['keys','values','entries'],Array:['isArray','from']};
+const builtinMethods=new Set(['join','slice','indexOf','lastIndexOf','includes','at','concat','flat','charAt','charCodeAt','codePointAt','startsWith','endsWith','trim','trimStart','trimEnd','toUpperCase','toLowerCase','padStart','padEnd','repeat','split','substring','toFixed','has','get']);
+/** The program facts the contract depends on, or null when it does not apply. */
+function readWorld(code,language,inputs){
+ if(inputs!=='valid'||contractHooks.test(code))return null;
+ const world={accessors:new Set(),defined:new Set(),declared:new Set(),generators:false};let computed=false;
+ const key=node=>node&&(node.type==='Identifier'||node.type==='PrivateIdentifier'?node.name:node.type==='Literal'?String(node.value):null);
+ if(language==='typescript'){
+  const file=ts.createSourceFile('world.ts',code,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);
+  const name=node=>node&&(ts.isIdentifier(node)||ts.isPrivateIdentifier(node)||ts.isStringLiteral(node)||ts.isNumericLiteral(node))?node.text:null;
+  const visit=node=>{
+   if(ts.isGetAccessorDeclaration(node)||ts.isSetAccessorDeclaration(node)||ts.isPropertyDeclaration(node)&&ts.getModifiers(node)?.some(m=>m.kind===ts.SyntaxKind.AccessorKeyword)){const n=name(node.name);if(n===null)computed=true;else world.accessors.add(n);}
+   if(ts.isClassElement(node)||ts.isObjectLiteralElementLike(node)||ts.isTypeElement(node)){const n=name(node.name);if(n!==null)world.defined.add(n);}
+   if(ts.isBinaryExpression(node)&&ts.isPropertyAccessExpression(node.left))world.defined.add(node.left.name.text);
+   if((ts.isFunctionDeclaration(node)||ts.isFunctionExpression(node)||ts.isMethodDeclaration(node))&&node.asteriskToken)world.generators=true;
+   if((ts.isVariableDeclaration(node)||ts.isParameter(node)||ts.isBindingElement(node)||ts.isFunctionDeclaration(node)||ts.isClassDeclaration(node)||ts.isImportSpecifier(node)||ts.isImportClause(node)||ts.isEnumDeclaration(node)||ts.isModuleDeclaration(node))&&node.name&&ts.isIdentifier(node.name))world.declared.add(node.name.text);
+   ts.forEachChild(node,visit);
+  };
+  visit(file);
+ }else{
+  let tree;try{tree=parseScript(code,{ecmaVersion:'latest',sourceType:'script'});}catch{return null;}
+  const visit=node=>{
+   if(!node||typeof node!=='object')return;
+   if(Array.isArray(node)){node.forEach(visit);return;}
+   if((node.type==='Property'||node.type==='MethodDefinition')&&['get','set'].includes(node.kind)){const n=node.computed?null:key(node.key);if(n===null)computed=true;else world.accessors.add(n);}
+   if(['Property','MethodDefinition','PropertyDefinition'].includes(node.type)&&!node.computed&&key(node.key)!==null)world.defined.add(key(node.key));
+   if(node.type==='AssignmentExpression'&&node.left.type==='MemberExpression'&&!node.left.computed)world.defined.add(key(node.left.property));
+   if((jsFunction.has(node.type)||node.type==='MethodDefinition'&&node.value)&&(node.generator||node.value?.generator))world.generators=true;
+   for(const value of Object.values(node))if(value&&typeof value==='object')visit(value);
+  };
+  visit(tree);
+  for(const ref of jsRefs(tree))if(ref.write&&ref.kind)world.declared.add(ref.name);
+ }
+ return computed?null:world;
+}
+/** ADR-050: the parts to visit when `node` is a read effect under `world` (Acorn), else null. */
+function jsRead(node,world){
+ const global=callee=>callee.type==='Identifier'&&!world.declared.has(callee.name);
+ if(node.type==='MemberExpression'&&node.object.type!=='Super'&&(node.computed?!world.accessors.size:!world.accessors.has(node.property.name)))return node.computed?[node.object,node.property]:[node.object];
+ if(node.type==='SpreadElement'&&!world.generators&&!world.accessors.size)return [node.argument];
+ if(node.type==='CallExpression'&&!node.optional&&node.arguments.every(argument=>argument.type!=='SpreadElement')){
+  const callee=node.callee;
+  if(global(callee)&&builtinFunctions.has(callee.name))return node.arguments;
+  if(callee.type!=='MemberExpression'||callee.computed||callee.optional)return null;
+  const name=callee.property.name;
+  if(global(callee.object)&&builtinStatics[callee.object.name]?.includes(name))return callee.object.name==='Array'&&(name==='from'&&node.arguments.length!==1||world.generators)?null:node.arguments;
+  return builtinMethods.has(name)&&!world.defined.has(name)?[callee.object,...node.arguments]:null;
+ }
+ if(node.type==='NewExpression'&&global(node.callee)&&['Set','Map'].includes(node.callee.name)&&node.arguments.length<=1&&!world.generators&&node.arguments.every(argument=>argument.type!=='SpreadElement'))return node.arguments;
+ return null;
+}
+/** The TypeScript counterpart of jsRead. */
+function tsRead(node,world){
+ const global=callee=>ts.isIdentifier(callee)&&!world.declared.has(callee.text);
+ if(ts.isPropertyAccessExpression(node)&&node.expression.kind!==ts.SyntaxKind.SuperKeyword&&!world.accessors.has(node.name.text))return [node.expression];
+ if(ts.isElementAccessExpression(node)&&node.expression.kind!==ts.SyntaxKind.SuperKeyword&&!world.accessors.size)return [node.expression,node.argumentExpression];
+ if((ts.isSpreadElement(node)||ts.isSpreadAssignment(node))&&!world.generators&&!world.accessors.size)return [node.expression];
+ if(ts.isCallExpression(node)&&!node.questionDotToken&&node.arguments.every(argument=>!ts.isSpreadElement(argument))){
+  const callee=node.expression;
+  if(global(callee)&&builtinFunctions.has(callee.text))return [...node.arguments];
+  if(!ts.isPropertyAccessExpression(callee)||callee.questionDotToken)return null;
+  const name=callee.name.text;
+  if(global(callee.expression)&&builtinStatics[callee.expression.text]?.includes(name))return callee.expression.text==='Array'&&(name==='from'&&node.arguments.length!==1||world.generators)?null:[...node.arguments];
+  return builtinMethods.has(name)&&!world.defined.has(name)?[callee.expression,...node.arguments]:null;
+ }
+ if(ts.isNewExpression(node)&&global(node.expression)&&['Set','Map'].includes(node.expression.text)&&(node.arguments??[]).length<=1&&!world.generators&&(node.arguments??[]).every(argument=>!ts.isSpreadElement(argument)))return [...(node.arguments??[])];
+ return null;
 }
 const jsPositionFree=(statement,hoisting)=>hoisting&&statement.type==='FunctionDeclaration';
 /* P2 pure/effect commutation (ADR-019), by name: shadowing only merges bindings,
@@ -162,7 +242,8 @@ function commutation(refs,transfers,isFunction,classify){
   const fn=chain[0];
   if(!fn||!isFunction(fn)||isFunction(statement)||transfers(effect))return false;
   const own=classify(statement,chain);
-  if(own.external)return false;
+  // ADR-050: a read effect sees what the external statement may write.
+  if(own.external||own.heap)return false;
   const inside=refs(fn),other=refs(effect),mine=refs(statement);
   // A block-level function declaration assigns an outer binding where it stands (Annex B).
   if(inside.some(ref=>ref.name==='arguments'||ref.name==='eval')||mine.some(ref=>ref.kind==='function'&&!ref.nested))return false;
@@ -173,7 +254,7 @@ function commutation(refs,transfers,isFunction,classify){
   return true;
  };
 }
-const jsCommutes=commutation(jsRefs,jsTransfers,node=>jsFunction.has(node.type),(statement,chain)=>jsClassify(statement,chain));
+const jsCommutes=world=>commutation(jsRefs,jsTransfers,node=>jsFunction.has(node.type),(statement,chain)=>jsClassify(statement,chain,world));
 /* P2 local object operations (ADR-025), by syntax only and apart from the generator's
  * footprints. In a function's statement list, `const X = new C(…)` for a class C declared
  * without `extends` anywhere in the program, or `const X = [ … ]` / `{ … }`, owns X. A
@@ -293,8 +374,8 @@ function tsDeclares(scope,name){
  return false;
 }
 /** {external, reads, writes} over the TS AST; types are not reads. Same policy as jsClassify. */
-function tsClassify(statement,chain){
- let external=false;const reads=new Set(),writes=new Set();
+function tsClassify(statement,chain,world=null){
+ let external=false,heap=false;const reads=new Set(),writes=new Set();
  const local=(name,scopes)=>!!scopes[0]&&tsFunction(scopes[0])&&scopes.some(scope=>tsDeclares(scope,name));
  const visit=(node,scopes)=>{
   if(external||ts.isTypeNode(node)||erased(node))return;
@@ -302,6 +383,7 @@ function tsClassify(statement,chain){
   if(tsFunction(node))return;
   if(ts.isBinaryExpression(node)&&assignment.has(node.operatorToken.kind)){if(node.operatorToken.kind===ts.SyntaxKind.EqualsToken&&ts.isIdentifier(node.left)&&local(node.left.text,scopes)){writes.add(node.left.text);visit(node.right,scopes);}else external=true;return;}
   if(ts.isClassLike(node)){if(tsHasEffect(node)){external=true;return;}if(ts.isClassDeclaration(node)&&node.name)writes.add(node.name.text);node.heritageClauses?.forEach(clause=>clause.types.forEach(type=>visit(type.expression,scopes)));return;}
+  if(world){const parts=tsRead(node,world);if(parts){heap=true;parts.forEach(part=>visit(part,scopes));return;}}
   if(tsDirectEffect(node)){external=true;return;}
   if(ts.isVariableDeclaration(node)){if(!ts.isIdentifier(node.name)){external=true;return;}writes.add(node.name.text);if(node.initializer)visit(node.initializer,scopes);return;}
   if(ts.isIdentifier(node)){reads.add(node.text);return;}
@@ -312,7 +394,7 @@ function tsClassify(statement,chain){
   ts.forEachChild(node,child=>{visit(child,inner);});
  };
  visit(statement,chain);
- return {external,reads,writes};
+ return {external,reads,writes,heap};
 }
 const tsPositionFree=(statement,hoisting)=>erased(statement)||hoisting&&ts.isFunctionDeclaration(statement)&&!!statement.body;
 /** The TypeScript counterpart of jsObjectOperations (ADR-025). */
@@ -423,7 +505,7 @@ function tsTransfers(root){
  };
  visit(root,{loop:false,switch:false,labels:[]});return found;
 }
-const tsCommutes=commutation(tsRefs,tsTransfers,tsFunction,(statement,chain)=>tsClassify(statement,chain));
+const tsCommutes=world=>commutation(tsRefs,tsTransfers,tsFunction,(statement,chain)=>tsClassify(statement,chain,world));
 /** TS2389/TS2391: an overload signature must be directly followed by the next
  * signature or the implementation of the same name. transpileModule does not
  * report this checker error, so P0 tests it explicitly. */
@@ -589,17 +671,19 @@ function nestedClasses(code,language){
  try{visit(parseScript(code,{ecmaVersion:'latest',sourceType:'script'}),[],false);}catch{return [];}
  return found;
 }
-function analyse(code,language,ordered=false,enumerated=true){
+function analyse(code,language,ordered=false,enumerated=true,inputs='any'){
+ // ADR-050: the input contract is the reference's; a candidate is judged under the same facts.
+ const world=readWorld(code,language,inputs);
  if(language==='typescript'){
   const file=ts.createSourceFile('fixture.ts',code,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);
   if(file.parseDiagnostics.length||!tsOverloadsAdjacent(file))return null;
   // Global-object properties are what the emitted script declares; a module declares none.
   let globals={};
   if(!ts.isExternalModule(file)){try{globals=jsReflection(parseScript(ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,{ecmaVersion:'latest',sourceType:'script'}),ordered);}catch{return null;}}
-  return {shape:tsShape(file),effects:effectPairs(tsLists(file),tsShape,tsClassify,tsPositionFree,tsCommutes,tsObjectOperations(file)),reflection:tsReflection(file,globals,ordered,enumerated),nested:nestedClasses(code,language)};
+  return {shape:tsShape(file),effects:effectPairs(tsLists(file),tsShape,(statement,chain)=>tsClassify(statement,chain,world),tsPositionFree,tsCommutes(world),tsObjectOperations(file)),reflection:tsReflection(file,globals,ordered,enumerated),nested:nestedClasses(code,language)};
  }
  let tree;try{tree=parseScript(code,{ecmaVersion:'latest',sourceType:'script'});}catch{return null;}
- return {shape:jsShape(tree),effects:effectPairs(jsLists(tree),node=>jsShape(node),jsClassify,jsPositionFree,jsCommutes,jsObjectOperations(tree)),reflection:jsReflection(tree,ordered,enumerated),nested:nestedClasses(code,language)};
+ return {shape:jsShape(tree),effects:effectPairs(jsLists(tree),node=>jsShape(node),(statement,chain)=>jsClassify(statement,chain,world),jsPositionFree,jsCommutes(world),jsObjectOperations(tree)),reflection:jsReflection(tree,ordered,enumerated),nested:nestedClasses(code,language)};
 }
 /** Runs a fixed fixture. `call`: probe value, exception and record() trace.
  * `reflection`: own keys and descriptor kinds of the top-level classes'
@@ -687,7 +771,7 @@ function executedRows(code,fixture){
 export function createOracle(fixture,{policy='reflective'}={}){
  if(!['reflective','call-only'].includes(policy))throw Error('unknown oracle policy '+policy);
  const source=Array.isArray(fixture.source)?fixture.source.join('\n'):fixture.source;
- const ordered=reflectsKeys(source,fixture.language),enumerated=ordered||enumerationNames.test(source),reference=analyse(source,fixture.language,ordered,enumerated);
+ const ordered=reflectsKeys(source,fixture.language),enumerated=ordered||enumerationNames.test(source),inputs=fixture.inputs??'any',reference=analyse(source,fixture.language,ordered,enumerated,inputs);
  if(!reference)throw Error(`oracle fixture ${fixture.id} does not parse`);
  const baseline=execute(source,fixture,reference.reflection,reference.nested);
  if(/^throws:|timeout|syntax/.test(baseline.call))throw Error(`oracle fixture ${fixture.id} reference fails: ${baseline.call}`);
@@ -695,7 +779,7 @@ export function createOracle(fixture,{policy='reflective'}={}){
  const judge=lines=>{
   const code=lines.join('\n');
   if(cache.has(code))return cache.get(code);
-  let verdict;const candidate=analyse(code,fixture.language,ordered,enumerated);
+  let verdict;const candidate=analyse(code,fixture.language,ordered,enumerated,inputs);
   if(!candidate)verdict={ok:false,reason:'syntax'};
   else if(candidate.shape!==reference.shape)verdict={ok:false,reason:'scope'};
   else if(candidate.effects!==reference.effects)verdict={ok:false,reason:'effect-order'};

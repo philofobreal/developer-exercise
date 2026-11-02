@@ -157,12 +157,29 @@ const fixtures=[
   'interface Shape {','  kind: string;','  size?: number;','}','function evaluate(): Array<string | number> {',"  const raw: unknown = { kind: 'box', size: 3 };",'  const shape = raw as Shape;','  const size = shape.size!;',"  const config = { kind: 'circle' } satisfies Shape;",'  return [shape.kind, size * 2, config.kind];','}']}
 ];
 
+// ADR-050: the `valid` input contract (valid plain-data inputs). The probes pass valid data only.
+fixtures.push(
+ {id:'contract-grid-reads',origin:'contract',inputs:'valid',language:'javascript',source:[
+  'function evaluate() {','  return [measure([[1, 2], [3, 4]], [0, 1]), measure([[5]], [0, 0])];','}','function measure(grid, start) {','  const rows = grid.length;','  const cols = grid[0].length;',"  const key = start.join(',');",'  const first = grid[start[0]][start[1]];','  const total = Math.max(rows, cols) + first;','  return [rows, cols, key, total];','}']},
+ {id:'contract-read-write',origin:'contract',inputs:'valid',language:'javascript',source:[
+  'function evaluate() {','  const box = { count: 1, items: [1, 2] };','  return [bump(box), box.count];','}','function bump(box) {','  const before = box.count;','  box.count = before + 10;','  const after = box.count;','  const size = box.items.length;','  return [before, after, size];','}']},
+ {id:'contract-program-getter',origin:'contract',inputs:'valid',language:'javascript',source:[
+  'class Counter {','  constructor() {','    this.n = 0;','  }','  get next() {','    this.n += 1;','    return this.n;','  }','}','function evaluate() {','  return pair(new Counter(), { size: 2 });','}','function pair(counter, shape) {','  const a = counter.next;','  const b = counter.next * 10;','  const s = shape.size;','  return [a, b, s];','}']},
+ {id:'contract-proxy-fallback',origin:'contract',inputs:'valid',language:'javascript',source:[
+  'function evaluate() {','  const seen = [];','  const handler = { get(object, key) { seen.push(key); return object[key]; } };','  const watched = new Proxy({ x: 1, y: 2 }, handler);','  return [sum(watched), seen];','}','function sum(point) {','  const x = point.x;','  const y = point.y;','  return x + y;','}']},
+ {id:'contract-ts-destructure',origin:'contract',inputs:'valid',language:'typescript',probe:"shift([{ x: 1, y: 2 }, { x: 3, y: 4 }], 2)",source:[
+  'interface Point {','  x: number;','  y: number;','}','function shift(points: Point[], by: number): Array<number | string> {','  const [first, second] = points;','  const dx = first.x + by;','  const dy = second.y - by;','  const label = `${dx}:${dy}`;','  return [dx, dy, label];','}']},
+ {id:'contract-ts-this-reads',origin:'contract',inputs:'valid',language:'typescript',probe:'(() => { const basket = new Basket(); basket.items.push(4, 7); return basket.summary(); })()',source:[
+  'class Basket {','  items: number[] = [];','  limit = 3;','  summary(): string[] {','    const count = this.items.length;','    const limit = this.limit;','    const first = this.items[0];','    return [String(count), String(limit), String(first)];','  }','}']}
+);
 const evaluateSource=(await readFile(new URL('./evaluate-ordering.js',import.meta.url),'utf8')).replace(/\r\n?/g,'\n').trimEnd().split('\n');
 fixtures.push({id:'evaluate-ordering',origin:'regression',language:'javascript',source:evaluateSource});
 for(const [id,probe] of Object.entries(library)){
  const model=JSON.parse(await readFile(new URL(`../../examples/${id}.json`,import.meta.url),'utf8'));
  fixtures.push({id,origin:'library',language:model.language,probe,source:model.lines.map(line=>line.code)});
+ // ADR-050: the same example under the `valid` input contract; its probe passes valid data.
+ fixtures.push({id:id+'-valid',origin:'contract',inputs:'valid',language:model.language,probe,source:model.lines.map(line=>line.code)});
 }
 
-/** id → {id, origin, language, source: string[], probe = 'evaluate()', strict = true, asynchronous = false} */
+/** id → {id, origin, language, source: string[], probe = 'evaluate()', strict = true, asynchronous = false, inputs = 'any'} */
 export const corpus=new Map(fixtures.map(fixture=>[fixture.id,{probe:'evaluate()',...fixture}]));

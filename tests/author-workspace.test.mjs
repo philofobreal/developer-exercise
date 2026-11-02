@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {authorDraftPending,captureAuthorAdmission,captureAuthorRequest,startFromExample,revertAuthorDraft,admitAuthorModel} from '../public/app/author-workspace.js';
+import {authorDraftPending,authorRequest,captureAuthorAdmission,captureAuthorRequest,startFromExample,revertAuthorDraft,admitAuthorModel} from '../public/app/author-workspace.js';
 import {reloadEditorFromArrangement,markEditorDraft} from '../public/app/interactions.js';
 const first={id:'first',revision:1,title:'First',description:'First task',language:'javascript',lines:[{id:1,code:'const a = 1;'}]};
 const second={...first,id:'second',title:'Second',language:'typescript',lines:[{id:1,code:'const b: number = 2;'}]};
@@ -23,7 +23,7 @@ test('admission establishes the reference baseline; a rule edit keeps an unappli
  admitAuthorModel(state,model);assert.equal(state.author.source,first.lines[0].code,'a new model replaces the draft');
 });
 test('late source or JSON admission cannot replace newer edits or another preview',()=>{
- for(const mutate of [s=>s.previews.set('other','d'),s=>s.author.source+='new',s=>s.author.title='new',s=>s.author.language='typescript',s=>{s.author.importEmit='elide-unused';},s=>s.modelDraft+='new']){
+ for(const mutate of [s=>s.previews.set('other','d'),s=>s.author.source+='new',s=>s.author.title='new',s=>s.author.language='typescript',s=>{s.author.importEmit='elide-unused';},s=>{s.author.inputs='valid';},s=>s.modelDraft+='new']){
   const state=make();startFromExample(state,first);const current=captureAuthorAdmission(state);assert.equal(current(),true);mutate(state);assert.equal(current(),false);
  }
  const state=make();const current=captureAuthorAdmission(state);state.mode='practice';state.active='first';state.view='sort';
@@ -39,4 +39,14 @@ test('author intent ordering begins before file I/O and invalidates earlier read
 test('explicit solution reload discards only the editor draft, preserving arrangement, report and reference',()=>{
  const attempt={answer:[1,null,2],pool:[],draft:'',report:{status:'accepted'},feedback:'',generation:3};markEditorDraft(attempt,'unfinished');
  reloadEditorFromArrangement(attempt,['one','','two']);assert.equal(attempt.draft,'one\n\ntwo');assert.equal(attempt.editorDirty,false);assert.equal(attempt.editorGeneration,3);assert.deepEqual(attempt.answer,[1,null,2]);assert.equal(attempt.report.status,'accepted');
+});
+test('ADR-050: the input contract travels with the request, survives admission and makes a changed draft pending',()=>{
+ const state=make();startFromExample(state,first);
+ assert.equal('inputs' in authorRequest(state.author),false,'the default contract adds nothing to the request');
+ state.author.inputs='valid';
+ assert.equal(authorRequest(state.author).inputs,'valid');
+ assert.equal(authorRequest({...state.author,language:'typescript'}).inputs,'valid','either language');
+ const model=modelOf(first);model.authoring={evidence:{environment:{inputs:'valid'}}};
+ admitAuthorModel(state,model);assert.equal(state.author.inputs,'valid');assert.equal(authorDraftPending(state),false);
+ state.author.inputs='any';assert.equal(authorDraftPending(state),true,'switching the contract needs a rebuild');
 });

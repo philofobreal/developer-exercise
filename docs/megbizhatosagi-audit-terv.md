@@ -27,6 +27,7 @@
   - a 4. tétel kész ([ADR-046](adr/046-loops-over-own-objects.md), v23): a ciklusok hatásnyomot kapnak, a nem bizonyítottan véget érők „esetleg nem ér véget” jelöléssel; azonos orákulummal a flow JS 22,2%-ról 15,0%-ra, a flow TS 18,7%-ról 11,8%-ra esett.
   - a mért fő ok a `sealed-unit` lett, ezért a 6. tétel `switch`-része előrébb került: a `switch` törzse saját blokk ([ADR-047](adr/047-switch-body-scope.md), v24); a flow JS 15,0%-ról 13,7%-ra, a flow TS dobó változata 5,6%-ról 2,8%-ra esett.
   - a ciklusban számolt lokális miatti szökés megszűnt: primitív lokálisok ([ADR-048](adr/048-primitive-locals.md), v25); azonos orákulummal a flow JS 16,0%-ról 10,6%-ra, a flow TS 12,0%-ról 8,3%-ra esett.
+  - a régi példák újravizsgálata után a választható bemeneti szerződés ([ADR-050](adr/050-input-contract.md), v26): `valid` szerződésnél a bemenetek olvasása és a nem módosító beépített hívások egymáshoz képest szabadok; az `algo-bfs-js` hat tanári szabadságából öt visszajön ([eltéréslista](peldak-migracioja.md)).
   - **Következik:** a `flow` maradéka ma főleg objektumütközés (a ciklus túlbecslése) és a `while` nem bizonyított terminálása; a többsoros kifejezések lezárása (`function` csoport) a v2-ben nem finomítható (6. fázis); a 3. tétel (hatásösszegzés) ma kevés mért rés; a 2d nem mért ok.
 
 ## 1. Összefoglaló ítélet

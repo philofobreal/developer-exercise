@@ -383,6 +383,42 @@
   "completenessGaps": 0,
   "justifiedRejections": 138
  },
+ "contract-grid-reads": {
+  "neighbours": 143,
+  "accepted": 14,
+  "completenessGaps": 0,
+  "justifiedRejections": 129
+ },
+ "contract-read-write": {
+  "neighbours": 143,
+  "accepted": 2,
+  "completenessGaps": 0,
+  "justifiedRejections": 141
+ },
+ "contract-program-getter": {
+  "neighbours": 414,
+  "accepted": 7,
+  "completenessGaps": 0,
+  "justifiedRejections": 407
+ },
+ "contract-proxy-fallback": {
+  "neighbours": 143,
+  "accepted": 2,
+  "completenessGaps": 0,
+  "justifiedRejections": 141
+ },
+ "contract-ts-destructure": {
+  "neighbours": 143,
+  "accepted": 3,
+  "completenessGaps": 0,
+  "justifiedRejections": 140
+ },
+ "contract-ts-this-reads": {
+  "neighbours": 117,
+  "accepted": 9,
+  "completenessGaps": 0,
+  "justifiedRejections": 108
+ },
  "evaluate-ordering": {
   "neighbours": 51,
   "accepted": 6,
@@ -395,7 +431,19 @@
   "completenessGaps": 2,
   "justifiedRejections": 796
  },
+ "algo-bfs-js-valid": {
+  "neighbours": 803,
+  "accepted": 25,
+  "completenessGaps": 0,
+  "justifiedRejections": 778
+ },
  "algo-sort-search-js": {
+  "neighbours": 1078,
+  "accepted": 3,
+  "completenessGaps": 0,
+  "justifiedRejections": 1075
+ },
+ "algo-sort-search-js-valid": {
   "neighbours": 1078,
   "accepted": 3,
   "completenessGaps": 0,
@@ -407,7 +455,19 @@
   "completenessGaps": 0,
   "justifiedRejections": 1438
  },
+ "class-inventory-ts-valid": {
+  "neighbours": 1458,
+  "accepted": 20,
+  "completenessGaps": 0,
+  "justifiedRejections": 1438
+ },
  "class-accounts-ts": {
+  "neighbours": 1059,
+  "accepted": 27,
+  "completenessGaps": 0,
+  "justifiedRejections": 1032
+ },
+ "class-accounts-ts-valid": {
   "neighbours": 1059,
   "accepted": 27,
   "completenessGaps": 0,

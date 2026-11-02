@@ -14,11 +14,13 @@ export const QUICK={from:1,to:3,samples:6,neighbours:40};
 /** Classifies sampled linear extensions, the single-row neighbourhood and every whole-unit block
  * move of each program (or a seeded sample of `neighbours` of each), each distinct submission
  * once. `onUnsound` receives a minimised order. */
-export function measureCampaign({from=1,to=200,kinds=Object.keys(PROGRAM_KINDS),languages=LANGUAGES,samples=25,neighbours=Infinity,onUnsound=()=>{}}={}){
+export function measureCampaign({from=1,to=200,kinds=Object.keys(PROGRAM_KINDS),languages=LANGUAGES,samples=25,neighbours=Infinity,inputs='any',onUnsound=()=>{}}={}){
  const tally=createTally();let violations=0;
  for(const kind of kinds)for(const language of languages)for(let seed=from;seed<=to;seed++){
-  const fixture=PROGRAM_KINDS[kind](seed,{language});if(!fixture)continue;
-  const model=generateCodeLineExercise({source:fixture.source.join('\n'),language},ts),classifier=createClassifier(fixture,model);
+  const program=PROGRAM_KINDS[kind](seed,{language});if(!program)continue;
+  // ADR-050: `inputs` measures the generator and the oracle under the same input contract.
+  const fixture=inputs==='any'?program:{...program,inputs};
+  const model=generateCodeLineExercise({source:fixture.source.join('\n'),language,inputs},ts),classifier=createClassifier(fixture,model);
   const group={kind,language,policy:classifier.policyVersion,throws:classifier.referenceThrew};
   const rng=random(seed*7919),reference=model.lines.map(line=>line.id),seen=new Set();
   const sample=orders=>orders.length>neighbours?Array.from({length:neighbours},()=>orders[Math.floor(rng()*orders.length)]):orders;
