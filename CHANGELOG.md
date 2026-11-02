@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased – 2026-11-02 ki nem írt tulajdonságnevek (ADR-052, v27)
+
+- **Hibajavítás (hibás elfogadás):** a kulcsfelsorolás és a reflexió felismerése szöveges volt, ezért `Object['ke' + 'ys']` mellett a generátor a konstruktor két kulcslétrehozó írását felcserélhetőnek vette (3 hibás elfogadás a próbán). Ugyanígy volt megkerülhető a `valid` szerződés kapuja és a `constructor.constructor` útján a `Function`.
+- **Szabály (v27):** az új `property-names` modul szivárgáselemzéssel dönti el, hogy a program meghív, eltárol, átad vagy visszaad-e ki nem írt nevű tulajdonságból olvasott értéket (nem literál és nem szám kulcs, `constructor`, számított destrukturálás), illetve ad-e szöveget egy időzítőnek. Ha igen, a kulcssorrend megfigyeltnek számít (ADR-020, ADR-029), és a `valid` szerződés nem alkalmazható. Az összehasonlítás, a számolás, a kulcsként használat és a kiírt nevű metódus hívása ártalmatlan.
+- **Pontosság:** a korpusz 103 fixture-éből és a generatív katalógus 1 952 programjából csak a már eddig is szigorú `contract-proxy-fallback` érintett; a rögzített számok változatlanok, a gyors baseline-ban csak a címke változott. Az elvetett, szivárgáselemzés nélküli változat a `valid` szerződés hasznát vitte volna el (`algo-bfs-js-valid` 25 → 5).
+- **Hibajavítás (befogadhatatlan modell, v26 óta):** TypeScript-osztályos programnál a „szerződés nem alkalmazható” megjegyzéssel a modell megjegyzése 1 000 karakter fölé nőtt, és a séma elutasította. A megjegyzés rövidebb lett, a leghosszabb kombinációra regressziós teszt van.
+- **Tesztek:** `property-names.test.mjs` (11 elérési út, időzítő, szerződéskapu, ártalmatlan és konzervatív esetek, a megjegyzés hossza); a v26-címketeszt verziófüggetlen.
+- **Címkék:** a v27 additív sémaenumérték; a minták csak az új címkét kapták.
+
 ## Unreleased – 2026-11-02 feladatkorpusz és lineáris alakkódolás (ADR-051)
 
 - **Feladatkorpusz:** 12 tanórai jellegű, összetettebb feladat (7 JavaScript, 5 TypeScript: osztályok, kivételek, closure, `Map`/`Set`, generikus osztály, enum, uniótípus, `switch`), mindegyik `any` és `valid` bemeneti szerződéssel; 24 új rögzített korpuszmérés, a mérőfuttató külön `task` csoportja.

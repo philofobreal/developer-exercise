@@ -1,0 +1,89 @@
+/** ADR-052 (v27): a value read by a property name the source does not spell out reaches any API,
+ * so a program that calls, stores, passes or returns such a value is treated as listing keys,
+ * reflecting and able to change what a read does. Each witness first was an unsound acceptance:
+ * `Object['ke' + 'ys']` listed the constructor's keys while v26 let the two writes swap. */
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import ts from 'typescript';
+import {DEPENDENCY_POLICY,generateCodeLineExercise} from '../src/author/generator.mjs';
+import {compileCodeLineExercise,validateSubmission} from '../dist/index.js';
+import {readsUnspelledNames} from '../dist/author/property-names.js';
+import {measureFixture,CORPUS_CAPS} from './support/ordering-metrics.mjs';
+import {createOracle} from './support/semantic-oracle.mjs';
+
+const reads=(source,name='x.js')=>readsUnspelledNames(ts.createSourceFile(name,source,ts.ScriptTarget.Latest,true),ts);
+const box=['class Box {','  constructor() {','    this.a = 1;','    this.b = 2;','  }','}','function evaluate() {'];
+const witnesses={
+ call:["  const name = 'ke' + 'ys';",'  return Object[name](new Box());','}'],
+ alias:["  const list = Object['ke' + 'ys'];",'  return list(new Box());','}'],
+ callback:["  return [new Box()].map(Object['ke' + 'ys']);",'}'],
+ invoker:["  const list = Object['ke' + 'ys'];",'  return list.call(null, new Box());','}'],
+ stored:["  const table = [Object['ke' + 'ys']];",'  return table[0](new Box());','}'],
+ returned:["  return pick(Object, 'ke' + 'ys')(new Box());",'}','function pick(owner, name) {','  return owner[name];','}'],
+ destructured:["  const { ['ke' + 'ys']: list } = Object;",'  return list(new Box());','}'],
+ logical:['  const fallback = () => [];',"  return (Object['ke' + 'ys'] || fallback)(new Box());",'}'],
+ accumulated:["  let name = 'ke';","  name += 'ys';",'  return Object[name](new Box());','}'],
+ identity:["  return Object['ke' + 'ys'].valueOf()(new Box());",'}'],
+ constructor:['  const make = ({}).constructor.constructor;',"  return make('box', 'return Object.ke' + 'ys(box)')(new Box());",'}'],
+};
+
+test('the generation rule is v27, introduced by ADR-052 in the formal contract',async()=>{
+ assert.equal(DEPENDENCY_POLICY,'scoped-effect-analysis-v27');
+ const {readFile}=await import('node:fs/promises');
+ const contract=await readFile(new URL('../docs/formal-ordering-contract.md',import.meta.url),'utf8');
+ assert.match(contract,/\| `scoped-effect-analysis-v27` \| \[ADR-052\]/);
+});
+
+for(const [name,body] of Object.entries(witnesses))test(`witness ${name}: detected, the key writes stay ordered, sound against the oracle`,()=>{
+ const source=[...box,...body];
+ assert.equal(reads(source.join('\n')),true);
+ const model=generateCodeLineExercise({source:source.join('\n'),language:'javascript'},ts),compiled=compileCodeLineExercise(model);
+ assert.ok(!compiled.status,compiled.message);
+ const swapped=[1,2,4,3,...source.slice(4).map((_,i)=>i+5)].map(row=>source[row-1]);
+ assert.equal(validateSubmission(compiled.compiled,{exerciseId:model.id,revision:model.revision,lines:swapped}).status,'rejected');
+ assert.equal(createOracle({id:'adr-052-'+name,language:'javascript',probe:'evaluate()',source})(swapped).ok,false,'the swap is observable');
+ const row=measureFixture({id:'adr-052-'+name,origin:'witness',language:'javascript',probe:'evaluate()',source},CORPUS_CAPS);
+ assert.equal(row.unsound,0,JSON.stringify(row.counterexamples));
+});
+
+test('a string handed to a timer is code built at run time',()=>{
+ assert.equal(reads("setTimeout('record(1)', 0);"),true);
+ assert.equal(reads('setTimeout(code, 0);'),true);
+ assert.equal(reads('setTimeout(() => record(1), 0);'),false);
+});
+
+test('harmless computed names: literals, literal choices, numbers; values only compared, computed or tested',()=>{
+ for(const source of [
+  'function f(grid, r, c) { return grid[r][c] === 1; }',
+  'function f(m) { let s = 0; for (let i = 0; i < m.length; i++) { s += m[i]; } return s; }',
+  'function f(words) { const counts = {}; for (const w of words) { counts[w] = (counts[w] || 0) + 1; } return counts; }',
+  'function f(items, key) { const g = {}; for (const item of items) { const v = item[key]; if (!g[v]) { g[v] = []; } g[v].push(item.name); } return g; }',
+  'function f(o, k) { return `${o[k]}:` + (typeof o[k]) + (o[k] ? 1 : 0); }',
+  'function f(o, flag) { return o[flag ? "a" : "b"](); }',
+  'function f(a, i) { return a[i + 1] - a[i - 1]; }',
+  'function f(x) { return x.constructor === Array; }',
+  'function f(o, k) { const v = o[k]; let t = 0; t += v; return t > 1; }',
+ ])assert.equal(reads(source),false,source);
+});
+
+test('conservative: an unspelled value that is returned, stored or passed counts, even when harmless here',()=>{
+ for(const source of ['function f(o, k) { return o[k]; }','function f(o, k, out) { out.push(o[k]); }','function f(o, k) { const box = { v: o[k] }; return 0; }','function f(o, k) { g(o[k]); }','function f(o, k) { o[k].x = 1; }'])assert.equal(reads(source),true,source);
+});
+
+// The input contract (ADR-050) rests on the program not changing what a read does; a getter
+// installed through unspelled names would run on a read of a missing key.
+const hooked=['function evaluate() {',"  const install = Object['define' + 'Property'];","  const target = Object['proto' + 'type'];","  install(target, 'p', { get() { record('p'); return 1; }, configurable: true });","  install(target, 'q', { get() { record('q'); return 2; }, configurable: true });",'  return pair({});','}','function pair(point) {','  const p = point.p;','  const q = point.q;','  return [p, q];','}'];
+test('the valid contract does not apply when hooks are reached through unspelled names',()=>{
+ const model=generateCodeLineExercise({source:hooked.join('\n'),language:'javascript',inputs:'valid'},ts);
+ assert.match(model.authoring.note,/érvényes bemenet szerződése nem alkalmazható/);
+ const row=measureFixture({id:'adr-052-hooked',origin:'witness',inputs:'valid',language:'javascript',probe:'evaluate()',source:hooked},CORPUS_CAPS);
+ assert.equal(row.unsound,0,JSON.stringify(row.counterexamples));
+});
+
+test('the longest note (TypeScript class, valid contract not applicable) fits the schema',()=>{
+ const source=['class Box {','  items: number[] = [];','}','function evaluate(): number {','  const p = new Proxy({ x: 1 }, {});','  return p.x;','}'];
+ const model=generateCodeLineExercise({source:source.join('\n'),language:'typescript',inputs:'valid'},ts);
+ assert.ok(model.authoring.note.length<=1000,String(model.authoring.note.length));
+ const compiled=compileCodeLineExercise(model);
+ assert.ok(!compiled.status,compiled.message);
+});

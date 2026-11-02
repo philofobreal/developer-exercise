@@ -29,8 +29,8 @@ function moveBefore(item,row,anchor){
 }
 const rejected=result=>['justified','gap','intent'].includes(result.kind);
 
-test('the generation rule is v26, introduced by ADR-050 in the formal contract',async()=>{
- assert.equal(DEPENDENCY_POLICY,'scoped-effect-analysis-v26');
+test('the generation rule is v26 or later, v26 introduced by ADR-050 in the formal contract',async()=>{
+ assert.ok(Number(DEPENDENCY_POLICY.split('-v')[1])>=26,DEPENDENCY_POLICY);
  const contract=await readFile(new URL('../docs/formal-ordering-contract.md',import.meta.url),'utf8');
  assert.match(contract,/\| `scoped-effect-analysis-v26` \| \[ADR-050\]/);
 });

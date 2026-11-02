@@ -5,6 +5,7 @@
 import type ts from 'typescript';
 import {statementOrdering, type OrderingOptions} from './statement-ordering.js';
 import {typeMemberOrdering} from './type-member-ordering.js';
+import {readsUnspelledNames} from './property-names.js';
 import {combineOrderingRelations, type OrderingRelations} from './ordering-relations.js';
 import type {StructureBlock} from './code-line-projection.js';
 import type {AnalysisEnvironment} from '../../dist/index.js';
@@ -43,9 +44,10 @@ const keyReflection = /\b(?:getOwnPropertyNames|ownKeys|getOwnPropertyDescriptor
 /** ADR-020: whether the program itself may observe the creation order of method,
  * accessor or top-level function keys: it names a reflection API or the global
  * object (also inside strings, which only makes it stricter), or uses `this` at
- * script level, where it is the global object. */
+ * script level, where it is the global object. A name the program never spells out reaches any of
+ * these APIs (ADR-052). */
 export function observesKeyOrder(file: ts.SourceFile, compiler: typeof ts): boolean {
- if (keyReflection.test(file.text)) return true;
+ if (keyReflection.test(file.text) || readsUnspelledNames(file, compiler)) return true;
  let found = false;
  const visit = (node: ts.Node): void => {
   if (found || compiler.isClassLike(node) || compiler.isFunctionLike(node) && !compiler.isArrowFunction(node)) return;
@@ -71,7 +73,7 @@ export function jsTsOrderingRelations(file: ts.SourceFile, compiler: typeof ts, 
  const reflectedKeys = observesKeyOrder(file, compiler), enumeratedKeys = enumeratesKeys(file, compiler);
  const {imports, inputs} = options;
  const statements = statementOrdering(file, compiler, {...(file.fileName.endsWith('.ts') && imports ? {imports} : {}), ...(inputs ? {inputs} : {}), reflectedKeys, enumeratedKeys}), members = typeMemberOrdering(file, compiler, {reflectedKeys, enumeratedKeys});
- const unavailable = statements.inputsUnavailable ? 'Az érvényes bemenet szerződése nem alkalmazható: a program maga módosíthatja a tulajdonságolvasást vagy a konverziót (például Proxy, Reflect, prototípus, eval), ezért a sorrendelemzés szigorú maradt.' : '';
+ const unavailable = statements.inputsUnavailable ? 'Az érvényes bemenet szerződése nem alkalmazható: a program módosíthatja az olvasást (Proxy, prototípus, eval, képzett név), ezért szigorú.' : '';
  return combineOrderingRelations([
   {entries: statements.entries, protectedInputs: statements.protectedInputs, spans: statements.units.map(({first, last}) => ({first, last})), note: unavailable},
   {entries: members.entries, protectedInputs: new Map(), spans: members.spans, note: members.note}

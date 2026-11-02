@@ -50,5 +50,5 @@ Az első mérés két dolgot mutatott:
 ## Következmények
 
 - A korpusz-baseline 24 új sorral bővült; a meglévő sorok nem változtak.
-- **A korpusz építése közben talált hiba** (külön döntés, ADR-052): a kulcsfelsorolás és a reflexió szöveges felismerése nem látja a futásidőben összerakott tulajdonságnevet (`Object['ke' + 'ys']`), és ilyenkor a generátor hibás sorrendet fogad el.
+- **A korpusz építése közben talált hiba** (külön döntés, [ADR-052](052-unspelled-property-names.md)): a kulcsfelsorolás és a reflexió szöveges felismerése nem látja a futásidőben összerakott tulajdonságnevet (`Object['ke' + 'ys']`), és ilyenkor a generátor hibás sorrendet fogad el.
 - **Nyitott:** a `keyEnumeration` mezőnév miatti túlszigorúsága (`task-ledger-js`) és a többsoros literálok lezárása (`task-cart-total-ts`).
