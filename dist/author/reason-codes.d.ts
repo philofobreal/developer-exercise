@@ -50,7 +50,7 @@ declare const entries: readonly [{
 }, {
     readonly code: "object-write-after-write";
     readonly category: "data";
-    readonly meaning: "két írás ugyanarra a saját objektummezőre";
+    readonly meaning: "két írás ugyanarra a saját objektumra: ugyanarra a mezőre, vagy új kulcsot hoz létre, miközben a program felsorolja a kulcsokat, így a létrehozás sorrendje látszik";
     readonly adr: "ADR-025";
 }, {
     readonly code: "effectful-or-unknown-initializer";

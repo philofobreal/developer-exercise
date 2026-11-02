@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-02 a megsértett szabály oka és feloldása (ADR-054)
+
+- **„Miért?” a szerzői előnézetben:** elutasított próbánál a kiértékelő sáv megmutatja a megsértett szabályt (a két kódsorral), az okát és a feloldás lépését, valamint egy gombot, amely megnyitja a sor szabályait. A tanulói nézet változatlan.
+- **Okjelentések:** a szabálylap (`AuthorRuleSheet.meanings`) az okkódok jelentését is hozza a jegyzékből; a szabálypanel a kód mellett a jelentést is mutatja. Az `object-write-after-write` jelentése pontosabb: új kulcs létrehozása kulcslistázó programban is ide tartozik.
+- **Tesztek:** egységtesztek a lapra és a blokkra; böngészős forgatókönyv Node és Pages módban a teljes feloldásig. `check:all` 1003/1003, `test:browser:all` mind a 8 csomag zöld.
+
 ## Unreleased – 2026-11-02 kiszámítható nevek és visszaadott értékek (ADR-053, v28)
 
 - **Félrevezető megjegyzés javítva:** a `'ke' + 'ys'` mintájú, konstansként kiszámítható név a kiszámított nevével (`keys`) számít, ezért kulcslistázás, de nem olvasást módosító horog. A bemenet nélküli program „érvényes egyszerű adat” választásnál már nem kapja a „szerződés nem alkalmazható” megjegyzést; a kulcsírások sorrendje helyesen kötött marad.

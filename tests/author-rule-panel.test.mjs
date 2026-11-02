@@ -10,7 +10,8 @@ import {generateCodeLineExercise} from '../src/author/generator.mjs';
 import {auditReference} from '../src/author/audit.mjs';
 import {authorRuleSheet,refreshAuthorModel} from '../dist/author/engine.js';
 import {explainConstraints,compileCodeLineExercise,validateSubmission,sourceTextDigest} from '../dist/index.js';
-import {createRuleMarks,recordRuleRefusal,renderModelInsight,renderRulePanel,ruleEditBlocked,settleRuleSelection} from '../public/app/rule-panel.js';
+import {createRuleMarks,recordRuleRefusal,renderModelInsight,renderRuleCause,renderRulePanel,ruleEditBlocked,settleRuleSelection} from '../public/app/rule-panel.js';
+import {reasonCode} from '../dist/author/reason-codes.js';
 import {authorRequest} from '../public/app/author-workspace.js';
 
 // Lines: 1 open, 2 a, 3 b, 4 c (reads a), 5 g(b, c), 6 close. 2 → 4 is proven (binding input).
@@ -144,4 +145,26 @@ test('the import emit is sent only for TypeScript',()=>{
  const author={title:'T',description:'D',source:'x',message:'m',importEmit:'elide-unused'};
  assert.deepEqual(authorRequest({...author,language:'typescript'}),{title:'T',description:'D',language:'typescript',source:'x',importEmit:'elide-unused'});
  assert.deepEqual(authorRequest({...author,language:'javascript'}),{title:'T',description:'D',language:'javascript',source:'x'});
+});
+
+// ADR-054: the author sees why a violated rule holds and how to lift it; the learner sees none of it.
+test('rule sheet: each registered reason code of the constraints carries its meaning',()=>{
+ const model=generateCodeLineExercise({source,language:'javascript'},ts),sheet=authorRuleSheet(model);
+ const codes=new Set(sheet.constraints.flatMap(c=>c.reasons.map(reason=>reason.code)));
+ assert.ok(codes.has('binding-input'));
+ for(const code of codes)assert.equal(sheet.meanings[code],reasonCode(code)?.meaning,code);
+});
+
+test('rule cause: the reason, the lifting step per rule class, a button to the rule; nothing for a learner',async()=>{
+ const state=await panelState();
+ const proven=renderRuleCause(state,[2,4]);
+ assert.match(proven,/data-rule-cause="2-4"/);assert.match(proven,/bizonyított/);
+ assert.ok(proven.includes(reasonCode('binding-input').meaning));
+ assert.match(proven,/Policy-felülírás megerősítése/);assert.match(proven,/data-rule-line="4"/);
+ assert.match(renderRuleCause(state,[2,3]),/megerősítés nélkül/,'the author\'s own rule');
+ assert.match(renderRuleCause(state,[1,2]),/nem oldható fel/,'a structural rule');
+ assert.match(renderRuleCause(state,[9,2,4]),/data-rule-cause="2-4"/,'the first link of a chain that is a direct rule');
+ assert.equal(renderRuleCause(state,[3,2]),'','no such rule');
+ for(const overrides of [{learnerPreview:true},{previews:new Map()},{authorInsight:{}}])assert.equal(renderRuleCause(await panelState(overrides),[2,4]),'');
+ assert.match(renderRulePanel(await panelState({ruleSelection:{line:4,message:''}})),/class="rule-meaning"/);
 });

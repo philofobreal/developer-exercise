@@ -5,7 +5,7 @@ const entries = [
     { code: 'write-after-write', category: 'data', meaning: 'két írás ugyanarra a kötésre', adr: 'ADR-013' },
     { code: 'object-read-after-write', category: 'data', meaning: 'saját objektum mezőjének olvasása az írása után', adr: 'ADR-025' },
     { code: 'object-write-after-read', category: 'data', meaning: 'saját objektum mezőjének írása az olvasása után', adr: 'ADR-025' },
-    { code: 'object-write-after-write', category: 'data', meaning: 'két írás ugyanarra a saját objektummezőre', adr: 'ADR-025' },
+    { code: 'object-write-after-write', category: 'data', meaning: 'két írás ugyanarra a saját objektumra: ugyanarra a mezőre, vagy új kulcsot hoz létre, miközben a program felsorolja a kulcsokat, így a létrehozás sorrendje látszik', adr: 'ADR-025' },
     { code: 'effectful-or-unknown-initializer', category: 'effect', meaning: 'a deklaráció kezdőértéke kódot futtat vagy ismeretlen', adr: 'ADR-008' },
     { code: 'block-contains-barrier', category: 'effect', meaning: 'a blokk egy sorrendhez kötő utasítást tartalmaz', adr: 'ADR-025' },
     { code: 'branch-contains-barrier', category: 'effect', meaning: 'az elágazás feltétele vagy ága sorrendhez kötő', adr: 'ADR-028' },

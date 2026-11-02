@@ -1,6 +1,7 @@
 /** Typed author-time entry point. ASTs and parser infrastructure stay inside adapters. */
 import { applyRuleEdits, codeLineDigest, compileCodeLineExercise, relaxationHolds, compileCodeLineExerciseV3, evidenceStatus, explainConstraints, mergeAuthorRules, prepareRenderPlan, upgradeCodeLineExerciseV2, verifyModel } from '../../dist/index.js';
 import {reconcileDependencies} from './dependency-refresh.js';
+import {reasonCode} from './reason-codes.js';
 import type { CodeLineExercise, CodeLineExerciseV3, CompiledRules, ConstraintExplanation, DirectConstraint, IndentPolicy, LanguageIR, ModelVerification, RefreshReport, RenderPlan, RuleEdit, RuleEditResult, VerificationInput } from '../../dist/index.js';
 
 export interface AuthorSource { source: string; title?: string; description?: string; }
@@ -114,13 +115,17 @@ export async function editAuthorModel(model: CodeLineExercise, edits: readonly R
 
 /** What the author rule panel shows (ADR-021): every direct constraint of the explanation
  * once, without the transitive closure, which grows quadratically (1.1 MB for a 436-line
- * model). The panel needs no closure: cycles and redundancy are the core's decisions. */
-export interface AuthorRuleSheet extends Pick<ConstraintExplanation, 'provenance' | 'unexplained' | 'stale' | 'relaxations'> { constraints: DirectConstraint[]; }
+ * model). The panel needs no closure: cycles and redundancy are the core's decisions.
+ * `meanings`: what each registered reason code of these constraints protects, in Hungarian
+ * (ADR-054); the register stays the author analysis's, the presentation only shows it. */
+export interface AuthorRuleSheet extends Pick<ConstraintExplanation, 'provenance' | 'unexplained' | 'stale' | 'relaxations'> { constraints: DirectConstraint[]; meanings: Record<string, string>; }
 export function authorRuleSheet(model: CodeLineExercise): AuthorRuleSheet {
  const explanation = explainConstraints(model);
  if ('status' in explanation) throw new AdapterContractError(explanation.message);
  const {provenance, unexplained, stale, relaxations} = explanation;
- return {provenance, unexplained, stale, relaxations, constraints: explanation.lines.flatMap(line => line.predecessors)};
+ const constraints = explanation.lines.flatMap(line => line.predecessors), meanings: Record<string, string> = {};
+ for (const constraint of constraints) for (const reason of constraint.reasons) {const entry = reasonCode(reason.code); if (entry) meanings[reason.code] = entry.meaning;}
+ return {provenance, unexplained, stale, relaxations, constraints, meanings};
 }
 
 /** Model Verification Gate for a JS/TS v2 model (ADR-017). The generated constraints are

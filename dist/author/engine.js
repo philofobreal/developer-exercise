@@ -1,6 +1,7 @@
 /** Typed author-time entry point. ASTs and parser infrastructure stay inside adapters. */
 import { applyRuleEdits, codeLineDigest, compileCodeLineExercise, relaxationHolds, compileCodeLineExerciseV3, evidenceStatus, explainConstraints, mergeAuthorRules, prepareRenderPlan, upgradeCodeLineExerciseV2, verifyModel } from '../../dist/index.js';
 import { reconcileDependencies } from './dependency-refresh.js';
+import { reasonCode } from './reason-codes.js';
 export class AdapterContractError extends Error {
     constructor(message) { super(message); this.name = 'AdapterContractError'; }
 }
@@ -106,7 +107,14 @@ export function authorRuleSheet(model) {
     if ('status' in explanation)
         throw new AdapterContractError(explanation.message);
     const { provenance, unexplained, stale, relaxations } = explanation;
-    return { provenance, unexplained, stale, relaxations, constraints: explanation.lines.flatMap(line => line.predecessors) };
+    const constraints = explanation.lines.flatMap(line => line.predecessors), meanings = {};
+    for (const constraint of constraints)
+        for (const reason of constraint.reasons) {
+            const entry = reasonCode(reason.code);
+            if (entry)
+                meanings[reason.code] = entry.meaning;
+        }
+    return { provenance, unexplained, stale, relaxations, constraints, meanings };
 }
 /** Model Verification Gate for a JS/TS v2 model (ADR-017). The generated constraints are
  * re-derived from the model's own source under its recorded import emit: they must equal

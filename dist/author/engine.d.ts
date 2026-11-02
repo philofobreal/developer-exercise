@@ -64,9 +64,12 @@ export declare function editAuthorModel(model: CodeLineExercise, edits: readonly
 }>;
 /** What the author rule panel shows (ADR-021): every direct constraint of the explanation
  * once, without the transitive closure, which grows quadratically (1.1 MB for a 436-line
- * model). The panel needs no closure: cycles and redundancy are the core's decisions. */
+ * model). The panel needs no closure: cycles and redundancy are the core's decisions.
+ * `meanings`: what each registered reason code of these constraints protects, in Hungarian
+ * (ADR-054); the register stays the author analysis's, the presentation only shows it. */
 export interface AuthorRuleSheet extends Pick<ConstraintExplanation, 'provenance' | 'unexplained' | 'stale' | 'relaxations'> {
     constraints: DirectConstraint[];
+    meanings: Record<string, string>;
 }
 export declare function authorRuleSheet(model: CodeLineExercise): AuthorRuleSheet;
 /** Model Verification Gate for a JS/TS v2 model (ADR-017). The generated constraints are

@@ -23,13 +23,37 @@ const provenanceNotice={complete:'',partial:'Néhány szabálynak nincs ismert o
 const snippet=(code:string,limit=120):string=>esc(code.length>limit?code.slice(0,limit-1)+'…':code);
 const badge=(status:VerificationStatus):string=>`<span class="verification-badge status-${status}" data-verification-status>${statusLabel[status]}</span>`;
 
-interface Context {model:CodeLineExercise;constraints:DirectConstraint[];}
+interface Context {model:CodeLineExercise;constraints:DirectConstraint[];meanings:Readonly<Record<string,string>>;}
 function context(state:WorkbenchState):Context|null {
  if(state.learnerPreview||!state.previews.has(state.active??''))return null;
  const model=state.authorModel,rules=state.authorInsight?.rules;
- return model&&rules?{model,constraints:rules.constraints}:null;
+ // A sheet saved before ADR-054 has no meanings; the codes still show.
+ return model&&rules?{model,constraints:rules.constraints,meanings:rules.meanings??{}}:null;
 }
 export const rulesAvailable=(state:WorkbenchState):boolean=>!!context(state);
+/** How each removable class of rule is lifted; mirrors the acknowledgement the core asks for (ADR-018). */
+const liftStep:Record<Exclude<Editability,'hard'>,string>={
+ proven:'Eltávolítás, majd „Policy-felülírás megerősítése” indoklással. A feladat ezután „Szerzői döntéssel módosított” minősítést kap.',
+ legacy:'Eltávolítás, majd „Policy-felülírás megerősítése” indoklással. A feladat ezután „Szerzői döntéssel módosított” minősítést kap.',
+ conservative:'Eltávolítás, majd „Nem bizonyított lazítás megerősítése” indoklással.',
+ pedagogical:'Eltávolítás: ez a te szabályod, megerősítés nélkül törölhető.'
+};
+/** ADR-054: why the first violated rule of an author's preview attempt holds, and how the author
+ * may lift it. `path` is the rule chain from the diagnostic; the first link with a direct rule is
+ * shown. Empty outside the author's own preview, so a learner never sees reasons. */
+export function renderRuleCause(state:WorkbenchState,path:readonly number[]):string {
+ const found=context(state);
+ if(!found)return '';
+ for(let k=0;k+1<path.length;k++){
+  const before=path[k]!,after=path[k+1]!,c=found.constraints.find(item=>item.before===before&&item.after===after);
+  if(!c)continue;
+  const why=[...new Set(c.reasons.map(reason=>found.meanings[reason.code]??categoryLabel[reason.category]))].join('; ');
+  const lift=c.editability==='hard'?'A program szerkezete köti, ezért ez a szabály nem oldható fel.':`Ha ez a sorrend a feladatban elfogadható, feloldhatod: a #${after} sor szabályai között a #${before} → #${after} szabálynál ${liftStep[c.editability]}`;
+  const line=(id:number):string=>`<code>${snippet(found.model.lines.find(item=>item.id===id)?.code.trim()??'')}</code> (#${id})`;
+  return `<div class="rule-cause" data-rule-cause="${before}-${after}"><p><b>Miért?</b> ${line(before)} előbb kell álljon, mint ${line(after)}. A szabály ${editabilityLabel[c.editability].toLowerCase()}, oka: ${esc(why)}.</p><p>${esc(lift)}</p><button type="button" class="link-action" data-rule-line="${after}">A #${after} sor szabályainak megnyitása</button></div>`;
+ }
+ return '';
+}
 /** Sorter row classes: the selected line and its direct predecessors and successors. */
 export function createRuleMarks(state:WorkbenchState):(id:unknown)=>string {
  const found=context(state),line=state.ruleSelection?.line;
@@ -53,7 +77,7 @@ export function renderRulePanel(state:WorkbenchState):string {
  if(!line)return '';
  const code=new Map(model.lines.map(item=>[item.id,item.code])),before=constraints.filter(c=>c.after===line.id),after=constraints.filter(c=>c.before===line.id);
  const item=(c:DirectConstraint,other:number):string=>{
-  const pair=`data-before="${c.before}" data-after="${c.after}"`,reasons=c.reasons.map(reason=>`${categoryLabel[reason.category]} · <code>${esc(reason.code)}</code>`).join('; ');
+  const pair=`data-before="${c.before}" data-after="${c.after}"`,reasons=c.reasons.map(reason=>{const meaning=found.meanings[reason.code];return `${categoryLabel[reason.category]} · <code>${esc(reason.code)}</code>${meaning?` <span class="rule-meaning">– ${esc(meaning)}</span>`:''}`;}).join('; ');
   return `<li class="rule-item editability-${c.editability}" data-rule-pair="${c.before}-${c.after}"><div class="rule-item-main"><button type="button" class="rule-jump" data-rule-line="${other}" aria-label="Ugrás a(z) #${other} sor szabályaira">#${other}</button><code>${snippet(code.get(other)??'')}</code></div><div class="rule-item-meta"><span class="rule-badge">${editabilityLabel[c.editability]}</span><span class="rule-reasons">${reasons}</span></div>${c.note?`<p class="rule-note" data-rule-note-text>${esc(c.note)}</p>`:''}<div class="rule-item-actions">${c.editability==='hard'?'<span class="rule-locked">Szerkezeti szabály, nem távolítható el</span>':`<button type="button" data-rule-edit="remove" ${pair} aria-label="A(z) #${c.before} → #${c.after} szabály eltávolítása">${icon('close')}<span>Eltávolítás</span></button>`}<details class="rule-note-editor" data-rule-form><summary>Megjegyzés</summary><label>Megjegyzés a(z) #${c.before} → #${c.after} szabályhoz<input data-rule-note maxlength="500" autocomplete="off" value="${esc(c.note??'')}"></label><button type="button" data-rule-edit="note" ${pair}>Megjegyzés mentése</button></details></div></li>`;
  };
  const list=(items:DirectConstraint[],other:(c:DirectConstraint)=>number):string=>items.length?`<ul class="rule-list">${items.map(c=>item(c,other(c))).join('')}</ul>`:'<p class="rule-empty">Nincs közvetlen szabály.</p>';
