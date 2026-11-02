@@ -1,11 +1,19 @@
-const join = (a, b) => !a || !b ? null : a === 'number' && b === 'number' ? 'number' : 'literal';
 /** Timers that compile a string argument as code. */
 const TIMERS = new Set(['setTimeout', 'setInterval', 'setImmediate']);
 /** Methods that call or wrap their receiver itself rather than a spelled function. */
 const INVOKERS = new Set(['call', 'apply', 'bind']);
-/** True when the program may use, beyond comparing or computing with it, a value it read by a
- * property name its source does not spell out. */
-export function readsUnspelledNames(file, compiler) {
+/** Method names the language itself calls, without a spelled call: proxy traps, iteration,
+ * thenables, conversion and serialisation. Their results reach code this analysis does not see. */
+const IMPLICIT = new Set(['get', 'set', 'has', 'apply', 'construct', 'ownKeys', 'getOwnPropertyDescriptor', 'defineProperty', 'deleteProperty', 'getPrototypeOf', 'setPrototypeOf', 'isExtensible', 'preventExtensions', 'next', 'return', 'throw', 'then', 'toString', 'valueOf', 'toJSON', 'toLocaleString', 'handleEvent']);
+/** Array methods that call a function with the elements. */
+const CALLBACKS = new Set(['map', 'filter', 'forEach', 'reduce', 'reduceRight', 'find', 'findIndex', 'findLast', 'findLastIndex', 'some', 'every', 'flatMap', 'sort', 'toSorted']);
+/** A statically known value set grows no larger than this; beyond it the value is unknown. */
+const LIMIT = 64;
+const SOME_NUMBER = Symbol('number');
+/** The result of an operation on known values that is itself not known. */
+const UNKNOWN = Symbol('unknown');
+const typeofNames = ['undefined', 'object', 'boolean', 'number', 'string', 'function', 'symbol', 'bigint'];
+export function unspelledNames(file, compiler) {
     const k = compiler.SyntaxKind;
     const numeric = new Set([k.MinusToken, k.AsteriskToken, k.SlashToken, k.PercentToken, k.AsteriskAsteriskToken, k.AmpersandToken, k.BarToken, k.CaretToken, k.LessThanLessThanToken, k.GreaterThanGreaterThanToken, k.GreaterThanGreaterThanGreaterThanToken]);
     const numericAssignment = new Set([k.MinusEqualsToken, k.AsteriskEqualsToken, k.SlashEqualsToken, k.PercentEqualsToken, k.AsteriskAsteriskEqualsToken, k.AmpersandEqualsToken, k.BarEqualsToken, k.CaretEqualsToken, k.LessThanLessThanEqualsToken, k.GreaterThanGreaterThanEqualsToken, k.GreaterThanGreaterThanGreaterThanEqualsToken]);
@@ -13,9 +21,10 @@ export function readsUnspelledNames(file, compiler) {
     const consuming = new Set([...numeric, k.PlusToken, k.LessThanToken, k.GreaterThanToken, k.LessThanEqualsToken, k.GreaterThanEqualsToken, k.EqualsEqualsToken, k.EqualsEqualsEqualsToken, k.ExclamationEqualsToken, k.ExclamationEqualsEqualsToken, k.InKeyword, k.InstanceOfKeyword]);
     const assignment = (operator) => operator >= k.FirstAssignment && operator <= k.LastAssignment;
     const transparent = (node) => compiler.isParenthesizedExpression(node) || compiler.isAsExpression(node) || compiler.isSatisfiesExpression(node) || compiler.isNonNullExpression(node) || compiler.isTypeAssertionExpression(node);
-    // Every value a name is given and every read of it, anywhere in the file. `null`: unknown value.
+    // ---- What the file gives each name, and where it reads each name and calls each function. ----
     const values = new Map();
     const reads = new Map();
+    const members = new Map();
     const give = (name, value) => { const list = values.get(name) ?? []; list.push(value); values.set(name, list); };
     const bound = (node) => compiler.isIdentifier(node) ? [node.text] : compiler.isShorthandPropertyAssignment(node) ? [node.name.text] : compiler.isPropertyAccessExpression(node) || compiler.isElementAccessExpression(node) ? [] : (() => { const all = []; compiler.forEachChild(node, child => { if (!compiler.isComputedPropertyName(child) && !(compiler.isBindingElement(node) && child === node.propertyName) && !(compiler.isPropertyAssignment(node) && child === node.name))
         all.push(...bound(child)); }); return all; })();
@@ -37,21 +46,42 @@ export function readsUnspelledNames(file, compiler) {
             return true;
         return (compiler.isVariableDeclaration(parent) || compiler.isParameter(parent) || compiler.isFunctionLike(parent) || compiler.isClassLike(parent) || compiler.isEnumDeclaration(parent) || compiler.isEnumMember(parent) || compiler.isPropertyDeclaration(parent) || compiler.isPropertySignature(parent) || compiler.isInterfaceDeclaration(parent) || compiler.isTypeAliasDeclaration(parent) || compiler.isModuleDeclaration(parent) || compiler.isTypeParameterDeclaration(parent) || compiler.isImportClause(parent) || compiler.isImportSpecifier(parent) || compiler.isExportSpecifier(parent) || compiler.isNamespaceImport(parent) || compiler.isImportEqualsDeclaration(parent) || compiler.isNamespaceExport(parent)) && parent.name === node;
     };
+    /** A property of an object literal that is the target of a destructuring assignment. */
+    const destructuringTarget = (node) => {
+        let current = node;
+        while (compiler.isPropertyAssignment(current) || compiler.isShorthandPropertyAssignment(current) || compiler.isObjectLiteralExpression(current) || compiler.isArrayLiteralExpression(current) || compiler.isSpreadAssignment(current) || compiler.isSpreadElement(current)) {
+            const parent = current.parent;
+            if (compiler.isBinaryExpression(parent) && parent.left === current && assignment(parent.operatorToken.kind))
+                return true;
+            if ((compiler.isForOfStatement(parent) || compiler.isForInStatement(parent)) && parent.initializer === current)
+                return true;
+            current = parent;
+        }
+        return false;
+    };
     const candidates = [], computedBindings = [], assignedKeys = [];
-    const taintedNames = [];
-    let escapes = false;
+    let timer = false;
     const visit = (node) => {
-        if (escapes || compiler.isTypeNode(node))
+        if (compiler.isTypeNode(node))
             return;
         if (compiler.isIdentifier(node) && !declarationName(node)) {
             const list = reads.get(node.text) ?? [];
             list.push(node);
             reads.set(node.text, list);
         }
+        if (compiler.isPropertyAccessExpression(node) && compiler.isIdentifier(node.name)) {
+            const list = members.get(node.name.text) ?? [];
+            list.push(node);
+            members.set(node.name.text, list);
+        }
         if (compiler.isVariableDeclaration(node)) {
             const loopHead = compiler.isVariableDeclarationList(node.parent) && (compiler.isForOfStatement(node.parent.parent) || compiler.isForInStatement(node.parent.parent));
-            if (compiler.isIdentifier(node.name) && !loopHead)
-                give(node.name.text, node.initializer ?? null);
+            if (compiler.isIdentifier(node.name) && !loopHead) {
+                give(node.name.text, node.initializer ?? 'undefined');
+                // A `var` reads as undefined before its initializer runs.
+                if (node.initializer && compiler.isVariableDeclarationList(node.parent) && !(node.parent.flags & (compiler.NodeFlags.Let | compiler.NodeFlags.Const)))
+                    give(node.name.text, 'undefined');
+            }
             else
                 unknown(node.name);
         }
@@ -84,78 +114,180 @@ export function readsUnspelledNames(file, compiler) {
         else if (compiler.isComputedPropertyName(node) && compiler.isPropertyAssignment(node.parent) && destructuringTarget(node.parent))
             assignedKeys.push(node.expression);
         else if (compiler.isCallExpression(node) && compiler.isIdentifier(node.expression) && TIMERS.has(node.expression.text) && !(node.arguments[0] && (compiler.isArrowFunction(node.arguments[0]) || compiler.isFunctionExpression(node.arguments[0]))))
-            escapes = true;
+            timer = true;
         compiler.forEachChild(node, visit);
     };
-    /** A property of an object literal that is the target of a destructuring assignment. */
-    const destructuringTarget = (node) => {
-        let current = node;
-        while (compiler.isPropertyAssignment(current) || compiler.isShorthandPropertyAssignment(current) || compiler.isObjectLiteralExpression(current) || compiler.isArrayLiteralExpression(current) || compiler.isSpreadAssignment(current) || compiler.isSpreadElement(current)) {
-            const parent = current.parent;
-            if (compiler.isBinaryExpression(parent) && parent.left === current && assignment(parent.operatorToken.kind))
-                return true;
-            if ((compiler.isForOfStatement(parent) || compiler.isForInStatement(parent)) && parent.initializer === current)
-                return true;
-            current = parent;
-        }
-        return false;
-    };
-    // Greatest fixed point: a name is known when every value it is given is known, assuming the
-    // same of the names those values read (`i = i + 1` keeps a number).
+    visit(file);
+    if (timer)
+        return 'any';
+    // ---- Constant folding: the least fixed point of the values each name may hold. ----
     const known = new Map();
-    const kindOf = (expression) => {
+    const unite = (a, b) => {
+        if (!a || !b)
+            return null;
+        const all = new Set([...a, ...b]);
+        return all.size > LIMIT ? null : all;
+    };
+    const combine = (a, b, operation) => {
+        if (!a || !b)
+            return null;
+        const all = new Set();
+        for (const x of a)
+            for (const y of b) {
+                const value = operation(x, y);
+                if (value === UNKNOWN)
+                    return null;
+                all.add(value);
+                if (all.size > LIMIT)
+                    return null;
+            }
+        return all;
+    };
+    /** `+` on two known values: a string next to an unknown number, or a BigInt next to anything
+     * else, has no known result. */
+    const plus = (x, y) => {
+        if (x === SOME_NUMBER || y === SOME_NUMBER)
+            return typeof x === 'string' || typeof y === 'string' || typeof x === 'bigint' || typeof y === 'bigint' ? UNKNOWN : SOME_NUMBER;
+        if (typeof x === 'bigint' || typeof y === 'bigint')
+            return UNKNOWN;
+        return x + y;
+    };
+    const fold = (expression) => {
         if (expression === 'number')
-            return 'number';
+            return new Set([SOME_NUMBER]);
+        if (expression === 'undefined')
+            return new Set([undefined]);
         if (!expression)
             return null;
         if (transparent(expression))
-            return kindOf(expression.expression);
-        if (compiler.isNumericLiteral(expression) || compiler.isBigIntLiteral(expression))
-            return 'number';
+            return fold(expression.expression);
+        if (compiler.isNumericLiteral(expression))
+            return new Set([Number(expression.text)]);
+        if (compiler.isBigIntLiteral(expression))
+            return new Set([SOME_NUMBER]);
         if (compiler.isStringLiteral(expression) || compiler.isNoSubstitutionTemplateLiteral(expression))
-            return 'literal';
+            return new Set([expression.text]);
+        if (expression.kind === k.TrueKeyword || expression.kind === k.FalseKeyword)
+            return new Set([true, false]);
+        if (expression.kind === k.NullKeyword)
+            return new Set([null]);
+        if (compiler.isTemplateExpression(expression)) {
+            let all = new Set([expression.head.text]);
+            for (const span of expression.templateSpans) {
+                const part = fold(span.expression);
+                if (part && [...part].some(value => value === SOME_NUMBER))
+                    return null;
+                all = combine(combine(all, part, (x, y) => String(x) + String(y)), new Set([span.literal.text]), (x, y) => String(x) + String(y));
+            }
+            return all;
+        }
         if (compiler.isConditionalExpression(expression))
-            return join(kindOf(expression.whenTrue), kindOf(expression.whenFalse));
+            return unite(fold(expression.whenTrue), fold(expression.whenFalse));
+        if (compiler.isTypeOfExpression(expression))
+            return new Set(typeofNames);
         if (compiler.isPrefixUnaryExpression(expression))
-            return expression.operator === k.ExclamationToken ? null : 'number';
+            return expression.operator === k.ExclamationToken ? new Set([true, false]) : new Set([SOME_NUMBER]);
         if (compiler.isPostfixUnaryExpression(expression))
-            return 'number';
+            return new Set([SOME_NUMBER]);
         if (compiler.isIdentifier(expression))
-            return values.has(expression.text) ? known.get(expression.text) ?? null : null;
+            return expression.text === 'undefined' && !values.has('undefined') ? new Set([undefined]) : values.has(expression.text) ? known.get(expression.text) ?? null : null;
         if (compiler.isBinaryExpression(expression)) {
             const operator = expression.operatorToken.kind;
             if (numeric.has(operator) || numericAssignment.has(operator))
-                return 'number';
-            if (operator === k.EqualsToken)
-                return kindOf(expression.right);
+                return new Set([SOME_NUMBER]);
+            if (operator === k.EqualsToken || operator === k.CommaToken)
+                return fold(expression.right);
             if (operator === k.PlusToken || operator === k.PlusEqualsToken)
-                return kindOf(expression.left) === 'number' && kindOf(expression.right) === 'number' ? 'number' : null;
+                return combine(fold(expression.left), fold(expression.right), plus);
+            if (operator === k.BarBarToken || operator === k.AmpersandAmpersandToken || operator === k.QuestionQuestionToken)
+                return unite(fold(expression.left), fold(expression.right));
         }
         return null;
     };
-    /** A known literal choice that may yield `constructor`, the way to `Function`. */
-    const mayBeConstructor = (node, seen = new Set()) => {
-        if (compiler.isStringLiteralLike(node))
-            return node.text === 'constructor';
-        if (transparent(node))
-            return mayBeConstructor(node.expression, seen);
-        if (compiler.isConditionalExpression(node))
-            return mayBeConstructor(node.whenTrue, seen) || mayBeConstructor(node.whenFalse, seen);
-        if (compiler.isBinaryExpression(node) && node.operatorToken.kind === k.EqualsToken)
-            return mayBeConstructor(node.right, seen);
-        if (!compiler.isIdentifier(node) || seen.has(node.text))
-            return false;
-        seen.add(node.text);
-        return (values.get(node.text) ?? []).some(value => value !== 'number' && !!value && mayBeConstructor(value, seen));
+    for (const name of values.keys())
+        known.set(name, new Set());
+    for (let changed = true, round = 0; changed; round++) {
+        changed = false;
+        for (const [name, list] of values) {
+            const before = known.get(name);
+            if (before === null)
+                continue;
+            const after = round > 2 * LIMIT ? null : list.reduce((all, value) => unite(all, fold(value)), new Set());
+            if (after === null || after.size !== before.size) {
+                known.set(name, after);
+                changed = true;
+            }
+        }
+    }
+    /** The property names a key may select, or `'any'`. Reaching `constructor` reaches `Function`. */
+    const namesOf = (key) => {
+        const all = fold(key);
+        if (!all)
+            return 'any';
+        const names = [...all].filter(value => value !== SOME_NUMBER).map(value => String(value));
+        return names.includes('constructor') ? 'any' : names;
     };
-    const harmlessKey = (key) => kindOf(key) !== null && !mayBeConstructor(key);
-    /** Follows an unspelled value from `node` upwards; true when it escapes. */
-    const escapesFrom = (node) => {
+    // ---- Escape analysis. ----
+    const reached = new Set();
+    let any = false;
+    const use = (names) => { if (names === 'any')
+        any = true;
+    else
+        for (const name of names)
+            reached.add(name); };
+    const pending = [];
+    const taintedNames = new Set(), returned = new Set();
+    /** The names a target binds now hold the value; a property or element target is a store. */
+    const bind = (target, taint) => {
+        if (storesInto(target))
+            return true;
+        const holder = compiler.isIdentifier(target) ? taint.holder : 'unknown';
+        for (const name of bound(target)) {
+            const key = name + '\u0000' + holder + '\u0000' + JSON.stringify(taint.names);
+            if (taintedNames.has(key))
+                continue;
+            taintedNames.add(key);
+            for (const read of reads.get(name) ?? [])
+                pending.push({ node: read, taint: { names: taint.names, holder } });
+        }
+        return false;
+    };
+    /** A return (the statement, or the arrow function whose body is the value) hands the value to
+     * every call of the function; any other use of the function escapes. */
+    const returns = (node, taint) => {
+        let fn = node;
+        while (fn && !compiler.isFunctionLike(fn))
+            fn = fn.parent;
+        if (!fn)
+            return true;
+        const named = compiler.isFunctionDeclaration(fn) && fn.name ? { name: fn.name.text, member: false }
+            : (compiler.isFunctionExpression(fn) || compiler.isArrowFunction(fn)) && compiler.isVariableDeclaration(fn.parent) && compiler.isIdentifier(fn.parent.name) ? { name: fn.parent.name.text, member: false }
+                // A class method is called by its spelled name, unless the language calls it; an object literal's
+                // methods leave with the object (a proxy handler, an iterator), so they are not followed.
+                : compiler.isMethodDeclaration(fn) && compiler.isClassLike(fn.parent) && compiler.isIdentifier(fn.name) && !IMPLICIT.has(fn.name.text) ? { name: fn.name.text, member: true } : null;
+        if (!named || fn.asteriskToken)
+            return true;
+        const key = named.name + '\u0000' + named.member + '\u0000' + taint.holder + '\u0000' + JSON.stringify(taint.names);
+        if (returned.has(key))
+            return false;
+        returned.add(key);
+        const uses = named.member ? members.get(named.name) ?? [] : reads.get(named.name) ?? [];
+        for (const site of uses) {
+            const call = site.parent;
+            if (!compiler.isCallExpression(call) || call.expression !== site)
+                return true;
+            const result = compiler.isAwaitExpression(call.parent) ? call.parent : call;
+            pending.push({ node: result, taint: { names: taint.names, holder: taint.holder } });
+        }
+        return false;
+    };
+    /** Follows a value up from `node`; true when it escapes. */
+    const escapesFrom = (node, taint) => {
         const parent = node.parent;
         if (transparent(parent))
-            return escapesFrom(parent);
+            return escapesFrom(parent, taint);
         if (compiler.isConditionalExpression(parent))
-            return parent.condition !== node && escapesFrom(parent);
+            return parent.condition !== node && escapesFrom(parent, taint);
         if (compiler.isPrefixUnaryExpression(parent) || compiler.isPostfixUnaryExpression(parent) || compiler.isTypeOfExpression(parent) || compiler.isVoidExpression(parent) || compiler.isDeleteExpression(parent))
             return false;
         if (compiler.isTemplateSpan(parent) || compiler.isExpressionStatement(parent) || compiler.isCaseClause(parent))
@@ -165,33 +297,44 @@ export function readsUnspelledNames(file, compiler) {
         if (compiler.isElementAccessExpression(parent) && parent.argumentExpression === node)
             return false;
         if (compiler.isPropertyAccessExpression(parent) || compiler.isElementAccessExpression(parent)) {
-            // A read reached from the value: a write into it, a call of it or an invoker escapes; a spelled
-            // method called on it may return it (`valueOf`), so the result is followed in turn.
+            const own = taint.holder === 'array' || taint.holder === 'object';
+            // Writing into the program's own literal runs nothing; into anything else it may change a built-in.
             if (writeTarget(parent))
-                return true;
+                return !own;
             const callee = compiler.isCallExpression(parent.parent) && parent.parent.expression === parent;
-            if (callee)
-                return compiler.isElementAccessExpression(parent) || INVOKERS.has(parent.name.text) || escapesFrom(parent.parent);
-            return escapesFrom(parent);
+            if (!callee)
+                return escapesFrom(parent, { names: taint.names, holder: 'unknown' });
+            if (compiler.isElementAccessExpression(parent) || INVOKERS.has(parent.name.text))
+                return true;
+            // A spelled method of the value itself, or of the program's own array; its result may be the value.
+            if (taint.holder === 'value' || taint.holder === 'array' && !CALLBACKS.has(parent.name.text))
+                return escapesFrom(parent.parent, { names: taint.names, holder: taint.holder === 'value' ? 'value' : 'unknown' });
+            return true;
         }
+        if (compiler.isArrayLiteralExpression(parent) || compiler.isSpreadElement(parent) && compiler.isArrayLiteralExpression(parent.parent))
+            return escapesFrom(compiler.isSpreadElement(parent) ? parent.parent : parent, { names: taint.names, holder: 'array' });
+        if ((compiler.isPropertyAssignment(parent) && parent.initializer === node || compiler.isShorthandPropertyAssignment(parent) || compiler.isSpreadAssignment(parent)) && compiler.isObjectLiteralExpression(parent.parent))
+            return destructuringTarget(parent) ? false : escapesFrom(parent.parent, { names: taint.names, holder: 'object' });
         if (compiler.isBinaryExpression(parent)) {
             const operator = parent.operatorToken.kind;
             if (consuming.has(operator))
                 return false;
             if (operator === k.CommaToken)
-                return parent.right === node && escapesFrom(parent);
+                return parent.right === node && escapesFrom(parent, taint);
             if (operator === k.AmpersandAmpersandToken || operator === k.BarBarToken || operator === k.QuestionQuestionToken)
-                return escapesFrom(parent);
+                return escapesFrom(parent, taint);
             if (assignment(operator) && parent.left === node)
                 return false;
             if (operator === k.EqualsToken || operator === k.BarBarEqualsToken || operator === k.AmpersandAmpersandEqualsToken || operator === k.QuestionQuestionEqualsToken)
-                return taint(parent.left) || escapesFrom(parent);
+                return bind(parent.left, taint) || escapesFrom(parent, taint);
             return !assignment(operator);
         }
         if (compiler.isVariableDeclaration(parent) && parent.initializer === node)
-            return taint(parent.name);
+            return bind(parent.name, taint);
         if ((compiler.isForOfStatement(parent) || compiler.isForInStatement(parent)) && parent.expression === node)
-            return compiler.isVariableDeclarationList(parent.initializer) ? parent.initializer.declarations.some(declaration => taint(declaration.name)) : taint(parent.initializer);
+            return compiler.isVariableDeclarationList(parent.initializer) ? parent.initializer.declarations.some(declaration => bind(declaration.name, { names: taint.names, holder: 'unknown' })) : bind(parent.initializer, { names: taint.names, holder: 'unknown' });
+        if (compiler.isReturnStatement(parent) || compiler.isArrowFunction(parent) && parent.body === node)
+            return returns(parent, taint);
         return true;
     };
     /** The access is written: assigned, incremented or a destructuring target. */
@@ -203,48 +346,27 @@ export function readsUnspelledNames(file, compiler) {
             return true;
         return destructuringTarget(parent) || (compiler.isForOfStatement(parent) || compiler.isForInStatement(parent)) && parent.initializer === node;
     };
-    /** The names a target binds now hold an unspelled value; a property or element target escapes. */
-    const taint = (target) => {
-        if (storesInto(target))
-            return true;
-        taintedNames.push(...bound(target));
-        return false;
-    };
-    visit(file);
-    if (escapes)
-        return true;
-    for (const name of values.keys())
-        known.set(name, 'number');
-    for (let changed = true; changed;) {
-        changed = false;
-        for (const [name, list] of values) {
-            const kind = list.reduce((all, value) => join(all, kindOf(value)), 'number');
-            if (kind !== known.get(name)) {
-                known.set(name, kind);
-                changed = true;
-            }
-        }
-    }
-    // A computed key in a destructuring assignment target: rare, so any unknown one counts.
-    if (assignedKeys.some(key => !harmlessKey(key)))
-        return true;
+    // A computed key in a destructuring assignment target: rare, so it counts as used.
+    for (const key of assignedKeys)
+        use(namesOf(key));
     for (const key of computedBindings)
-        if (!harmlessKey(key.expression) && taint(key.parent.name))
-            return true;
+        pending.push(...bound(key.parent.name).flatMap(name => (reads.get(name) ?? []).map(read => ({ node: read, taint: { names: namesOf(key.expression), holder: 'unknown' } }))));
     for (const candidate of candidates) {
-        const source = compiler.isElementAccessExpression(candidate) ? !harmlessKey(candidate.argumentExpression) && !(compiler.isBinaryExpression(candidate.parent) && candidate.parent.left === candidate && candidate.parent.operatorToken.kind === k.EqualsToken) : true;
-        if (source && escapesFrom(candidate))
-            return true;
-    }
-    const seen = new Set();
-    while (taintedNames.length) {
-        const name = taintedNames.pop();
-        if (seen.has(name))
+        if (compiler.isElementAccessExpression(candidate) && compiler.isBinaryExpression(candidate.parent) && candidate.parent.left === candidate && candidate.parent.operatorToken.kind === k.EqualsToken)
             continue;
-        seen.add(name);
-        if ((reads.get(name) ?? []).some(read => escapesFrom(read)))
-            return true;
+        pending.push({ node: candidate, taint: { names: compiler.isElementAccessExpression(candidate) ? namesOf(candidate.argumentExpression) : 'any', holder: 'value' } });
     }
-    return false;
+    while (pending.length && !any) {
+        const { node, taint } = pending.pop();
+        if (taint.names !== 'any' && taint.names.length === 0)
+            continue;
+        if (escapesFrom(node, taint))
+            use(taint.names);
+    }
+    return any ? 'any' : [...reached].sort();
+}
+/** Whether `pattern` matches the source text or a name the program reaches unspelled. */
+export function namesMatch(file, reached, pattern) {
+    return pattern.test(file.text) || reached === 'any' || reached.some(name => pattern.test(name) || pattern.test('.' + name));
 }
 //# sourceMappingURL=property-names.js.map

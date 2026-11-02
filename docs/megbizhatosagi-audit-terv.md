@@ -30,6 +30,7 @@
   - a régi példák újravizsgálata után a választható bemeneti szerződés ([ADR-050](adr/050-input-contract.md), v26): `valid` szerződésnél a bemenetek olvasása és a nem módosító beépített hívások egymáshoz képest szabadok; az `algo-bfs-js` hat tanári szabadságából öt visszajön ([eltéréslista](peldak-migracioja.md)).
   - a valódi feladatokra hasonlító mérőkorpusz ([ADR-051](adr/051-task-corpus-and-linear-shapes.md)): 12 feladat mindkét bemeneti szerződéssel, hibás elfogadás nélkül; közben az orákulum alakkódolása lineáris lett.
   - a korpusz építése közben talált hibás elfogadás javítva: ki nem írt tulajdonságnevek ([ADR-052](adr/052-unspelled-property-names.md), v27); a szöveges névfelismerést szivárgáselemzés egészíti ki, mérhető pontosságvesztés nélkül.
+  - a Pages-kipróbálás után pontosítva ([ADR-053](adr/053-folded-names-and-returns.md), v28): a kiszámítható név a nevével számít, a visszaadott értéket a hívásig követjük.
   - **Következik:** a `flow` maradéka ma főleg objektumütközés (a ciklus túlbecslése) és a `while` nem bizonyított terminálása; a többsoros kifejezések lezárása (`function` csoport) a v2-ben nem finomítható (6. fázis); a 3. tétel (hatásösszegzés) ma kevés mért rés; a 2d nem mért ok.
 
 ## 1. Összefoglaló ítélet

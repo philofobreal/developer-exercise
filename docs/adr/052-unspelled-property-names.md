@@ -1,6 +1,6 @@
 # ADR-052 – Ki nem írt tulajdonságnevek (v27)
 
-Állapot: **elfogadva** (2026-11-02), szabályverzió `scoped-effect-analysis-v27`. Hibajavítás: a generátor hibás sorrendet fogadott el. Pontosítja az [ADR-020](020-unobserved-key-order.md) és az [ADR-029](029-unobserved-instance-field-order.md) megfigyelési feltételét, valamint az [ADR-050](050-input-contract.md) bemeneti szerződésének kapuját.
+Állapot: **elfogadva** (2026-11-02), szabályverzió `scoped-effect-analysis-v27`; pontosította az [ADR-053](053-folded-names-and-returns.md) (v28): a kiszámítható nevek a nevükkel számítanak, a visszatérést a hívásig követjük. Hibajavítás: a generátor hibás sorrendet fogadott el. Pontosítja az [ADR-020](020-unobserved-key-order.md) és az [ADR-029](029-unobserved-instance-field-order.md) megfigyelési feltételét, valamint az [ADR-050](050-input-contract.md) bemeneti szerződésének kapuját.
 
 ## Kontextus
 

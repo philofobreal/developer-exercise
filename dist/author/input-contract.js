@@ -1,4 +1,4 @@
-import { readsUnspelledNames } from './property-names.js';
+import { namesMatch, unspelledNames } from './property-names.js';
 /** Built-ins that, on valid plain data, call no callback, write nothing and cannot throw. */
 const GLOBAL_FUNCTIONS = new Set(['Number', 'String', 'Boolean', 'parseInt', 'parseFloat', 'isNaN', 'isFinite']);
 const STATIC_FUNCTIONS = {
@@ -36,8 +36,8 @@ export function inputFacts(file, compiler, inputs = 'any') {
     const asked = inputs === 'valid';
     if (asked)
         visit(file);
-    // ADR-052: a property name the source does not spell out may reach any of the hooks.
-    const applies = asked && !HOOKS.test(file.text) && !computedAccessor && !readsUnspelledNames(file, compiler);
+    // ADR-052, ADR-053: names the program reaches without spelling them out count as named.
+    const applies = asked && !computedAccessor && !namesMatch(file, unspelledNames(file, compiler), HOOKS);
     return {
         applies, unavailable: asked && !applies, conversions: applies && !CONVERSIONS.test(file.text),
         accessor: name => accessors.has(name), anyAccessor: accessors.size > 0, generators,

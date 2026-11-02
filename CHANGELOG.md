@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased – 2026-11-02 kiszámítható nevek és visszaadott értékek (ADR-053, v28)
+
+- **Félrevezető megjegyzés javítva:** a `'ke' + 'ys'` mintájú, konstansként kiszámítható név a kiszámított nevével (`keys`) számít, ezért kulcslistázás, de nem olvasást módosító horog. A bemenet nélküli program „érvényes egyszerű adat” választásnál már nem kapja a „szerződés nem alkalmazható” megjegyzést; a kulcsírások sorrendje helyesen kötött marad.
+- **Túlszigorúság javítva:** a visszaadott érték csak akkor szivárog, ha a hívás helyén szivárog, a program saját tömb- és objektumliteráljában tartott érték pedig csak a literállal együtt. A `return [rows, cols, first]` mintájú rácskódnál a `valid` szerződés újra érvényes.
+- **Implicit hívások:** az objektumliterál metódusa és a nyelv által hívott nevű osztálymetódus (`get`, `next`, `then`, `valueOf`, …) visszatérése szivárgás, mert a hívás nem látszik a forrásban.
+- **Interfész:** `unspelledNames` (a használt, ki nem írt nevek vagy `'any'`) és `namesMatch`; a boolean `readsUnspelledNames` megszűnt.
+- **Mérés:** a korpusz rögzített értékei változatlanok; a 1 952 katalógusprogramból egyik sem kap „bármely név” eredményt; a gyors baseline-ban csak a címke változott.
+- **Címkék:** a v28 additív sémaenumérték; a minták csak az új címkét kapták.
+
 ## Unreleased – 2026-11-02 ki nem írt tulajdonságnevek (ADR-052, v27)
 
 - **Hibajavítás (hibás elfogadás):** a kulcsfelsorolás és a reflexió felismerése szöveges volt, ezért `Object['ke' + 'ys']` mellett a generátor a konstruktor két kulcslétrehozó írását felcserélhetőnek vette (3 hibás elfogadás a próbán). Ugyanígy volt megkerülhető a `valid` szerződés kapuja és a `constructor.constructor` útján a `Function`.

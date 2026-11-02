@@ -5,7 +5,7 @@
 import type ts from 'typescript';
 import {statementOrdering, type OrderingOptions} from './statement-ordering.js';
 import {typeMemberOrdering} from './type-member-ordering.js';
-import {readsUnspelledNames} from './property-names.js';
+import {namesMatch, unspelledNames} from './property-names.js';
 import {combineOrderingRelations, type OrderingRelations} from './ordering-relations.js';
 import type {StructureBlock} from './code-line-projection.js';
 import type {AnalysisEnvironment} from '../../dist/index.js';
@@ -44,10 +44,10 @@ const keyReflection = /\b(?:getOwnPropertyNames|ownKeys|getOwnPropertyDescriptor
 /** ADR-020: whether the program itself may observe the creation order of method,
  * accessor or top-level function keys: it names a reflection API or the global
  * object (also inside strings, which only makes it stricter), or uses `this` at
- * script level, where it is the global object. A name the program never spells out reaches any of
- * these APIs (ADR-052). */
-export function observesKeyOrder(file: ts.SourceFile, compiler: typeof ts): boolean {
- if (keyReflection.test(file.text) || readsUnspelledNames(file, compiler)) return true;
+ * script level, where it is the global object. Names the program reaches without spelling them out
+ * count as named (ADR-052, ADR-053). */
+export function observesKeyOrder(file: ts.SourceFile, compiler: typeof ts, reached = unspelledNames(file, compiler)): boolean {
+ if (namesMatch(file, reached, keyReflection)) return true;
  let found = false;
  const visit = (node: ts.Node): void => {
   if (found || compiler.isClassLike(node) || compiler.isFunctionLike(node) && !compiler.isArrowFunction(node)) return;
@@ -63,14 +63,14 @@ export function observesKeyOrder(file: ts.SourceFile, compiler: typeof ts): bool
  * and any spread. */
 const keyEnumeration = /\b(?:keys|values|entries|stringify|assign|structuredClone|console|inspect)\b|\.\.\.|\bfor\s*\([^)]*\bin\b/;
 /** ADR-029: whether the program itself may observe the creation order of instance fields. */
-export function enumeratesKeys(file: ts.SourceFile, compiler: typeof ts): boolean {
- return observesKeyOrder(file, compiler) || keyEnumeration.test(file.text);
+export function enumeratesKeys(file: ts.SourceFile, compiler: typeof ts, reached = unspelledNames(file, compiler)): boolean {
+ return observesKeyOrder(file, compiler, reached) || namesMatch(file, reached, keyEnumeration);
 }
 
 /** `options.imports` describes the TypeScript emit (ADR-013); JavaScript imports always load their module.
  * `options.inputs` is the input contract (ADR-050) of either language. */
 export function jsTsOrderingRelations(file: ts.SourceFile, compiler: typeof ts, options: OrderingOptions = {}): OrderingRelations {
- const reflectedKeys = observesKeyOrder(file, compiler), enumeratedKeys = enumeratesKeys(file, compiler);
+ const reached = unspelledNames(file, compiler), reflectedKeys = observesKeyOrder(file, compiler, reached), enumeratedKeys = enumeratesKeys(file, compiler, reached);
  const {imports, inputs} = options;
  const statements = statementOrdering(file, compiler, {...(file.fileName.endsWith('.ts') && imports ? {imports} : {}), ...(inputs ? {inputs} : {}), reflectedKeys, enumeratedKeys}), members = typeMemberOrdering(file, compiler, {reflectedKeys, enumeratedKeys});
  const unavailable = statements.inputsUnavailable ? 'Az érvényes bemenet szerződése nem alkalmazható: a program módosíthatja az olvasást (Proxy, prototípus, eval, képzett név), ezért szigorú.' : '';

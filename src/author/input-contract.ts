@@ -11,7 +11,7 @@
  * conversions, spreads and calls they could reach.
  */
 import type ts from 'typescript';
-import {readsUnspelledNames} from './property-names.js';
+import {namesMatch, unspelledNames} from './property-names.js';
 type Compiler = typeof ts;
 
 export type InputContract = 'any' | 'valid';
@@ -69,8 +69,8 @@ export function inputFacts(file: ts.SourceFile, compiler: Compiler, inputs: Inpu
  };
  const asked = inputs === 'valid';
  if (asked) visit(file);
- // ADR-052: a property name the source does not spell out may reach any of the hooks.
- const applies = asked && !HOOKS.test(file.text) && !computedAccessor && !readsUnspelledNames(file, compiler);
+ // ADR-052, ADR-053: names the program reaches without spelling them out count as named.
+ const applies = asked && !computedAccessor && !namesMatch(file, unspelledNames(file, compiler), HOOKS);
  return {
   applies, unavailable: asked && !applies, conversions: applies && !CONVERSIONS.test(file.text),
   accessor: name => accessors.has(name), anyAccessor: accessors.size > 0, generators,
