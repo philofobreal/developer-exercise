@@ -25,9 +25,9 @@ export function jsTsStructure(file, compiler) {
 /** The emit and runtime assumptions behind the JS/TS analysis (ADR-015): the compiler that
  * analysed it, the TypeScript import emit, script or module semantics (as the global-order
  * rule decides it), class-field-mode independence (ADR-012 holds in both modes) and, when the
- * author chose it, the `valid` input contract (ADR-050). */
+ * author chose it, the `valid` input contract (ADR-050) and ignored key order (ADR-055). */
 export function jsTsEnvironment(file, compiler, options = {}) {
-    return { typescript: compiler.version, ...(file.fileName.endsWith('.ts') ? { importEmit: options.imports ?? 'verbatim' } : {}), sourceKind: compiler.isExternalModule(file) ? 'module' : 'script', classFields: 'either', ...(options.inputs === 'valid' ? { inputs: 'valid' } : {}) };
+    return { typescript: compiler.version, ...(file.fileName.endsWith('.ts') ? { importEmit: options.imports ?? 'verbatim' } : {}), sourceKind: compiler.isExternalModule(file) ? 'module' : 'script', classFields: 'either', ...(options.inputs === 'valid' ? { inputs: 'valid' } : {}), ...(options.keyOrder === 'ignored' ? { keyOrder: 'ignored' } : {}) };
 }
 /** Names through which a program can list non-enumerable or global keys in creation order. */
 const keyReflection = /\b(?:getOwnPropertyNames|ownKeys|getOwnPropertyDescriptors|Reflect|globalThis|window|self|frames|global|Function|eval)\b/;
@@ -62,9 +62,11 @@ export function enumeratesKeys(file, compiler, reached = unspelledNames(file, co
     return observesKeyOrder(file, compiler, reached) || namesMatch(file, reached, keyEnumeration);
 }
 /** `options.imports` describes the TypeScript emit (ADR-013); JavaScript imports always load their module.
- * `options.inputs` is the input contract (ADR-050) of either language. */
+ * `options.inputs` is the input contract (ADR-050) of either language. `options.keyOrder` (ADR-055):
+ * when the author declares key order `ignored`, no constraint protects the creation order of keys. */
 export function jsTsOrderingRelations(file, compiler, options = {}) {
-    const reached = unspelledNames(file, compiler), reflectedKeys = observesKeyOrder(file, compiler, reached), enumeratedKeys = enumeratesKeys(file, compiler, reached);
+    const observed = options.keyOrder !== 'ignored', reached = unspelledNames(file, compiler);
+    const reflectedKeys = observed && observesKeyOrder(file, compiler, reached), enumeratedKeys = observed && enumeratesKeys(file, compiler, reached);
     const { imports, inputs } = options;
     const statements = statementOrdering(file, compiler, { ...(file.fileName.endsWith('.ts') && imports ? { imports } : {}), ...(inputs ? { inputs } : {}), reflectedKeys, enumeratedKeys }), members = typeMemberOrdering(file, compiler, { reflectedKeys, enumeratedKeys });
     const unavailable = statements.inputsUnavailable ? 'Az érvényes bemenet szerződése nem alkalmazható: a program módosíthatja az olvasást (Proxy, prototípus, eval, képzett név), ezért szigorú.' : '';

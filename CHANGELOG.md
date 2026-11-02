@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased – 2026-11-02 kulcssorrend-beállítás és szabályok típus szerint (ADR-055, v29; ADR-056)
+
+- **„Objektumkulcsok sorrendje” beállítás** (Forrás lépés, JS és TS): „Számít” (alapértelmezett, változatlan) vagy „Nem számít”. Utóbbinál a mezőket, metódusokat és kulcsokat létrehozó sorok egymáshoz képest szabadok, akkor is, ha a program felsorolja vagy szerializálja a kulcsokat – ahogy a tesztkeretrendszerek mély összehasonlítása és a JSON-objektumok kezelik. A kulcsok megléte és az értékek továbbra is kötnek. A modell rögzíti (`environment.keyOrder`), a minősítés és a frissítés ezzel dolgozik, a modell „Elemzéssel igazolt” marad.
+- **Orákulum:** „Nem számít” mellett a kulcslistázó függvények futásidőben kanonikus sorrendet adnak, a P4 halmazként hasonlít; független megvalósítás.
+- **Szabályok típus szerint:** a Szabályok lépés minden egy okú, nem szerkezeti szabálytípust listáz (jelentés, osztály, darabszám), és egy megerősített lépésben feloldja az összes ilyen szabályt a mag ellenőrzött kötegelt útján. Bármely szabálytípusra működik.
+- **Javítás:** a „Miért?” blokk tévesen azt írta, hogy a bizonyított szabály feloldása után „Szerzői döntéssel módosított” lesz a minősítés; valójában „Nem igazolt”.
+- **Mérés:** 12 magos kampány mindkét beállítással, 343 243 sorrend, 0 hibás elfogadás; „Nem számít” mellett 14 192 helyett 15 800 elfogadott sorrend (az objektum- és flow-csoportokban). Hat új korpuszfixture (`key-order`), a régi alapértékek változatlanok.
+- **Címkék:** a v29 additív sémaenumérték; a minták csak az új címkét kapták.
+
 ## Unreleased – 2026-11-02 a megsértett szabály oka és feloldása (ADR-054)
 
 - **„Miért?” a szerzői előnézetben:** elutasított próbánál a kiértékelő sáv megmutatja a megsértett szabályt (a két kódsorral), az okát és a feloldás lépését, valamint egy gombot, amely megnyitja a sor szabályait. A tanulói nézet változatlan.

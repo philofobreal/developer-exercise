@@ -14,7 +14,7 @@ export declare function jsTsStructure(file: ts.SourceFile, compiler: typeof ts):
 /** The emit and runtime assumptions behind the JS/TS analysis (ADR-015): the compiler that
  * analysed it, the TypeScript import emit, script or module semantics (as the global-order
  * rule decides it), class-field-mode independence (ADR-012 holds in both modes) and, when the
- * author chose it, the `valid` input contract (ADR-050). */
+ * author chose it, the `valid` input contract (ADR-050) and ignored key order (ADR-055). */
 export declare function jsTsEnvironment(file: ts.SourceFile, compiler: typeof ts, options?: OrderingOptions): AnalysisEnvironment;
 /** ADR-020: whether the program itself may observe the creation order of method,
  * accessor or top-level function keys: it names a reflection API or the global
@@ -25,5 +25,6 @@ export declare function observesKeyOrder(file: ts.SourceFile, compiler: typeof t
 /** ADR-029: whether the program itself may observe the creation order of instance fields. */
 export declare function enumeratesKeys(file: ts.SourceFile, compiler: typeof ts, reached?: import("./property-names.js").UnspelledNames): boolean;
 /** `options.imports` describes the TypeScript emit (ADR-013); JavaScript imports always load their module.
- * `options.inputs` is the input contract (ADR-050) of either language. */
+ * `options.inputs` is the input contract (ADR-050) of either language. `options.keyOrder` (ADR-055):
+ * when the author declares key order `ignored`, no constraint protects the creation order of keys. */
 export declare function jsTsOrderingRelations(file: ts.SourceFile, compiler: typeof ts, options?: OrderingOptions): OrderingRelations;

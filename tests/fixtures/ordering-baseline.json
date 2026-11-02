@@ -473,6 +473,42 @@
   "completenessGaps": 0,
   "justifiedRejections": 1032
  },
+ "keyorder-listing": {
+  "neighbours": 115,
+  "accepted": 4,
+  "completenessGaps": 0,
+  "justifiedRejections": 111
+ },
+ "keyorder-json": {
+  "neighbours": 51,
+  "accepted": 5,
+  "completenessGaps": 0,
+  "justifiedRejections": 46
+ },
+ "keyorder-count": {
+  "neighbours": 51,
+  "accepted": 0,
+  "completenessGaps": 0,
+  "justifiedRejections": 51
+ },
+ "keyorder-entries": {
+  "neighbours": 117,
+  "accepted": 4,
+  "completenessGaps": 3,
+  "justifiedRejections": 110
+ },
+ "keyorder-methods": {
+  "neighbours": 140,
+  "accepted": 5,
+  "completenessGaps": 0,
+  "justifiedRejections": 135
+ },
+ "keyorder-ts-fields": {
+  "neighbours": 68,
+  "accepted": 6,
+  "completenessGaps": 0,
+  "justifiedRejections": 62
+ },
  "task-word-frequency-js": {
   "neighbours": 208,
   "accepted": 3,

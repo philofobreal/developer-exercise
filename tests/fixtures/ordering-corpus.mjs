@@ -181,6 +181,21 @@ for(const [id,probe] of Object.entries(library)){
  // ADR-050: the same example under the `valid` input contract; its probe passes valid data.
  fixtures.push({id:id+'-valid',origin:'contract',inputs:'valid',language:model.language,probe,source:model.lines.map(line=>line.code)});
 }
+// ADR-055: key order declared not part of the exercise (`keyOrder: 'ignored'`).
+fixtures.push(
+ {id:'keyorder-listing',origin:'key-order',keyOrder:'ignored',language:'javascript',source:[
+  'class Box {','  constructor() {','    this.a = 1;','    this.b = 2;','  }','}','function evaluate() {',"  const list = Object['ke' + 'ys'];",'  return list(new Box());','}']},
+ {id:'keyorder-json',origin:'key-order',keyOrder:'ignored',language:'javascript',source:[
+  'function evaluate() {','  const user = {};',"  user.name = 'Ann';",'  user.age = 31;',"  user.city = 'Pécs';",'  return JSON.stringify(user);','}']},
+ {id:'keyorder-count',origin:'key-order',keyOrder:'ignored',language:'javascript',source:[
+  'function evaluate() {','  const o = {};','  o.x = 1;','  const n = Object.keys(o).length;','  o.y = 2;','  return [n, Object.keys(o)];','}']},
+ {id:'keyorder-entries',origin:'key-order',keyOrder:'ignored',language:'javascript',source:[
+  'function evaluate() {','  const totals = {};','  totals.apple = 3;','  totals.pear = 5;','  const lines = [];','  for (const [name, count] of Object.entries(totals)) {',"    lines.push(name + ': ' + count);",'  }','  return lines;','}']},
+ {id:'keyorder-methods',origin:'key-order',keyOrder:'ignored',language:'javascript',source:[
+  'class Shape {','  area() {','    return 1;','  }','  name() {',"    return 's';",'  }','}','function evaluate() {','  return Object.getOwnPropertyNames(Shape.prototype);','}']},
+ {id:'keyorder-ts-fields',origin:'key-order',keyOrder:'ignored',language:'typescript',source:[
+  'class Point {','  x: number = 1;','  y: number = 2;','  label: string = "p";','}','function evaluate(): string {','  return JSON.stringify(new Point());','}']}
+);
 // The task corpus: classroom-style exercises, each under both input contracts (ADR-050).
 for(const [id,task] of Object.entries(taskPrograms)){
  const source=task.source.split('\n');
@@ -188,5 +203,5 @@ for(const [id,task] of Object.entries(taskPrograms)){
  fixtures.push({id:id+'-valid',origin:'task',inputs:'valid',language:task.language,source});
 }
 
-/** id → {id, origin, language, source: string[], probe = 'evaluate()', strict = true, asynchronous = false, inputs = 'any'} */
+/** id → {id, origin, language, source: string[], probe = 'evaluate()', strict = true, asynchronous = false, inputs = 'any', keyOrder = 'observed'} */
 export const corpus=new Map(fixtures.map(fixture=>[fixture.id,{probe:'evaluate()',...fixture}]));

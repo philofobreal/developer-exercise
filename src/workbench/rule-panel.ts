@@ -3,8 +3,8 @@
  * it costs and what it changes are the core's answers, as is the model's qualification
  * (ADR-017): nothing here derives a graph rule. The panel exists only for an admitted author
  * draft and never in learner preview, which is UI isolation, not authorization. */
-import type {CodeLineExercise,ConstraintCategory,DirectConstraint,Editability,EditEffect,RuleEdit,RuleEditResult,VerificationStatus} from '../../dist/index.js';
-import type {AuthorInsight,RuleSelection,WorkbenchState} from './contracts.js';
+import type {Acknowledgement,CodeLineExercise,ConstraintCategory,DirectConstraint,Editability,EditEffect,RuleEdit,RuleEditResult,VerificationStatus} from '../../dist/index.js';
+import type {AuthorInsight,RuleKindSelection,RuleSelection,WorkbenchState} from './contracts.js';
 import {escapeHtml as esc} from './ui-utilities.js';
 import {icon} from './icons.js';
 
@@ -33,11 +33,52 @@ function context(state:WorkbenchState):Context|null {
 export const rulesAvailable=(state:WorkbenchState):boolean=>!!context(state);
 /** How each removable class of rule is lifted; mirrors the acknowledgement the core asks for (ADR-018). */
 const liftStep:Record<Exclude<Editability,'hard'>,string>={
- proven:'Eltávolítás, majd „Policy-felülírás megerősítése” indoklással. A feladat ezután „Szerzői döntéssel módosított” minősítést kap.',
- legacy:'Eltávolítás, majd „Policy-felülírás megerősítése” indoklással. A feladat ezután „Szerzői döntéssel módosított” minősítést kap.',
+ proven:'Eltávolítás, majd „Policy-felülírás megerősítése” indoklással. A modell ezután eltér a sorrendpolitikától, ezért „Nem igazolt” minősítést kap.',
+ legacy:'Eltávolítás, majd „Policy-felülírás megerősítése” indoklással. A modell ezután eltér a sorrendpolitikától, ezért „Nem igazolt” minősítést kap.',
  conservative:'Eltávolítás, majd „Nem bizonyított lazítás megerősítése” indoklással.',
  pedagogical:'Eltávolítás: ez a te szabályod, megerősítés nélkül törölhető.'
 };
+/** ADR-056: the removable rules grouped by their one reason code, largest group first. A rule with
+ * several reasons is lifted one by one in the panel, so no group decides for another reason. */
+function ruleKinds(found:Context):{code:string;rules:DirectConstraint[];editability:Exclude<Editability,'hard'>}[] {
+ const groups=new Map<string,DirectConstraint[]>();
+ for(const c of found.constraints){
+  const codes=[...new Set(c.reasons.map(reason=>reason.code))];
+  if(c.editability==='hard'||codes.length!==1)continue;
+  groups.set(codes[0]!,[...(groups.get(codes[0]!)??[]),c]);
+ }
+ return [...groups].map(([code,rules])=>({code,rules,editability:rules[0]!.editability as Exclude<Editability,'hard'>})).sort((a,b)=>b.rules.length-a.rules.length||a.code.localeCompare(b.code));
+}
+/** The acknowledgement each class needs for removal; the core checks it again (ADR-018). */
+const acknowledgementOf:Record<Exclude<Editability,'hard'>,Acknowledgement|undefined>={proven:'policy-override',legacy:'policy-override',conservative:'unproven-relaxation',pedagogical:undefined};
+/** ADR-056: the rule kinds of the author's model, each liftable in one confirmed step. */
+export function renderRuleKinds(state:WorkbenchState):string {
+ const found=context(state);
+ if(!found)return '';
+ const kinds=ruleKinds(found),pending=state.ruleKind,mixed=found.constraints.filter(c=>c.editability!=='hard'&&new Set(c.reasons.map(reason=>reason.code)).size>1).length;
+ if(!kinds.length&&!pending?.message)return '';
+ const item=({code,rules,editability}:ReturnType<typeof ruleKinds>[number]):string=>{
+  const meaning=found.meanings[code],confirming=pending?.code===code&&!pending.message;
+  const confirm=confirming?`<div class="rule-confirm" data-rule-kind-form role="group" aria-label="${rules.length} szabály feloldásának megerősítése"><p>${esc(liftStep[editability])}</p><label>Indoklás, amely a lazításokkal együtt a modellbe kerül<input data-rule-kind-note maxlength="500" autocomplete="off"></label><div class="rule-confirm-actions"><button type="button" class="danger" data-rule-kind-confirm="${esc(code)}">${rules.length} szabály feloldása</button><button type="button" data-rule-kind-cancel>Mégse</button></div></div>`:'';
+  return `<li class="rule-kind editability-${editability}" data-rule-kind-item="${esc(code)}"><div class="rule-kind-main"><span class="rule-badge">${editabilityLabel[editability]}</span><b>${esc(meaning??categoryLabel[rules[0]!.reasons[0]!.category])}</b> <code>${esc(code)}</code><span class="rule-kind-count">${rules.length} szabály: ${rules.slice(0,6).map(c=>`#${c.before}→#${c.after}`).join(', ')}${rules.length>6?', …':''}</span></div>${confirming?'':`<button type="button" data-rule-kind="${esc(code)}">Mind feloldása</button>`}${confirm}</li>`;
+ };
+ return `<details class="rule-kinds" data-rule-kinds${pending?' open':''}><summary>Szabályok típus szerint · ${kinds.length} típus, egy lépésben feloldhatók</summary><p class="inline-hint">Ha egy szabálytípus a feladatban nem számít, itt egyszerre feloldhatod az összes ilyen szabályt; egyenként a sor láncszem gombjával is lehet. Ha a kulcsok sorrendje nem számít, inkább a Forrás lépés „Objektumkulcsok sorrendje: Nem számít” beállítását válaszd: az az egész feladatra érvényes, és a modell „Elemzéssel igazolt” marad, míg a bizonyított szabályok feloldása „Nem igazolt” minősítést ad.${mixed?` ${mixed} több okú szabály csak egyenként oldható fel.`:''}</p><ul class="rule-kind-list">${kinds.map(item).join('')}</ul>${pending?.message?`<p class="rule-status" role="status">${esc(pending.message)}</p>`:''}</details>`;
+}
+/** ADR-056: the confirmed removal of every rule of one kind, as one batch for the core; null while unconfirmed. */
+export function readRuleKindEdits(button:HTMLElement,state:WorkbenchState):RuleEdit[]|null {
+ const found=context(state),code=button.dataset.ruleKindConfirm;
+ if(!found||!code)return null;
+ const kind=ruleKinds(found).find(item=>item.code===code);
+ if(!kind)return null;
+ const note=(button.closest('[data-rule-kind-form]')?.querySelector<HTMLInputElement>('[data-rule-kind-note]')?.value??'').trim(),acknowledge=acknowledgementOf[kind.editability];
+ return kind.rules.map(c=>({kind:'remove-rule',before:c.before,after:c.after,...(acknowledge?{acknowledge}:{}),...(note?{note}:{})}));
+}
+/** After a batch: the core's refusal stays readable; an applied batch says what happened. */
+export function settleRuleKind(state:WorkbenchState,outcome:{edited:boolean;count?:number;refusal?:string}):void {
+ const pending:RuleKindSelection|undefined=state.ruleKind;if(!pending)return;
+ if(outcome.refusal!==undefined){pending.message=outcome.refusal;return;}
+ if(outcome.edited)state.ruleKind={code:pending.code,message:`${outcome.count??0} szabály feloldva; a modell újraminősítve.`};else delete state.ruleKind;
+}
 /** ADR-054: why the first violated rule of an author's preview attempt holds, and how the author
  * may lift it. `path` is the rule chain from the diagnostic; the first link with a direct rule is
  * shown. Empty outside the author's own preview, so a learner never sees reasons. */

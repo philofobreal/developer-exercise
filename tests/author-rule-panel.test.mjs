@@ -10,7 +10,7 @@ import {generateCodeLineExercise} from '../src/author/generator.mjs';
 import {auditReference} from '../src/author/audit.mjs';
 import {authorRuleSheet,refreshAuthorModel} from '../dist/author/engine.js';
 import {explainConstraints,compileCodeLineExercise,validateSubmission,sourceTextDigest} from '../dist/index.js';
-import {createRuleMarks,recordRuleRefusal,renderModelInsight,renderRuleCause,renderRulePanel,ruleEditBlocked,settleRuleSelection} from '../public/app/rule-panel.js';
+import {createRuleMarks,readRuleKindEdits,recordRuleRefusal,renderModelInsight,renderRuleCause,renderRuleKinds,renderRulePanel,ruleEditBlocked,settleRuleKind,settleRuleSelection} from '../public/app/rule-panel.js';
 import {reasonCode} from '../dist/author/reason-codes.js';
 import {authorRequest} from '../public/app/author-workspace.js';
 
@@ -167,4 +167,35 @@ test('rule cause: the reason, the lifting step per rule class, a button to the r
  assert.equal(renderRuleCause(state,[3,2]),'','no such rule');
  for(const overrides of [{learnerPreview:true},{previews:new Map()},{authorInsight:{}}])assert.equal(renderRuleCause(await panelState(overrides),[2,4]),'');
  assert.match(renderRulePanel(await panelState({ruleSelection:{line:4,message:''}})),/class="rule-meaning"/);
+});
+
+// ADR-056: rules grouped by their one reason code, lifted as one confirmed batch the core checks.
+const kindButton=(code,note='')=>({dataset:{ruleKindConfirm:code},closest:()=>({querySelector:()=>({value:note})})});
+test('rule kinds: removable single-reason groups only, a confirmation per kind, nothing for a learner',async()=>{
+ const state=await panelState(),html=renderRuleKinds(state);
+ assert.match(html,/data-rule-kinds/);assert.match(html,/data-rule-kind="ExpressionStatement"/);assert.match(html,/data-rule-kind="author-rule"/);
+ assert.doesNotMatch(html,/data-rule-kind="block-(open|close|member)"/,'structural rules are never offered');
+ assert.doesNotMatch(html,/data-rule-kind-confirm/,'no batch before the author chooses a kind');
+ const confirming=renderRuleKinds({...state,ruleKind:{code:'ExpressionStatement',message:''}});
+ assert.match(confirming,/data-rule-kind-confirm="ExpressionStatement"/);assert.match(confirming,/Nem igazolt/);
+ for(const overrides of [{learnerPreview:true},{previews:new Map()},{authorInsight:{}}])assert.equal(renderRuleKinds(await panelState(overrides)),'');
+});
+
+test('rule kinds: the batch carries the acknowledgement of its class and the note; the core applies it',async()=>{
+ const state=await panelState(),proven=readRuleKindEdits(kindButton('ExpressionStatement','nem számít'),state);
+ assert.ok(proven.length>=1&&proven.every(edit=>edit.kind==='remove-rule'&&edit.acknowledge==='policy-override'&&edit.note==='nem számít'));
+ const author=readRuleKindEdits(kindButton('author-rule'),state);
+ assert.deepEqual(author,[{kind:'remove-rule',before:2,after:3}],'the author\'s own rule needs no acknowledgement');
+ assert.equal(readRuleKindEdits(kindButton('no-such-code'),state),null);
+ const catalog=new ExerciseCatalog(new Map()),draft=await catalog.createDraft({source,language:'javascript'});
+ const sheet=draft.rules,codes=new Set(sheet.constraints.filter(c=>c.editability!=='hard'&&new Set(c.reasons.map(r=>r.code)).size===1).map(c=>c.reasons[0].code));
+ const own={previews:new Map([['p',draft.draftId]]),active:'p',authorModel:draft.model,authorInsight:{rules:sheet}};
+ for(const code of codes){
+  const edits=readRuleKindEdits(kindButton(code,'teszt'),own),result=await catalog.editDraft({draftId:draft.draftId,edits});
+  assert.equal(result.ok,true,code+': '+result.message);
+  assert.ok(edits.every(edit=>!result.rules.constraints.some(c=>c.before===edit.before&&c.after===edit.after)),code+': every rule of the kind is gone');
+ }
+ const kindState={ruleKind:{code:'ExpressionStatement',message:''}};settleRuleKind(kindState,{edited:true,count:2});assert.match(kindState.ruleKind.message,/2 szabály feloldva/);
+ settleRuleKind(kindState,{edited:false,refusal:'nem'});assert.equal(kindState.ruleKind.message,'nem');
+ settleRuleKind(kindState,{edited:false});assert.equal(kindState.ruleKind,undefined);
 });

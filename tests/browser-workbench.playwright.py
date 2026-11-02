@@ -284,6 +284,27 @@ def rule_cause_lifts(page):
     confirm.locator('[data-rule-note]').fill('A kulcsok sorrendje itt nem számít.');confirm.locator('[data-rule-edit="confirm"]').click()
     expect(page.locator('.rule-status')).to_contain_text('újraminősítve');page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
     page.screenshot(path=str(ARTIFACTS/('ux-rule-cause-'+('node' if page.url.startswith(BASE) else 'pages')+'.png')),full_page=True)
+def key_order_and_rule_kinds(page):
+    """ADR-055: with key order declared not to count, the swapped key writes are accepted without any
+    rule edit and the model stays analysis-verified. ADR-056: with key order counting, lifting the
+    rule kind in one confirmed step accepts it too, and the qualification honestly drops."""
+    source='\n'.join(['class Box {','  constructor() {','    this.a = 1;','    this.b = 2;','  }','}','function evaluate() {',"  const list = Object['ke' + 'ys'];",'  return list(new Box());','}'])
+    def make(key_order):
+        page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill(source)
+        page.locator('[data-author="keyOrder"]').select_option(key_order);page.locator('[data-author-apply]').click();current(page,'rules')
+    def swapped_verdict():
+        to_try(page)
+        if page.locator('[data-all]').count():page.locator('[data-all]').click()
+        if page.locator('.solution-zone .code-row code').nth(2).text_content().strip()=='this.a = 1;':page.locator('[data-down="2"]').click()
+        page.locator('[data-check]').click();return page.locator('.report')
+    make('ignored');expect(page.locator('[data-analysis-settings]')).to_contain_text('nem számít');expect(page.locator('[data-step-verification]')).to_have_text('Elemzéssel igazolt')
+    expect(swapped_verdict()).to_contain_text('Elfogadva')
+    make('observed');expect(page.locator('[data-analysis-settings]')).to_contain_text('számít')
+    kinds=page.locator('[data-rule-kinds]');kinds.locator('summary').click();kinds.locator('[data-rule-kind="object-write-after-write"]').click()
+    kinds.locator('[data-rule-kind-note]').fill('A kulcsok sorrendje itt nem számít.');kinds.locator('[data-rule-kind-confirm]').click()
+    expect(kinds.locator('.rule-status')).to_contain_text('1 szabály feloldva');expect(page.locator('[data-step-verification]')).to_have_text('Nem igazolt')
+    expect(swapped_verdict()).to_contain_text('Elfogadva')
+    page.screenshot(path=str(ARTIFACTS/('ux-key-order-'+('node' if page.url.startswith(BASE) else 'pages')+'.png')),full_page=True)
 def rule_edit_keeps_scroll(page):
     """A rule edit yields a new draft id, but it is the same project: the sorter keeps its scroll like after a drag."""
     source='\n'.join(['function f() {',*[f'  const v{i} = {i};' for i in range(38)],'  g(v0, v37);','}'])
@@ -450,7 +471,7 @@ try:
         browser=launch(p);context=browser.new_context(viewport={'width':1500,'height':1000},permissions=['clipboard-read','clipboard-write']);context.tracing.start(screenshots=True,snapshots=True,sources=True);page=context.new_page();page.set_default_timeout(10000);errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
         try:
             for mode,url in [('node',BASE),('pages',f'http://127.0.0.1:{static.server_port}/developer-exercise/')]:
-                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('model-first creation',model_first),('a rejected order names its rule and how to lift it',rule_cause_lifts),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('the input contract is chosen, recorded and restored',input_contract),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll),('circles toggle links: checks, removal and exact restore',link_toggle),('pins fix and release a line on the board',pin_lines),('feedback marks graded rows, invalidates on a move and respects the learner view',learner_feedback)]:
+                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('model-first creation',model_first),('a rejected order names its rule and how to lift it',rule_cause_lifts),('key order setting and rule kinds',key_order_and_rule_kinds),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('the input contract is chosen, recorded and restored',input_contract),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll),('circles toggle links: checks, removal and exact restore',link_toggle),('pins fix and release a line on the board',pin_lines),('feedback marks graded rows, invalidates on a move and respects the learner view',learner_feedback)]:
                     reset(page,url);case(mode+' '+name,lambda:action(page))
                 reset(page,url);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-author.png')),full_page=True)
                 practice(page);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-practice.png')),full_page=True)

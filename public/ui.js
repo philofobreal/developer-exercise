@@ -1,6 +1,6 @@
 import {markEditorDraft,markEditorApplied,reloadEditorFromArrangement,captureEditorRequest,adjacentMoveBoundary,dispatchWorkbenchAction} from './app/interactions.js';
 import {refreshAuthorStatus,captureAuthorRequest,authorRequest,startFromExample,revertAuthorDraft,admitAuthorModel} from './app/author-workspace.js';
-import {readRuleEdit,recordRuleRefusal,ruleEditBlocked,settleRuleSelection} from './app/rule-panel.js';
+import {readRuleEdit,readRuleKindEdits,recordRuleRefusal,ruleEditBlocked,settleRuleKind,settleRuleSelection} from './app/rule-panel.js';
 import {connection,installRuleBoard,linkWith} from './app/rule-board.js';
 import {blockedReason,enterMode,enterView,landAfterAdmission} from './app/flow.js';
 /** App orchestration and event wiring; modes, steps and staleness live in the typed flow (ADR-022). */
@@ -38,7 +38,7 @@ async function authorApply(body,{preserveAttempt=false,sessionImport,current=cap
  delete state.boardStatus;
  let data;try{data=await request(body);}catch(error){if(!current())return;throw error;}
  if(!current())return;
- if(data.ok===false){if(state.ruleSelection)recordRuleRefusal(state.ruleSelection,data,body.edits);render();return;}
+ if(data.ok===false){if(state.ruleSelection)recordRuleRefusal(state.ruleSelection,data,body.edits);render();return data;}
  const restoredAttempt=sessionImport?restoreAttempt(sessionImport,data.model):undefined;
  const {compatible,model:m}=installPreview(state,data,{preserveAttempt,restoredAttempt});
  admitAuthorModel(state,m,body.source,{keepPending:!!body.edits});settleRuleSelection(state,!!body.edits);delete state.ruleConnect;
@@ -47,6 +47,7 @@ async function authorApply(body,{preserveAttempt=false,sessionImport,current=cap
  state.author.message=summary;
  landAfterAdmission(state,land);commit(state.modelMessage);
  if(compatible){const id=state.active,a=at(),generation=a.generation,{lines,slots}=submitted(a);let report;try{report={...await previewDraft({draftId:data.draftId,lines}),slots};}catch{report={status:'indeterminate',message:'Az előnézet értékelése nem érhető el.',exploredStates:0};}if(state.active===id&&at()===a&&a.generation===generation){a.report=report;render();}}
+ return data;
 }
 /** The link between the anchor and another line toggles (ADR-024): a direct link is removed (the
  * core asks for its acknowledgement where needed), a missing one is added in reference order, and
@@ -153,6 +154,11 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  }
  if(b.dataset.ruleLine){const line=+b.dataset.ruleLine,row=b.closest('.code-row,.board-row');state.ruleSelection=row&&state.ruleSelection?.line===line?undefined:{line,message:''};render();if(!row)root.querySelector('#rule-panel-title')?.focus({preventScroll:true});return;}
  if(b.hasAttribute('data-rule-close')){const line=state.ruleSelection?.line;state.ruleSelection=undefined;render();root.querySelector(`:is(.board-row,.code-row) [data-rule-line="${line}"]`)?.focus({preventScroll:true});return;}
+ // ADR-056: a rule kind is lifted as one confirmed batch; the typed panel module builds and settles it.
+ if(b.dataset.ruleKind){state.ruleKind={code:b.dataset.ruleKind,message:''};render();root.querySelector('[data-rule-kind-note]')?.focus();return;}
+ if(b.hasAttribute('data-rule-kind-cancel')){delete state.ruleKind;render();return;}
+ if(b.dataset.ruleKindConfirm){const draftId=state.previews.get(state.active),blocked=ruleEditBlocked(state),edits=readRuleKindEdits(b,state);if(!draftId||!edits)return;if(blocked){settleRuleKind(state,{edited:false,refusal:blocked});render();return;}
+  const data=await authorApply({draftId,edits},{preserveAttempt:true,request:editRules});settleRuleKind(state,data?.ok===false?{edited:false,refusal:data.message}:{edited:!!data,count:edits.length});render();return;}
  if(b.hasAttribute('data-rule-cancel')){if(state.ruleSelection){delete state.ruleSelection.pending;state.ruleSelection.message='Az eltávolítás elmaradt; a szabály megmaradt.';}render();return;}
  if(b.dataset.ruleEdit){const selection=state.ruleSelection,draftId=state.previews.get(state.active);if(!selection||!draftId)return;const blocked=ruleEditBlocked(state),edit=readRuleEdit(b,selection);if(blocked||!edit){selection.message=blocked||'Válaszd ki a szabály másik sorát.';render();return;}
   await authorApply({draftId,edits:[edit]},{preserveAttempt:true,request:editRules});return;}

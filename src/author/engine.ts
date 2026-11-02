@@ -68,15 +68,15 @@ export class LanguageEngine {
 
 /** Narrow transitional ports; this does not claim the legacy MJS is type checked. */
 export interface LegacyJSTSPorts {
-  generate(input: AuthorSource & { language: 'javascript' | 'typescript'; importEmit?: 'verbatim' | 'elide-unused'; inputs?: 'any' | 'valid' }): CodeLineExercise | Promise<CodeLineExercise>;
+  generate(input: AuthorSource & { language: 'javascript' | 'typescript'; importEmit?: 'verbatim' | 'elide-unused'; inputs?: 'any' | 'valid'; keyOrder?: 'observed' | 'ignored' }): CodeLineExercise | Promise<CodeLineExercise>;
   audit(model: CodeLineExercise): void | Promise<void>;
   format(source: string, language: 'javascript' | 'typescript'): FormatResult | Promise<FormatResult>;
 }
 
-/** The generation assumptions a model records (ADR-015): its import emit and input contract. */
-function recordedAssumptions(model: CodeLineExercise): {importEmit?: 'verbatim' | 'elide-unused'; inputs?: 'any' | 'valid'} {
+/** The generation assumptions a model records (ADR-015): its import emit, input contract and key order. */
+function recordedAssumptions(model: CodeLineExercise): {importEmit?: 'verbatim' | 'elide-unused'; inputs?: 'any' | 'valid'; keyOrder?: 'observed' | 'ignored'} {
  const environment = model.authoring?.evidence?.environment;
- return {...(environment?.importEmit ? {importEmit: environment.importEmit} : {}), ...(environment?.inputs ? {inputs: environment.inputs} : {})};
+ return {...(environment?.importEmit ? {importEmit: environment.importEmit} : {}), ...(environment?.inputs ? {inputs: environment.inputs} : {}), ...(environment?.keyOrder ? {keyOrder: environment.keyOrder} : {})};
 }
 
 /** Explicit author reanalysis: preserve reference identity/content, fixed slots and manual edges/profiles. */

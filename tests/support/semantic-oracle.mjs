@@ -695,7 +695,11 @@ function analyse(code,language,ordered=false,enumerated=true,inputs='any'){
  * (names come from the reference analysis), read right after evaluation.
  * `nested` (from this code's own analysis) registers the nested classes; their
  * snapshots are sorted by key, as declaration order is not itself observable. */
-function execute(code,{language,probe,strict=true,asynchronous=false,hit=()=>{}},{classNames=[],globals=[],functions=[],ordered=false,enumerated=true}={},nested=[]){
+/** ADR-055: with key order `ignored`, every key listing the program can call returns its keys in a
+ * fixed canonical order (array indices ascending, then names sorted, then symbols), so the creation
+ * order is unobservable by construction; values and presence still show. for…in is not normalised. */
+const canonicalKeys=`(()=>{const index=k=>typeof k==='string'&&/^(0|[1-9]\\d*)$/.test(k)&&Number(k)<4294967295;const order=list=>[...list.filter(index),...list.filter(k=>typeof k==='string'&&!index(k)).sort(),...list.filter(k=>typeof k==='symbol')];const ownKeys=Reflect.ownKeys,keys=Object.keys,names=Object.getOwnPropertyNames,stringify=JSON.stringify;Reflect.ownKeys=o=>order(ownKeys(o));Object.getOwnPropertyNames=o=>order(names(o));Object.keys=o=>order(keys(o));Object.values=o=>Object.keys(o).map(k=>o[k]);Object.entries=o=>Object.keys(o).map(k=>[k,o[k]]);JSON.stringify=(v,r,s)=>typeof r==='function'||Array.isArray(r)?stringify(v,r,s):stringify(v,(k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).map(n=>[n,x[n]])):x,s);})();\n`;
+function execute(code,{language,probe,strict=true,asynchronous=false,keyOrder='observed',hit=()=>{}},{classNames=[],globals=[],functions=[],ordered=false,enumerated=true}={},nested=[]){
  for(const {key,name,end} of [...nested].sort((a,b)=>b.end-a.end))code=code.slice(0,end)+`;__classes.push([${JSON.stringify(key)}, ${name}]);`+code.slice(end);
  const keys=`const keys=o=>Reflect.ownKeys(o).map(k=>{const d=Object.getOwnPropertyDescriptor(o,k);return [String(k),'get' in d||'set' in d?'accessor':'value',d.enumerable,d.configurable,d.writable===undefined?null:d.writable];}),own=o=>{const all=keys(o);if(${ordered})return all;return [...all.filter(k=>!k[2]).sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0),...all.filter(k=>k[2])];};`;
  const reflect=`;var __reflection=(()=>{try{${keys}`
@@ -709,7 +713,7 @@ function execute(code,{language,probe,strict=true,asynchronous=false,hit=()=>{}}
   const tail=asynchronous
    ?`;var __result='pending',__nested='pending';Promise.resolve(${probe}).then(value=>{__result=JSON.stringify({value,trace},${replacer});__nested=${nestedSnapshot};},error=>{__result='throws:'+(error&&error.name)+':'+(error&&error.message);});`
    :`;var __result=JSON.stringify({value:(${probe}),trace},${replacer});var __nested=${nestedSnapshot};`;
-  try{new Script((strict?'"use strict";\n':'')+'function record(...args) { trace.push(args); }\n'+js+'\n'+reflect+tail,{filename:'fixed-oracle-fixture.js'}).runInContext(context,{timeout});return {call:String(context.__result),reflection:String(context.__reflection)+' nested:'+String(context.__nested)};}
+  try{new Script((strict?'"use strict";\n':'')+'function record(...args) { trace.push(args); }\n'+(keyOrder==='ignored'?canonicalKeys:'')+js+'\n'+reflect+tail,{filename:'fixed-oracle-fixture.js'}).runInContext(context,{timeout});return {call:String(context.__result),reflection:String(context.__reflection)+' nested:'+String(context.__nested)};}
   catch(error){if(error?.code==='ERR_SCRIPT_EXECUTION_TIMEOUT')return {call:'timeout',reflection:''};return {call:'throws:'+error?.name+':'+error?.message,reflection:''};}
  };
  const run=js=>{let result={call:'timeout',reflection:''};for(const timeout of TIMEOUTS_MS){result=attempt(js,timeout);if(result.call!=='timeout')break;}return result;};
@@ -775,7 +779,8 @@ function executedRows(code,fixture){
 export function createOracle(fixture,{policy='reflective'}={}){
  if(!['reflective','call-only'].includes(policy))throw Error('unknown oracle policy '+policy);
  const source=Array.isArray(fixture.source)?fixture.source.join('\n'):fixture.source;
- const ordered=reflectsKeys(source,fixture.language),enumerated=ordered||enumerationNames.test(source),inputs=fixture.inputs??'any',reference=analyse(source,fixture.language,ordered,enumerated,inputs);
+ // ADR-055: with key order ignored no key list keeps its creation order (P4 compares sets).
+ const observed=fixture.keyOrder!=='ignored',ordered=observed&&reflectsKeys(source,fixture.language),enumerated=observed&&(ordered||enumerationNames.test(source)),inputs=fixture.inputs??'any',reference=analyse(source,fixture.language,ordered,enumerated,inputs);
  if(!reference)throw Error(`oracle fixture ${fixture.id} does not parse`);
  const baseline=execute(source,fixture,reference.reflection,reference.nested);
  if(/^throws:|timeout|syntax/.test(baseline.call))throw Error(`oracle fixture ${fixture.id} reference fails: ${baseline.call}`);

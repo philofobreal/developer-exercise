@@ -31,6 +31,7 @@
   - a valódi feladatokra hasonlító mérőkorpusz ([ADR-051](adr/051-task-corpus-and-linear-shapes.md)): 12 feladat mindkét bemeneti szerződéssel, hibás elfogadás nélkül; közben az orákulum alakkódolása lineáris lett.
   - a korpusz építése közben talált hibás elfogadás javítva: ki nem írt tulajdonságnevek ([ADR-052](adr/052-unspelled-property-names.md), v27); a szöveges névfelismerést szivárgáselemzés egészíti ki, mérhető pontosságvesztés nélkül.
   - a Pages-kipróbálás után pontosítva ([ADR-053](adr/053-folded-names-and-returns.md), v28): a kiszámítható név a nevével számít, a visszaadott értéket a hívásig követjük.
+  - feladatszintű kulcssorrend-beállítás ([ADR-055](adr/055-key-order-setting.md), v29) és szabálytípusonkénti kötegelt feloldás ([ADR-056](adr/056-rule-kinds-batch-lifting.md)): a tanár kézi szabálytörlés nélkül kimondhatja, hogy a kulcsok sorrendje nem számít.
   - **Következik:** a `flow` maradéka ma főleg objektumütközés (a ciklus túlbecslése) és a `while` nem bizonyított terminálása; a többsoros kifejezések lezárása (`function` csoport) a v2-ben nem finomítható (6. fázis); a 3. tétel (hatásösszegzés) ma kevés mért rés; a 2d nem mért ok.
 
 ## 1. Összefoglaló ítélet

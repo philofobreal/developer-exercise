@@ -60,9 +60,13 @@ export type { InputContract };
 /** `inputs`: the input contract (ADR-050). */
 /** `reflectedKeys` (ADR-020): the program may list global keys, so function declarations keep their global order. */
 /** `enumeratedKeys` (ADR-029/031): the program may list enumerable keys, so adding a key to an own object is ordered. */
+/** `keyOrder` (ADR-055): whether the creation order of object keys is part of the exercise; `ignored` is the
+ * author's choice that it is not (read by `jsTsOrderingRelations`, which then sets both key flags off). */
+export type KeyOrder = 'observed' | 'ignored';
 export interface OrderingOptions {
     imports?: ImportEmit;
     inputs?: InputContract;
+    keyOrder?: KeyOrder;
     reflectedKeys?: boolean;
     enumeratedKeys?: boolean;
 }
