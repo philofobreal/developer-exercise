@@ -2,6 +2,8 @@
 
 Állapot: 2026-10-29, `ccf5026`. A külső audit (a `project-snapshot.md` alapján készült) állításait a forráskódon és célzott mérésekkel ellenőriztük. Ez a dokumentum a megállapításokat és a javítás tervét rögzíti.
 
+**A nyitott tételek** egy helyen: [nyitott-tetelek.md](nyitott-tetelek.md).
+
 **Haladás:**
 - **1. fázis:** a nyelvi hiba blokkol, és egy kapu van ([ADR-035](adr/035-language-errors-block-publication.md)). Két példa frissítve (`class-inventory-ts`, `algo-bfs-js`); a másik három szándékosan „Nem igazolt” marad, és az alapértelmezés `publishable` marad ([ADR-057](adr/057-example-migration-and-publication-default.md), [eltéréslista](peldak-migracioja.md)). A 4. lépés ezért nyitott.
 - **2. fázis:** kész ([ADR-036](adr/036-implied-order-and-interchangeable-units.md)).

@@ -37,6 +37,15 @@ test('the generation-rule labels agree across schema, type, contract and generat
  }
 });
 
+test('every ADR with an open section is collected in the register of open items',async()=>{
+ const register=await read('docs/nyitott-tetelek.md');
+ for(const name of adrNames){
+  const text=await read('docs/adr/'+name);
+  if(/^## Nyitott/m.test(text))assert.ok(register.includes('adr/'+name),name+': open items listed in docs/nyitott-tetelek.md');
+ }
+ for(const [,id] of register.matchAll(/^\| (NY-\d+) \|/gm))assert.equal(register.split('| '+id+' |').length,2,id+' is unique');
+});
+
 test('the working agreement names the governance documents and its approval and attribution rules',async()=>{
  const agents=await read('AGENTS.md');
  for(const link of ['docs/ai-governance.md','docs/design-review.md','docs/architecture.md'])assert.ok(agents.includes(link),link);
