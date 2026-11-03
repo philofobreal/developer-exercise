@@ -73,6 +73,11 @@ declare const entries: readonly [{
     readonly meaning: "az osztálydefiníció kiértékeléskor kódot futtat";
     readonly adr: "ADR-012";
 }, {
+    readonly code: "duplicate-definition-order";
+    readonly category: "data";
+    readonly meaning: "azonos nevű metódus- vagy accessordefiníciók ugyanazon az objektumon: a későbbi felülírja a korábbit";
+    readonly adr: "ADR-068";
+}, {
     readonly code: "class-evaluation-order";
     readonly category: "effect";
     readonly meaning: "osztálytagok ugyanabban a kiértékelési fázisban";
@@ -87,6 +92,11 @@ declare const entries: readonly [{
     readonly category: "effect";
     readonly meaning: "programon kívüli kódot hívó művelet egy másikkal, vagy egy általa írható kötés olvasásával";
     readonly adr: "ADR-040";
+}, {
+    readonly code: "early-exit-order";
+    readonly category: "policy";
+    readonly meaning: "tiszta deklaráció és egy korán kiléphető (return, throw, break) utasítás: a deklaráció nem kerül a kilépés mögé (pedagógiai döntés)";
+    readonly adr: "ADR-019";
 }, {
     readonly code: "reflected-key-order";
     readonly category: "policy";

@@ -95,6 +95,9 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
   while (current && !compiler.isSourceFile(current) && !functionLike(current) && !compiler.isClassStaticBlockDeclaration(current) && !compiler.isPropertyDeclaration(current)) current = current.parent;
   return current ?? file;
  };
+ /** v34 (ADR-068): the context a name occurrence binds in. A function declaration's own name binds
+  * in the context around the declaration, not in its body; every other occurrence in its context. */
+ const bindsIn = (use: ts.Identifier): ts.Node => compiler.isFunctionDeclaration(use.parent) && use.parent.name === use ? context(use.parent) : context(use);
  const within = (outer: ts.Node, inner: ts.Node): boolean => inner.getStart(file) >= outer.getStart(file) && inner.end <= outer.end;
  const modifiers = (node: ts.Node): ts.SyntaxKind[] => (compiler.canHaveModifiers(node) ? compiler.getModifiers(node) ?? [] : []).map(modifier => modifier.kind);
  const decorated = (node: ts.Node): boolean => compiler.canHaveDecorators(node) && !!compiler.getDecorators(node)?.length;
@@ -525,24 +528,25 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
   * binding it reads belongs to this context and is written neither by a closure nor by the barrier;
   * and the context does not use `arguments`. A throwing barrier exits the block, after which only a
   * closure could observe a block-scoped binding. */
- const commutes = (unit: Summary, barrier: Summary): boolean => {
+ /** `early` (v34, ADR-068): ignore that the barrier may leave the list early, to tell that case apart. */
+ const commutes = (unit: Summary, barrier: Summary, early = false): boolean => {
   const own = unit.node, other = barrier.node;
   if (unit.kind !== 'pure' || barrier.kind !== 'barrier' || !(categoryOf(barrier.reason) === 'effect' || barrier.reason === 'declaration-shape' || barrier.reason === 'shared-or-continued-rows') || !own || !other) return false;
   const scope = context(own);
-  if (scope === file || withArguments.has(scope) || transfers(other)) return false;
+  if (scope === file || withArguments.has(scope) || !early && transfers(other)) return false;
   // Uses are matched by binding and, like the independent oracle, also by name: a shadowing
   // name only forbids a commutation.
-  const named = (root: ts.Node, name: string, writesOnly: boolean, nestedOnly: boolean): boolean => (names.get(name) ?? []).some(use => within(root, use) && (!writesOnly || declarationName(use) || writeTarget(use)) && (!nestedOnly || context(use) !== scope));
+  const named = (root: ts.Node, name: string, writesOnly: boolean, nestedOnly: boolean): boolean => (names.get(name) ?? []).some(use => within(root, use) && (!writesOnly || declarationName(use) || writeTarget(use)) && (!nestedOnly || bindsIn(use) !== scope));
   const usedBy = (symbol: ts.Symbol, writesOnly: boolean): boolean => (uses.get(symbol) ?? []).some(use => within(other, use.node) && (!writesOnly || use.write)) || named(other, symbol.name, writesOnly, false);
   for (const symbol of unit.writeSet) {
    const declaration = unique(symbol);
    if (!declaration || !within(own, declaration)) return false;
    const blockScoped = compiler.isVariableDeclaration(declaration) && compiler.isVariableDeclarationList(declaration.parent) && (declaration.parent.flags & compiler.NodeFlags.BlockScoped) !== 0 && !disposable(declaration.parent) || compiler.isClassDeclaration(declaration);
-   if (!blockScoped || (uses.get(symbol) ?? []).some(use => context(use.node) !== context(declaration)) || named(scope, symbol.name, false, true) || usedBy(symbol, false)) return false;
+   if (!blockScoped || (uses.get(symbol) ?? []).some(use => bindsIn(use.node) !== context(declaration)) || named(scope, symbol.name, false, true) || usedBy(symbol, false)) return false;
   }
   for (const symbol of unit.readSet) {
    const declaration = unique(symbol);
-   if (!declaration || context(declaration) !== scope || (uses.get(symbol) ?? []).some(use => use.write && context(use.node) !== scope) || named(scope, symbol.name, true, true) || usedBy(symbol, true)) return false;
+   if (!declaration || context(declaration) !== scope || (uses.get(symbol) ?? []).some(use => use.write && bindsIn(use.node) !== scope) || named(scope, symbol.name, true, true) || usedBy(symbol, true)) return false;
   }
   return true;
  };
@@ -569,7 +573,11 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
   const found: OrderingReason['code'][] = [];
   const objects = objectOrder(a, b);
   if (objects) found.push(...objects);
-  else if (a.kind !== 'position-free' && b.kind !== 'position-free' && !commutes(a, b) && !commutes(b, a)) for (const unit of [a, b]) if (unit.kind === 'barrier') found.push(unit.code ?? 'projection-unspecified');
+  else if (a.kind !== 'position-free' && b.kind !== 'position-free' && !commutes(a, b) && !commutes(b, a)) {
+   // v34 (ADR-068): kept only because the barrier may leave the list early (ADR-019's pedagogical rule).
+   if (commutes(a, b, true) || commutes(b, a, true)) found.push('early-exit-order');
+   else for (const unit of [a, b]) if (unit.kind === 'barrier') found.push(unit.code ?? 'projection-unspecified');
+  }
   // v11 (ADR-020): a hoisted function's global key counts only if the program reflects keys; vars and emitted vars keep their order.
   if (a.global && b.global && (options.reflectedKeys || !hoisted(a) && !hoisted(b))) found.push('script-global-order');
   if (meets(a.writeSet, b.readSet)) found.push('read-after-write');

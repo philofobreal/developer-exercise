@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased – 2026-11-03 kötési kontextus, tagfázisok, korai kilépés (ADR-068, v34)
+
+- **Hibajavítás:** egy függvénydeklaráció neve az elemzésben a függvény törzséhez tartozott, nem ahhoz a környezethez, ahol a kötés él. Ezért egy függvényt olvasó tiszta sor (például `const kind = typeof helper;`) semmilyen külső hívással nem cserélhetett helyet. A `function` programok rése 12 magon 15 → 0.
+- **Duplikált metódusok:** az azonos nevű metódusok és accessorok csak egymáshoz képest kötöttek (a későbbi felülírja a korábbit), a mezőktől szabadok.
+- **Laza static és `accessor` mező:** a kódot nem futtató static és `accessor` mező is szabad a hasonló mezőkhöz képest, ha a program nem listázza a kulcsokat.
+- **Pontosabb ok:** a „tiszta deklaráció nem kerül egy `return`/`throw`/`break` mögé” pedagógiai szabály saját okkódot kap (`early-exit-order`). A szerző így a valódi okot látja.
+- **Mérés:** a teljes kampányban a rés 310 → 175, az elfogadott sorrend 14 727 → 14 790, a korpusz rése 35 → 19. Minden mérésben 0 hibás elfogadás.
+- **Címkék:** a v34 additív sémaenumérték; a példák és a minták szabályai nem változtak, csak a címke és a szerzői megjegyzés szövege.
+
 ## Unreleased – 2026-11-03 érték-perturbáció a mérésben (ADR-067)
 
 - **Pontosabb résmérés:** az osztályozó a rögzített fixture egy-egy literálját más értékre cseréli. Ha a sorrend így már másként viselkedik, az elutasítás szándékhű (`intent`, ok: `value`), nem rés. Ide tartozik a véletlenül egyező értékű írás, és a biztos kivétel mögött rejtett megfigyelés. A generátor és a tanulói értékelés nem változott.

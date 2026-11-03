@@ -60,7 +60,7 @@ Egy függvényszintű lista `pure` egysége (U) és barrierje (B) között nincs
 
 **Szándékosan kötött marad**, akkor is, ha a futás nem különböztetné meg:
 
-- a `return`/`throw`/`break` utáni halott kód. Pedagógiailag nem ekvivalens egy deklarációt egy `return` mögé tenni;
+- a `return`/`throw`/`break` utáni halott kód. Pedagógiailag nem ekvivalens egy deklarációt egy `return` mögé tenni. A v34 ([ADR-068](068-binding-context-member-phases-early-exit.md)) óta ennek saját okkódja van (`early-exit-order`), ha a cserét csak ez tiltja;
 - a `var`;
 - a szkriptszint.
 

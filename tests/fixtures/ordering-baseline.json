@@ -344,8 +344,8 @@
  },
  "refl-ts-accessor-fields": {
   "neighbours": 695,
-  "accepted": 23,
-  "completenessGaps": 16,
+  "accepted": 39,
+  "completenessGaps": 0,
   "intentRejections": 0,
   "justifiedRejections": 656
  },

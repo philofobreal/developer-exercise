@@ -122,7 +122,9 @@ for(const [name,source,yes,no] of [
  ['literal fields are free when the program lists no keys','class X {\n a = 1;\n b = [2, {c: "d"}];\n}\nconst x = new X();',[[2,3]],[]],
  ['decorated member stays attached','function tag(...args: unknown[]): void {}\nclass X {\n @tag\n declare a: number;\n declare b: number;\n declare c: number;\n}',[[5,6]],[[3,5],[4,5]]],
  ['readonly declare','class X {\n declare readonly a: number;\n declare readonly b: number;\n}',[[2,3]],[]],
- ['auto accessors','class X {\n accessor a = 1;\n accessor b = 2;\n}',[],[[2,3]]]
+ // ADR-068 (v34): an `accessor` field whose initialiser runs no code is loose like an instance field.
+ ['auto accessors','class X {\n accessor a = 1;\n accessor b = 2;\n}',[[2,3]],[]],
+ ['auto accessors are ordered when the program lists keys','class X {\n accessor a = 1;\n accessor b = 2;\n}\nconsole.log(Object.getOwnPropertyNames(X.prototype));',[],[[2,3]]]
 ])test('mixed TS member edge: '+name,()=>{
  const model=generateCodeLineExercise({source,language:'typescript'},ts),compiled=compile(model),order=model.lines.map(line=>line.id);
  assert.equal(grade(compiled,codes(model,order)).status,'accepted');

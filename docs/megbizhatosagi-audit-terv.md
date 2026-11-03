@@ -106,8 +106,8 @@ A szkriptszintű `declare const d: number;` `erased-declaration-shape` barrier l
 | 3 | `object-write-after-write/read`, `object-read-after-write` | 234 | valódi mezőütközés; az egyenértékűség nagy része a 3.2 szerinti dobó programokból ered | részben (holt írás); előbb a mérést kell tisztítani |
 | 4 | `erased-declaration-shape` | 36 | `declare const` | **igen, gyors** |
 | 5 | `sealed-unit`, `continued-row` | 48 | v2-projekció | **részben kész (v33, ADR-066):** egységblokk; a maradék CodeLine v3 |
-| 6 | `class-evaluation-order`, `unclassified-member` | 24 | osztálytag-fázisok | részben |
-| 7 | `SwitchStatement`, `TryStatement`, `may-throw`, `branch-contains-barrier` | 27 | vezérlés és dobás | részben |
+| 6 | `class-evaluation-order`, `unclassified-member` | 24 | osztálytag-fázisok | **kész (v34, ADR-068)**; maradék: egy getterre is olvasható mezőinicializáló |
+| 7 | `SwitchStatement`, `TryStatement`, `may-throw`, `branch-contains-barrier` | 27 | vezérlés és dobás | **kész (v34, ADR-067/068)**: halott ág vagy pedagógiai szabály |
 
 **Arányok:**
 - a fix programokon 4,2%;
@@ -193,7 +193,7 @@ Minden tétel új policyverzió, ADR, pozitív és negatív fixture, és utána 
 3. **Hatásösszegzés a felső szintű és szkriptszintű függvényekre.** A `var v = f()` és a `new Box()` a hívott, elemezhető törzs összegzése alapján rendeződik, ugyanazzal a hatásnyommal, mint a függvénytörzsben.
 4. **Bizonyítottan véget érő ciklusok:** a `for (let i = 0; i < N; i++)` literál korláttal, ha a magja nem írja `i`-t. Ugyanez a csak `bump()`-szerű, monoton változó `while` feltételre, ha bizonyítható (**kész, v32, [ADR-064](adr/064-monotone-while-loops.md)**: a `flow` `may-throw` rése 46 → 2). A `flow` maradéka nagyrészt A-politika szerinti szándékos elutasítás; a mérés ezt az [ADR-067](adr/067-value-perturbation-in-measurement.md) óta külön számolja.
 5. **A mezőirások pontosítása:** holt írás és azonos értékű írás. **Eldöntve (A-politika, ADR-043):** sorrendjük úgy ítélendő meg, mintha lefutnának; a mérés a halott kódot érintő elutasítást szándékhűnek számolja.
-6. **Osztálytag-fázisok és a `switch`, `try` maradékai:** a mért esetekre egyenként.
+6. **Osztálytag-fázisok és a `switch`, `try` maradékai:** a mért esetekre egyenként. (**Kész, v34, [ADR-068](adr/068-binding-context-member-phases-early-exit.md):** a függvénynév kötési kontextusa, a duplikált definíciók, a laza static/`accessor` mezők és az `early-exit-order`; a teljes kampány rése 310 → 175. A `switch`/`if` maradéka halott ágból eredt, ezt a mérés szándékként számolja.)
 
 **Szöveges kulcsmegfigyelés (kész, v31, [ADR-060](adr/060-key-observation-text.md)):** a saját mező, változó vagy megjegyzés neve már nem számít kulcslistázásnak (`task-ledger-js`: 5 rés megszűnt).
 

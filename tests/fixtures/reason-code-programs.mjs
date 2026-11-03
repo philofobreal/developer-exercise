@@ -6,6 +6,8 @@ export const reasonCodePrograms=new Map([
  ['code-opaque-comment',{language:'javascript',probe:'g()',source:['var a = 1;','/*','  note','*/','function g() {','  return a;','}']}],
  ['code-shared-boundary-lock',{language:'javascript',probe:'[run(1), run(2), run(3)]',source:['function run(n) {','  switch (n) {','    case 1: {','      return 1;','    } case 2: {','      return 2;','    }','  }','  return 0;','}']}],
  ['code-erased-destructuring',{language:'typescript',probe:'evaluate()',source:['declare const { x }: { x: number };','var v = 1;','function evaluate() {','  return v;','}']}],
+ // ADR-068: duplicate definitions now have phases; a commented field still has none (unclassified-member).
+ ['code-commented-member',{language:'javascript',probe:'run()',source:['class Box {','  // the label first','  label = record(\'label\') ?? \'x\';','  count = record(\'count\') ?? 1;','}','function run() {','  const box = new Box();','  return [box.label, box.count];','}']}],
  ['code-shared-rows',{language:'javascript',probe:'run()',source:['function run() {','  const value = `first','  second`;','  const result = value + \'!\';','  return result;','}']}],
 ].map(([id,fixture])=>[id,{id,origin:'reason-code',...fixture}]));
 

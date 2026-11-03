@@ -32,7 +32,8 @@ type Compiler = typeof ts;
 type Phase = 'key' | 'static' | 'instance';
 /** `loose` (ADR-029): an instance field whose initialiser runs no code; such fields commute
  * with each other when the program does not enumerate keys. */
-interface Unit {first: number; last: number; pure: boolean; free?: boolean; reflect?: 'prototype' | 'static'; phases?: Phase[]; pair?: string; plain?: boolean; loose?: boolean;}
+/** `sameKey` (ADR-068): a duplicate definition's key and object; such definitions keep their mutual order. */
+interface Unit {first: number; last: number; pure: boolean; free?: boolean; reflect?: 'prototype' | 'static'; phases?: Phase[]; pair?: string; plain?: boolean; loose?: boolean; sameKey?: string;}
 /** `spans` lists every ordered member/comment unit (0-based physical rows) so the
  * generator can keep same-scope siblings out of a multi-row unit's interior. */
 export interface TypeMemberOrdering {entries: OrderingEntry[]; spans: {first: number; last: number}[]; note: string;}
@@ -89,6 +90,12 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
     const both = node.members.filter(member => name(member) === key);
     if (both.some(member => compiler.isGetAccessorDeclaration(member) && !!member.body) && both.some(member => compiler.isSetAccessorDeclaration(member) && !!member.body) && isStatic(both[0]!) === isStatic(both[1]!)) pairs.add(key);
    }
+   // v34 (ADR-068): a name whose every member is a whole method or accessor definition. Each is
+   // installed at class definition, before any initialiser or static code runs, so it is free of
+   // the fields; the later of two same-key definitions on one object replaces the earlier one.
+   const definitionOnly = (member: ts.ClassElement | ts.TypeElement): boolean => (compiler.isMethodDeclaration(member) || compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member)) && !!member.body && !!member.name && !compiler.isComputedPropertyName(member.name)
+    && !(compiler.canHaveDecorators(member) && compiler.getDecorators(member)?.length) && ((compiler.canHaveModifiers(member) ? compiler.getModifiers(member) : undefined) ?? []).every(modifier => definitionModifiers.has(modifier.kind)) && definitionRows(member);
+   const duplicates = new Set(isClass ? [...counts].filter(([key, count]) => count > 1 && !pairs.has(key) && node.members.every(member => name(member) !== key || definitionOnly(member))).map(([key]) => key) : []);
    const members: Unit[] = node.members.map(member => {
     const key = name(member), row = first(member), end = last(member);
     const modifiers = compiler.canHaveModifiers(member) ? compiler.getModifiers(member) : undefined;
@@ -100,7 +107,8 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
     const triviaStart = fullRow < row ? file.getPositionOfLineAndCharacter(fullRow + 1, 0) : fullStart;
     const leadingComment = !!file.text.slice(triviaStart, member.getStart(file)).trim();
     const paired = key !== undefined && pairs.has(key);
-    const distinct = !decorated && !leadingComment && key !== undefined && (counts.get(key) === 1 || paired);
+    const duplicate = !leadingComment && key !== undefined && duplicates.has(key);
+    const distinct = !decorated && !leadingComment && key !== undefined && (counts.get(key) === 1 || paired || duplicate);
     const definition = isClass && (compiler.isMethodDeclaration(member) || compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member) || compiler.isConstructorDeclaration(member)) && (!!member.body || !!modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.AbstractKeyword)) && (modifiers ?? []).every(modifier => definitionModifiers.has(modifier.kind)) && distinct && definitionRows(member);
     const pure = erased && simpleModifiers && distinct && row === end && physical[row]?.trim() === member.getText(file).trim();
     // An emitted method/accessor creates a key unless it is private or an array index; a computed key is unknown, so ordered.
@@ -119,8 +127,10 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
     // A plain method row: a candidate overload signature or implementation (ADR-020).
     const plain = isClass && compiler.isMethodDeclaration(member) && !decorated && !leadingComment && (modifiers ?? []).every(modifier => definitionModifiers.has(modifier.kind)) && (member.body ? definitionRows(member) : row === end && physical[row]?.trim() === member.getText(file).trim());
     // ADR-029: a uniquely named instance field that runs no code creates only its key; unless the program enumerates keys, that order is unobserved.
-    const loose = !options.enumeratedKeys && phases?.length === 1 && phases[0] === 'instance' && !autoAccessor && key !== undefined && counts.get(key) === 1 && compiler.isPropertyDeclaration(member) && (!member.initializer || inert(member.initializer));
-    return {first: row, last: end, pure, plain, free: definition || isClass && pure, ...(reflected ? {reflect: isStatic(member) ? 'static' as const : 'prototype' as const} : {}), ...(phases ? {phases} : {}), ...(definition && paired ? {pair: key} : {}), ...(loose ? {loose} : {})};
+    // v34 (ADR-068): likewise a static field (a key of the constructor) and an `accessor` field, whose
+    // initialiser only fills a private storage; its get/set key is created at definition (the key chain).
+    const loose = !options.enumeratedKeys && phases?.length === 1 && key !== undefined && counts.get(key) === 1 && compiler.isPropertyDeclaration(member) && (!member.initializer || inert(member.initializer));
+    return {first: row, last: end, pure, plain, free: definition || isClass && pure, ...(definition && duplicate ? {sameKey: key + (isStatic(member) ? ' static' : ' prototype')} : {}), ...(reflected ? {reflect: isStatic(member) ? 'static' as const : 'prototype' as const} : {}), ...(phases ? {phases} : {}), ...(definition && paired ? {pair: key} : {}), ...(loose ? {loose} : {})};
    });
    // An overload signature must directly precede the next signature or the
    // implementation (TS2389/TS2391): the whole group is one unit. Its signatures are
@@ -153,6 +163,8 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
     // wired explicitly so that no barrier inherits a definition's row as predecessor.
     const wired = new Set<number>();
     for (const member of free) order(member.first, [first(open)], 'block-open');
+    const definedLast = new Map<string, Unit>();
+    for (const member of free) if (member.sameKey) {const previous = definedLast.get(member.sameKey); if (previous) order(member.first, [previous.last], 'duplicate-definition-order'); definedLast.set(member.sameKey, member);}
     for (const unit of [...units, ...free]) spans.push({first: unit.first, last: unit.last});
     for (let start = 0; start < units.length;) {
      if (!units[start]!.pure) {start++; continue;}
@@ -169,17 +181,17 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
      // ADR-012: a runtime unit follows every earlier unit it shares a phase with, and every
      // phase-less unit. The latest unit of each phase and the latest phase-less unit imply the rest.
      const latest = new Map<Phase | 'none', Unit>();
-     // ADR-029: loose instance fields since the latest other instance unit; they follow it, but not each other.
-     let loose: Unit[] = [];
+     // ADR-029: loose fields of each phase since the latest other unit of that phase; they follow it, but not each other.
+     const loose = new Map<Phase, Unit[]>([['instance', []], ['static', []]]);
      // A shared phase is an evaluation order; a phase-less unit on either side is conservative.
      for (const unit of units) {
       const reasons: OrderingReason[] = [];
       for (const [key, other] of latest) if (!unit.phases || key === 'none' || unit.phases.includes(key)) reasons.push({before: other.last, code: unit.phases && key !== 'none' ? 'class-evaluation-order' : 'unclassified-member'});
-      // Any other unit that runs at construction (or may) follows every loose field: its code could observe them.
-      if (!unit.loose && (!unit.phases || unit.phases.includes('instance'))) for (const field of loose) reasons.push({before: field.last, code: unit.phases ? 'class-evaluation-order' : 'unclassified-member'});
+      // Any other unit that runs in a phase (or may) follows every loose field of it: its code could observe them.
+      if (!unit.loose) for (const [phase, fields] of loose) if (!unit.phases || unit.phases.includes(phase)) for (const field of fields) reasons.push({before: field.last, code: unit.phases ? 'class-evaluation-order' : 'unclassified-member'});
       entries.push(reasons.length ? {row: unit.first, after: [...new Set(reasons.map(reason => reason.before))], reasons} : {row: unit.first, after: [first(open)], reasons: [{before: first(open), code: 'block-open'}]});
-      if (unit.loose) {loose.push(unit); continue;}
-      if (!unit.phases || unit.phases.includes('instance')) loose = [];
+      if (unit.loose) {loose.get(unit.phases![0]!)!.push(unit); continue;}
+      for (const [phase] of loose) if (!unit.phases || unit.phases.includes(phase)) loose.set(phase, []);
       for (const key of unit.phases ?? ['none' as const]) latest.set(key, unit);
      }
     } else if (free.length) units.forEach((unit, i) => {if (!wired.has(unit.first)) order(unit.first, [i ? units[i - 1]!.last : first(open)], i ? 'type-member-barrier' : 'block-open');});
@@ -201,5 +213,5 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
  }
  visit(file);
  // Several constraints on one row are a conjunction.
- return {entries: mergeOrderingEntries(entries), spans, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor, a declare mezők, a privát (#) és a tömbindex nevű metódusok bárhol állhatnak. A többi metódus és accessor is szabad; csak ha a program listázza a nem felsorolható kulcsokat (getOwnPropertyNames, Reflect.ownKeys), tartják meg a kulcssorrendjüket. Az azonos nevű getter és setter egy tulajdonság. A példány- és a static mezők más fázisban futnak, egymáshoz képest szabadok; csoportjukon belül sorrendben maradnak, kivéve a kódot nem futtató példánymezőket, ha a program nem listázza a kulcsokat (Object.keys, JSON.stringify, for…in, spread, console). A számított nevű metódus a mezőkhöz képest szabad. Az overloadok, duplikált nevek, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : ''};
+ return {entries: mergeOrderingEntries(entries), spans, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor, a declare mezők, a privát (#) és a tömbindex nevű metódusok bárhol állhatnak. A többi metódus és accessor is szabad; csak ha a program listázza a nem felsorolható kulcsokat (getOwnPropertyNames, Reflect.ownKeys), tartják meg a kulcssorrendjüket. Az azonos nevű getter és setter egy tulajdonság. A példány- és a static mezők egymáshoz képest szabadok; csoportjukon belül sorrendben maradnak, kivéve a kódot nem futtató mezőket, ha a program nem listázza a kulcsokat (Object.keys, JSON.stringify, for…in, spread, console). A számított nevű metódus a mezőkhöz képest szabad. Az azonos nevű metódusok csak egymáshoz képest kötöttek. Az overloadok, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : ''};
 }

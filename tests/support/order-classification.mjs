@@ -8,7 +8,9 @@
  *    reference's intent: every broken constraint touches a row the reference never executes
  *    (`dead-code`: its order counts as if that code ran), or a literal on a broken constraint's
  *    rows, replaced by another value, makes the order behave differently (`value`, ADR-067: the
- *    order counts as if that write or comparison used another value);
+ *    order counts as if that write or comparison used another value), or every broken constraint
+ *    is a documented pedagogical rule the runtime cannot see (`policy`, ADR-068: `early-exit-order`,
+ *    ADR-019's declaration that does not move behind a possible return, throw or break);
  *  - `justified`: rejected, and the behaviour differs;
  *  - `undecided`: rejected, oracle undecided; `indeterminate`: the validator's budget ran out.
  * A rejection's `causes` are the provenance codes of the direct constraints the order breaks,
@@ -17,8 +19,10 @@ import {compileCodeLineExercise,validateSubmission} from '../../dist/index.js';
 import {createOracle,codesOf} from './semantic-oracle.mjs';
 import {literalsOf,valuesFor,replaced} from './literal-variants.mjs';
 
+/** Reason codes of pedagogical rules that no run can tell apart (ADR-068). */
+export const POLICY_INTENT=new Set(['early-exit-order']);
 /** At most this many variant verdicts per rejected order (ADR-067); none found is a gap. */
-export const VALUE_VARIANTS=48;
+export const VALUE_VARIANTS=96;
 
 export function createClassifier(fixture,model,{maxStates=200_000,policy='reflective',variants=VALUE_VARIANTS}={}){
  const compiled=compileCodeLineExercise(model);
@@ -48,10 +52,13 @@ export function createClassifier(fixture,model,{maxStates=200_000,policy='reflec
   return oracles.get(key);
  };
  const valueDependent=(order,pairs)=>{
-  // The broken constraints' own rows first (that write or comparison with another value), then
+  // The broken constraints' own rows first (that write or comparison with another value), then the
+  // rows of the blocks they open (the branch or case that decides whether the code runs), then
   // every other literal of the program (the same order under other data).
-  const rows=new Set(pairs.flatMap(pair=>pair.map(id=>row.get(id))));let budget=variants;
-  const ranked=[...literals.filter(literal=>rows.has(literal.row)),...literals.filter(literal=>!rows.has(literal.row))];
+  const ids=new Set(pairs.flat()),rows=new Set([...ids].map(id=>row.get(id))),inner=new Set();
+  for(const block of model.blocks)if(ids.has(block.openLineId))for(let at=row.get(block.openLineId)+1;at<row.get(block.closeLineId);at++)inner.add(at);
+  const tier=literal=>rows.has(literal.row)?0:inner.has(literal.row)?1:2;let budget=variants;
+  const ranked=[...literals].sort((a,b)=>tier(a)-tier(b));
   for(const literal of ranked)for(const value of valuesFor(literal,literals)){
    if(budget--<=0)return false;
    const judged=variantJudge(literal,value);if(!judged)continue;
@@ -63,6 +70,7 @@ export function createClassifier(fixture,model,{maxStates=200_000,policy='reflec
  /** Why an equivalent rejected order keeps the reference's intent ({reason, witness?}), or null for a gap. */
  const intent=order=>{
   const pairs=broken(order);if(deadCode(pairs))return {reason:'dead-code'};
+  if(pairs.length&&pairs.every(([before,after])=>(reasons.get(before+'>'+after)??[]).some(code=>POLICY_INTENT.has(code))))return {reason:'policy'};
   const witness=pairs.length?valueDependent(order,pairs):null;
   return witness?{reason:'value',witness}:null;
  };
