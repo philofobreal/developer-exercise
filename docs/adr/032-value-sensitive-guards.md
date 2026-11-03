@@ -46,7 +46,7 @@ A saját objektumokon dolgozó `if/else` feltétele mostantól bármely „ért�
 ## Következmények
 
 - A konstans argumentummal soha nem dobó konstruktorok és metódushívások egymáshoz képest szabadok.
-- **Ismert, dokumentált veszteség:** az objektumonként összevont mezőérték miatt egy ellenőrzés akkor is lehetséges dobás marad, ha futásidőben a ténylegesen olvasott érték mellett nem dob (`value-guards-merged`).
+- **Ismert, dokumentált veszteség:** az objektumonként összevont mezőérték miatt egy ellenőrzés akkor is lehetséges dobás marad, ha futásidőben a ténylegesen olvasott érték mellett nem dob (`value-guards-merged`). *Utóirat:* az [ADR-072](072-certain-overwrites.md) (v38) óta ez az eset nem veszteség: a `set()` biztos felülírása után csak a ténylegesen beírt érték látszik.
 - A TS-mintatár modelljeiben csak a címke változott.
 
 ## Bizonyíték

@@ -39,9 +39,9 @@ test('a guard a literal argument always fires is still a possible throw, and two
 test('an unknown argument or a field written twice keeps the guard a possible throw',()=>{
  const c=prepare('value-guards-unknown');
  c.check(c.swap('first.rename(b);','second.rename(b);'),false,'b may be empty: an unknown parameter keeps the calls ordered');
- // Each field holds 'x' or the set value (writes are merged per object): both checks may throw,
- // though second.check() never does at run time. A conservative, documented loss.
+ // ADR-072 (v38): each set() certainly overwrites the constructor's 'x', so second.label is ' ' and
+ // second.check() cannot throw (until v37 the field held 'x' or the set value, a documented loss).
  const merged=prepare('value-guards-merged');
- merged.check(merged.swap('first.check();','second.check();'),false,'two possible throws');
- assert.ok(merged.reasons('second.check();').includes('may-throw'));
+ merged.check(merged.swap('first.check();','second.check();'),true,'only first.check() may throw');
+ assert.ok(!merged.reasons('second.check();').includes('may-throw'));
 });

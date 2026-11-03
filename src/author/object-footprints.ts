@@ -193,6 +193,18 @@ export function objectFootprints(list: readonly ts.Statement[], file: ts.SourceF
  type Cell = Map<number, Value>;
  const fields = new Map<string, Map<string, Cell>>(), elements = new Map<string, Cell>();
  let position = -1;
+ // v38 (ADR-072): the field cells each list statement certainly overwrites whenever it completes
+ // normally (`mustAt`, narrowed only, across the rounds), and the members of an own array literal
+ // whose elements are single own objects (`members`). A reader sees no value written before the
+ // last statement ahead of it that certainly overwrote the cell: every writer of a cell is ordered
+ // with each other writer and with each reader of it, so that statement ran last but the later ones.
+ const mustAt = new Map<number, Set<string>>(), members = new Map<string, Set<string> | null>();
+ let lastMust = new Set<string>();
+ const narrow = (index: number, cells: ReadonlySet<string>): void => {
+  const before = mustAt.get(index), after = before ? new Set([...before].filter(key => cells.has(key))) : new Set(cells);
+  if (before && after.size !== before.size) changed = true;
+  mustAt.set(index, after);
+ };
  // v36 (ADR-070): the first element of an own array literal, and the arrays an unshift, pop or
  // shift may have given another first element (no other array write is in the subset).
  const firsts = new Map<string, Value>(), reshaped = new Set<string>();
@@ -203,13 +215,18 @@ export function objectFootprints(list: readonly ts.Statement[], file: ts.SourceF
   cell.set(position, after);
  };
  /** The values the statement at `position` may read from a cell; undefined when nothing written so far. */
- const upTo = (cell: Cell | undefined): Value | undefined => {
-  const visible = [...cell ?? []].filter(([at]) => at <= position).map(([, value]) => value);
+ const upTo = (cell: Cell | undefined, from = -Infinity): Value | undefined => {
+  const visible = [...cell ?? []].filter(([at]) => at >= from && at <= position).map(([, value]) => value);
   return visible.length ? union(...visible) : undefined;
  };
  /** Every value a cell ever holds (what an escaping object hands to unknown code). */
  const ever = (cell: Cell): Value[] => [...cell.values()];
- const field = (object: string, name: string): Value | undefined => upTo(fields.get(object)?.get(name));
+ const field = (object: string, name: string): Value | undefined => {
+  const key = at(object, name);
+  let from = -Infinity;
+  for (const [writer, cells] of mustAt) if (writer < position && writer > from && cells.has(key)) from = writer;
+  return upTo(fields.get(object)?.get(name), from);
+ };
  const items = (object: string): Value => upTo(elements.get(object)) ?? PRIM;
  const addField = (object: string, name: string, value: Value): void => {
   const map = fields.get(object) ?? new Map<string, Cell>(), cell = map.get(name) ?? new Map<number, Value>();
@@ -224,9 +241,34 @@ export function objectFootprints(list: readonly ts.Statement[], file: ts.SourceF
  /** `exits` (ADR-034): enclosing switches and loops an unlabelled `break` may leave; `loops`: those a
   * `continue` may; `labels` (ADR-042): enclosing labels a labelled jump may name; `constructing`
   * (ADR-045): objects whose own construction is running, so their keys may still be created. */
-interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; stack: Set<string>; budget: {steps: number}; exits?: number; loops?: number; labels?: ReadonlySet<string>; constructing?: ReadonlySet<string>;}
+ /** `must` (ADR-072): the field cells this statement certainly writes; `certain`: the code being
+  * interpreted runs whenever the statement completes normally; `top`: the expression statement's own
+  * call, the only call whose receiver is certainly invoked; `every`: in a for…of that visits every
+  * member of one own array literal, the loop variable and those members. */
+interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; stack: Set<string>; budget: {steps: number}; exits?: number; loops?: number; labels?: ReadonlySet<string>; constructing?: ReadonlySet<string>; must?: Set<string>; certain?: boolean; top?: ts.Expression; every?: {variable: ts.Symbol; members: ReadonlySet<string>};}
  const step = (frame: Frame): void => {if (++frame.budget.steps > 20_000) unknown();};
  const prim = (value: Value): void => {if (!value.prim || value.objs.size || value.other) unknown();};
+ const NONE: ReadonlySet<string> = new Set();
+ const uncertain = (frame: Frame): Frame => frame.certain ? {...frame, certain: false} : frame;
+ /** ADR-072: the objects certainly reached through `expr` (value `base`) in certain code: its one
+  * object, or every member when it names the variable of a loop that visits each of them. */
+ const sureObjects = (expr: ts.Expression, base: Value, frame: Frame): ReadonlySet<string> => {
+  if (!frame.certain || !frame.must || base.prim || base.other) return NONE;
+  if (base.objs.size === 1) return base.objs;
+  const named = unwrap(expr);
+  return frame.every && compiler.isIdentifier(named) && checker.getSymbolAtLocation(named) === frame.every.variable ? frame.every.members : NONE;
+ };
+ /** Whether a jump in `root` (outside nested functions) may skip the code after it in its block. */
+ const jumps = (root: ts.Node): boolean => {
+  let found = false;
+  const visit = (node: ts.Node): void => {
+   if (found || compiler.isFunctionLike(node) || compiler.isClassLike(node)) return;
+   if (compiler.isReturnStatement(node) || compiler.isBreakStatement(node) || compiler.isContinueStatement(node)) {found = true; return;}
+   compiler.forEachChild(node, visit);
+  };
+  visit(root);
+  return found;
+ };
 
  /** Runs a constructor, method or accessor body on `self` with the given arguments. */
  function invoke(body: ts.FunctionLikeDeclaration, self: string, args: Value[], frame: Frame): Value {
@@ -237,27 +279,40 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
    if (!compiler.isIdentifier(parameter.name) || parameter.initializer || parameter.dotDotDotToken) unknown();
    env.set((parameter.name as ts.Identifier).text, args[index] ?? literal(undefined));
   });
-  const inner: Frame = {...frame, self, env, stack: new Set([...frame.stack, key])};
+  const inner: Frame = {...frame, self, env, stack: new Set([...frame.stack, key]), every: undefined, top: undefined};
   return block((body.body as ts.Block).statements, inner);
  }
  function construct(id: string, info: ClassInfo, args: Value[], frame: Frame): void {
   frame.fp.writes.add(at(id, WHOLE));
   const own: Frame = {...frame, self: id, env: new Map()};
-  for (const [name, initializer] of info.fields) addField(id, name, initializer ? expression(initializer, own) : PRIM);
+  for (const [name, initializer] of info.fields) {addField(id, name, initializer ? expression(initializer, own) : PRIM); if (frame.certain) frame.must?.add(at(id, name));}
   if (!info.ctor) return;
   info.ctor.parameters.forEach((parameter, index) => {if (info.parameterFields.includes((parameter.name as ts.Identifier).text)) addField(id, (parameter.name as ts.Identifier).text, args[index] ?? PRIM);});
   invoke(info.ctor, id, args, {...frame, constructing: new Set([...frame.constructing ?? [], id])});
  }
- function block(statements: readonly ts.Statement[], frame: Frame): Value {
+ function block(statements: readonly ts.Statement[], outer: Frame): Value {
   let returned: Value = PRIM;
+  // ADR-072: certain code stays certain across simple statements; inside a compound one only where
+  // it surely runs, and after it only if no jump may skip the rest of the block.
+  let carry = outer;
+  // v38 (ADR-072): a return ending a straight-line prefix is the only way out: its value is the result.
+  let straight = true;
+  const plain = (statement: ts.Statement): boolean => compiler.isExpressionStatement(statement) || compiler.isVariableStatement(statement) || compiler.isReturnStatement(statement) || compiler.isThrowStatement(statement) || compiler.isIfStatement(statement) || compiler.isBlock(statement) || compiler.isForOfStatement(statement) || compiler.isSwitchStatement(statement);
   for (const statement of statements) {
+   const frame = carry.certain && !plain(statement) ? uncertain(carry) : carry;
+   if (carry.certain && jumps(statement)) carry = uncertain(carry);
+   if (!compiler.isExpressionStatement(statement) && !compiler.isVariableStatement(statement) && !compiler.isReturnStatement(statement)) straight = false;
    step(frame);
    if (compiler.isExpressionStatement(statement)) effect(statement.expression, frame);
-   else if (compiler.isReturnStatement(statement)) returned = statement.expression ? union(returned, expression(statement.expression, frame)) : returned;
+   else if (compiler.isReturnStatement(statement)) {
+    const value = statement.expression ? expression(statement.expression, frame) : literal(undefined);
+    returned = straight ? value : union(returned, value);
+    straight = false;
+   }
    else if (compiler.isIfStatement(statement)) {
     // ADR-032: a test whose value is known runs only the branch it selects.
     const test = expression(statement.expression, frame), taken = test.known ? !!test.known.lit : undefined;
-    returned = union(returned, taken !== false ? block([statement.thenStatement], frame) : PRIM, statement.elseStatement && taken !== true ? block([statement.elseStatement], frame) : PRIM);
+    returned = union(returned, taken !== false ? block([statement.thenStatement], taken ? frame : uncertain(frame)) : PRIM, statement.elseStatement && taken !== true ? block([statement.elseStatement], taken === false ? frame : uncertain(frame)) : PRIM);
    } else if (compiler.isBlock(statement)) returned = union(returned, block(statement.statements, frame));
    else if (compiler.isVariableStatement(statement)) {
     for (const declaration of statement.declarationList.declarations) {
@@ -277,13 +332,16 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
    else if ((compiler.isBreakStatement(statement) || compiler.isContinueStatement(statement)) && statement.label && frame.labels?.has(statement.label.text)) continue;
    else if (compiler.isLabeledStatement(statement)) returned = union(returned, block([statement.statement], {...frame, labels: new Set([...frame.labels ?? [], statement.label.text])}));
    // ADR-034: every clause (fall-through included) may run; a break leaves the switch.
+   // v38 (ADR-072): a known discriminant and known case labels select where the body starts (the
+   // matching case, else the default clause); the clauses from there on may run by fall-through.
    else if (compiler.isSwitchStatement(statement)) {
-    expression(statement.expression, frame);
-    const inner: Frame = {...frame, exits: (frame.exits ?? 0) + 1};
-    for (const clause of statement.caseBlock.clauses) {
-     if (compiler.isCaseClause(clause)) expression(clause.expression, frame);
-     returned = union(returned, block(clause.statements, inner));
-    }
+    const discriminant = expression(statement.expression, frame), clauses = statement.caseBlock.clauses;
+    const labels = clauses.map(clause => compiler.isCaseClause(clause) ? expression(clause.expression, frame).known : undefined);
+    const decided = discriminant.known && clauses.every((clause, index) => !compiler.isCaseClause(clause) || labels[index]);
+    const matched = decided ? clauses.findIndex((clause, index) => compiler.isCaseClause(clause) && labels[index]!.lit === discriminant.known!.lit) : -1;
+    const start = !decided ? 0 : matched >= 0 ? matched : clauses.findIndex(clause => !compiler.isCaseClause(clause));
+    const inner: Frame = {...uncertain(frame), exits: (frame.exits ?? 0) + 1};
+    if (start >= 0) for (const clause of clauses.slice(start)) returned = union(returned, block(clause.statements, inner));
    }
    // ADR-034: a throw inside try is caught when there is a catch; the catch runs only if try may throw.
    else if (compiler.isTryStatement(statement)) {
@@ -326,7 +384,12 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
      }
     } else unknown();
     const body: Footprint = {reads: new Set(), writes: new Set(), mayThrow: false, external: false, mayHang: false};
-    returned = union(returned, block([statement.statement], {...frame, fp: body, exits: (frame.exits ?? 0) + 1, loops: (frame.loops ?? 0) + 1}));
+    // v38 (ADR-072): a loop that no jump cuts short visits every member of one own array literal (no
+    // unshift, pop or shift removed one); its body's certain code runs on each of them.
+    const visited = frame.certain && single !== undefined && !reshaped.has(single) && compiler.isIdentifier(binding) && !jumps(statement.statement) ? members.get(single) : undefined;
+    const variable = visited ? checker.getSymbolAtLocation(binding) : undefined;
+    const each: Frame['every'] = visited && variable ? {variable, members: visited} : undefined;
+    returned = union(returned, block([statement.statement], {...frame, fp: body, exits: (frame.exits ?? 0) + 1, loops: (frame.loops ?? 0) + 1, certain: !!each, every: each}));
     // Writing the iterated array may extend the iteration: not shown to end.
     if ([...iterated.objs].some(id => body.writes.has(at(id, WHOLE)))) unknown();
     body.reads.forEach(key => frame.fp.reads.add(key));body.writes.forEach(key => frame.fp.writes.add(key));
@@ -386,7 +449,7 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
    const access = target as ts.PropertyAccessExpression, name = nameOf(access.name)!, base = expression(access.expression, frame);
    let value = expression(expr.right, frame);
    if (expr.operatorToken.kind !== S.EqualsToken) {prim(value); prim(read(base, name, frame)); value = PRIM;}
-   write(base, name, value, frame);
+   write(base, name, value, frame, sureObjects(access.expression, base, frame));
    return;
   }
   if ((compiler.isPrefixUnaryExpression(expr) || compiler.isPostfixUnaryExpression(expr)) && (expr.operator === S.PlusPlusToken || expr.operator === S.MinusMinusToken)) {
@@ -396,20 +459,20 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
    if (compiler.isIdentifier(target) && frame.self === null && host.assignable?.(target)) {prim(expression(target, frame)); return;}
    if (!compiler.isPropertyAccessExpression(target)) unknown();
    const access = target as ts.PropertyAccessExpression, base = expression(access.expression, frame), name = nameOf(access.name)!;
-   prim(read(base, name, frame));write(base, name, PRIM, frame);
+   prim(read(base, name, frame));write(base, name, PRIM, frame, sureObjects(access.expression, base, frame));
    return;
   }
-  if (compiler.isCallExpression(expr)) {expression(expr, frame); return;}
+  if (compiler.isCallExpression(expr)) {expression(expr, frame.certain ? {...frame, top: expr} : frame); return;}
   unknown();
  }
- function write(base: Value, name: string, value: Value, frame: Frame): void {
+ function write(base: Value, name: string, value: Value, frame: Frame, sure: ReadonlySet<string>): void {
   if (base.prim || base.other || !base.objs.size) unknown();
   for (const object of base.objs) {
    const kind = kinds.get(object)!;
    if (kind.kind === 'array') unknown();
    if (kind.kind === 'class') {
     const setter = kind.info.setters.get(name);
-    if (setter) {invoke(setter, object, [value], frame); continue;}
+    if (setter) {invoke(setter, object, [value], {...frame, certain: sure.has(object)}); continue;}
     // Assigning to a getter-only accessor or a method throws or replaces behaviour.
     if (kind.info.getters.has(name) || kind.info.methods.has(name)) unknown();
    }
@@ -418,6 +481,7 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
    // ADR-045: or one every finished construction created, once this object's construction is over.
    const existing = !host.enumeratedKeys || kind.kind === 'class' && (kind.info.fields.get(name) !== undefined || kind.info.parameterFields.includes(name) || kind.info.created.has(name) && !frame.constructing?.has(object));
    frame.fp.writes.add(at(object, existing ? name : WHOLE));addField(object, name, value);
+   if (sure.has(object)) frame.must!.add(at(object, name));
   }
  }
  function read(base: Value, name: string, frame: Frame): Value {
@@ -430,7 +494,7 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
    if (kind.kind === 'array') {if (name !== 'length') unknown(); frame.fp.reads.add(at(object, WHOLE)); values.push(PRIM); continue;}
    if (kind.kind === 'class') {
     const getter = kind.info.getters.get(name);
-    if (getter) {values.push(invoke(getter, object, [], frame)); continue;}
+    if (getter) {values.push(invoke(getter, object, [], uncertain(frame))); continue;}
     if (kind.info.methods.has(name) || kind.info.setters.has(name)) unknown();
    }
    const value = field(object, name);
@@ -440,7 +504,7 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
   }
   return union(...values);
  }
- function call(base: Value, name: string, args: readonly ts.Expression[], frame: Frame): Value {
+ function call(base: Value, name: string, args: readonly ts.Expression[], frame: Frame, sure: ReadonlySet<string> = NONE): Value {
   // ADR-028: a known String.prototype method on a value that can only be a string.
   if (base.prim && base.text && !base.objs.size && !base.other) {
    const method = STRING_METHODS.get(name);
@@ -458,7 +522,7 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
    if (kind.kind === 'class') {
     const method = kind.info.methods.get(name);
     if (!method) unknown();
-    values.push(invoke(method!, object, args.map(argument => expression(argument, frame)), frame));
+    values.push(invoke(method!, object, args.map(argument => expression(argument, frame)), {...frame, certain: sure.has(object)}));
     continue;
    }
    if (kind.kind !== 'array') unknown();
@@ -526,8 +590,8 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
    const listed = readingBuiltin(expr, frame);
    if (listed) return listed;
    if (expr.questionDotToken || !compiler.isPropertyAccessExpression(callee) || callee.questionDotToken || expr.arguments.some(argument => compiler.isSpreadElement(argument))) unknown();
-   const access = callee as ts.PropertyAccessExpression;
-   return call(expression(access.expression, frame), nameOf(access.name)!, expr.arguments, frame);
+   const access = callee as ts.PropertyAccessExpression, base = expression(access.expression, frame);
+   return call(base, nameOf(access.name)!, expr.arguments, frame, frame.top === expr ? sureObjects(access.expression, base, frame) : NONE);
   }
   if (compiler.isBinaryExpression(expr)) {
    const operator = expr.operatorToken.kind, left = expression(expr.left, frame);
@@ -631,7 +695,7 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
  /** One list-level statement: a construction, or an operation on own objects. */
  function statementFootprint(statement: ts.Statement, budget: {steps: number}): Footprint {
   // ADR-031/045: the statements of a constructor body run while `this` is being constructed.
-  const frame: Frame = {self: null, env: new Map(), fp: {reads: new Set(), writes: new Set(), mayThrow: false, external: false, mayHang: false}, stack: new Set(), budget, ...self ? {constructing: new Set([self])} : {}};
+  const frame: Frame = {self: null, env: new Map(), fp: {reads: new Set(), writes: new Set(), mayThrow: false, external: false, mayHang: false}, stack: new Set(), budget, must: lastMust = new Set(), certain: true, ...self ? {constructing: new Set([self])} : {}};
   if (compiler.isVariableStatement(statement)) {
    const declaration = statement.declarationList.declarations[0]!, symbol = checker.getSymbolAtLocation(declaration.name), own = symbol && owned.get(symbol);
    if (!own || own.statement !== statement) unknown();
@@ -639,12 +703,16 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
    if (own!.kind.kind === 'class') construct(own!.id, own!.kind.info, (init as ts.NewExpression).arguments?.map(argument => expression(argument, frame)) ?? [], frame);
    else if (compiler.isArrayLiteralExpression(init)) {
     frame.fp.writes.add(at(own!.id, WHOLE));
+    const literalMembers = new Set<string>();
+    let single = members.get(own!.id) !== null;
     init.elements.forEach((element, index) => {
      if (compiler.isSpreadElement(element) || compiler.isOmittedExpression(element)) unknown();
      const value = expression(element, frame);
      addElements(own!.id, value);
      if (!index) firsts.set(own!.id, union(firsts.get(own!.id) ?? value, value));
+     if (value.prim || value.other || value.objs.size !== 1) single = false; else literalMembers.add([...value.objs][0]!);
     });
+    members.set(own!.id, single ? literalMembers : null);
     if (!elements.get(own!.id)?.has(position)) addElements(own!.id, PRIM);
    }
    else {
@@ -721,10 +789,12 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
    position = index;
    try {
     const fp = statementFootprint(statement, budget);
+    narrow(index, lastMust);
     if ([...fp.reads, ...fp.writes].map(objectOf).some(id => escaped.has(id.split('|')[0]!) || escaped.has(id))) continue;
     result.set(statement, fp);
    } catch (error) {
     if (!(error instanceof Unknown)) throw error;
+    narrow(index, NONE);
     if (budget.steps > 20_000) {result.clear(); return result;}
    }
   }

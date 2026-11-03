@@ -5,8 +5,9 @@
  *  - `accepted`: accepted and equivalent (or undecided by the oracle: `undecided-accepted`);
  *  - `gap`: rejected although the oracle sees the same behaviour (incompleteness);
  *  - `intent` (ADR-043, policy A): rejected, the same behaviour, but the rejection keeps the
- *    reference's intent: every broken constraint touches a row the reference never executes
- *    (`dead-code`: its order counts as if that code ran), or a literal on a broken constraint's
+ *    reference's intent: every broken constraint touches a row the reference never executes, or
+ *    the model accepts the order once the never-executed one-row statements of functions that do
+ *    run are commented out (`dead-code`, ADR-072: its order counts as if that code ran), or a literal on a broken constraint's
  *    rows, replaced by another value, makes the order behave differently (`value`, ADR-067: the
  *    order counts as if that write or comparison used another value), or every broken constraint
  *    is a documented pedagogical rule the runtime cannot see (`policy`, ADR-068: `early-exit-order`,
@@ -15,6 +16,8 @@
  *  - `undecided`: rejected, oracle undecided; `indeterminate`: the validator's budget ran out.
  * A rejection's `causes` are the provenance codes of the direct constraints the order breaks,
  * or `scope` when it breaks none and only the lexical structure rejects it. */
+import ts from 'typescript';
+import {generateCodeLineExercise} from '../../src/author/generator.mjs';
 import {compileCodeLineExercise,validateSubmission} from '../../dist/index.js';
 import {createOracle,codesOf} from './semantic-oracle.mjs';
 import {literalsOf,valuesFor,replaced} from './literal-variants.mjs';
@@ -43,6 +46,44 @@ export function createClassifier(fixture,model,{maxStates=200_000,policy='reflec
  /** Policy A: an equivalent order rejected only for constraints that touch code the reference
   * never runs keeps the reference's intent, judged as if that code ran; not a gap. */
  const deadCode=pairs=>pairs.length>0&&pairs.every(([before,after])=>dead(before)||dead(after));
+ // ADR-072: the same question when the constraints only exist because of code that never runs: the
+ // model of the reference with every never-executed one-row expression statement commented out
+ // (same rows, same options), built on first use; null when there is none or it does not generate.
+ let withoutDead;const lineById=new Map(model.lines.map(line=>[line.id,line]));
+ const deadFree=()=>{
+  if(withoutDead!==undefined)return withoutDead;
+  withoutDead=null;
+  const rows=Array.isArray(fixture.source)?[...fixture.source]:fixture.source.split('\n'),executed=judge.executedRows();
+  const file=ts.createSourceFile('variant.'+(fixture.language==='typescript'?'ts':'js'),rows.join('\n'),ts.ScriptTarget.Latest,true);
+  let changed=false;
+  // Only a branch, case or handler of code that did run counts as if it ran: the body of a function
+  // that never runs has no position at which it would (its first statement did not execute).
+  const line=node=>file.getLineAndCharacterOfPosition(node.getStart(file)).line;
+  const ran=body=>!body||!ts.isBlock(body)||!body.statements.length||executed.has(line(body.statements[0]));
+  const visit=(node,live)=>{
+   if(ts.isFunctionLike(node)&&node.body){ts.forEachChild(node,child=>visit(child,live&&ran(node.body)));return;}
+   if(ts.isExpressionStatement(node)){
+    const at=line(node);
+    if(live&&at===file.getLineAndCharacterOfPosition(node.end).line&&!executed.has(at)&&rows[at].trim()===node.getText(file)){rows[at]=rows[at].replace(/^(\s*)/,'$1// ');changed=true;}
+    return;
+   }
+   ts.forEachChild(node,child=>visit(child,live));
+  };
+  visit(file,true);
+  if(!changed)return withoutDead;
+  try{
+   const environment=model.authoring?.evidence?.environment??{};
+   const variant=generateCodeLineExercise({source:rows.join('\n'),language:fixture.language,...environment.importEmit?{importEmit:environment.importEmit}:{},...environment.inputs?{inputs:environment.inputs}:{},...environment.keyOrder?{keyOrder:environment.keyOrder}:{}},ts),built=compileCodeLineExercise(variant);
+   if(!built.status)withoutDead={variant,compiled:built.compiled,bySource:new Map(variant.lines.map(line=>[line.sourceLine,line]))};
+  }catch{}
+  return withoutDead;
+ };
+ const deadCaused=order=>{
+  const free=deadFree();if(!free)return false;
+  const lines=order.map(id=>free.bySource.get(lineById.get(id)?.sourceLine)?.code);
+  if(lines.some(line=>line===undefined)||free.variant.lines.length!==model.lines.length)return false;
+  return validateSubmission(free.compiled,{exerciseId:free.variant.id,revision:free.variant.revision,lines},{maxStates}).status==='accepted';
+ };
  // ADR-067: one oracle per (literal, value), built on first use; null when the variant's own
  // reference fails (a throw, a timeout or a parse error), which then proves nothing.
  const source=Array.isArray(fixture.source)?fixture.source:fixture.source.split('\n'),literals=variants?literalsOf(source,fixture.language):[],oracles=new Map();
@@ -69,7 +110,7 @@ export function createClassifier(fixture,model,{maxStates=200_000,policy='reflec
  };
  /** Why an equivalent rejected order keeps the reference's intent ({reason, witness?}), or null for a gap. */
  const intent=order=>{
-  const pairs=broken(order);if(deadCode(pairs))return {reason:'dead-code'};
+  const pairs=broken(order);if(deadCode(pairs)||pairs.length&&deadCaused(order))return {reason:'dead-code'};
   if(pairs.length&&pairs.every(([before,after])=>(reasons.get(before+'>'+after)??[]).some(code=>POLICY_INTENT.has(code))))return {reason:'policy'};
   const witness=pairs.length?valueDependent(order,pairs):null;
   return witness?{reason:'value',witness}:null;

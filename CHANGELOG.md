@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-11-03 biztos felülírás (ADR-072, v38)
+
+- **Kevesebb fölösleges szabály:** ha egy utasítás biztosan felülír egy mezőt (egyenes vonalú kód, vagy egy ciklus, amely egy saját tömb minden elemén ugrás nélkül végigmegy), a későbbi olvasások már nem látják a mező korábbi értékét. Egy getter ismert értéket ad vissza, a `switch` ismert értékkel csak a választott ágtól fut.
+- **Biztonsági feltételek:** a feltételes ágban, `try`-ban, `while`/`for` ciklusban, `break`-kel megszakítható ciklusban végzett írás nem számít biztosnak.
+- **Mérés:** ha egy kötést csak a sosem futó kód okoz (például egy `catch`, amely csak egy külső hívás dobásakor futna), az A-politika szerint szándékhű elutasítás.
+- **Eredmény:** a teljes kampányban a rés 74 → 50 (58 a generátorból, a többi a mérésből), az elfogadott sorrend +64, 0 hibás elfogadás 351 664 sorrendből.
+
 ## Unreleased – 2026-11-03 pozíciós heapcellák (ADR-071, v37)
 
 - **Kevesebb fölösleges szabály:** egy utasítás egy objektum mezőjéből csak azt az értéket látja, amelyet a referencia szerint előtte álló utasítás írt be. Az `a.note('n2')` így nem ütközik a `shared.push`-sal csak azért, mert később az `a.attach(shared)` a `shared`-et teszi az `a.log`-ba.

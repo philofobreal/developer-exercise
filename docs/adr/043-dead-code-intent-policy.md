@@ -46,3 +46,7 @@ b.flush();         // soha nem fut le; kiolvasná, amit b.add(3) ír
   - `function` csoport: 13 → 12 rés (26,5% → 25%);
   - a többi csoport változatlan.
 - **Korpusz:** a rögzített értékek nem változtak.
+
+## Utóirat (ADR-072)
+
+A mérés a halott kód okozta kötést is szándékhűnek veszi: ha a modell elfogadja a sorrendet, miután a referencia sosem futó egysoros kifejezés-utasításait kikommentezzük, a sorrend `dead-code` szándék, akkor is, ha a megsértett él élő sorok között van. Részletek: [ADR-072](072-certain-overwrites.md).

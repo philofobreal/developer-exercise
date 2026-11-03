@@ -1,6 +1,6 @@
 # Nyitott tételek jegyzéke
 
-Állapot: 2026-11-03, szabályverzió `scoped-effect-analysis-v37`. Ez az egyetlen hely, ahol a lezáratlan tételek össze vannak gyűjtve: a még meg nem oldott generátorhiányok, mérési korlátok, döntések és tervezési adósságok. A részletek a forrásként megadott ADR-ben vannak.
+Állapot: 2026-11-03, szabályverzió `scoped-effect-analysis-v38`. Ez az egyetlen hely, ahol a lezáratlan tételek össze vannak gyűjtve: a még meg nem oldott generátorhiányok, mérési korlátok, döntések és tervezési adósságok. A részletek a forrásként megadott ADR-ben vannak.
 
 **Szabályok:**
 - Minden ADR, amelynek „Nyitott” szakasza van, ide kerül. Ezt a [governance-teszt](../tests/governance.test.mjs) ellenőrzi.
@@ -18,9 +18,9 @@
 
 | ID | Tétel | Típus | Mért hatás (legutóbbi kampány) | Forrás | Következő lépés |
 | --- | --- | --- | --- | --- | --- |
-| NY-01 | **A `flow` objektumütközés-maradéka:** az egyszer futó ciklus kész ([ADR-070](adr/070-loop-body-at-most-once.md)); maradt a nem ismert első elemű és a többször futó ciklus, valamint az `if ('k' === 'k')` mintájú állandó feltétel körüli ütközés | generátor | `flow`: 13 rés nyelvenként (v37) | [ADR-046](adr/046-loops-over-own-objects.md), [ADR-068](adr/068-binding-context-member-phases-early-exit.md), [ADR-070](adr/070-loop-body-at-most-once.md), [ADR-071](adr/071-statement-positioned-heap-cells.md) | okelemzés a 13 tanún |
+| NY-01 | **A `flow` maradéka: az első kört kihagyó ciklus.** `for (const entry of boxes) { if (seen > 0) { … } seen = seen + 1; }` az első elemen nem fut, a modell mégis minden elemre érvényesnek veszi. Az egyszer futó ciklus ([ADR-070](adr/070-loop-body-at-most-once.md)), a pozíciós cellák ([ADR-071](adr/071-statement-positioned-heap-cells.md)) és a biztos felülírás ([ADR-072](adr/072-certain-overwrites.md)) után ez maradt | generátor | `flow`: 1 rés nyelvenként (v38) | [ADR-046](adr/046-loops-over-own-objects.md), [ADR-070](adr/070-loop-body-at-most-once.md), [ADR-072](adr/072-certain-overwrites.md) | ciklusgörgetés kellene (az ADR-070 elvetette); csak ha több tanú lesz |
 | NY-03 | **Hatásösszegzés** a felső szintű függvényekre (`var v = f()`) | generátor | **0 mért rés** (a korábban ide sorolt 31 rés más okú volt, [ADR-069](adr/069-deep-hostile-input-and-own-class-names.md)) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) | csak ha egy mérés esetet mutat |
-| NY-04 | **v3 egységmodell:** a TS overload-csoport és a blokkot is záró sor (`});`) | generátor | `class` TS: 19 rés, korpusz 3 fixture | [ADR-066](adr/066-unit-blocks.md) | külön epic (15. feladat) |
+| NY-04 | **v3 egységmodell:** a TS overload-csoport és a blokkot is záró sor (`});`) | generátor | `class` TS: 19 rés (`sealed-unit` 14, `continued-row` 5), korpusz 3 fixture | [ADR-066](adr/066-unit-blocks.md) | külön epic (15. feladat) |
 | NY-05 | **2d maradéka:** saját objektumot kapó ismeretlen függvény (a referencia megtartása) | generátor | nem mért; korpusz: `Object.entries(totals)` 3 rés | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md), [ADR-059](adr/059-read-only-builtins.md) | mérés előbb, utána döntés |
 | NY-06 | **Tiszta beépített globálisok** (`Math.max`) külön kódcsaládja | generátor | nem mért | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) | mérés |
 | NY-07 | **Orákulum:** a modulok és a `[[Set]]` osztálymező-mód második (kibocsátott) olvasata | mérés | az A1 feltevés szűkítése, nem résszám | [ADR-063](adr/063-oracle-typescript-emit-reading.md) | |
@@ -35,6 +35,7 @@
 | NY-17 | **Szkriptszintű `var` olvasása** koerciós műveletben (`let l3 = v1 + 1`): más szkript írhatja | döntés | `script` JS 5 rés | [ADR-009](adr/009-sealed-units-and-throw-free-reads.md) | szerződésdöntés: egyetlen szkriptnek tekinthető-e a feladat |
 | NY-18 | **`new Item10()`:** overloados, paramétertulajdonságos TS-osztály kimarad az objektummodellből | generátor | `class` TS 1 rés | [ADR-069](adr/069-deep-hostile-input-and-own-class-names.md) | okelemzés, ha több eset lesz |
 | NY-19 | **Eldobott objektumba írás sorrendje:** két írás egy tömbbe, amelyre később már semmi nem hivatkozik (`a.note('n2')` ↔ `a.note('n3')`, majd `a.attach(shared)`). Az A-politika mintájára a generátor kötve tartja; a mérés még résnek számolja | mérés | `object` 11 + 11 rés | [ADR-071](adr/071-statement-positioned-heap-cells.md) | a mérésben szándékként elkülöníteni (a próba a létrehozott objektumokat is megfigyeli), ha egy második tanú is ide esik |
+| NY-20 | **`class-evaluation-order`:** a `class` TS kampány egy rése, még nem elemzett | generátor | `class` TS 1 rés | [ADR-068](adr/068-binding-context-member-phases-early-exit.md) | okelemzés a tanún |
 | NY-16 | **A böngészőtesztek környezete:** a Python Playwright 1248-as Chromiumot vár, 1243-as van telepítve | környezet | friss konténerben nem indul | — | a környezet beállítása; addig `PLAYWRIGHT_BROWSERS_PATH` alias |
 
 ## Elfogadott korlátok (nem rések, nem javítandók)
@@ -49,6 +50,7 @@
 
 | Tétel | Lezárta |
 | --- | --- |
+| NY-01 nagy része: a biztosan felülírt mező korábbi értékei, a getter ismert értéke, a `switch` ismert értékkel, a halott `catch` okozta kötés a mérésben | [ADR-072](adr/072-certain-overwrites.md) |
 | NY-02: a nem dobó `object` programok mezőérték-túlbecslése (a később beírt érték a korábbi olvasásban) | [ADR-071](adr/071-statement-positioned-heap-cells.md) |
 | Többsoros kifejezések lezárása, ha blokk ábrázolhatja | [ADR-066](adr/066-unit-blocks.md) |
 | A halott ág és a véletlenül egyező érték a mérésben | [ADR-067](adr/067-value-perturbation-in-measurement.md) |
