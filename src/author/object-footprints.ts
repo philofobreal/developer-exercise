@@ -185,20 +185,39 @@ export function objectFootprints(list: readonly ts.Statement[], file: ts.SourceF
  // Abstract heap, collected flow-insensitively over every statement of the list.
  const kinds = new Map<string, Kind>([...owned.values()].map(entry => [entry.id, entry.kind]));
  if (self) kinds.set(self, {kind: 'class', info: selfInfo!});
- const fields = new Map<string, Map<string, Value>>(), elements = new Map<string, Value>();
+ // v37 (ADR-071): a heap cell (one field of an object, or an array's elements) keeps each value
+ // with the position of the list statement that wrote it. The statement at `position` sees the
+ // values written at or before it: every statement that writes a cell it reads is ordered with it
+ // (an object conflict, or a barrier when the writer has no footprint), so in every accepted order
+ // a write of a later statement still runs after it.
+ type Cell = Map<number, Value>;
+ const fields = new Map<string, Map<string, Cell>>(), elements = new Map<string, Cell>();
+ let position = -1;
  // v36 (ADR-070): the first element of an own array literal, and the arrays an unshift, pop or
  // shift may have given another first element (no other array write is in the subset).
  const firsts = new Map<string, Value>(), reshaped = new Set<string>();
  let changed = false;
- const addField = (object: string, name: string, value: Value): void => {
-  const map = fields.get(object) ?? new Map<string, Value>(), before = map.get(name), after = before ? union(before, value) : value;
+ const grow = (cell: Cell, value: Value): void => {
+  const before = cell.get(position), after = before ? union(before, value) : value;
   if (!before || after.prim !== before.prim || after.text !== before.text || after.other !== before.other || after.objs.size !== before.objs.size || !!after.known !== !!before.known) changed = true;
-  map.set(name, after);fields.set(object, map);
+  cell.set(position, after);
+ };
+ /** The values the statement at `position` may read from a cell; undefined when nothing written so far. */
+ const upTo = (cell: Cell | undefined): Value | undefined => {
+  const visible = [...cell ?? []].filter(([at]) => at <= position).map(([, value]) => value);
+  return visible.length ? union(...visible) : undefined;
+ };
+ /** Every value a cell ever holds (what an escaping object hands to unknown code). */
+ const ever = (cell: Cell): Value[] => [...cell.values()];
+ const field = (object: string, name: string): Value | undefined => upTo(fields.get(object)?.get(name));
+ const items = (object: string): Value => upTo(elements.get(object)) ?? PRIM;
+ const addField = (object: string, name: string, value: Value): void => {
+  const map = fields.get(object) ?? new Map<string, Cell>(), cell = map.get(name) ?? new Map<number, Value>();
+  grow(cell, value);map.set(name, cell);fields.set(object, map);
  };
  const addElements = (object: string, value: Value): void => {
-  const before = elements.get(object), after = before ? union(before, value) : value;
-  if (!before || after.prim !== before.prim || after.text !== before.text || after.other !== before.other || after.objs.size !== before.objs.size || !!after.known !== !!before.known) changed = true;
-  elements.set(object, after);
+  const cell = elements.get(object) ?? new Map<number, Value>();
+  grow(cell, value);elements.set(object, cell);
  };
  const fresh = (owner: string, node: ts.Node, kind: Kind): string => {const id = owner + '|' + node.pos; if (!kinds.has(id)) {kinds.set(id, kind); changed = true;} return id;};
 
@@ -294,12 +313,12 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
     for (const name of assignedNames(statement.statement, compiler)) if (frame.env.has(name)) frame.env.set(name, union(frame.env.get(name)!, PRIM));
     // v36 (ADR-070): a body that runs at most once sees only the first element of one own array literal.
     const single = iterated.objs.size === 1 ? [...iterated.objs][0]! : undefined;
-    const element = single !== undefined && firsts.has(single) && !reshaped.has(single) && atMostOnce(statement, compiler) ? firsts.get(single)! : union(...[...iterated.objs].map(id => elements.get(id) ?? PRIM));
+    const element = single !== undefined && firsts.has(single) && !reshaped.has(single) && atMostOnce(statement, compiler) ? firsts.get(single)! : union(...[...iterated.objs].map(items));
     if (compiler.isIdentifier(binding)) frame.env.set(binding.text, element);
     // ADR-059: `const [a, b]` over own arrays of own arrays (the pairs of Object.entries): every
     // name may be any element of an inner array, which the destructuring reads.
     else if (compiler.isArrayBindingPattern(binding) && !element.prim && !element.other && element.objs.size && [...element.objs].every(id => kinds.get(id)?.kind === 'array')) {
-     const inner = union(...[...element.objs].map(id => {frame.fp.reads.add(at(id, WHOLE)); return elements.get(id) ?? PRIM;}));
+     const inner = union(...[...element.objs].map(id => {frame.fp.reads.add(at(id, WHOLE)); return items(id);}));
      for (const item of binding.elements) {
       if (compiler.isOmittedExpression(item)) continue;
       if (!compiler.isIdentifier(item.name) || item.initializer || item.dotDotDotToken || item.propertyName) unknown();
@@ -414,8 +433,8 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
     if (getter) {values.push(invoke(getter, object, [], frame)); continue;}
     if (kind.info.methods.has(name) || kind.info.setters.has(name)) unknown();
    }
-   const value = fields.get(object)?.get(name);
-   // A property nobody defines may come from Object.prototype: not modelled.
+   const value = field(object, name);
+   // A property nobody has defined yet may come from Object.prototype: not modelled.
    if (!value) unknown();
    frame.fp.reads.add(at(object, name));values.push(value!);
   }
@@ -448,23 +467,23 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
     if (name !== 'push' && !reshaped.has(object)) {reshaped.add(object); changed = true;}
     const pushed = args.map(argument => expression(argument, frame));
     if (name === 'push' || name === 'unshift') {pushed.forEach(value => addElements(object, value)); values.push(PRIM);}
-    else {if (pushed.length) unknown(); values.push(union(PRIM, elements.get(object) ?? PRIM));}
+    else {if (pushed.length) unknown(); values.push(union(PRIM, items(object)));}
     continue;
    }
    if (!ARRAY_READS.has(name)) unknown();
    frame.fp.reads.add(at(object, WHOLE));
-   const items = elements.get(object) ?? PRIM;
-   if (name === 'join') {args.forEach(argument => prim(expression(argument, frame))); prim(items); values.push(PRIM); continue;}
+   const held = items(object);
+   if (name === 'join') {args.forEach(argument => prim(expression(argument, frame))); prim(held); values.push(PRIM); continue;}
    if (name === 'includes' || name === 'indexOf') {args.forEach(argument => expression(argument, frame)); values.push(PRIM); continue;}
    if (name === 'slice') {args.forEach(argument => prim(expression(argument, frame))); values.push(OTHER); continue;}
    // map, filter, forEach, some, every, find: one synchronous callback per element.
    const callback = args[0] && unwrap(args[0]);
    if (args.length !== 1 || !callback || !compiler.isArrowFunction(callback) || callback.parameters.length > 2) unknown();
    const arrow = callback as ts.ArrowFunction, env = new Map(frame.env);
-   arrow.parameters.forEach((parameter, index) => {if (!compiler.isIdentifier(parameter.name) || parameter.initializer || parameter.dotDotDotToken) unknown(); env.set((parameter.name as ts.Identifier).text, index ? PRIM : items);});
+   arrow.parameters.forEach((parameter, index) => {if (!compiler.isIdentifier(parameter.name) || parameter.initializer || parameter.dotDotDotToken) unknown(); env.set((parameter.name as ts.Identifier).text, index ? PRIM : held);});
    const inner: Frame = {...frame, env};
    const returned = compiler.isBlock(arrow.body) ? block(arrow.body.statements, inner) : expression(arrow.body, inner);
-   values.push(name === 'find' ? union(items, PRIM) : name === 'forEach' || name === 'some' || name === 'every' ? PRIM : (void returned, OTHER));
+   values.push(name === 'find' ? union(held, PRIM) : name === 'forEach' || name === 'some' || name === 'every' ? PRIM : (void returned, OTHER));
   }
   return union(...values);
  }
@@ -542,7 +561,7 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
   if (compiler.isArrayLiteralExpression(expr)) {
    const id = fresh(frame.self ?? 'S', expr, {kind: 'array'});
    for (const element of expr.elements) {if (compiler.isSpreadElement(element) || compiler.isOmittedExpression(element)) unknown(); addElements(id, expression(element, frame));}
-   if (!elements.has(id)) elements.set(id, PRIM);
+   if (!elements.get(id)?.has(position)) addElements(id, PRIM);
    return objects(id);
   }
   if (compiler.isObjectLiteralExpression(expr)) {
@@ -573,7 +592,7 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
   if (expr.arguments.length !== 1 || compiler.isSpreadElement(expr.arguments[0]!)) unknown();
   const argument = expression(expr.arguments[0]!, frame);
   if (argument.prim || argument.other || !argument.objs.size) unknown();
-  const valuesOf = (id: string): Value => kinds.get(id)!.kind === 'array' ? elements.get(id) ?? PRIM : union(PRIM, ...(fields.get(id)?.values() ?? []));
+  const valuesOf = (id: string): Value => kinds.get(id)!.kind === 'array' ? items(id) : union(PRIM, ...[...fields.get(id)?.keys() ?? []].flatMap(name => field(id, name) ?? []));
   if (name === 'stringify') {
    const seen = new Set<string>(), queue = [...argument.objs];
    while (queue.length) {
@@ -626,7 +645,7 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
      addElements(own!.id, value);
      if (!index) firsts.set(own!.id, union(firsts.get(own!.id) ?? value, value));
     });
-    if (!elements.has(own!.id)) elements.set(own!.id, PRIM);
+    if (!elements.get(own!.id)?.has(position)) addElements(own!.id, PRIM);
    }
    else {
     frame.fp.writes.add(at(own!.id, WHOLE));
@@ -697,8 +716,9 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
  for (let round = 0; round < 12; round++) {
   changed = false;
   result.clear();
-  for (const statement of list) {
+  for (const [index, statement] of list.entries()) {
    if (compiler.isReturnStatement(statement)) continue;
+   position = index;
    try {
     const fp = statementFootprint(statement, budget);
     if ([...fp.reads, ...fp.writes].map(objectOf).some(id => escaped.has(id.split('|')[0]!) || escaped.has(id))) continue;
@@ -713,7 +733,7 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
   // Any statement naming `this` without a footprint, a return included, may hand it to unknown code.
   if (self && !escaped.has(self) && [...selfStatements].some(statement => !result.has(statement))) {escaped.add(self); changed = true;}
   for (const id of [...escaped]) {
-   const held = [...fields.get(id)?.values() ?? [], ...elements.has(id) ? [elements.get(id)!] : []];
+   const held = [...[...fields.get(id)?.values() ?? []].flatMap(ever), ...elements.has(id) ? ever(elements.get(id)!) : []];
    for (const value of held) for (const object of value.objs) if (!escaped.has(object)) {escaped.add(object); changed = true;}
   }
   if (!changed) return result;

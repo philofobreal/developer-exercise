@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-11-03 pozíciós heapcellák (ADR-071, v37)
+
+- **Kevesebb fölösleges szabály:** egy utasítás egy objektum mezőjéből csak azt az értéket látja, amelyet a referencia szerint előtte álló utasítás írt be. Az `a.note('n2')` így nem ütközik a `shared.push`-sal csak azért, mert később az `a.attach(shared)` a `shared`-et teszi az `a.log`-ba.
+- **Biztonsági feltételek:** az író és az olvasó sorrendje kötött marad; egy ciklus látja a saját későbbi köreinek írásait; egy még be nem írt mező olvasása ismeretlen.
+- **Mérés:** a teljes kampányban a rés 100 → 74, az elfogadott sorrend +30, 0 hibás elfogadás 351 664 sorrendből.
+- **Új nyitott tétel (NY-19):** az eldobott tömbbe írás sorrendje kötött marad (A-politika); a mérés ezt még résnek számolja.
+
 ## Unreleased – 2026-11-03 egyszer futó ciklus (ADR-070, v36)
 
 - **Kevesebb fölösleges szabály:** a `for (const entry of boxes) { …; break; }` ciklus, amely legfeljebb egyszer fut, csak a tömb első elemén dolgozik. Így egy másik objektum művelete átléphet rajta. Eddig a tömb minden elemét érintőnek vette a modell.

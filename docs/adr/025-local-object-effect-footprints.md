@@ -101,3 +101,7 @@ A független orákulum P2 szintje egy szintaktikus kivételt kap. Két „helyi 
 - A script- és modulszint nem kap hatásnyomot.
 - Az irányelv-megjegyzés (például `// @ts-ignore`) a következő sorra hat, de a CodeLine v2 a szomszédságot nem tudja kifejezni. Ha két utána álló utasítás felcserélhető, az irányelv a másikra kerülhet; ez a v12 előtt is így volt.
 - A típusellenőrzés (TypeScript) és a futás közben ismeretlen környezet (beépített prototípusok módosítása) feltevései: a fájl nem módosít prototípust, és nem használ reflexiót. Ha mégis, a hatásnyom teljesen kimarad.
+
+## Utóirat (ADR-071, v37)
+
+A heap már nem teljesen folyamérzéketlen: egy cella minden értéke a beíró listautasítás pozíciójával tárolódik, és egy utasítás csak a nála nem későbbi írásokat látja. A rendezés indoka: minden író és olvasó között él van. Részletek: [ADR-071](071-statement-positioned-heap-cells.md).

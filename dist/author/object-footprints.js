@@ -184,22 +184,36 @@ export function objectFootprints(list, file, compiler, checker, host) {
     if (self)
         kinds.set(self, { kind: 'class', info: selfInfo });
     const fields = new Map(), elements = new Map();
+    let position = -1;
     // v36 (ADR-070): the first element of an own array literal, and the arrays an unshift, pop or
     // shift may have given another first element (no other array write is in the subset).
     const firsts = new Map(), reshaped = new Set();
     let changed = false;
-    const addField = (object, name, value) => {
-        const map = fields.get(object) ?? new Map(), before = map.get(name), after = before ? union(before, value) : value;
+    const grow = (cell, value) => {
+        const before = cell.get(position), after = before ? union(before, value) : value;
         if (!before || after.prim !== before.prim || after.text !== before.text || after.other !== before.other || after.objs.size !== before.objs.size || !!after.known !== !!before.known)
             changed = true;
-        map.set(name, after);
+        cell.set(position, after);
+    };
+    /** The values the statement at `position` may read from a cell; undefined when nothing written so far. */
+    const upTo = (cell) => {
+        const visible = [...cell ?? []].filter(([at]) => at <= position).map(([, value]) => value);
+        return visible.length ? union(...visible) : undefined;
+    };
+    /** Every value a cell ever holds (what an escaping object hands to unknown code). */
+    const ever = (cell) => [...cell.values()];
+    const field = (object, name) => upTo(fields.get(object)?.get(name));
+    const items = (object) => upTo(elements.get(object)) ?? PRIM;
+    const addField = (object, name, value) => {
+        const map = fields.get(object) ?? new Map(), cell = map.get(name) ?? new Map();
+        grow(cell, value);
+        map.set(name, cell);
         fields.set(object, map);
     };
     const addElements = (object, value) => {
-        const before = elements.get(object), after = before ? union(before, value) : value;
-        if (!before || after.prim !== before.prim || after.text !== before.text || after.other !== before.other || after.objs.size !== before.objs.size || !!after.known !== !!before.known)
-            changed = true;
-        elements.set(object, after);
+        const cell = elements.get(object) ?? new Map();
+        grow(cell, value);
+        elements.set(object, cell);
     };
     const fresh = (owner, node, kind) => { const id = owner + '|' + node.pos; if (!kinds.has(id)) {
         kinds.set(id, kind);
@@ -320,13 +334,13 @@ export function objectFootprints(list, file, compiler, checker, host) {
                         frame.env.set(name, union(frame.env.get(name), PRIM));
                 // v36 (ADR-070): a body that runs at most once sees only the first element of one own array literal.
                 const single = iterated.objs.size === 1 ? [...iterated.objs][0] : undefined;
-                const element = single !== undefined && firsts.has(single) && !reshaped.has(single) && atMostOnce(statement, compiler) ? firsts.get(single) : union(...[...iterated.objs].map(id => elements.get(id) ?? PRIM));
+                const element = single !== undefined && firsts.has(single) && !reshaped.has(single) && atMostOnce(statement, compiler) ? firsts.get(single) : union(...[...iterated.objs].map(items));
                 if (compiler.isIdentifier(binding))
                     frame.env.set(binding.text, element);
                 // ADR-059: `const [a, b]` over own arrays of own arrays (the pairs of Object.entries): every
                 // name may be any element of an inner array, which the destructuring reads.
                 else if (compiler.isArrayBindingPattern(binding) && !element.prim && !element.other && element.objs.size && [...element.objs].every(id => kinds.get(id)?.kind === 'array')) {
-                    const inner = union(...[...element.objs].map(id => { frame.fp.reads.add(at(id, WHOLE)); return elements.get(id) ?? PRIM; }));
+                    const inner = union(...[...element.objs].map(id => { frame.fp.reads.add(at(id, WHOLE)); return items(id); }));
                     for (const item of binding.elements) {
                         if (compiler.isOmittedExpression(item))
                             continue;
@@ -509,8 +523,8 @@ export function objectFootprints(list, file, compiler, checker, host) {
                 if (kind.info.methods.has(name) || kind.info.setters.has(name))
                     unknown();
             }
-            const value = fields.get(object)?.get(name);
-            // A property nobody defines may come from Object.prototype: not modelled.
+            const value = field(object, name);
+            // A property nobody has defined yet may come from Object.prototype: not modelled.
             if (!value)
                 unknown();
             frame.fp.reads.add(at(object, name));
@@ -560,17 +574,17 @@ export function objectFootprints(list, file, compiler, checker, host) {
                 else {
                     if (pushed.length)
                         unknown();
-                    values.push(union(PRIM, elements.get(object) ?? PRIM));
+                    values.push(union(PRIM, items(object)));
                 }
                 continue;
             }
             if (!ARRAY_READS.has(name))
                 unknown();
             frame.fp.reads.add(at(object, WHOLE));
-            const items = elements.get(object) ?? PRIM;
+            const held = items(object);
             if (name === 'join') {
                 args.forEach(argument => prim(expression(argument, frame)));
-                prim(items);
+                prim(held);
                 values.push(PRIM);
                 continue;
             }
@@ -590,10 +604,10 @@ export function objectFootprints(list, file, compiler, checker, host) {
                 unknown();
             const arrow = callback, env = new Map(frame.env);
             arrow.parameters.forEach((parameter, index) => { if (!compiler.isIdentifier(parameter.name) || parameter.initializer || parameter.dotDotDotToken)
-                unknown(); env.set(parameter.name.text, index ? PRIM : items); });
+                unknown(); env.set(parameter.name.text, index ? PRIM : held); });
             const inner = { ...frame, env };
             const returned = compiler.isBlock(arrow.body) ? block(arrow.body.statements, inner) : expression(arrow.body, inner);
-            values.push(name === 'find' ? union(items, PRIM) : name === 'forEach' || name === 'some' || name === 'every' ? PRIM : (void returned, OTHER));
+            values.push(name === 'find' ? union(held, PRIM) : name === 'forEach' || name === 'some' || name === 'every' ? PRIM : (void returned, OTHER));
         }
         return union(...values);
     }
@@ -707,8 +721,8 @@ export function objectFootprints(list, file, compiler, checker, host) {
                     unknown();
                 addElements(id, expression(element, frame));
             }
-            if (!elements.has(id))
-                elements.set(id, PRIM);
+            if (!elements.get(id)?.has(position))
+                addElements(id, PRIM);
             return objects(id);
         }
         if (compiler.isObjectLiteralExpression(expr)) {
@@ -745,7 +759,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
         const argument = expression(expr.arguments[0], frame);
         if (argument.prim || argument.other || !argument.objs.size)
             unknown();
-        const valuesOf = (id) => kinds.get(id).kind === 'array' ? elements.get(id) ?? PRIM : union(PRIM, ...(fields.get(id)?.values() ?? []));
+        const valuesOf = (id) => kinds.get(id).kind === 'array' ? items(id) : union(PRIM, ...[...fields.get(id)?.keys() ?? []].flatMap(name => field(id, name) ?? []));
         if (name === 'stringify') {
             const seen = new Set(), queue = [...argument.objs];
             while (queue.length) {
@@ -812,8 +826,8 @@ export function objectFootprints(list, file, compiler, checker, host) {
                     if (!index)
                         firsts.set(own.id, union(firsts.get(own.id) ?? value, value));
                 });
-                if (!elements.has(own.id))
-                    elements.set(own.id, PRIM);
+                if (!elements.get(own.id)?.has(position))
+                    addElements(own.id, PRIM);
             }
             else {
                 frame.fp.writes.add(at(own.id, WHOLE));
@@ -903,9 +917,10 @@ export function objectFootprints(list, file, compiler, checker, host) {
     for (let round = 0; round < 12; round++) {
         changed = false;
         result.clear();
-        for (const statement of list) {
+        for (const [index, statement] of list.entries()) {
             if (compiler.isReturnStatement(statement))
                 continue;
+            position = index;
             try {
                 const fp = statementFootprint(statement, budget);
                 if ([...fp.reads, ...fp.writes].map(objectOf).some(id => escaped.has(id.split('|')[0]) || escaped.has(id)))
@@ -934,7 +949,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
             changed = true;
         }
         for (const id of [...escaped]) {
-            const held = [...fields.get(id)?.values() ?? [], ...elements.has(id) ? [elements.get(id)] : []];
+            const held = [...[...fields.get(id)?.values() ?? []].flatMap(ever), ...elements.has(id) ? ever(elements.get(id)) : []];
             for (const value of held)
                 for (const object of value.objs)
                     if (!escaped.has(object)) {
