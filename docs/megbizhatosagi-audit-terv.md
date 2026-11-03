@@ -3,7 +3,7 @@
 Állapot: 2026-10-29, `ccf5026`. A külső audit (a `project-snapshot.md` alapján készült) állításait a forráskódon és célzott mérésekkel ellenőriztük. Ez a dokumentum a megállapításokat és a javítás tervét rögzíti.
 
 **Haladás:**
-- **1. fázis:** a nyelvi hiba blokkol, és egy kapu van ([ADR-035](adr/035-language-errors-block-publication.md)). Egy példa frissítve; a többi döntésre vár ([eltéréslista](peldak-migracioja.md)).
+- **1. fázis:** a nyelvi hiba blokkol, és egy kapu van ([ADR-035](adr/035-language-errors-block-publication.md)). Két példa frissítve (`class-inventory-ts`, `algo-bfs-js`); a másik három szándékosan „Nem igazolt” marad, és az alapértelmezés `publishable` marad ([ADR-057](adr/057-example-migration-and-publication-default.md), [eltéréslista](peldak-migracioja.md)). A 4. lépés ezért nyitott.
 - **2. fázis:** kész ([ADR-036](adr/036-implied-order-and-interchangeable-units.md)).
   - **Mi bizonyult a fő oknak:** a robbanás fő oka nem szimmetria volt, hanem gyenge következtetés. A keresés csak a közvetlen éleket és az elhelyezett előtagot nézte.
   - **A javítás:** implikált sorrend, blokkfolytonosság és ellenőrzött felcserélhető egységek.
@@ -243,7 +243,7 @@ Minden tétel új policyverzió, ADR, pozitív és negatív fixture, és utána 
 - **G fázis:** átfogó. A tervezése a 3. fázis után következik; az Ousterhout-féle tervezési governance addig is minden fázisra kötelező.
 
 **Döntést igényel:**
-- **A példák migrációja.** Az 1. fázis 3. lépése átírja a régi feladatok függőségeit. Ez csak a felhasználó jóváhagyásával, tételes eltéréslistával történhet.
-- **Az alapértelmezés átállítása `verified-only`-ra.** A régi modelleket kiszolgáló telepítéseknél viselkedésváltozás.
+- ~~**A példák migrációja.**~~ Eldöntve 2026-11-03 ([ADR-057](adr/057-example-migration-and-publication-default.md)): az `algo-bfs-js` frissítve `valid` szerződéssel; a `class-accounts-ts` a 4. fázis (2d) után tér vissza; az `algo-sort-search-js` és a `profiles-js` változatlan.
+- ~~**Az alapértelmezés átállítása `verified-only`-ra.**~~ Eldöntve 2026-11-03: marad `publishable`, amíg „Nem igazolt” példa van ([ADR-057](adr/057-example-migration-and-publication-default.md)).
 - **A szimmetriatörés ADR-je.** Ez a core validátor algoritmusát érinti, a döntési szabályát nem.
 - ~~**A holt írások és az azonos értékű írások pedagógiai megítélése.**~~ Eldöntve 2026-10-30: A-politika ([ADR-043](adr/043-dead-code-intent-policy.md)), a szerzői lazítás forráshoz kötésével ([ADR-044](adr/044-relaxation-source-fingerprint.md)).

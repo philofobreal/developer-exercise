@@ -93,7 +93,7 @@ test('Pages publication copies and lists only what the catalog serves, and recor
 });
 
 test('Pages publication under verified-only refuses legacy unverified models with the same reason as the server',async t=>{
- const legacy=JSON.parse(await readFile(path.join(root,'examples','algo-bfs-js.json'),'utf8'));
+ const legacy=JSON.parse(await readFile(path.join(root,'examples','profiles-js.json'),'utf8'));
  const dir=await folder(t,{'legacy.json':legacy,'clean.json':clean()});
  const {served,skipped}=await publishExamples(dir,path.join(dir,'site'),{publication:'verified-only'});
  assert.deepEqual(served.map(item=>item.file),['clean.json']);

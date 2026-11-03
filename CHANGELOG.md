@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-11-03 példamigráció és publikálási alapértelmezés (ADR-057)
+
+- **`algo-bfs-js` frissítve** „érvényes egyszerű adat” bemeneti szerződéssel, revízió 2, minősítés „Szerzői döntéssel módosított” (a két rögzített sor miatt). Viselkedésváltozás: a `visited.add` / `queue.push` csere mostantól elutasított, mert a `Set` nincs modellezve. Minden más tanári sorrend, köztük az öt deklaráció 120 permutációja, elfogadott marad. A leírás már nem ígéri a cserét.
+- **Szándékosan változatlan:** a `class-accounts-ts` (a 4. fázis 2d tétele után tér vissza), az `algo-sort-search-js` és a `profiles-js`; mindhárom „Nem igazolt”.
+- **A publikálási alapértelmezés marad `publishable`.** `verified-only` mellett két példa szolgálható ki.
+- **Mérés:** 950 szomszédos sorrend és a tanár 123 sorrendje; 0 új elfogadás, 1 elvesztett. Az újraszármaztatás egyezik, az orákulum minden kiterjesztést ekvivalensnek talál.
+
 ## Unreleased – 2026-11-02 kulcssorrend-beállítás és szabályok típus szerint (ADR-055, v29; ADR-056)
 
 - **„Objektumkulcsok sorrendje” beállítás** (Forrás lépés, JS és TS): „Számít” (alapértelmezett, változatlan) vagy „Nem számít”. Utóbbinál a mezőket, metódusokat és kulcsokat létrehozó sorok egymáshoz képest szabadok, akkor is, ha a program felsorolja vagy szerializálja a kulcsokat – ahogy a tesztkeretrendszerek mély összehasonlítása és a JSON-objektumok kezelik. A kulcsok megléte és az értékek továbbra is kötnek. A modell rögzíti (`environment.keyOrder`), a minősítés és a frissítés ezzel dolgozik, a modell „Elemzéssel igazolt” marad.

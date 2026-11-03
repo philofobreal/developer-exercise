@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "id": "algo-bfs-js",
-  "revision": 1,
+  "revision": 2,
   "title": "Legrövidebb út rácson (BFS)",
-  "description": "Szélességi keresés sorral és bejárt halmazzal. Az öt kezdeti deklaráció tetszőleges sorrendben állhat; a szomszédszámításban nextRow/nextCol, key/inside, valamint a visited.add/queue.push páros felcserélhető. A sorok a saját scope-jukban maradnak; a függvény első és utolsó sora rögzített.",
+  "description": "Szélességi keresés sorral és bejárt halmazzal. Az öt kezdeti deklaráció tetszőleges sorrendben állhat; a szomszédszámításban nextRow/nextCol és key/inside felcserélhető. A sorok a saját scope-jukban maradnak; a függvény első és utolsó sora rögzített.",
   "language": "javascript",
   "lines": [
     {
@@ -18,7 +18,9 @@
     {
       "id": 2,
       "code": "const rows = grid.length;",
-      "dependencies": [],
+      "dependencies": [
+        1
+      ],
       "fixed": false,
       "functionBlock": 1,
       "scopeId": "scope-1",
@@ -27,7 +29,9 @@
     {
       "id": 3,
       "code": "const cols = grid[0].length;",
-      "dependencies": [],
+      "dependencies": [
+        1
+      ],
       "fixed": false,
       "functionBlock": 1,
       "scopeId": "scope-1",
@@ -36,7 +40,9 @@
     {
       "id": 4,
       "code": "const directions = [[1, 0], [-1, 0], [0, 1], [0, -1]];",
-      "dependencies": [],
+      "dependencies": [
+        1
+      ],
       "fixed": false,
       "functionBlock": 1,
       "scopeId": "scope-1",
@@ -45,7 +51,9 @@
     {
       "id": 5,
       "code": "const visited = new Set([start.join(',')]);",
-      "dependencies": [],
+      "dependencies": [
+        1
+      ],
       "fixed": false,
       "functionBlock": 1,
       "scopeId": "scope-1",
@@ -54,7 +62,9 @@
     {
       "id": 6,
       "code": "const queue = [[start[0], start[1], 0]];",
-      "dependencies": [],
+      "dependencies": [
+        1
+      ],
       "fixed": false,
       "functionBlock": 1,
       "scopeId": "scope-1",
@@ -101,7 +111,7 @@
       "id": 10,
       "code": "return distance;",
       "dependencies": [
-        9
+        8
       ],
       "fixed": false,
       "functionBlock": 1,
@@ -133,7 +143,9 @@
     {
       "id": 13,
       "code": "const nextRow = row + dr;",
-      "dependencies": [],
+      "dependencies": [
+        8
+      ],
       "fixed": false,
       "functionBlock": 1,
       "scopeId": "scope-4",
@@ -142,7 +154,9 @@
     {
       "id": 14,
       "code": "const nextCol = col + dc;",
-      "dependencies": [],
+      "dependencies": [
+        8
+      ],
       "fixed": false,
       "functionBlock": 1,
       "scopeId": "scope-4",
@@ -164,6 +178,8 @@
       "id": 16,
       "code": "const inside = nextRow >= 0 && nextRow < rows && nextCol >= 0 && nextCol < cols;",
       "dependencies": [
+        2,
+        3,
         13,
         14
       ],
@@ -176,6 +192,9 @@
       "id": 17,
       "code": "if (!inside || grid[nextRow][nextCol] === 1 || visited.has(key)) {",
       "dependencies": [
+        5,
+        13,
+        14,
         15,
         16
       ],
@@ -210,6 +229,7 @@
       "id": 20,
       "code": "visited.add(key);",
       "dependencies": [
+        12,
         19
       ],
       "fixed": false,
@@ -221,7 +241,7 @@
       "id": 21,
       "code": "queue.push([nextRow, nextCol, distance + 1]);",
       "dependencies": [
-        19
+        20
       ],
       "fixed": false,
       "functionBlock": 1,
@@ -232,7 +252,6 @@
       "id": 22,
       "code": "}",
       "dependencies": [
-        20,
         21
       ],
       "fixed": false,
@@ -311,5 +330,519 @@
       "openLineId": 17,
       "closeLineId": 19
     }
-  ]
+  ],
+  "authoring": {
+    "strategy": "ast-hierarchy",
+    "reason": "",
+    "omittedBlocks": 0,
+    "semanticEquivalenceProven": false,
+    "dependencyPolicy": "scoped-effect-analysis-v29",
+    "provenance": [
+      {
+        "before": 1,
+        "after": 2,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 1,
+        "after": 3,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 1,
+        "after": 4,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 1,
+        "after": 5,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 1,
+        "after": 6,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 2,
+        "after": 7,
+        "category": "effect",
+        "code": "WhileStatement"
+      },
+      {
+        "before": 3,
+        "after": 7,
+        "category": "effect",
+        "code": "WhileStatement"
+      },
+      {
+        "before": 4,
+        "after": 7,
+        "category": "effect",
+        "code": "WhileStatement"
+      },
+      {
+        "before": 5,
+        "after": 7,
+        "category": "effect",
+        "code": "WhileStatement"
+      },
+      {
+        "before": 6,
+        "after": 7,
+        "category": "effect",
+        "code": "WhileStatement"
+      },
+      {
+        "before": 7,
+        "after": 8,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 8,
+        "after": 9,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 8,
+        "after": 9,
+        "category": "conservative",
+        "code": "declaration-shape"
+      },
+      {
+        "before": 8,
+        "after": 9,
+        "category": "effect",
+        "code": "branch-contains-barrier"
+      },
+      {
+        "before": 8,
+        "after": 10,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 10,
+        "after": 11,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 11,
+        "after": 12,
+        "category": "effect",
+        "code": "branch-contains-barrier"
+      },
+      {
+        "before": 11,
+        "after": 12,
+        "category": "effect",
+        "code": "ForOfStatement"
+      },
+      {
+        "before": 8,
+        "after": 13,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 8,
+        "after": 14,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 13,
+        "after": 15,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 13,
+        "after": 15,
+        "category": "data",
+        "code": "read-after-write"
+      },
+      {
+        "before": 14,
+        "after": 15,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 14,
+        "after": 15,
+        "category": "data",
+        "code": "read-after-write"
+      },
+      {
+        "before": 2,
+        "after": 16,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 3,
+        "after": 16,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 13,
+        "after": 16,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 13,
+        "after": 16,
+        "category": "data",
+        "code": "read-after-write"
+      },
+      {
+        "before": 14,
+        "after": 16,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 14,
+        "after": 16,
+        "category": "data",
+        "code": "read-after-write"
+      },
+      {
+        "before": 5,
+        "after": 17,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 13,
+        "after": 17,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 13,
+        "after": 17,
+        "category": "effect",
+        "code": "branch-contains-barrier"
+      },
+      {
+        "before": 13,
+        "after": 17,
+        "category": "data",
+        "code": "read-after-write"
+      },
+      {
+        "before": 14,
+        "after": 17,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 14,
+        "after": 17,
+        "category": "effect",
+        "code": "branch-contains-barrier"
+      },
+      {
+        "before": 14,
+        "after": 17,
+        "category": "data",
+        "code": "read-after-write"
+      },
+      {
+        "before": 15,
+        "after": 17,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 15,
+        "after": 17,
+        "category": "effect",
+        "code": "branch-contains-barrier"
+      },
+      {
+        "before": 15,
+        "after": 17,
+        "category": "data",
+        "code": "read-after-write"
+      },
+      {
+        "before": 16,
+        "after": 17,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 16,
+        "after": 17,
+        "category": "effect",
+        "code": "branch-contains-barrier"
+      },
+      {
+        "before": 16,
+        "after": 17,
+        "category": "data",
+        "code": "read-after-write"
+      },
+      {
+        "before": 17,
+        "after": 18,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 18,
+        "after": 19,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 12,
+        "after": 20,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 19,
+        "after": 20,
+        "category": "effect",
+        "code": "branch-contains-barrier"
+      },
+      {
+        "before": 19,
+        "after": 20,
+        "category": "effect",
+        "code": "ExpressionStatement"
+      },
+      {
+        "before": 20,
+        "after": 21,
+        "category": "effect",
+        "code": "ExpressionStatement"
+      },
+      {
+        "before": 21,
+        "after": 22,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 22,
+        "after": 23,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 23,
+        "after": 24,
+        "category": "effect",
+        "code": "WhileStatement"
+      },
+      {
+        "before": 23,
+        "after": 24,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 24,
+        "after": 25,
+        "category": "structure",
+        "code": "block-close"
+      }
+    ],
+    "evidence": {
+      "sourceDigest": "9a7b21addaaa3956",
+      "analyzer": "scoped-effect-analysis-v29",
+      "environment": {
+        "typescript": "5.8.3",
+        "sourceKind": "script",
+        "classFields": "either",
+        "inputs": "valid"
+      },
+      "projectionLoss": {
+        "pairs": 0,
+        "examples": []
+      }
+    },
+    "dependencyHints": [
+      {
+        "name": "grid",
+        "declarationLine": 1,
+        "usageLine": 2
+      },
+      {
+        "name": "grid",
+        "declarationLine": 1,
+        "usageLine": 3
+      },
+      {
+        "name": "start",
+        "declarationLine": 1,
+        "usageLine": 5
+      },
+      {
+        "name": "start",
+        "declarationLine": 1,
+        "usageLine": 6
+      },
+      {
+        "name": "queue",
+        "declarationLine": 6,
+        "usageLine": 7
+      },
+      {
+        "name": "queue",
+        "declarationLine": 6,
+        "usageLine": 8
+      },
+      {
+        "name": "row",
+        "declarationLine": 8,
+        "usageLine": 9
+      },
+      {
+        "name": "goal",
+        "declarationLine": 1,
+        "usageLine": 9
+      },
+      {
+        "name": "col",
+        "declarationLine": 8,
+        "usageLine": 9
+      },
+      {
+        "name": "distance",
+        "declarationLine": 8,
+        "usageLine": 10
+      },
+      {
+        "name": "directions",
+        "declarationLine": 4,
+        "usageLine": 12
+      },
+      {
+        "name": "row",
+        "declarationLine": 8,
+        "usageLine": 13
+      },
+      {
+        "name": "dr",
+        "declarationLine": 12,
+        "usageLine": 13
+      },
+      {
+        "name": "col",
+        "declarationLine": 8,
+        "usageLine": 14
+      },
+      {
+        "name": "dc",
+        "declarationLine": 12,
+        "usageLine": 14
+      },
+      {
+        "name": "nextRow",
+        "declarationLine": 13,
+        "usageLine": 15
+      },
+      {
+        "name": "nextCol",
+        "declarationLine": 14,
+        "usageLine": 15
+      },
+      {
+        "name": "nextRow",
+        "declarationLine": 13,
+        "usageLine": 16
+      },
+      {
+        "name": "rows",
+        "declarationLine": 2,
+        "usageLine": 16
+      },
+      {
+        "name": "nextCol",
+        "declarationLine": 14,
+        "usageLine": 16
+      },
+      {
+        "name": "cols",
+        "declarationLine": 3,
+        "usageLine": 16
+      },
+      {
+        "name": "inside",
+        "declarationLine": 16,
+        "usageLine": 17
+      },
+      {
+        "name": "grid",
+        "declarationLine": 1,
+        "usageLine": 17
+      },
+      {
+        "name": "nextRow",
+        "declarationLine": 13,
+        "usageLine": 17
+      },
+      {
+        "name": "nextCol",
+        "declarationLine": 14,
+        "usageLine": 17
+      },
+      {
+        "name": "visited",
+        "declarationLine": 5,
+        "usageLine": 17
+      },
+      {
+        "name": "key",
+        "declarationLine": 15,
+        "usageLine": 17
+      },
+      {
+        "name": "visited",
+        "declarationLine": 5,
+        "usageLine": 20
+      },
+      {
+        "name": "key",
+        "declarationLine": 15,
+        "usageLine": 20
+      },
+      {
+        "name": "queue",
+        "declarationLine": 6,
+        "usageLine": 21
+      },
+      {
+        "name": "nextRow",
+        "declarationLine": 13,
+        "usageLine": 21
+      },
+      {
+        "name": "nextCol",
+        "declarationLine": 14,
+        "usageLine": 21
+      },
+      {
+        "name": "distance",
+        "declarationLine": 8,
+        "usageLine": 21
+      }
+    ]
+  }
 }

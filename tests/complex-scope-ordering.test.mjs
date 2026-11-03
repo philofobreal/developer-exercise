@@ -200,14 +200,16 @@ test('teljes szomszédsági söprés: minden egy-soros áthelyezés és páros c
  * must be accepted and runtime-equivalent; everything else nearby is rejected.
  * ------------------------------------------------------------------------- */
 const library={
- 'algo-bfs-js':{probe:'(() => { const grid = [[0, 0, 0, 0], [1, 1, 0, 1], [0, 0, 0, 0], [0, 1, 1, 0]]; return [shortestPath(grid, [0, 0], [3, 3]), shortestPath(grid, [0, 0], [2, 0]), shortestPath(grid, [3, 0], [0, 3]), shortestPath([[0, 1], [1, 0]], [0, 0], [1, 1]), shortestPath(grid, [2, 2], [2, 2]), shortestPath([[0, 0], [0, 0]], [0, 0], [5, 5])]; })()',extensions:960,
+ 'algo-bfs-js':{probe:'(() => { const grid = [[0, 0, 0, 0], [1, 1, 0, 1], [0, 0, 0, 0], [0, 1, 1, 0]]; return [shortestPath(grid, [0, 0], [3, 3]), shortestPath(grid, [0, 0], [2, 0]), shortestPath(grid, [3, 0], [0, 3]), shortestPath([[0, 1], [1, 0]], [0, 0], [1, 1]), shortestPath(grid, [2, 2], [2, 2]), shortestPath([[0, 0], [0, 0]], [0, 0], [5, 5])]; })()',extensions:480,
   scope:[
    {name:'directions eggyel beljebb, a while ciklusba',order:o=>moveBefore(o,4,8),status:'rejected',equivalent:true},
    {name:'rows két szinttel beljebb, a for ciklusba',order:o=>moveBefore(o,2,13),status:'rejected',equivalent:true},
    {name:'visited a while ciklusba (minden körben új halmaz)',order:o=>moveBefore(o,5,8),status:'rejected',equivalent:false},
    {name:'nextRow kiemelése a for ciklus elé',order:o=>moveBefore(o,13,12),status:'rejected',equivalent:false},
    {name:'deklarációk tetszőleges sorrendje',order:o=>place(o,[2,3,4,5,6],[6,4,2,5,3]),status:'accepted',equivalent:true},
-   {name:'visited.add és queue.push cseréje',order:o=>swap(o,20,21),status:'accepted',equivalent:true},
+   // Migrated with the valid input contract (docs/peldak-migracioja.md): the Set is not modelled, so
+   // the swap is ordered although the run is identical; a documented conservative rejection.
+   {name:'visited.add és queue.push cseréje',order:o=>swap(o,20,21),status:'rejected',equivalent:true},
    {name:'continue-ág és visited.add cseréje',order:o=>moveBefore(o,20,17),status:'rejected',equivalent:false}]},
  'algo-sort-search-js':{probe:'(() => { const input = [5, 2, 9, 1, 5, 6, -3]; const sorted = insertionSort(input); return [sorted, input, [-3, 1, 5, 6, 9, 4, 10].map((target) => binarySearch(sorted, target))]; })()',extensions:8,
   scope:[

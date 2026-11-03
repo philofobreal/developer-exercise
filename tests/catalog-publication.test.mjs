@@ -17,8 +17,9 @@ test('publication rule: budget-undecided models never, unverified ones only unde
  assert.match(publicationRefusal(v('unverified',true),'verified-only'),/nem igazolt/);
  for(const status of ['analysis-verified','conservative','author-modified'])assert.equal(publicationRefusal(v(status,true),'verified-only'),null,status);
 });
-// The one refreshed example (docs/peldak-migracioja.md); every other example is still a legacy model.
-const refreshed={'class-inventory-ts':'analysis-verified'};
+// The refreshed examples (docs/peldak-migracioja.md); every other example is still a legacy model.
+// algo-bfs-js keeps its two fixed lines, an author decision: author-modified.
+const refreshed={'algo-bfs-js':'author-modified','class-inventory-ts':'analysis-verified'};
 test('catalog: the default serves every example and names its qualification; verified-only skips the legacy ones untouched',async t=>{
  const dir=await mkdtemp(path.join(tmpdir(),'codeline-publication-'));t.after(()=>rm(dir,{recursive:true,force:true}));
  const examples=(await readdir('examples')).filter(name=>name.endsWith('.json')).sort();

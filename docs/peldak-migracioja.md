@@ -1,8 +1,9 @@
 # A példafeladatok migrációja – tételes eltéréslista (döntésre vár)
 
-Állapot: **részben alkalmazva.**
+Állapot: **eldöntve** ([ADR-057](adr/057-example-migration-and-publication-default.md)).
 - A `class-inventory-ts` frissítése jóváhagyás után alkalmazva (2026-10-29).
-- A többi négy példa döntésre vár, a fájljaik változatlanok. A lista a [megbízhatósági terv](megbizhatosagi-audit-terv.md) 1. fázisának 3. lépéséhez készült. Az alapja az explicit „Sorfüggőségek újraszámítása” (`refreshAuthorModel`) a mai generátorral, `scoped-effect-analysis-v17` szabályverzióval.
+- Az `algo-bfs-js` frissítve `valid` bemeneti szerződéssel, revízió 2 (2026-11-03).
+- A `class-accounts-ts`, az `algo-sort-search-js` és a `profiles-js` szándékosan változatlan, „Nem igazolt”. A lista a [megbízhatósági terv](megbizhatosagi-audit-terv.md) 1. fázisának 3. lépéséhez készült. Az alapja az explicit „Sorfüggőségek újraszámítása” (`refreshAuthorModel`) a mai generátorral, `scoped-effect-analysis-v17` szabályverzióval.
 
 **Módszer:**
 - **Vizsgált sorrendek:** minden egysoros áthelyezés és páros csere, valamint mindkét modell 300–300 véletlen lineáris kiterjesztése.
@@ -17,7 +18,7 @@
 | --- | --- | --- | --- | --- | --- |
 | [class-inventory-ts](../examples/class-inventory-ts.json) | igen | `analysis-verified` | 0 | 0 | **alkalmazva**, a viselkedés nem változott |
 | [class-accounts-ts](../examples/class-accounts-ts.json) | igen | `analysis-verified` | 8 (mind helyes) | 248 (mind `effect-order`) | döntés: szigorúbb lesz |
-| [algo-bfs-js](../examples/algo-bfs-js.json) | igen | `author-modified` (2 rögzített sor) | 0 | 301 (289 `effect-order`, 12 valóban azonos) | döntés: jóval szigorúbb lesz |
+| [algo-bfs-js](../examples/algo-bfs-js.json) | igen | `author-modified` (2 rögzített sor) | 0 | v17-tel 301; v29 `valid` szerződéssel 1 | **alkalmazva** (2026-11-03), lásd lent |
 | [algo-sort-search-js](../examples/algo-sort-search-js.json) | **nem** | – | – | – | új feladatként kell felvenni |
 | [profiles-js](../examples/profiles-js.json) | **nem** | – | – | – | a forrást vagy a profilt kell újragondolni |
 
@@ -33,6 +34,23 @@ A v25-ös újravizsgálat megmutatta, hogy a `class-accounts-ts` és az `algo-bf
 | `profiles-js` | a profilbemutató ütközik | ugyanaz |
 
 **Javaslat:** az `algo-bfs-js` `valid` szerződéssel frissíthető, egyetlen tanári pár elvesztésével. Ez a pár szerzői lazításként megtartható, ujjlenyomattal (ADR-044). A többi példa döntési pontja változatlan. Az átírás jóváhagyáshoz kötött.
+
+### Döntés és alkalmazás (2026-11-03, v29)
+
+A felhasználó jóváhagyta az ajánlást ([ADR-057](adr/057-example-migration-and-publication-default.md)).
+
+**`algo-bfs-js`:**
+- **Újramérés v29-cel:** 950 egysoros áthelyezés és páros csere, valamint a tanár mind a 123 megengedett sorrendje. Új elfogadás 0, elvesztett elfogadás 1: a `visited.add(key)` / `queue.push(…)` csere.
+- **Az elvesztett pár:** az orákulum hatásrend-ellenőrzése (`effect-order`) is eltérőnek minősíti, bár futásidőben azonos.
+- **Nem tartottuk meg lazításként,** mert a modell azzal „Nem igazolt” lenne.
+- **Minősítés:** `author-modified` (a két rögzített sor szerzői döntés). A revízió 2, a leírás már nem ígéri a cserét.
+- **A lineáris kiterjesztések száma:** 960 helyett 480.
+
+**`class-accounts-ts`:** a 4. fázis 2d tétele után tér vissza.
+
+**`algo-sort-search-js` és `profiles-js`:** a (b) út, „Nem igazolt” marad.
+
+**`verified-only`:** nem lett alapértelmezés.
 
 **Fogalmak:**
 - **`effect-order`:** az orákulum szintaktikus hatásrend-ellenőrzése szerint a sorrend eltér, mert két esetleg kivételt dobó vagy hatásos művelet cserélődik fel.
