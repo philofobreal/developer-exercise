@@ -1,6 +1,6 @@
 # Nyitott tételek jegyzéke
 
-Állapot: 2026-11-03, szabályverzió `scoped-effect-analysis-v38`. Ez az egyetlen hely, ahol a lezáratlan tételek össze vannak gyűjtve: a még meg nem oldott generátorhiányok, mérési korlátok, döntések és tervezési adósságok. A részletek a forrásként megadott ADR-ben vannak.
+Állapot: 2026-11-03, szabályverzió `scoped-effect-analysis-v39`. Ez az egyetlen hely, ahol a lezáratlan tételek össze vannak gyűjtve: a még meg nem oldott generátorhiányok, mérési korlátok, döntések és tervezési adósságok. A részletek a forrásként megadott ADR-ben vannak.
 
 **Szabályok:**
 - Minden ADR, amelynek „Nyitott” szakasza van, ide kerül. Ezt a [governance-teszt](../tests/governance.test.mjs) ellenőrzi.
@@ -33,16 +33,15 @@
 | NY-14 | **`POLICY_INTENT`:** kézi lista az osztályozóban | tervezés | nincs | [ADR-068](adr/068-binding-context-member-phases-early-exit.md) | a jegyzékbe, ha lesz második ilyen okkód |
 | NY-15 | **Az ellenőrzési kapu** a blokkszámból következtet az azonos szerkezetre | tervezés | nincs | [ADR-066](adr/066-unit-blocks.md) | saját összevetés, ha a frissítés más finomítást kap |
 | NY-17 | **Szkriptszintű `var` olvasása** koerciós műveletben (`let l3 = v1 + 1`): más szkript írhatja | döntés | `script` JS 5 rés | [ADR-009](adr/009-sealed-units-and-throw-free-reads.md) | szerződésdöntés: egyetlen szkriptnek tekinthető-e a feladat |
-| NY-18 | **`new Item10()`:** overloados, paramétertulajdonságos TS-osztály kimarad az objektummodellből | generátor | `class` TS 1 rés | [ADR-069](adr/069-deep-hostile-input-and-own-class-names.md) | okelemzés, ha több eset lesz |
 | NY-19 | **Eldobott objektumba írás sorrendje:** két írás egy tömbbe, amelyre később már semmi nem hivatkozik (`a.note('n2')` ↔ `a.note('n3')`, majd `a.attach(shared)`). Az A-politika mintájára a generátor kötve tartja; a mérés még résnek számolja | mérés | `object` 11 + 11 rés | [ADR-071](adr/071-statement-positioned-heap-cells.md) | a mérésben szándékként elkülöníteni (a próba a létrehozott objektumokat is megfigyeli), ha egy második tanú is ide esik |
-| NY-20 | **`class-evaluation-order`:** a `class` TS kampány egy rése, még nem elemzett | generátor | `class` TS 1 rés | [ADR-068](adr/068-binding-context-member-phases-early-exit.md) | okelemzés a tanún |
+| NY-21 | **A kampány osztályprogramjai** nem generálnak ősosztálybeli accessort (getter, setter, `accessor` mező); a `[[Set]]` mezőmód hibás elfogadását (ADR-073) egy célzott próba hozta elő | mérés | nem résszám: lefedettségi hiány | [ADR-073](adr/073-base-chain-fields-and-defaults.md) | a `randomClassProgram` bővítése ősaccessorral (az alapértékek újrarögzítésével) |
 | NY-16 | **A böngészőtesztek környezete:** a Python Playwright 1248-as Chromiumot vár, 1243-as van telepítve | környezet | friss konténerben nem indul | — | a környezet beállítása; addig `PLAYWRIGHT_BROWSERS_PATH` alias |
 
 ## Elfogadott korlátok (nem rések, nem javítandók)
 
 | Tétel | Miért | Forrás |
 | --- | --- | --- |
-| `f7 = this.f5`: getterre is olvasható mezőinicializáló kötött | egy getter megfigyelheti a korábbi mezőt | [ADR-068](adr/068-binding-context-member-phases-early-exit.md) |
+| Egy accessor olvasása mezőinicializálóban (`f = this.p`, ahol `p` getter) kötött | a getter megfigyelheti a korábbi mezőt; a saját adatmezőt másoló mező szabad ([ADR-073](adr/073-base-chain-fields-and-defaults.md)) | [ADR-068](adr/068-binding-context-member-phases-early-exit.md) |
 | A halott kód és a korai kilépés sorrendje kötött | pedagógiai döntés (A-politika) | [ADR-043](adr/043-dead-code-intent-policy.md), [ADR-019](adr/019-pure-effect-commutation.md) |
 | Univerzális szemantikai ekvivalencia | eldönthetetlen | [formális szerződés](formal-ordering-contract.md) |
 
@@ -50,6 +49,8 @@
 
 | Tétel | Lezárta |
 | --- | --- |
+| NY-18: alapértékes paraméterű konstruktor az objektummodellben | [ADR-073](adr/073-base-chain-fields-and-defaults.md) |
+| NY-20: a korábbi saját adatmezőt másoló mező (`f7 = this.f5`); közben a laza mezők `[[Set]]` módbeli hibás elfogadása ősosztálybeli setterrel | [ADR-073](adr/073-base-chain-fields-and-defaults.md) |
 | NY-01 nagy része: a biztosan felülírt mező korábbi értékei, a getter ismert értéke, a `switch` ismert értékkel, a halott `catch` okozta kötés a mérésben | [ADR-072](adr/072-certain-overwrites.md) |
 | NY-02: a nem dobó `object` programok mezőérték-túlbecslése (a később beírt érték a korábbi olvasásban) | [ADR-071](adr/071-statement-positioned-heap-cells.md) |
 | Többsoros kifejezések lezárása, ha blokk ábrázolhatja | [ADR-066](adr/066-unit-blocks.md) |

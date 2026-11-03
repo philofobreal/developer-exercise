@@ -275,14 +275,27 @@ export function objectFootprints(list, file, compiler, checker, host) {
         const key = self + '@' + body.pos;
         if (frame.stack.has(key) || !body.body || !compiler.isBlock(body.body))
             unknown();
-        const env = new Map();
-        body.parameters.forEach((parameter, index) => {
-            if (!compiler.isIdentifier(parameter.name) || parameter.initializer || parameter.dotDotDotToken)
-                unknown();
-            env.set(parameter.name.text, args[index] ?? literal(undefined));
-        });
-        const inner = { ...frame, self, env, stack: new Set([...frame.stack, key]), every: undefined, top: undefined };
+        const inner = { ...frame, self, env: bind(body, args, { ...frame, self, env: new Map(), every: undefined, top: undefined }), stack: new Set([...frame.stack, key]), every: undefined, top: undefined };
         return block(body.body.statements, inner);
+    }
+    /** The parameters of `body` bound to `args`. v39 (ADR-073): a default runs, in the callee's scope
+     * with the earlier parameters bound, when its argument is missing or may be undefined. */
+    function bind(body, args, frame) {
+        const env = frame.env;
+        body.parameters.forEach((parameter, index) => {
+            if (!compiler.isIdentifier(parameter.name) || parameter.dotDotDotToken)
+                unknown();
+            let value = args[index] ?? literal(undefined);
+            if (parameter.initializer) {
+                const missing = !!value.known && value.known.lit === undefined, maybe = !value.known && value.prim;
+                if (missing || maybe) {
+                    const fallback = expression(parameter.initializer, frame);
+                    value = missing ? fallback : union(value, fallback);
+                }
+            }
+            env.set(parameter.name.text, value);
+        });
+        return env;
     }
     function construct(id, info, args, frame) {
         frame.fp.writes.add(at(id, WHOLE));
@@ -294,9 +307,14 @@ export function objectFootprints(list, file, compiler, checker, host) {
         }
         if (!info.ctor)
             return;
-        info.ctor.parameters.forEach((parameter, index) => { if (info.parameterFields.includes(parameter.name.text))
-            addField(id, parameter.name.text, args[index] ?? PRIM); });
-        invoke(info.ctor, id, args, { ...frame, constructing: new Set([...frame.constructing ?? [], id]) });
+        // The parameter properties hold the bound arguments, defaults included (ADR-073).
+        const bound = bind(info.ctor, args, { ...frame, self: id, env: new Map(), every: undefined, top: undefined }), values = info.ctor.parameters.map(parameter => compiler.isIdentifier(parameter.name) ? bound.get(parameter.name.text) : PRIM);
+        info.ctor.parameters.forEach((parameter, index) => { if (info.parameterFields.includes(parameter.name.text)) {
+            addField(id, parameter.name.text, values[index]);
+            if (frame.certain)
+                frame.must?.add(at(id, parameter.name.text));
+        } });
+        invoke(info.ctor, id, values, { ...frame, constructing: new Set([...frame.constructing ?? [], id]) });
     }
     function block(statements, outer) {
         let returned = PRIM;

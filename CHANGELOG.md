@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-03 őslánc, másoló mező, alapértékes paraméter (ADR-073, v39)
+
+- **Hibás elfogadás javítva:** TypeScriptben a `useDefineForClassFields: false` mezőmódban egy mező értékadása az ősosztály azonos nevű setterét futtatja. Két ilyen mező cseréje eddig elfogadott volt, holott a setter megfigyelheti a másikat. Most egy mező csak akkor szabad, ha egyik ős sem definiál ilyen nevű accessort.
+- **Kevesebb fölösleges szabály:** az `f7 = this.f5` alakú mező, amely egy korábbi saját adatmezőt másol, csak a forrása után kell álljon, a többi mezőhöz képest szabad. Az alapértékes paraméterű konstruktor (`constructor(readonly c = 4)`) osztálya az objektummodellben marad.
+- **Mérés:** a teljes kampányban a rés 50 → 48, az elfogadott sorrend +2, 0 hibás elfogadás 351 664 sorrendből. A hibás elfogadást egy célzott próba találta meg, a kampány nem; a kampány osztályprogramjainak bővítése új tétel (NY-21).
+
 ## Unreleased – 2026-11-03 biztos felülírás (ADR-072, v38)
 
 - **Kevesebb fölösleges szabály:** ha egy utasítás biztosan felülír egy mezőt (egyenes vonalú kód, vagy egy ciklus, amely egy saját tömb minden elemén ugrás nélkül végigmegy), a későbbi olvasások már nem látják a mező korábbi értékét. Egy getter ismert értéket ad vissza, a `switch` ismert értékkel csak a választott ágtól fut.

@@ -57,3 +57,7 @@ A generátor felismerése legalább olyan tág, mint az orákulumé. Ami a gener
 - **Megmaradó szigorúság:** a konstruktorban a `this.name = name;` és a `this.id = id;` sorrendje továbbra is kötött. A `this`-re írás utasításszintű barrier, és `useDefineForClassFields: false` mellett ez hozza létre a kulcsokat. Ez ismert completeness-rés; a teszt pontosan rögzíti.
 - **Változatlan:** a statikus mezők sorrendje (a konstruktor felsorolható kulcsai), az `accessor` mezők és a saját objektumokra írt új kulcsok (ADR-028, egész objektum) kötöttek maradnak. *A v34 ([ADR-068](068-binding-context-member-phases-early-exit.md)) óta a kódot nem futtató static és `accessor` mező is laza.*
 - **Nem változik:** a TS-mintatár többi modelljében csak a címke és a tömörített magyarázó szöveg.
+
+## Utóirat (ADR-073, v39)
+
+A TypeScript `[[Set]]` mezőmódjában egy mező értékadása az ősosztály azonos nevű setterét futtatja. Ezért TypeScriptben a laza mezőnek az ősláncon nem lehet ilyen nevű accessora; ennek hiánya hibás elfogadást okozott. Részletek: [ADR-073](073-base-chain-fields-and-defaults.md).

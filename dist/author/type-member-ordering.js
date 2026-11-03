@@ -48,6 +48,44 @@ export function typeMemberOrdering(file, compiler, options = {}) {
         const children = body.getChildren(file), open = children.find(child => child.kind === compiler.SyntaxKind.OpenBraceToken), close = children.filter(child => child.kind === compiler.SyntaxKind.CloseBraceToken).at(-1);
         return !!open && !!close && first(open) === row && first(close) === end && physical[row]?.trim() === file.text.slice(member.getStart(file), open.end).trim() && physical[end]?.trim() === file.text.slice(close.getStart(file), member.end).trim();
     };
+    // v39 (ADR-073): TypeScript's [[Set]] class-field mode assigns a field, which runs a setter of that
+    // name anywhere on the prototype chain; a method or field there is a writable data property, which
+    // the assignment shadows without running code. The accessor names the base classes may define
+    // (get, set, `accessor` fields), when every base is a class declared once in this file without a
+    // computed accessor name; otherwise unknown.
+    const typescript = file.fileName.endsWith('.ts') || file.fileName.endsWith('.tsx') || file.fileName.endsWith('.mts') || file.fileName.endsWith('.cts');
+    const reshapes = /\.prototype\b|__proto__|defineProperty|setPrototypeOf|\bReflect\b|\bProxy\b/.test(file.text);
+    const declarations = new Map();
+    const collect = (node) => {
+        const named = (compiler.isClassLike(node) || compiler.isFunctionDeclaration(node) || compiler.isVariableDeclaration(node) || compiler.isParameter(node) || compiler.isBindingElement(node) || compiler.isImportSpecifier(node) || compiler.isImportClause(node) || compiler.isNamespaceImport(node) || compiler.isImportEqualsDeclaration(node) || compiler.isEnumDeclaration(node) || compiler.isModuleDeclaration(node)) ? node.name : undefined;
+        if (named && compiler.isIdentifier(named))
+            declarations.set(named.text, [...declarations.get(named.text) ?? [], node]);
+        compiler.forEachChild(node, collect);
+    };
+    collect(file);
+    const baseAccessors = (node, seen = new Set()) => {
+        const heritage = node.heritageClauses?.find(clause => clause.token === compiler.SyntaxKind.ExtendsKeyword)?.types[0]?.expression;
+        if (!heritage)
+            return new Set();
+        if (!compiler.isIdentifier(heritage))
+            return null;
+        const found = declarations.get(heritage.text) ?? [], base = found[0];
+        if (found.length !== 1 || !base || !compiler.isClassDeclaration(base) || seen.has(base))
+            return null;
+        const inherited = baseAccessors(base, new Set([...seen, node]));
+        if (!inherited)
+            return null;
+        for (const member of base.members) {
+            const accessor = compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member) || compiler.isPropertyDeclaration(member) && !!compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.AccessorKeyword);
+            if (!accessor)
+                continue;
+            const key = member.name && compiler.isComputedPropertyName(member.name) ? undefined : name(member);
+            if (key === undefined)
+                return null;
+            inherited.add(key);
+        }
+        return inherited;
+    };
     function visit(node) {
         if (compiler.isInterfaceDeclaration(node) || compiler.isTypeLiteralNode(node) || compiler.isClassLike(node)) {
             const isClass = compiler.isClassLike(node);
@@ -77,6 +115,26 @@ export function typeMemberOrdering(file, compiler, options = {}) {
             const definitionOnly = (member) => (compiler.isMethodDeclaration(member) || compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member)) && !!member.body && !!member.name && !compiler.isComputedPropertyName(member.name)
                 && !(compiler.canHaveDecorators(member) && compiler.getDecorators(member)?.length) && ((compiler.canHaveModifiers(member) ? compiler.getModifiers(member) : undefined) ?? []).every(modifier => definitionModifiers.has(modifier.kind)) && definitionRows(member);
             const duplicates = new Set(isClass ? [...counts].filter(([key, count]) => count > 1 && !pairs.has(key) && node.members.every(member => name(member) !== key || definitionOnly(member))).map(([key]) => key) : []);
+            /** ADR-073: the earlier field `this.g` names, when `member`'s initialiser is just that read and `g`
+             * is a uniquely named plain field of the same placement that no base can define. */
+            const copySource = (member, all) => {
+                let read = member.initializer;
+                while (compiler.isParenthesizedExpression(read))
+                    read = read.expression;
+                if (!compiler.isPropertyAccessExpression(read) || read.expression.kind !== compiler.SyntaxKind.ThisKeyword || read.questionDotToken)
+                    return undefined;
+                const target = read.name.text, index = all.indexOf(member);
+                const source = all.find((other, at) => at < index && name(other) === target);
+                if (!source || !compiler.isPropertyDeclaration(source) || counts.get(target) !== 1 || isStatic(source) !== isStatic(member) || !source.name || compiler.isComputedPropertyName(source.name))
+                    return undefined;
+                const sourceModifiers = compiler.getModifiers(source) ?? [];
+                if (sourceModifiers.some(modifier => modifier.kind === compiler.SyntaxKind.AccessorKeyword || modifier.kind === compiler.SyntaxKind.DeclareKeyword || modifier.kind === compiler.SyntaxKind.AbstractKeyword) || compiler.getDecorators(source)?.length)
+                    return undefined;
+                return assignable(target, source) ? source : undefined;
+            };
+            // ADR-073: a field assignment in the [[Set]] mode may run code unless no base can define its name.
+            const inherited = isClass ? baseAccessors(node) : new Set();
+            const assignable = (key, member) => key !== '__proto__' && (!typescript || compiler.isPrivateIdentifier(member.name) || !!inherited && !inherited.has(key));
             const members = node.members.map(member => {
                 const key = name(member), row = first(member), end = last(member);
                 const modifiers = compiler.canHaveModifiers(member) ? compiler.getModifiers(member) : undefined;
@@ -110,8 +168,12 @@ export function typeMemberOrdering(file, compiler, options = {}) {
                 // ADR-029: a uniquely named instance field that runs no code creates only its key; unless the program enumerates keys, that order is unobserved.
                 // v34 (ADR-068): likewise a static field (a key of the constructor) and an `accessor` field, whose
                 // initialiser only fills a private storage; its get/set key is created at definition (the key chain).
-                const loose = !options.enumeratedKeys && phases?.length === 1 && key !== undefined && counts.get(key) === 1 && compiler.isPropertyDeclaration(member) && (!member.initializer || inert(member.initializer));
-                return { first: row, last: end, pure, plain, free: definition || isClass && pure, ...(definition && duplicate ? { sameKey: key + (isStatic(member) ? ' static' : ' prototype') } : {}), ...(reflected ? { reflect: isStatic(member) ? 'static' : 'prototype' } : {}), ...(phases ? { phases } : {}), ...(definition && paired ? { pair: key } : {}), ...(loose ? { loose } : {}) };
+                const loose = !options.enumeratedKeys && phases?.length === 1 && key !== undefined && counts.get(key) === 1 && compiler.isPropertyDeclaration(member) && assignable(key, member) && (!member.initializer || inert(member.initializer));
+                // v39 (ADR-073): a field that copies an earlier own data field of the same placement (`f = this.g`)
+                // runs no code either: `g` is then an own data property (defined, or assigned without a setter on
+                // the chain), so the read runs no getter. It follows `g`, but no other loose field.
+                const copied = !loose && !options.enumeratedKeys && !reshapes && phases?.length === 1 && phases[0] !== 'key' && key !== undefined && counts.get(key) === 1 && compiler.isPropertyDeclaration(member) && !autoAccessor && assignable(key, member) && member.initializer ? copySource(member, node.members) : undefined;
+                return { first: row, last: end, pure, plain, free: definition || isClass && pure, ...(definition && duplicate ? { sameKey: key + (isStatic(member) ? ' static' : ' prototype') } : {}), ...(reflected ? { reflect: isStatic(member) ? 'static' : 'prototype' } : {}), ...(phases ? { phases } : {}), ...(definition && paired ? { pair: key } : {}), ...(loose || copied ? { loose: true } : {}), ...(copied ? { copies: last(copied) } : {}) };
             });
             // An overload signature must directly precede the next signature or the
             // implementation (TS2389/TS2391): the whole group is one unit. Its signatures are
@@ -202,6 +264,8 @@ export function typeMemberOrdering(file, compiler, options = {}) {
                                 if (!unit.phases || unit.phases.includes(phase))
                                     for (const field of fields)
                                         reasons.push({ before: field.last, code: unit.phases ? 'class-evaluation-order' : 'unclassified-member' });
+                        if (unit.copies !== undefined)
+                            reasons.push({ before: unit.copies, code: 'class-evaluation-order' });
                         entries.push(reasons.length ? { row: unit.first, after: [...new Set(reasons.map(reason => reason.before))], reasons } : { row: unit.first, after: [first(open)], reasons: [{ before: first(open), code: 'block-open' }] });
                         if (unit.loose) {
                             loose.get(unit.phases[0]).push(unit);

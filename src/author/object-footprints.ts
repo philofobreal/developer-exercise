@@ -274,21 +274,33 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
  function invoke(body: ts.FunctionLikeDeclaration, self: string, args: Value[], frame: Frame): Value {
   const key = self + '@' + body.pos;
   if (frame.stack.has(key) || !body.body || !compiler.isBlock(body.body)) unknown();
-  const env = new Map<string, Value>();
-  body.parameters.forEach((parameter, index) => {
-   if (!compiler.isIdentifier(parameter.name) || parameter.initializer || parameter.dotDotDotToken) unknown();
-   env.set((parameter.name as ts.Identifier).text, args[index] ?? literal(undefined));
-  });
-  const inner: Frame = {...frame, self, env, stack: new Set([...frame.stack, key]), every: undefined, top: undefined};
+  const inner: Frame = {...frame, self, env: bind(body, args, {...frame, self, env: new Map(), every: undefined, top: undefined}), stack: new Set([...frame.stack, key]), every: undefined, top: undefined};
   return block((body.body as ts.Block).statements, inner);
+ }
+ /** The parameters of `body` bound to `args`. v39 (ADR-073): a default runs, in the callee's scope
+  * with the earlier parameters bound, when its argument is missing or may be undefined. */
+ function bind(body: ts.FunctionLikeDeclaration, args: readonly Value[], frame: Frame): Map<string, Value> {
+  const env = frame.env;
+  body.parameters.forEach((parameter, index) => {
+   if (!compiler.isIdentifier(parameter.name) || parameter.dotDotDotToken) unknown();
+   let value = args[index] ?? literal(undefined);
+   if (parameter.initializer) {
+    const missing = !!value.known && value.known.lit === undefined, maybe = !value.known && value.prim;
+    if (missing || maybe) {const fallback = expression(parameter.initializer, frame); value = missing ? fallback : union(value, fallback);}
+   }
+   env.set((parameter.name as ts.Identifier).text, value);
+  });
+  return env;
  }
  function construct(id: string, info: ClassInfo, args: Value[], frame: Frame): void {
   frame.fp.writes.add(at(id, WHOLE));
   const own: Frame = {...frame, self: id, env: new Map()};
   for (const [name, initializer] of info.fields) {addField(id, name, initializer ? expression(initializer, own) : PRIM); if (frame.certain) frame.must?.add(at(id, name));}
   if (!info.ctor) return;
-  info.ctor.parameters.forEach((parameter, index) => {if (info.parameterFields.includes((parameter.name as ts.Identifier).text)) addField(id, (parameter.name as ts.Identifier).text, args[index] ?? PRIM);});
-  invoke(info.ctor, id, args, {...frame, constructing: new Set([...frame.constructing ?? [], id])});
+  // The parameter properties hold the bound arguments, defaults included (ADR-073).
+  const bound = bind(info.ctor, args, {...frame, self: id, env: new Map(), every: undefined, top: undefined}), values = info.ctor.parameters.map(parameter => compiler.isIdentifier(parameter.name) ? bound.get(parameter.name.text)! : PRIM);
+  info.ctor.parameters.forEach((parameter, index) => {if (info.parameterFields.includes((parameter.name as ts.Identifier).text)) {addField(id, (parameter.name as ts.Identifier).text, values[index]!); if (frame.certain) frame.must?.add(at(id, (parameter.name as ts.Identifier).text));}});
+  invoke(info.ctor, id, values, {...frame, constructing: new Set([...frame.constructing ?? [], id])});
  }
  function block(statements: readonly ts.Statement[], outer: Frame): Value {
   let returned: Value = PRIM;

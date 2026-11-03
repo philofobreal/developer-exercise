@@ -200,6 +200,7 @@ A `dependencyPolicy` címke a generálási szabályok verziója. Egy modell áll
 | `scoped-effect-analysis-v36` | [ADR-070](adr/070-loop-body-at-most-once.md) | legfeljebb egyszer futó for…of törzs csak az első elemet látja |
 | `scoped-effect-analysis-v37` | [ADR-071](adr/071-statement-positioned-heap-cells.md) | a heap cellája a beíró listautasítás pozícióját is tárolja; egy utasítás csak a nála nem későbbi írásokat látja |
 | `scoped-effect-analysis-v38` | [ADR-072](adr/072-certain-overwrites.md) | egy biztosan felülíró listautasítás elrejti a mező korábbi értékeit; getter egyenes visszatérése és switch ismert értékkel |
+| `scoped-effect-analysis-v39` | [ADR-073](adr/073-base-chain-fields-and-defaults.md) | TS [[Set]] mezőmód: laza mező csak setter nélküli ősláncon; korábbi saját adatmezőt másoló mező; alapértékes paraméter |
 
 A v9 P2-je **szigorúan bővebb** a v4–v8 P2-jénél: minden, amit a régi szabály megengedett, az újban is megengedett. Az új szabadságnak két forrása van, és egyiknek sincs megfigyelhető hatása a felcserélt párra nézve (lásd a [megfigyelhető állapotot](#megfigyelhető-állapot)): a lokális írás csak a saját kötését módosítja és nem dob; az emit által törölt import futásidőben nem létezik. Ez nem a régi P2 csendes gyengítése, hanem verziózott újradefiniálás: a régi címkéjű modellek a régi szabállyal maradnak érvényesek, és az orákulum a v9 P2-t saját, független implementációval követi (ADR-013).
 
@@ -700,7 +701,7 @@ A [feladatkorpusz](../tests/fixtures/task-programs.mjs) 12 tanórai jellegű JS/
 ## Kompatibilitás és nyelvi határ
 
 - **Régi modellek:** az importált modellek függőségei nem változnak. Újragenerálás csak explicit „Sorfüggőségek újraszámítása” műveletre történik.
-- **Policy-címke:** új generáláskor `scoped-effect-analysis-v38` (ADR-072). A régi enumértékek, köztük a v4–v37, érvényesek maradnak (additív sémabővítés).
+- **Policy-címke:** új generáláskor `scoped-effect-analysis-v39` (ADR-073). A régi enumértékek, köztük a v4–v38, érvényesek maradnak (additív sémabővítés).
 - **Generatív lefedettség:** a kampány `flow` fajtája ([random-programs.mjs](../tests/support/random-programs.mjs), `randomFlowProgram`) a saját objektumokon dolgozó műveleteket vezérlési szerkezetekbe ágyazza, JS-ben és TS-ben. Tartalmazza a fenti szabad és barrier alakokat is (`else if`, `switch`, `try`, `for…of`, számlálós `for`, `while`, címkés ugrás).
 - **Belső szerződés (ADR-011):** az adapter `orderingRelations` metódusa nyelvfüggetlen [`OrderingRelations`](../src/author/ordering-relations.ts) relációt ad: előzmények, védett bemenetek, egységhatárok, megjegyzés, 0-alapú fizikai sorokon. A projekciót a típusos [code-line-projection.ts](../src/author/code-line-projection.ts) végzi (ADR-013), a validátor nem változik.
 - **Proveniencia (ADR-014):** minden előzményhez ok tartozik (kategória és kód), a projekció a saját éleinek okát is rögzíti, és a modell `authoring.provenance` mezőjébe csak a redukció után megmaradt élek okai kerülnek. Ez magyarázat, nem szabály: a validáció nem olvassa. Csak addig érvényes, amíg az `authoring.evidence` digestje egyezik a sorokkal (ADR-015); különben `unbound`.

@@ -99,3 +99,7 @@ A tanúk négy okot mutattak.
 - **A ciklus túlbecslése:** a `flow` fő maradéka. A `for … of` egy `break` után is minden elemre érvényes hatásnyomot kap. Ez a 4. fázis tétele.
 - **Overload-csoport:** v3 egységmodell.
 - **`f7 = this.f5`:** a mező kezdőértéke egy esetleges gettert olvas, ezért jogosan kötött.
+
+## Utóirat (ADR-073, v39)
+
+A static és accessor laza mezőkre is vonatkozik az ősláncfeltétel; a korábbi saját adatmezőt másoló mező (`f7 = this.f5`) laza, nem elfogadott korlát. Részletek: [ADR-073](073-base-chain-fields-and-defaults.md).
