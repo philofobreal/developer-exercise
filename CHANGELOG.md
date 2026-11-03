@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-03 több bemenet az orákulumban (ADR-061)
+
+- **Több próba fixture-önként:** minden próba friss kontextusban fut, és próbánként hasonlítunk; ami csak egy másik bemeneten tér el, már nem látszik egyenértékűnek.
+- **Paraméteres véletlen programok** (`param`): `evaluate(data, limit)` több bemeneten, a bemeneti szerződés szerint; `any` mellett `null`, getter és Proxy is.
+- **Mérés:** 5 mag mindkét szerződéssel, 0 hibás elfogadás; a gyors alapérték két új csoportot kapott; a korpusz változatlan.
+
 ## Unreleased – 2026-11-03 pontosabb szöveges kulcsmegfigyelés (ADR-060, v31)
 
 - **Kevesebb fölösleges szabály:** egy `entries`, `values`, `keys`, `self` vagy `frames` nevű saját mező, változó vagy megjegyzés már nem számít kulcslistázásnak vagy reflexiónak. Például a könyvelő osztály konstruktorának mezőírásai szabadok, ha a program sehol nem listáz kulcsot.

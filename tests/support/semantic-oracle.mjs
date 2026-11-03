@@ -760,6 +760,13 @@ function execute(code,{language,probe,strict=true,asynchronous=false,keyOrder='o
  return {call:outputs.map(o=>o.call).join(' | '),reflection:outputs.map(o=>o.reflection).join(' | '),reach:reached(Object.assign({},...outputs.map(o=>o.reach)))};
 }
 
+/** Plan 5.1: a fixture may carry several probes (`probes`), each run in a fresh context; the
+ * results are compared probe by probe, and what any run reaches counts (ADR-058). */
+function executeAll(code,fixture,reflection,nested){
+ const runs=(fixture.probes??[fixture.probe]).map(probe=>execute(code,{...fixture,probe},reflection,nested));
+ return {call:runs.map(run=>run.call).join(' || '),reflection:runs.map(run=>run.reflection).join(' || '),reach:reached(Object.assign({},...runs.map(run=>run.reach)))};
+}
+
 /** ADR-043: the 0-based source rows the reference executes. Every statement of a statement list
  * (not a directive, not a TypeScript declaration without runtime code) is prefixed with
  * `__hit(row)` on its own row, so rows keep their numbers; a row counts as executed when the
@@ -788,7 +795,7 @@ function executedRows(code,fixture){
  let instrumented=code;
  for(const {start,first} of [...spans].sort((a,b)=>b.start-a.start))instrumented=instrumented.slice(0,start)+`__hit(${first});`+instrumented.slice(start);
  const hits=new Set();
- execute(instrumented,{...fixture,hit:row=>hits.add(row)});
+ for(const probe of fixture.probes??[fixture.probe])execute(instrumented,{...fixture,probe,hit:row=>hits.add(row)});
  const executed=new Set();
  for(let row=0;row<starts.length;row++){
   // The innermost listed statement covering the row decides.
@@ -819,7 +826,7 @@ export function createOracle(fixture,{policy='reflective',reach:assumed=null}={}
  const settle=reach=>{
   const {ordered,enumerated,inputs}=facts(reach),reference=analyse(source,fixture.language,ordered,enumerated,inputs);
   if(!reference)throw Error(`oracle fixture ${fixture.id} does not parse`);
-  return {ordered,enumerated,inputs,reference,baseline:execute(source,fixture,reference.reflection,reference.nested)};
+  return {ordered,enumerated,inputs,reference,baseline:executeAll(source,fixture,reference.reflection,reference.nested)};
  };
  let settled=settle(assumed??{});
  if(!assumed){const first=settled.baseline.reach,again=facts(first);if(again.ordered!==settled.ordered||again.enumerated!==settled.enumerated||again.inputs!==settled.inputs)settled=settle(first);}
@@ -837,12 +844,12 @@ export function createOracle(fixture,{policy='reflective',reach:assumed=null}={}
   else if(candidate.effects!==reference.effects)verdict={ok:false,reason:'effect-order'};
   else if(reflective&&candidate.reflection.order!==reference.reflection.order)verdict={ok:false,reason:'reflection'};
   else{
-   const observed=execute(code,fixture,reference.reflection,candidate.nested);
+   const observed=executeAll(code,fixture,reference.reflection,candidate.nested);
    verdict=exceeds(observed.reach)?escalate()(lines):observed.call.includes('timeout')?{ok:null,reason:'timeout'}:observed.call!==baseline.call?{ok:false,reason:'runtime'}:reflective&&observed.reflection!==baseline.reflection?{ok:false,reason:'reflection'}:{ok:true,reason:'equivalent'};
   }
   cache.set(code,verdict);return verdict;
  };
- judge.referenceValue=JSON.parse(baseline.call.split(' | ')[0]).value;
+ judge.referenceValue=JSON.parse(baseline.call.split(' || ')[0].split(' | ')[0]).value;
  // ADR-058: what the reference run reached, and the facts the verdicts assume.
  judge.reach=reach;judge.facts={ordered,enumerated,inputs};
  // ADR-043: computed on first use, as only a rejected equivalent order needs it.

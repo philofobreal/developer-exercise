@@ -17,7 +17,7 @@ export const QUICK={from:1,to:3,samples:6,neighbours:40};
 export function measureCampaign({from=1,to=200,kinds=Object.keys(PROGRAM_KINDS),languages=LANGUAGES,samples=25,neighbours=Infinity,inputs='any',keyOrder='observed',onUnsound=()=>{}}={}){
  const tally=createTally();let violations=0;
  for(const kind of kinds)for(const language of languages)for(let seed=from;seed<=to;seed++){
-  const program=PROGRAM_KINDS[kind](seed,{language});if(!program)continue;
+  const program=PROGRAM_KINDS[kind](seed,{language,inputs});if(!program)continue;
   // ADR-050: `inputs` measures the generator and the oracle under the same input contract.
   // ADR-055: `keyOrder` likewise, for the generator and the oracle.
   const fixture={...program,...(inputs==='any'?{}:{inputs}),...(keyOrder==='observed'?{}:{keyOrder})};

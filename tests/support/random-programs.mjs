@@ -244,3 +244,37 @@ export function randomFlowProgram(seed,{language='javascript',statements=7}={}){
  body.push(`  return JSON.stringify([${names.join(', ')}, shared]);`,'}');
  return {id:`flow-${language}-${seed}`,language,origin:'object',probe:objectProbe,threw:probeCaughtThrow,source:[...boxClass(typescript),...body]};
 }
+
+/** Plan 5.1: a parametric entry point run on several inputs. `evaluate(data, limit)` reads the
+ * properties of its parameter, lists its keys, loops over its array, may write it, and mixes
+ * that with own-array operations and traces. Each fixture carries several probes, each a fresh
+ * input; under the `valid` contract (ADR-050) only plain data, under `any` also null, a value of
+ * another type, a recording getter and a recording Proxy, which make every read observable. A
+ * probe catches the exception, so a reference that throws on one input still runs the others. */
+export function randomParameterProgram(seed,{language='javascript',inputs='any',statements=7}={}){
+ const rng=random(seed),pick=items=>items[Math.floor(rng()*items.length)],typescript=language==='typescript';
+ const t=type=>typescript?`: ${type}`:'';
+ const body=[`function evaluate(data${t('{ a: number; b: string; items: number[] }')}, limit${t('number')})${t('unknown[]')} {`,`  const out${t('unknown[]')} = [];`];
+ const numbers=[],values=[];let counter=0;
+ const number=()=>numbers.length&&rng()<0.6?pick(numbers):pick(['limit','data.a','data.items.length',String(Math.floor(rng()*5))]);
+ const value=()=>values.length&&rng()<0.6?pick(values):pick(['data.b','data.a','limit','data.items[0]']);
+ const kinds=['read','read','arith','record','push','keys','loop','cond','write','text'];
+ for(let i=0;i<statements;i++){
+  const kind=pick(kinds),n=counter++,name=`c${n}`;
+  if(kind==='read'){const source=pick(['data.a','data.b','data.items.length','data.items[0]']);body.push(`  const ${name} = ${source};`);(source==='data.b'?values:numbers).push(name);values.push(name);}
+  else if(kind==='arith'){body.push(`  const ${name} = ${number()} + ${number()};`);numbers.push(name);values.push(name);}
+  else if(kind==='record')body.push(`  record('r${n}', ${value()});`);
+  else if(kind==='push')body.push(`  out.push(${value()});`);
+  else if(kind==='keys'){body.push(`  const ${name} = Object.keys(data).length;`);numbers.push(name);values.push(name);}
+  else if(kind==='loop'){const sum=`s${n}`;body.push(`  let ${sum} = 0;`,'  for (const item of data.items) {',`    ${sum} = ${sum} + item;`,'  }');numbers.push(sum);values.push(sum);}
+  else if(kind==='cond')body.push(`  if (${number()} > limit) {`,`    record('hit${n}', ${value()});`,'  }');
+  else if(kind==='write')body.push(`  data.a = ${number()};`);
+  else {body.push(`  const ${name} = data.b + '${n}';`);values.push(name);}
+ }
+ body.push(`  return [${[...new Set(values)].join(', ')}${values.length?', ':''}out];`,'}');
+ const call=args=>`(() => { try { return evaluate(${args}); } catch (error) { return 'throws ' + error.name + ': ' + error.message; } })()`;
+ const plain=["{ a: 1, b: 'x', items: [1, 2, 3] }, 2","{ a: 0, b: '', items: [] }, 0","{ a: -3, b: 'yy', items: [5] }, 10"];
+ const hostile=['null, 1',"{ a: 1, b: 'x', items: [1] }, '1'","{ get a() { record('get a'); return 1; }, get b() { record('get b'); return 'g'; }, items: [2] }, 1","new Proxy({ a: 2, b: 'p', items: [1, 1] }, { get(target, key) { record('get', String(key)); return target[key]; } }), 1"];
+ const probes=[...plain,...(inputs==='valid'?[]:hostile)].map(call);
+ return {id:`param-${language}-${inputs}-${seed}`,origin:'random',language,source:body,probe:probes[0],probes,threw:probeCaughtThrow};
+}

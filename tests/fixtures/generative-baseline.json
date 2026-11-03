@@ -53,6 +53,18 @@
   "gap": 1,
   "gapRate": 0.0333
  },
+ "param javascript scoped-effect-analysis-v31 returns": {
+  "programs": 3,
+  "orders": 213,
+  "gap": 3,
+  "gapRate": 0.125
+ },
+ "param typescript scoped-effect-analysis-v31 returns": {
+  "programs": 3,
+  "orders": 213,
+  "gap": 3,
+  "gapRate": 0.125
+ },
  "script javascript scoped-effect-analysis-v31 returns": {
   "programs": 3,
   "orders": 212,

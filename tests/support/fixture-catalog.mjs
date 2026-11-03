@@ -5,7 +5,7 @@ import {corpus} from '../fixtures/ordering-corpus.mjs';
 import {objectFixtures} from '../fixtures/object-programs.mjs';
 import {reasonCodePrograms} from '../fixtures/reason-code-programs.mjs';
 import {escapePrograms} from '../fixtures/escape-programs.mjs';
-import {randomProgram,randomClassProgram,randomScriptProgram,randomObjectProgram,randomFlowProgram} from './random-programs.mjs';
+import {randomProgram,randomClassProgram,randomScriptProgram,randomObjectProgram,randomFlowProgram,randomParameterProgram} from './random-programs.mjs';
 
 const seeded=[
  [/^random-(extended-)?(\d+)$/,match=>randomProgram(Number(match[2]),{extended:!!match[1]})],
@@ -13,6 +13,7 @@ const seeded=[
  [/^random-script-(javascript|typescript)-(\d+)$/,match=>randomScriptProgram(Number(match[2]),{language:match[1]})],
  [/^object-(javascript|typescript)-(\d+)$/,match=>randomObjectProgram(Number(match[2]),{language:match[1]})],
  [/^flow-(javascript|typescript)-(\d+)$/,match=>randomFlowProgram(Number(match[2]),{language:match[1]})],
+ [/^param-(javascript|typescript)-(any|valid)-(\d+)$/,match=>randomParameterProgram(Number(match[3]),{language:match[1],inputs:match[2]})],
 ];
 /** The program named `id`; throws for an unknown id. */
 export function fixtureById(id){
@@ -21,9 +22,9 @@ export function fixtureById(id){
  for(const [pattern,make] of seeded){const match=pattern.exec(id);if(match)return make(match);}
  throw Error('unknown fixture '+id);
 }
-/** The seeded program kinds: kind → (seed, {language}) → program, or null when the kind has
- * no program in that language. */
-export const PROGRAM_KINDS={class:randomClassProgram,script:randomScriptProgram,object:randomObjectProgram,flow:randomFlowProgram,
+/** The seeded program kinds: kind → (seed, {language, inputs}) → program, or null when the kind has
+ * no program in that language. `inputs` (ADR-050) selects the probes of a parametric program. */
+export const PROGRAM_KINDS={class:randomClassProgram,script:randomScriptProgram,object:randomObjectProgram,flow:randomFlowProgram,param:randomParameterProgram,
  function:(seed,{language})=>language==='javascript'?randomProgram(seed,{extended:seed%2===0}):null};
 export const LANGUAGES=['javascript','typescript'];
 
