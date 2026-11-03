@@ -320,7 +320,9 @@ function jsObjectOperations(program){
    }
    const expression=item.type==='ExpressionStatement'?item.expression:null;
    if(expression?.type==='CallExpression')return receiver(expression.callee)&&expression.arguments.every(value);
-   return expression?.type==='AssignmentExpression'&&expression.operator==='='&&receiver(expression.left)&&value(expression.right);
+   // ADR-064: a compound assignment or ++/-- of an own object's field is an operation too.
+   if(expression?.type==='UpdateExpression')return receiver(expression.argument);
+   return expression?.type==='AssignmentExpression'&&['=','+=','-=','*=','/=','%='].includes(expression.operator)&&receiver(expression.left)&&value(expression.right);
   };
   return operation;
  };
@@ -454,7 +456,9 @@ function tsObjectOperations(file){
    }
    const expression=ts.isExpressionStatement(item)?item.expression:null;
    if(expression&&ts.isCallExpression(expression))return receiver(expression.expression)&&expression.arguments.every(value);
-   return !!expression&&ts.isBinaryExpression(expression)&&expression.operatorToken.kind===ts.SyntaxKind.EqualsToken&&receiver(expression.left)&&value(expression.right);
+   // ADR-064: a compound assignment or ++/-- of an own object's field is an operation too.
+   if(expression&&(ts.isPrefixUnaryExpression(expression)||ts.isPostfixUnaryExpression(expression))&&(expression.operator===ts.SyntaxKind.PlusPlusToken||expression.operator===ts.SyntaxKind.MinusMinusToken))return receiver(expression.operand);
+   return !!expression&&ts.isBinaryExpression(expression)&&[ts.SyntaxKind.EqualsToken,ts.SyntaxKind.PlusEqualsToken,ts.SyntaxKind.MinusEqualsToken,ts.SyntaxKind.AsteriskEqualsToken,ts.SyntaxKind.SlashEqualsToken,ts.SyntaxKind.PercentEqualsToken].includes(expression.operatorToken.kind)&&receiver(expression.left)&&value(expression.right);
   };
   return operation;
  };

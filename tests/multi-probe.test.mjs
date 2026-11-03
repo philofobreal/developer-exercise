@@ -20,8 +20,8 @@ test('a second input shows what the first one hides',()=>{
 
 test('the parametric kind: plain inputs under the valid contract, hostile ones too under any',()=>{
  const valid=randomParameterProgram(1,{inputs:'valid'}),any=randomParameterProgram(1,{inputs:'any'});
- assert.equal(valid.probes.length,3);assert.equal(any.probes.length,7);
- assert.ok(any.probes.some(probe=>probe.includes('new Proxy'))&&any.probes.some(probe=>probe.includes('null')));
+ assert.equal(valid.probes.length,3);assert.equal(any.probes.length,8);
+ assert.ok(any.probes.some(probe=>probe.includes('new Proxy'))&&any.probes.some(probe=>probe.includes('null'))&&any.probes.some(probe=>probe.includes('valueOf')));
  assert.ok(!valid.probes.some(probe=>probe.includes('new Proxy')||probe.includes('get a()')));
  assert.deepEqual(any.source,valid.source,'the same program');
 });

@@ -249,7 +249,8 @@ export function randomFlowProgram(seed,{language='javascript',statements=7}={}){
  * properties of its parameter, lists its keys, loops over its array, may write it, and mixes
  * that with own-array operations and traces. Each fixture carries several probes, each a fresh
  * input; under the `valid` contract (ADR-050) only plain data, under `any` also null, a value of
- * another type, a recording getter and a recording Proxy, which make every read observable. A
+ * another type, a recording getter, a recording Proxy and values whose conversion records
+ * (valueOf, toString), which make every read and every implicit conversion observable. A
  * probe catches the exception, so a reference that throws on one input still runs the others. */
 export function randomParameterProgram(seed,{language='javascript',inputs='any',statements=7}={}){
  const rng=random(seed),pick=items=>items[Math.floor(rng()*items.length)],typescript=language==='typescript';
@@ -274,7 +275,7 @@ export function randomParameterProgram(seed,{language='javascript',inputs='any',
  body.push(`  return [${[...new Set(values)].join(', ')}${values.length?', ':''}out];`,'}');
  const call=args=>`(() => { try { return evaluate(${args}); } catch (error) { return 'throws ' + error.name + ': ' + error.message; } })()`;
  const plain=["{ a: 1, b: 'x', items: [1, 2, 3] }, 2","{ a: 0, b: '', items: [] }, 0","{ a: -3, b: 'yy', items: [5] }, 10"];
- const hostile=['null, 1',"{ a: 1, b: 'x', items: [1] }, '1'","{ get a() { record('get a'); return 1; }, get b() { record('get b'); return 'g'; }, items: [2] }, 1","new Proxy({ a: 2, b: 'p', items: [1, 1] }, { get(target, key) { record('get', String(key)); return target[key]; } }), 1"];
+ const hostile=['null, 1',"{ a: 1, b: 'x', items: [1] }, '1'","{ get a() { record('get a'); return 1; }, get b() { record('get b'); return 'g'; }, items: [2] }, 1","new Proxy({ a: 2, b: 'p', items: [1, 1] }, { get(target, key) { record('get', String(key)); return target[key]; } }), 1","{ get a() { record('get a'); return { valueOf() { record('valueOf a'); return 1; } }; }, get b() { record('get b'); return { toString() { record('toString b'); return 'o'; } }; }, get items() { record('get items'); return [3]; } }, { valueOf() { record('valueOf limit'); return 2; } }"];
  const probes=[...plain,...(inputs==='valid'?[]:hostile)].map(call);
  return {id:`param-${language}-${inputs}-${seed}`,origin:'random',language,source:body,probe:probes[0],probes,threw:probeCaughtThrow};
 }

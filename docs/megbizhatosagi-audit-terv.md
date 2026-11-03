@@ -188,7 +188,7 @@ Minden tétel új policyverzió, ADR, pozitív és negatív fixture, és utána 
    - Megmarad a sorrend a többi ismeretlen hívással, a globálisokkal és a lehetséges kivételekkel (`may-throw`).
    - Egy objektum megszökik, ha ismeretlen kódnak adják át, globálisba vagy closure-ba kerül, vagy ilyen objektumban tárolják.
 3. **Hatásösszegzés a felső szintű és szkriptszintű függvényekre.** A `var v = f()` és a `new Box()` a hívott, elemezhető törzs összegzése alapján rendeződik, ugyanazzal a hatásnyommal, mint a függvénytörzsben.
-4. **Bizonyítottan véget érő ciklusok:** a `for (let i = 0; i < N; i++)` literál korláttal, ha a magja nem írja `i`-t. Ugyanez a csak `bump()`-szerű, monoton változó `while` feltételre, ha bizonyítható.
+4. **Bizonyítottan véget érő ciklusok:** a `for (let i = 0; i < N; i++)` literál korláttal, ha a magja nem írja `i`-t. Ugyanez a csak `bump()`-szerű, monoton változó `while` feltételre, ha bizonyítható (**kész, v32, [ADR-064](adr/064-monotone-while-loops.md)**: a `flow` `may-throw` rése 46 → 2). A `flow` maradéka nagyrészt A-politika szerinti szándékos elutasítás, amelyet a mérés résnek számol; a mérés pontosítása nyitott.
 5. **A mezőirások pontosítása:** holt írás és azonos értékű írás. **Eldöntve (A-politika, ADR-043):** sorrendjük úgy ítélendő meg, mintha lefutnának; a mérés a halott kódot érintő elutasítást szándékhűnek számolja.
 6. **Osztálytag-fázisok és a `switch`, `try` maradékai:** a mért esetekre egyenként.
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-11-03 bizonyítottan véget érő while ciklus (ADR-064, v32)
+
+- **Kevesebb fölösleges szabály:** a `while (a.count < 3) { a.bump(); }` mintájú ciklus, amely minden körben pozitív lépéssel növeli a vizsgált számmezőt, bizonyítottan véget ér, ezért már nem köti sorrendhez egy független nyomkövető hívás vagy egy lehetséges kivétel.
+- **Orákulum:** a saját mező `+=` és `++` művelete is helyi objektumművelet; a paraméteres programok ellenséges próbája a gettert és az implicit konverziót egyszerre rögzíti.
+- **Mérés:** a `flow` rése 12 magon 141 → 115 (a `may-throw` okú 46 → 2), a paraméteres programoké 19 → 12, 0 hibás elfogadás; a korpusz változatlan.
+- **Címkék:** a v32 additív sémaenumérték; a minták csak az új címkét kapták.
+
 ## Unreleased – 2026-11-03 a TypeScript második olvasata az orákulumban (ADR-063)
 
 - **Független olvasat:** a TypeScript szkripteket az orákulum a lefordított (ES2022, natív mezős) kódjukon Acornnal is elemzi; egyenértékűnek csak az a sorrend számít, amelyben mindkét olvasat egyezik.

@@ -56,8 +56,12 @@ test('kept: the loop writes what a later operation reads',()=>{
  assert.ok(result.causes.some(code=>code.startsWith('object-')),JSON.stringify(result));
 });
 
+// ADR-064 (v32): a while loop whose body always bumps a numeric field it tests ends.
+test('free since v32: a while loop that bumps the field it tests ends, so it commutes with an external call',()=>{
+ assert.equal(moveBefore(fixtures.whileLoop,'b.shout();','while (a.count < 3) {').kind,'accepted');
+});
+
 for(const [fixture,row,anchor,why] of [
- [fixtures.whileLoop,'b.shout();','while (a.count < 3) {','a while loop is not shown to end'],
  [fixtures.counterWritten,'b.shout();','for (let i = 0; i < 2; i++) {','a body that writes the counter is not shown to end'],
 ])test(`conservative: ${why}, so it stays ordered with an external call`,()=>{
  // Both loops do end at run time: the oracle sees the same behaviour, so this is a measured gap.

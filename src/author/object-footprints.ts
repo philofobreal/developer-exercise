@@ -320,7 +320,7 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
     if (test) expression(test, inner);
     returned = union(returned, block([statement.statement], inner));
     if (compiler.isForStatement(statement) && statement.incrementor) effect(statement.incrementor, inner);
-    if (!counted(statement)) frame.fp.mayHang = true;
+    if (!counted(statement) && !monotone(statement, frame)) frame.fp.mayHang = true;
    } else unknown();
   }
   return returned;
@@ -337,6 +337,101 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
   const operator = test.operatorToken.kind, up = operator === S.LessThanToken || operator === S.LessThanEqualsToken, down = operator === S.GreaterThanToken || operator === S.GreaterThanEqualsToken;
   const stepOperator = (compiler.isPrefixUnaryExpression(step) || compiler.isPostfixUnaryExpression(step)) && compiler.isIdentifier(step.operand) && step.operand.text === name ? step.operator : undefined;
   return (up && stepOperator === S.PlusPlusToken || down && stepOperator === S.MinusMinusToken) && !assignedNames(statement.statement).has(name);
+ }
+ /** ADR-064: `while (x.f < K)` (`<=`, or `K > x.f`, `K >= x.f`; also do…while) over an own object x
+  * ends when the field only grows by positive steps and every iteration grows it:
+  *  - in the whole file every write of a property named f keeps it a number (a numeric literal, a
+  *    positive step `.f = .f + c`, `.f += c`, `.f++`, or arithmetic other than `+`), every
+  *    declaration of f is a numeric literal
+  *    or none, no parameter property is named f and nothing is written through a computed key,
+  *    so f is always a number (or undefined, when the test is false at once);
+  *  - inside the loop and every method it may call (by name, transitively) every write of f is a
+  *    positive step;
+  *  - the loop body, before any statement that may leave the iteration early (`continue`, `break`,
+  *    `return`, `throw`, or any compound statement), increments x.f directly or calls a method of
+  *    x's class whose leading plain statements increment this.f.
+  * K is a numeric literal. A thrown exception ends the loop too, so only a cycle would hang. */
+ function monotone(statement: ts.IterationStatement, frame: Frame): boolean {
+  if (!compiler.isWhileStatement(statement) && !compiler.isDoStatement(statement)) return false;
+  const test = unwrap(statement.expression);
+  if (!compiler.isBinaryExpression(test)) return false;
+  const operator = test.operatorToken.kind, numeric = (expr: ts.Expression): boolean => compiler.isNumericLiteral(unwrap(expr));
+  const bound = operator === S.LessThanToken || operator === S.LessThanEqualsToken ? {access: unwrap(test.left), limit: test.right} : operator === S.GreaterThanToken || operator === S.GreaterThanEqualsToken ? {access: unwrap(test.right), limit: test.left} : undefined;
+  if (!bound || !numeric(bound.limit) || !compiler.isPropertyAccessExpression(bound.access) || bound.access.questionDotToken || !compiler.isIdentifier(bound.access.expression)) return false;
+  const access = bound.access as ts.PropertyAccessExpression, field = nameOf(access.name), receiver = (access.expression as ts.Identifier).text;
+  if (field === undefined) return false;
+  const value = frame.env.get(receiver) ?? (() => {try {return expression(access.expression, frame);} catch {return undefined;}})();
+  if (!value || value.prim || value.other || value.objs.size !== 1) return false;
+  const kind = kinds.get([...value.objs][0]!);
+  if (kind?.kind === 'class' && (kind.info.getters.has(field) || kind.info.setters.has(field) || kind.info.parameterFields.includes(field))) return false;
+  // A positive step of `target.field`: `t.f = t.f + c`, `t.f = c + t.f`, `t.f += c`, `t.f++`, `++t.f`.
+  const step = (node: ts.Node, target: (expr: ts.Expression) => boolean): boolean => {
+   const positive = (expr: ts.Expression): boolean => numeric(expr) && Number((unwrap(expr) as ts.NumericLiteral).text) > 0;
+   const own = (expr: ts.Expression): boolean => compiler.isPropertyAccessExpression(unwrap(expr)) && nameOf((unwrap(expr) as ts.PropertyAccessExpression).name) === field && target((unwrap(expr) as ts.PropertyAccessExpression).expression);
+   if ((compiler.isPrefixUnaryExpression(node) || compiler.isPostfixUnaryExpression(node)) && node.operator === S.PlusPlusToken) return own(node.operand);
+   if (!compiler.isBinaryExpression(node) || !own(node.left)) return false;
+   if (node.operatorToken.kind === S.PlusEqualsToken) return positive(node.right);
+   if (node.operatorToken.kind !== S.EqualsToken) return false;
+   const right = unwrap(node.right);
+   return compiler.isBinaryExpression(right) && right.operatorToken.kind === S.PlusToken && (own(right.left) && positive(right.right) || positive(right.left) && own(right.right));
+  };
+  // Outside the loop a write may also reset or shrink the field, as long as it stays a number: a
+  // numeric literal, `--`, `-=`, `*=`, `/=`, `%=`, `**=`, or `=` with such an arithmetic right side
+  // (a BigInt there would make the loop's step throw, which ends it).
+  const arithmetic = new Set([S.MinusToken, S.AsteriskToken, S.SlashToken, S.PercentToken, S.AsteriskAsteriskToken]);
+  const keepsNumber = (node: ts.Node): boolean => {
+   if (compiler.isPrefixUnaryExpression(node) || compiler.isPostfixUnaryExpression(node)) return true;
+   if (!compiler.isBinaryExpression(node)) return false;
+   const operator = node.operatorToken.kind;
+   if (operator === S.MinusEqualsToken || operator === S.AsteriskEqualsToken || operator === S.SlashEqualsToken || operator === S.PercentEqualsToken || operator === S.AsteriskAsteriskEqualsToken) return true;
+   const right = unwrap(node.right);
+   return operator === S.EqualsToken && (numeric(right) || compiler.isPrefixUnaryExpression(right) && right.operator === S.MinusToken && numeric(right.operand) || compiler.isBinaryExpression(right) && arithmetic.has(right.operatorToken.kind));
+  };
+  // Every write of a property named `field` in the file keeps it a number; inside the loop it only grows.
+  let numericField = true;
+  const writes = (node: ts.Node, insideLoop: boolean): void => {
+   if (!numericField) return;
+   if ((compiler.isPropertyDeclaration(node) || compiler.isPropertyAssignment(node)) && nameOf(node.name) === field && node.initializer && !numeric(node.initializer)) numericField = false;
+   if (compiler.isParameter(node) && compiler.isIdentifier(node.name) && node.name.text === field && (compiler.getModifiers(node) ?? []).length) numericField = false;
+   if (compiler.isShorthandPropertyAssignment(node) && node.name.text === field) numericField = false;
+   const target = compiler.isBinaryExpression(node) && node.operatorToken.kind >= S.FirstAssignment && node.operatorToken.kind <= S.LastAssignment ? unwrap(node.left) : (compiler.isPrefixUnaryExpression(node) || compiler.isPostfixUnaryExpression(node)) && (node.operator === S.PlusPlusToken || node.operator === S.MinusMinusToken) ? unwrap(node.operand) : undefined;
+   if (target && (compiler.isElementAccessExpression(target) || compiler.isObjectLiteralExpression(target) || compiler.isArrayLiteralExpression(target))) numericField = false;
+   if (target && compiler.isPropertyAccessExpression(target) && nameOf(target.name) === field && !step(node, () => true) && (insideLoop || !keepsNumber(node))) numericField = false;
+   compiler.forEachChild(node, child => writes(child, insideLoop));
+  };
+  writes(file, false);
+  // Inside the loop, and inside every method it may call (any class, by name, transitively), no literal reset either.
+  const all = new Map<string, ts.MethodDeclaration[]>();
+  for (const info of kinds.values()) if (info.kind === 'class') for (const [name, method] of info.info.methods) all.set(name, [...all.get(name) ?? [], method]);
+  const called = new Set<string>(), pending: ts.Node[] = [statement.statement];
+  while (pending.length) {
+   const root = pending.pop()!;
+   writes(root, true);
+   const visit = (node: ts.Node): void => {
+    if (compiler.isCallExpression(node) && compiler.isPropertyAccessExpression(unwrap(node.expression))) {
+     const name = nameOf((unwrap(node.expression) as ts.PropertyAccessExpression).name);
+     if (name !== undefined && !called.has(name)) {called.add(name); for (const method of all.get(name) ?? []) if (method.body) pending.push(method.body);}
+    }
+    compiler.forEachChild(node, visit);
+   };
+   visit(root);
+  }
+  if (!numericField) return false;
+  const plain = (item: ts.Statement): boolean => compiler.isExpressionStatement(item) || compiler.isVariableStatement(item);
+  const grows = (items: readonly ts.Statement[], target: (expr: ts.Expression) => boolean, calls: boolean): boolean => {
+   for (const item of items) {
+    if (!plain(item)) return false;
+    const expr = compiler.isExpressionStatement(item) ? unwrap(item.expression) : undefined;
+    if (expr && step(expr, target)) return true;
+    if (calls && expr && compiler.isCallExpression(expr) && !expr.questionDotToken && compiler.isPropertyAccessExpression(unwrap(expr.expression)) && target((unwrap(expr.expression) as ts.PropertyAccessExpression).expression) && kind?.kind === 'class') {
+     const method = kind.info.methods.get(nameOf((unwrap(expr.expression) as ts.PropertyAccessExpression).name) ?? '');
+     if (method?.body && grows(method.body.statements, node => unwrap(node).kind === S.ThisKeyword, false)) return true;
+    }
+   }
+   return false;
+  };
+  const body = compiler.isBlock(statement.statement) ? statement.statement.statements : [statement.statement];
+  return grows(body, node => compiler.isIdentifier(unwrap(node)) && (unwrap(node) as ts.Identifier).text === receiver, true);
  }
  /** Identifiers assigned anywhere in `root`, nested functions included (they may run in it). */
  function assignedNames(root: ts.Node): Set<string> {
