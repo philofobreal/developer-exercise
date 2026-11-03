@@ -20,7 +20,7 @@
  */
 import { validateSubmission } from './validator.js';
 import { compileCodeLineExercise, type CodeLineExercise, type RuleRelaxation } from './code-line.js';
-import { editabilityOrder, explainConstraints, type ConstraintExplanation, type DirectConstraint } from './constraint-explanation.js';
+import { editabilityOrder, explainConstraints, type ConstraintExplanation, type DirectConstraint, type RemovalRequirement } from './constraint-explanation.js';
 import { evidenceStatus, sourceTextDigest } from './evidence.js';
 
 export type RuleEdit =
@@ -35,7 +35,8 @@ export type RuleEdit =
 export type RuleEditError = 'invalid-model' | 'invalid-edit' | 'unknown-line' | 'unknown-profile' | 'duplicate-profile' | 'not-a-constraint' | 'transitive-only' | 'hard-constraint' | 'needs-acknowledgement' | 'cycle' | 'against-reference' | 'admission';
 /** `no`: impossible by constraint inclusion; `yes`: shown by the witness (line IDs in order); `maybe`: undecided. */
 export interface EditEffect { stricter: 'no' | 'yes' | 'maybe'; looser: 'no' | 'yes' | 'maybe'; stricterWitness?: number[]; looserWitness?: number[]; }
-export type Acknowledgement = 'unproven-relaxation' | 'policy-override';
+/** The acknowledgement a removal may carry: the non-trivial removal requirements (ADR-065). */
+export type Acknowledgement = Exclude<RemovalRequirement, 'impossible' | 'none'>;
 export type RuleEditResult =
   | { ok: true; model: CodeLineExercise; effect: EditEffect }
   /** `index`: the failing edit, or null when the finished batch failed admission.
@@ -155,7 +156,7 @@ function apply(draft: CodeLineExercise, explanation: ConstraintExplanation, edit
         if (!generated.length) dropPair(before, after);
         return;
       }
-      if (constraint.editability === 'hard') throw new EditFailure('hard-constraint', `A(z) ${before} → ${after} szerkezeti szabály (${constraint.reasons.map(reason => reason.code).join(', ')}); nem távolítható el.`);
+      if (constraint.removal === 'impossible') throw new EditFailure('hard-constraint', `A(z) ${before} → ${after} szerkezeti szabály (${constraint.reasons.map(reason => reason.code).join(', ')}); nem távolítható el.`);
       // Redundant only through constraints that stay: author rules may be removed freely later,
       // so a generated constraint implied by them alone still needs its acknowledgement (ADR-021).
       const authorOnly = new Set(explanation.lines.flatMap(item => item.predecessors).filter(item => item.reasons.every(reason => reason.category === 'author')).map(item => item.before + ':' + item.after));
@@ -164,9 +165,10 @@ function apply(draft: CodeLineExercise, explanation: ConstraintExplanation, edit
       const redundant = reaches(rest, before, after);
       if (!redundant) {
         const editability = constraint.editability as RuleRelaxation['editability'];
-        if (editability === 'conservative' ? !edit.acknowledge : edit.acknowledge !== 'policy-override') throw new EditFailure('needs-acknowledgement', editability === 'conservative'
+        const required = constraint.removal;
+        if (required !== 'none' && (required === 'unproven-relaxation' ? !edit.acknowledge : edit.acknowledge !== 'policy-override')) throw new EditFailure('needs-acknowledgement', required === 'unproven-relaxation'
           ? 'Konzervatív szabály: a lazítás helyessége nem bizonyított; csak kifejezett szerzői megerősítéssel (unproven-relaxation) távolítható el.'
-          : `${editability === 'proven' ? 'Bizonyított' : 'Ismeretlen eredetű'} szabály: eltávolítása eltér a sorrendpolitikától, csak kifejezett policy-felülírással (policy-override) lehetséges.`, editability === 'conservative' ? 'unproven-relaxation' : 'policy-override');
+          : `${editability === 'proven' ? 'Bizonyított' : 'Ismeretlen eredetű'} szabály: eltávolítása eltér a sorrendpolitikától, csak kifejezett policy-felülírással (policy-override) lehetséges.`, required);
         const origins = constraint.origins.filter((origin): origin is 'dependency' | 'edge' => origin !== 'block');
         const reasons = (authoring.provenance ?? []).filter(entry => pairOf(entry, before, after) && entry.category !== 'author').map(({ category, code }) => ({ category, code }));
         const ruleNote = authoring.ruleNotes?.find(entry => pairOf(entry, before, after))?.note;

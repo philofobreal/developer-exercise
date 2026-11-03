@@ -33,7 +33,7 @@ export function connectButton(state:WorkbenchState,id:number):string {
  if(anchor===id)return button('anchor',true,`A(z) #${id} sor a kiinduló sor; megnyomva befejezed`,'Kiinduló sor. Kattints ide vagy nyomj Escape-et a befejezéshez.','<span aria-hidden="true"></span>');
  const link=linkWith(state,anchor,id);
  if(!link)return button('none',false,`Kapcsolat létrehozása: #${id} és #${anchor}`,'Nincs közvetlen kapcsolat a kiinduló sorral; kattintva létrehozod.','<span aria-hidden="true"></span>');
- const side=link.after===anchor?'before':'after',where=side==='before'?'előtt':'után',hard=link.editability==='hard';
+ const side=link.after===anchor?'before':'after',where=side==='before'?'előtt':'után',hard=link.removal==='impossible';
  return button(side+(hard?' link-locked':''),true,`A(z) #${id} sornak a(z) #${anchor} sor ${where} kell állnia; ${hard?'szerkezeti kapcsolat, nem szüntethető meg':'megnyomva megszünteted'}`,hard?'Szerkezeti kapcsolat: nem szüntethető meg.':'Közvetlen kapcsolat a kiinduló sorral; kattintva megszünteted.',icon(hard?'lock':'check'));
 }
 /** A board row's pin (WAI-ARIA toggle button): a pinned line may stand only at its reference
@@ -59,7 +59,7 @@ export const tryRowRuleControls=(state:WorkbenchState,id:unknown):string=>typeof
 /** What to draw: the selected line's direct constraints, and on request every non-structural one. */
 function shownConstraints(state:WorkbenchState):DirectConstraint[] {
  const line=state.ruleSelection?.line;
- return (state.authorInsight?.rules?.constraints??[]).filter(c=>line!==undefined&&(c.before===line||c.after===line)||!!state.boardAll&&c.editability!=='hard');
+ return (state.authorInsight?.rules?.constraints??[]).filter(c=>line!==undefined&&(c.before===line||c.after===line)||!!state.boardAll&&c.removal!=='impossible');
 }
 /** Arcs bulge left from `anchor`; positions are row centres measured after rendering. */
 function paintArcs(svg:SVGSVGElement,state:WorkbenchState,centre:Map<number,number>,anchor:number,reach:number,width:number,height:number):void {

@@ -53,4 +53,4 @@ A Pages-en végzett kipróbálás és a saját ellenőrzés két túlszigorúsá
 
 - **Interfész:** a modul egy boolean helyett a használt neveket adja. A döntés, hogy egy név API-e, a hívóknál maradt (kulcslistázás és reflexió a `js-ts-ordering`-ben, horgok az `input-contract`-ban), a `namesMatch` pedig egy helyen illeszti a mintát a szövegre és a nevekre. Így egyik hívó sem duplikálja a másik névlistáját. Hívók: a `js-ts-ordering` (egyszeri számítás, két kérdés) és az `input-contract`.
 - **Elrejtve:** a konstansösszevonás, a szivárgáselemzés, a literálok és a visszatérések követése.
-- **Rögzített megállapítás:** a modul mérete kb. 280 sor egyetlen függvényben, belső closure-ökkel. A fejléc a szerződést írja le. A felbontás (névgyűjtés, összevonás, szivárgás) viselkedésváltozás nélküli refaktor; az ADR-052 két megállapításával együtt nyitott.
+- **Rögzített megállapítás (lezárva, [ADR-065](065-design-debt-removal-and-module-split.md)):** a modul mérete kb. 280 sor egyetlen függvényben, belső closure-ökkel. A fejléc a szerződést írja le. A felbontás (névgyűjtés, összevonás, szivárgás) viselkedésváltozás nélküli refaktor; elkészült.

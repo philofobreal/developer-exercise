@@ -23,11 +23,11 @@ function context(state) {
 }
 export const rulesAvailable = (state) => !!context(state);
 /** How each removable class of rule is lifted; mirrors the acknowledgement the core asks for (ADR-018). */
+/** ADR-065: the step that lifts a rule, by the core's removal requirement (DirectConstraint.removal). */
 const liftStep = {
-    proven: 'Eltávolítás, majd „Policy-felülírás megerősítése” indoklással. A modell ezután eltér a sorrendpolitikától, ezért „Nem igazolt” minősítést kap.',
-    legacy: 'Eltávolítás, majd „Policy-felülírás megerősítése” indoklással. A modell ezután eltér a sorrendpolitikától, ezért „Nem igazolt” minősítést kap.',
-    conservative: 'Eltávolítás, majd „Nem bizonyított lazítás megerősítése” indoklással.',
-    pedagogical: 'Eltávolítás: ez a te szabályod, megerősítés nélkül törölhető.'
+    'policy-override': 'Eltávolítás, majd „Policy-felülírás megerősítése” indoklással. A modell ezután eltér a sorrendpolitikától, ezért „Nem igazolt” minősítést kap.',
+    'unproven-relaxation': 'Eltávolítás, majd „Nem bizonyított lazítás megerősítése” indoklással.',
+    none: 'Eltávolítás: ez a te szabályod, megerősítés nélkül törölhető.'
 };
 /** ADR-056: the removable rules grouped by their one reason code, largest group first. A rule with
  * several reasons is lifted one by one in the panel, so no group decides for another reason. */
@@ -35,25 +35,23 @@ function ruleKinds(found) {
     const groups = new Map();
     for (const c of found.constraints) {
         const codes = [...new Set(c.reasons.map(reason => reason.code))];
-        if (c.editability === 'hard' || codes.length !== 1)
+        if (c.removal === 'impossible' || codes.length !== 1)
             continue;
         groups.set(codes[0], [...(groups.get(codes[0]) ?? []), c]);
     }
-    return [...groups].map(([code, rules]) => ({ code, rules, editability: rules[0].editability })).sort((a, b) => b.rules.length - a.rules.length || a.code.localeCompare(b.code));
+    return [...groups].map(([code, rules]) => ({ code, rules, editability: rules[0].editability, removal: rules[0].removal })).sort((a, b) => b.rules.length - a.rules.length || a.code.localeCompare(b.code));
 }
-/** The acknowledgement each class needs for removal; the core checks it again (ADR-018). */
-const acknowledgementOf = { proven: 'policy-override', legacy: 'policy-override', conservative: 'unproven-relaxation', pedagogical: undefined };
 /** ADR-056: the rule kinds of the author's model, each liftable in one confirmed step. */
 export function renderRuleKinds(state) {
     const found = context(state);
     if (!found)
         return '';
-    const kinds = ruleKinds(found), pending = state.ruleKind, mixed = found.constraints.filter(c => c.editability !== 'hard' && new Set(c.reasons.map(reason => reason.code)).size > 1).length;
+    const kinds = ruleKinds(found), pending = state.ruleKind, mixed = found.constraints.filter(c => c.removal !== 'impossible' && new Set(c.reasons.map(reason => reason.code)).size > 1).length;
     if (!kinds.length && !pending?.message)
         return '';
-    const item = ({ code, rules, editability }) => {
+    const item = ({ code, rules, editability, removal }) => {
         const meaning = found.meanings[code], confirming = pending?.code === code && !pending.message;
-        const confirm = confirming ? `<div class="rule-confirm" data-rule-kind-form role="group" aria-label="${rules.length} szabály feloldásának megerősítése"><p>${esc(liftStep[editability])}</p><label>Indoklás, amely a lazításokkal együtt a modellbe kerül<input data-rule-kind-note maxlength="500" autocomplete="off"></label><div class="rule-confirm-actions"><button type="button" class="danger" data-rule-kind-confirm="${esc(code)}">${rules.length} szabály feloldása</button><button type="button" data-rule-kind-cancel>Mégse</button></div></div>` : '';
+        const confirm = confirming ? `<div class="rule-confirm" data-rule-kind-form role="group" aria-label="${rules.length} szabály feloldásának megerősítése"><p>${esc(liftStep[removal])}</p><label>Indoklás, amely a lazításokkal együtt a modellbe kerül<input data-rule-kind-note maxlength="500" autocomplete="off"></label><div class="rule-confirm-actions"><button type="button" class="danger" data-rule-kind-confirm="${esc(code)}">${rules.length} szabály feloldása</button><button type="button" data-rule-kind-cancel>Mégse</button></div></div>` : '';
         return `<li class="rule-kind editability-${editability}" data-rule-kind-item="${esc(code)}"><div class="rule-kind-main"><span class="rule-badge">${editabilityLabel[editability]}</span><b>${esc(meaning ?? categoryLabel[rules[0].reasons[0].category])}</b> <code>${esc(code)}</code><span class="rule-kind-count">${rules.length} szabály: ${rules.slice(0, 6).map(c => `#${c.before}→#${c.after}`).join(', ')}${rules.length > 6 ? ', …' : ''}</span></div>${confirming ? '' : `<button type="button" data-rule-kind="${esc(code)}">Mind feloldása</button>`}${confirm}</li>`;
     };
     return `<details class="rule-kinds" data-rule-kinds${pending ? ' open' : ''}><summary>Szabályok típus szerint · ${kinds.length} típus, egy lépésben feloldhatók</summary><p class="inline-hint">Ha egy szabálytípus a feladatban nem számít, itt egyszerre feloldhatod az összes ilyen szabályt; egyenként a sor láncszem gombjával is lehet. Ha a kulcsok sorrendje nem számít, inkább a Forrás lépés „Objektumkulcsok sorrendje: Nem számít” beállítását válaszd: az az egész feladatra érvényes, és a modell „Elemzéssel igazolt” marad, míg a bizonyított szabályok feloldása „Nem igazolt” minősítést ad.${mixed ? ` ${mixed} több okú szabály csak egyenként oldható fel.` : ''}</p><ul class="rule-kind-list">${kinds.map(item).join('')}</ul>${pending?.message ? `<p class="rule-status" role="status">${esc(pending.message)}</p>` : ''}</details>`;
@@ -66,7 +64,7 @@ export function readRuleKindEdits(button, state) {
     const kind = ruleKinds(found).find(item => item.code === code);
     if (!kind)
         return null;
-    const note = (button.closest('[data-rule-kind-form]')?.querySelector('[data-rule-kind-note]')?.value ?? '').trim(), acknowledge = acknowledgementOf[kind.editability];
+    const note = (button.closest('[data-rule-kind-form]')?.querySelector('[data-rule-kind-note]')?.value ?? '').trim(), acknowledge = kind.removal === 'none' ? undefined : kind.removal;
     return kind.rules.map(c => ({ kind: 'remove-rule', before: c.before, after: c.after, ...(acknowledge ? { acknowledge } : {}), ...(note ? { note } : {}) }));
 }
 /** After a batch: the core's refusal stays readable; an applied batch says what happened. */
@@ -95,7 +93,7 @@ export function renderRuleCause(state, path) {
         if (!c)
             continue;
         const why = [...new Set(c.reasons.map(reason => found.meanings[reason.code] ?? categoryLabel[reason.category]))].join('; ');
-        const lift = c.editability === 'hard' ? 'A program szerkezete köti, ezért ez a szabály nem oldható fel.' : `Ha ez a sorrend a feladatban elfogadható, feloldhatod: a #${after} sor szabályai között a #${before} → #${after} szabálynál ${liftStep[c.editability]}`;
+        const lift = c.removal === 'impossible' ? 'A program szerkezete köti, ezért ez a szabály nem oldható fel.' : `Ha ez a sorrend a feladatban elfogadható, feloldhatod: a #${after} sor szabályai között a #${before} → #${after} szabálynál ${liftStep[c.removal]}`;
         const line = (id) => `<code>${snippet(found.model.lines.find(item => item.id === id)?.code.trim() ?? '')}</code> (#${id})`;
         return `<div class="rule-cause" data-rule-cause="${before}-${after}"><p><b>Miért?</b> ${line(before)} előbb kell álljon, mint ${line(after)}. A szabály ${editabilityLabel[c.editability].toLowerCase()}, oka: ${esc(why)}.</p><p>${esc(lift)}</p><button type="button" class="link-action" data-rule-line="${after}">A #${after} sor szabályainak megnyitása</button></div>`;
     }
@@ -128,7 +126,7 @@ export function renderRulePanel(state) {
     const code = new Map(model.lines.map(item => [item.id, item.code])), before = constraints.filter(c => c.after === line.id), after = constraints.filter(c => c.before === line.id);
     const item = (c, other) => {
         const pair = `data-before="${c.before}" data-after="${c.after}"`, reasons = c.reasons.map(reason => { const meaning = found.meanings[reason.code]; return `${categoryLabel[reason.category]} · <code>${esc(reason.code)}</code>${meaning ? ` <span class="rule-meaning">– ${esc(meaning)}</span>` : ''}`; }).join('; ');
-        return `<li class="rule-item editability-${c.editability}" data-rule-pair="${c.before}-${c.after}"><div class="rule-item-main"><button type="button" class="rule-jump" data-rule-line="${other}" aria-label="Ugrás a(z) #${other} sor szabályaira">#${other}</button><code>${snippet(code.get(other) ?? '')}</code></div><div class="rule-item-meta"><span class="rule-badge">${editabilityLabel[c.editability]}</span><span class="rule-reasons">${reasons}</span></div>${c.note ? `<p class="rule-note" data-rule-note-text>${esc(c.note)}</p>` : ''}<div class="rule-item-actions">${c.editability === 'hard' ? '<span class="rule-locked">Szerkezeti szabály, nem távolítható el</span>' : `<button type="button" data-rule-edit="remove" ${pair} aria-label="A(z) #${c.before} → #${c.after} szabály eltávolítása">${icon('close')}<span>Eltávolítás</span></button>`}<details class="rule-note-editor" data-rule-form><summary>Megjegyzés</summary><label>Megjegyzés a(z) #${c.before} → #${c.after} szabályhoz<input data-rule-note maxlength="500" autocomplete="off" value="${esc(c.note ?? '')}"></label><button type="button" data-rule-edit="note" ${pair}>Megjegyzés mentése</button></details></div></li>`;
+        return `<li class="rule-item editability-${c.editability}" data-rule-pair="${c.before}-${c.after}"><div class="rule-item-main"><button type="button" class="rule-jump" data-rule-line="${other}" aria-label="Ugrás a(z) #${other} sor szabályaira">#${other}</button><code>${snippet(code.get(other) ?? '')}</code></div><div class="rule-item-meta"><span class="rule-badge">${editabilityLabel[c.editability]}</span><span class="rule-reasons">${reasons}</span></div>${c.note ? `<p class="rule-note" data-rule-note-text>${esc(c.note)}</p>` : ''}<div class="rule-item-actions">${c.removal === 'impossible' ? '<span class="rule-locked">Szerkezeti szabály, nem távolítható el</span>' : `<button type="button" data-rule-edit="remove" ${pair} aria-label="A(z) #${c.before} → #${c.after} szabály eltávolítása">${icon('close')}<span>Eltávolítás</span></button>`}<details class="rule-note-editor" data-rule-form><summary>Megjegyzés</summary><label>Megjegyzés a(z) #${c.before} → #${c.after} szabályhoz<input data-rule-note maxlength="500" autocomplete="off" value="${esc(c.note ?? '')}"></label><button type="button" data-rule-edit="note" ${pair}>Megjegyzés mentése</button></details></div></li>`;
     };
     const list = (items, other) => items.length ? `<ul class="rule-list">${items.map(c => item(c, other(c))).join('')}</ul>` : '<p class="rule-empty">Nincs közvetlen szabály.</p>';
     // Only lines consistent with the reference order are offered; the core still decides admissibility.

@@ -48,4 +48,4 @@ A megmaradt `flow`-rések nagy része olyan objektumolvasás, amelynek az eredm�
 ## Tervezési review (ADR-037)
 
 - **Tulajdonos:** az objektumhatás-elemző (`monotone` a `counted` mellett); az interfész nem változott.
-- **Rögzített megállapítás:** az `object-footprints.ts` tovább nőtt, és a modul egyetlen nagy closure. A felbontása a 13. tételhez (tervezési adósság) tartozik.
+- **Rögzített megállapítás:** az `object-footprints.ts` tovább nőtt, és a modul egyetlen nagy closure. A véget érés érvei saját modulba kerültek ([ADR-065](065-design-debt-removal-and-module-split.md)); a heap és az értelmező felbontása nyitott.

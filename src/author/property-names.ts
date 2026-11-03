@@ -50,7 +50,8 @@ interface Taint {readonly names: UnspelledNames; readonly holder: Holder;}
 
 const typeofNames = ['undefined', 'object', 'boolean', 'number', 'string', 'function', 'symbol', 'bigint'];
 
-export function unspelledNames(file: ts.SourceFile, compiler: Compiler): UnspelledNames {
+/** The syntax helpers the three phases share. */
+function syntaxOf(compiler: Compiler) {
  const k = compiler.SyntaxKind;
  const numeric = new Set<ts.SyntaxKind>([k.MinusToken, k.AsteriskToken, k.SlashToken, k.PercentToken, k.AsteriskAsteriskToken, k.AmpersandToken, k.BarToken, k.CaretToken, k.LessThanLessThanToken, k.GreaterThanGreaterThanToken, k.GreaterThanGreaterThanGreaterThanToken]);
  const numericAssignment = new Set<ts.SyntaxKind>([k.MinusEqualsToken, k.AsteriskEqualsToken, k.SlashEqualsToken, k.PercentEqualsToken, k.AsteriskAsteriskEqualsToken, k.AmpersandEqualsToken, k.BarEqualsToken, k.CaretEqualsToken, k.LessThanLessThanEqualsToken, k.GreaterThanGreaterThanEqualsToken, k.GreaterThanGreaterThanGreaterThanEqualsToken]);
@@ -60,24 +61,7 @@ export function unspelledNames(file: ts.SourceFile, compiler: Compiler): Unspell
  const transparent = (node: ts.Node): node is ts.ParenthesizedExpression | ts.AsExpression | ts.SatisfiesExpression | ts.NonNullExpression | ts.TypeAssertion =>
   compiler.isParenthesizedExpression(node) || compiler.isAsExpression(node) || compiler.isSatisfiesExpression(node) || compiler.isNonNullExpression(node) || compiler.isTypeAssertionExpression(node);
 
- // ---- What the file gives each name, and where it reads each name and calls each function. ----
- const values = new Map<string, (ts.Expression | 'number' | 'undefined' | null)[]>();
- const reads = new Map<string, ts.Identifier[]>();
- const members = new Map<string, ts.PropertyAccessExpression[]>();
- const give = (name: string, value: ts.Expression | 'number' | 'undefined' | null): void => {const list = values.get(name) ?? []; list.push(value); values.set(name, list);};
  const bound = (node: ts.Node): string[] => compiler.isIdentifier(node) ? [node.text] : compiler.isShorthandPropertyAssignment(node) ? [node.name.text] : compiler.isPropertyAccessExpression(node) || compiler.isElementAccessExpression(node) ? [] : (() => {const all: string[] = []; compiler.forEachChild(node, child => {if (!compiler.isComputedPropertyName(child) && !(compiler.isBindingElement(node) && child === node.propertyName) && !(compiler.isPropertyAssignment(node) && child === node.name)) all.push(...bound(child));}); return all;})();
- const unknown = (target: ts.Node): void => {for (const name of bound(target)) give(name, null);};
- /** The pattern contains a target that is not a plain name: a property or element write. */
- const storesInto = (target: ts.Node): boolean => compiler.isPropertyAccessExpression(target) || compiler.isElementAccessExpression(target) || (!compiler.isIdentifier(target) && !compiler.isComputedPropertyName(target) && !!compiler.forEachChild(target, child => child !== (target as ts.BindingElement).propertyName && child !== (compiler.isPropertyAssignment(target) ? target.name : undefined) && storesInto(child) || undefined));
- const declarationName = (node: ts.Identifier): boolean => {
-  const parent = node.parent;
-  if (compiler.isPropertyAccessExpression(parent)) return parent.name === node;
-  if (compiler.isQualifiedName(parent)) return true;
-  if (compiler.isBindingElement(parent)) return parent.name === node || parent.propertyName === node;
-  if (compiler.isPropertyAssignment(parent)) return parent.name === node;
-  if (compiler.isLabeledStatement(parent) || compiler.isBreakOrContinueStatement(parent)) return true;
-  return (compiler.isVariableDeclaration(parent) || compiler.isParameter(parent) || compiler.isFunctionLike(parent) || compiler.isClassLike(parent) || compiler.isEnumDeclaration(parent) || compiler.isEnumMember(parent) || compiler.isPropertyDeclaration(parent) || compiler.isPropertySignature(parent) || compiler.isInterfaceDeclaration(parent) || compiler.isTypeAliasDeclaration(parent) || compiler.isModuleDeclaration(parent) || compiler.isTypeParameterDeclaration(parent) || compiler.isImportClause(parent) || compiler.isImportSpecifier(parent) || compiler.isExportSpecifier(parent) || compiler.isNamespaceImport(parent) || compiler.isImportEqualsDeclaration(parent) || compiler.isNamespaceExport(parent)) && (parent as ts.NamedDeclaration).name === node;
- };
  /** A property of an object literal that is the target of a destructuring assignment. */
  const destructuringTarget = (node: ts.Node): boolean => {
   let current: ts.Node = node;
@@ -88,6 +72,40 @@ export function unspelledNames(file: ts.SourceFile, compiler: Compiler): Unspell
    current = parent;
   }
   return false;
+ };
+ return {compiler, k, numeric, numericAssignment, consuming, assignment, transparent, bound, destructuringTarget};
+}
+type Syntax = ReturnType<typeof syntaxOf>;
+
+/** What one survey of the file finds: the values each name is given (an expression, a number, undefined,
+ * or null for an unknown value), where each name is read and each member name accessed, the reads by
+ * a name not spelled out (`candidates`), computed keys of destructuring, and whether a timer runs a string. */
+interface Survey {
+ values: Map<string, (ts.Expression | 'number' | 'undefined' | null)[]>; reads: Map<string, ts.Identifier[]>; members: Map<string, ts.PropertyAccessExpression[]>;
+ candidates: ts.Expression[]; computedBindings: ts.ComputedPropertyName[]; assignedKeys: ts.Expression[]; timer: boolean;
+}
+
+export function unspelledNames(file: ts.SourceFile, compiler: Compiler): UnspelledNames {
+ const syntax = syntaxOf(compiler), survey = surveyNames(file, syntax);
+ if (survey.timer) return 'any';
+ return followEscapes(survey, foldKeys(survey.values, syntax), syntax);
+}
+
+/** Phase 1: what the file gives each name, and where it reads each name and calls each function. */
+function surveyNames(file: ts.SourceFile, {compiler, k, numericAssignment, assignment, bound, destructuringTarget}: Syntax): Survey {
+ const values = new Map<string, (ts.Expression | 'number' | 'undefined' | null)[]>();
+ const reads = new Map<string, ts.Identifier[]>();
+ const members = new Map<string, ts.PropertyAccessExpression[]>();
+ const give = (name: string, value: ts.Expression | 'number' | 'undefined' | null): void => {const list = values.get(name) ?? []; list.push(value); values.set(name, list);};
+ const unknown = (target: ts.Node): void => {for (const name of bound(target)) give(name, null);};
+ const declarationName = (node: ts.Identifier): boolean => {
+  const parent = node.parent;
+  if (compiler.isPropertyAccessExpression(parent)) return parent.name === node;
+  if (compiler.isQualifiedName(parent)) return true;
+  if (compiler.isBindingElement(parent)) return parent.name === node || parent.propertyName === node;
+  if (compiler.isPropertyAssignment(parent)) return parent.name === node;
+  if (compiler.isLabeledStatement(parent) || compiler.isBreakOrContinueStatement(parent)) return true;
+  return (compiler.isVariableDeclaration(parent) || compiler.isParameter(parent) || compiler.isFunctionLike(parent) || compiler.isClassLike(parent) || compiler.isEnumDeclaration(parent) || compiler.isEnumMember(parent) || compiler.isPropertyDeclaration(parent) || compiler.isPropertySignature(parent) || compiler.isInterfaceDeclaration(parent) || compiler.isTypeAliasDeclaration(parent) || compiler.isModuleDeclaration(parent) || compiler.isTypeParameterDeclaration(parent) || compiler.isImportClause(parent) || compiler.isImportSpecifier(parent) || compiler.isExportSpecifier(parent) || compiler.isNamespaceImport(parent) || compiler.isImportEqualsDeclaration(parent) || compiler.isNamespaceExport(parent)) && (parent as ts.NamedDeclaration).name === node;
  };
  const candidates: ts.Expression[] = [], computedBindings: ts.ComputedPropertyName[] = [], assignedKeys: ts.Expression[] = [];
  let timer = false;
@@ -121,9 +139,12 @@ export function unspelledNames(file: ts.SourceFile, compiler: Compiler): Unspell
   compiler.forEachChild(node, visit);
  };
  visit(file);
- if (timer) return 'any';
+ return {values, reads, members, candidates, computedBindings, assignedKeys, timer};
+}
 
- // ---- Constant folding: the least fixed point of the values each name may hold. ----
+/** Phase 2, constant folding: the least fixed point of the values each name may hold. Returns the
+ * property names a key may select, or `'any'`; reaching `constructor` reaches `Function`. */
+function foldKeys(values: Survey['values'], {compiler, k, numeric, numericAssignment, transparent}: Syntax): (key: ts.Expression) => UnspelledNames {
  const known = new Map<string, Values>();
  const unite = (a: Values, b: Values): Values => {
   if (!a || !b) return null;
@@ -191,15 +212,18 @@ export function unspelledNames(file: ts.SourceFile, compiler: Compiler): Unspell
    if (after === null || after.size !== before!.size) {known.set(name, after); changed = true;}
   }
  }
- /** The property names a key may select, or `'any'`. Reaching `constructor` reaches `Function`. */
- const namesOf = (key: ts.Expression): UnspelledNames => {
+ return (key: ts.Expression): UnspelledNames => {
   const all = fold(key);
   if (!all) return 'any';
   const names = [...all].filter(value => value !== SOME_NUMBER).map(value => String(value));
   return names.includes('constructor') ? 'any' : names;
  };
+}
 
- // ---- Escape analysis. ----
+/** Phase 3, escape analysis: the names whose read values reach code this analysis does not follow. */
+function followEscapes({reads, members, candidates, computedBindings, assignedKeys}: Survey, namesOf: (key: ts.Expression) => UnspelledNames, {compiler, k, consuming, assignment, transparent, bound, destructuringTarget}: Syntax): UnspelledNames {
+ /** The pattern contains a target that is not a plain name: a property or element write. */
+ const storesInto = (target: ts.Node): boolean => compiler.isPropertyAccessExpression(target) || compiler.isElementAccessExpression(target) || (!compiler.isIdentifier(target) && !compiler.isComputedPropertyName(target) && !!compiler.forEachChild(target, child => child !== (target as ts.BindingElement).propertyName && child !== (compiler.isPropertyAssignment(target) ? target.name : undefined) && storesInto(child) || undefined));
  const reached = new Set<string>();
  let any = false;
  const use = (names: UnspelledNames): void => {if (names === 'any') any = true; else for (const name of names) reached.add(name);};
@@ -299,6 +323,7 @@ export function unspelledNames(file: ts.SourceFile, compiler: Compiler): Unspell
  }
  return any ? 'any' : [...reached].sort();
 }
+
 
 /** Whether `pattern` matches the source text or a name the program reaches unspelled. */
 export function namesMatch(file: ts.SourceFile, reached: UnspelledNames, pattern: RegExp, text = file.text): boolean {

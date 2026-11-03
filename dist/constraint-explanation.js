@@ -1,5 +1,6 @@
 import { compileCodeLineExercise } from './code-line.js';
 import { evidenceStatus } from './evidence.js';
+export const removalRequirement = { hard: 'impossible', pedagogical: 'none', conservative: 'unproven-relaxation', proven: 'policy-override', legacy: 'policy-override' };
 const editabilityOf = { structure: 'hard', unit: 'hard', data: 'proven', effect: 'proven', policy: 'proven', conservative: 'conservative', author: 'pedagogical', unknown: 'legacy' };
 /** Weakest to strongest. */
 export const editabilityOrder = ['legacy', 'pedagogical', 'conservative', 'proven', 'hard'];
@@ -17,7 +18,7 @@ export function explainConstraints(model) {
     const constraints = new Map();
     const state = (before, after, origin) => {
         const key = before + ':' + after;
-        const constraint = constraints.get(key) ?? { before, after, origins: [], reasons: [], editability: 'legacy' };
+        const constraint = constraints.get(key) ?? { before, after, origins: [], reasons: [], editability: 'legacy', removal: removalRequirement.legacy };
         if (!constraint.origins.includes(origin))
             constraint.origins.push(origin);
         constraints.set(key, constraint);
@@ -56,8 +57,10 @@ export function explainConstraints(model) {
     }
     for (const block of model.blocks)
         structural(block.openLineId, block.closeLineId, 'block-pair');
-    for (const constraint of constraints.values())
+    for (const constraint of constraints.values()) {
         constraint.editability = strongest(constraint.reasons);
+        constraint.removal = removalRequirement[constraint.editability];
+    }
     for (const { before, after, note } of model.authoring?.ruleNotes ?? []) {
         const constraint = constraints.get(before + ':' + after);
         if (constraint)

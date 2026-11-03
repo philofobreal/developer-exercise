@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-03 tervezési adósság (ADR-065)
+
+- **A megerősítési szint a magból:** minden közvetlen szabály megmondja, mi kell az eltávolításához (`DirectConstraint.removal`); a szabálypanel, a kötegelt feloldás, a kapcsolattábla és a régi vezérlő ezt használja, saját táblázat nélkül. Egy teszt köti össze a kiírt és a kikényszerített szintet.
+- **Modulbontások, viselkedésváltozás nélkül:** a ki nem írt nevek elemzése három fázisra bomlott; a ciklusok véget érésének érvei saját modulba (`loop-termination.ts`) kerültek. 2392 generált modell függőségei azonosak előtte és utána.
+- **Rögzített döntés:** az ADR-048 primitívlokális-elemzés és a névösszevonás nem vonható össze, mert más kérdésre felel és más helyességi érven áll.
+
 ## Unreleased – 2026-11-03 bizonyítottan véget érő while ciklus (ADR-064, v32)
 
 - **Kevesebb fölösleges szabály:** a `while (a.count < 3) { a.bump(); }` mintájú ciklus, amely minden körben pozitív lépéssel növeli a vizsgált számmezőt, bizonyítottan véget ér, ezért már nem köti sorrendhez egy független nyomkövető hívás vagy egy lehetséges kivétel.

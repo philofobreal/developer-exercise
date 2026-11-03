@@ -229,3 +229,22 @@ test('ADR-044: the gate no longer counts a relaxation confirmed on another sourc
  const rechecked=await editAuthorModel(stale,[{kind:'set-fixed',line:6,fixed:false}],ports);
  assert.equal(rechecked.verification.checks.rederivation,'differs');
 });
+
+// ADR-065: the removal requirement every direct constraint states is the one the edit enforces.
+test('every direct constraint states the removal requirement the rule edit enforces',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ for(const file of ['class-inventory-ts.json','algo-bfs-js.json']){
+  const model=JSON.parse(await readFile(new URL('../examples/'+file,import.meta.url),'utf8')),explanation=explainConstraints(model);
+  const seen=new Set();
+  for(const c of explanation.lines.flatMap(line=>line.predecessors)){
+   seen.add(c.removal);
+   const bare=applyRuleEdits(model,[{kind:'remove-rule',before:c.before,after:c.after}]);
+   if(c.removal==='impossible'){assert.equal(bare.error,'hard-constraint',file+' '+c.before+'>'+c.after);continue;}
+   if(bare.ok)continue; // implied by the rules that stay: no acknowledgement needed
+   assert.equal(bare.error,'needs-acknowledgement',file+' '+c.before+'>'+c.after);
+   assert.equal(bare.acknowledge,c.removal,file+' '+c.before+'>'+c.after);
+   assert.equal(applyRuleEdits(model,[{kind:'remove-rule',before:c.before,after:c.after,acknowledge:c.removal}]).ok,true,file+' '+c.before+'>'+c.after);
+  }
+  assert.ok(seen.has('impossible')&&seen.has('policy-override'),file);
+ }
+});

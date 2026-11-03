@@ -19,12 +19,20 @@ export interface ConstraintReason {
     code: string;
 }
 /** One direct `before → after` constraint; `origins` lists where the model states it. */
+/** ADR-065: what removing a direct constraint takes (ADR-014, ADR-018): a structural one cannot be
+ * removed, an author rule needs nothing, a conservative one an `unproven-relaxation`
+ * acknowledgement, a proven or unexplained one a `policy-override`. The core's rule edit enforces
+ * exactly this answer and the author panel shows it, so no caller keeps its own table. A removal
+ * the remaining rules already imply needs nothing, which only the edit itself decides. */
+export type RemovalRequirement = 'impossible' | 'none' | 'unproven-relaxation' | 'policy-override';
+export declare const removalRequirement: Readonly<Record<Editability, RemovalRequirement>>;
 export interface DirectConstraint {
     before: number;
     after: number;
     origins: ('dependency' | 'edge' | 'block')[];
     reasons: ConstraintReason[];
     editability: Editability;
+    removal: RemovalRequirement;
     note?: string;
 }
 export interface LineConstraints {

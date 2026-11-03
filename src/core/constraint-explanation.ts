@@ -18,7 +18,14 @@ import { evidenceStatus } from './evidence.js';
 export type Editability = 'hard' | 'proven' | 'conservative' | 'pedagogical' | 'legacy';
 export interface ConstraintReason { category: ConstraintCategory; code: string; }
 /** One direct `before → after` constraint; `origins` lists where the model states it. */
-export interface DirectConstraint { before: number; after: number; origins: ('dependency' | 'edge' | 'block')[]; reasons: ConstraintReason[]; editability: Editability; note?: string; }
+/** ADR-065: what removing a direct constraint takes (ADR-014, ADR-018): a structural one cannot be
+ * removed, an author rule needs nothing, a conservative one an `unproven-relaxation`
+ * acknowledgement, a proven or unexplained one a `policy-override`. The core's rule edit enforces
+ * exactly this answer and the author panel shows it, so no caller keeps its own table. A removal
+ * the remaining rules already imply needs nothing, which only the edit itself decides. */
+export type RemovalRequirement = 'impossible' | 'none' | 'unproven-relaxation' | 'policy-override';
+export const removalRequirement: Readonly<Record<Editability, RemovalRequirement>> = { hard: 'impossible', pedagogical: 'none', conservative: 'unproven-relaxation', proven: 'policy-override', legacy: 'policy-override' };
+export interface DirectConstraint { before: number; after: number; origins: ('dependency' | 'edge' | 'block')[]; reasons: ConstraintReason[]; editability: Editability; removal: RemovalRequirement; note?: string; }
 export interface LineConstraints {
   id: number;
   scopeId: string | null;
@@ -61,7 +68,7 @@ export function explainConstraints(model: CodeLineExercise): ConstraintExplanati
   const constraints = new Map<string, DirectConstraint>();
   const state = (before: number, after: number, origin: DirectConstraint['origins'][number]): DirectConstraint => {
     const key = before + ':' + after;
-    const constraint = constraints.get(key) ?? { before, after, origins: [], reasons: [], editability: 'legacy' };
+    const constraint = constraints.get(key) ?? { before, after, origins: [], reasons: [], editability: 'legacy', removal: removalRequirement.legacy };
     if (!constraint.origins.includes(origin)) constraint.origins.push(origin);
     constraints.set(key, constraint);
     return constraint;
@@ -84,7 +91,7 @@ export function explainConstraints(model: CodeLineExercise): ConstraintExplanati
     if (block) { structural(block.openLineId, line.id, 'block-member'); structural(line.id, block.closeLineId, 'block-member'); }
   }
   for (const block of model.blocks) structural(block.openLineId, block.closeLineId, 'block-pair');
-  for (const constraint of constraints.values()) constraint.editability = strongest(constraint.reasons);
+  for (const constraint of constraints.values()) {constraint.editability = strongest(constraint.reasons); constraint.removal = removalRequirement[constraint.editability];}
   for (const { before, after, note } of model.authoring?.ruleNotes ?? []) {
     const constraint = constraints.get(before + ':' + after);
     if (constraint) constraint.note = note; else stale++;

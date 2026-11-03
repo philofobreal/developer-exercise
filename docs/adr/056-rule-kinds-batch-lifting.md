@@ -20,7 +20,7 @@ Az [ADR-055](055-key-order-setting.md) a kulcssorrendet kezeli egy beállításs
 
 - **A csoportosítás, a köteg és az eredmény rögzítése** a típusos szabálypanel-modulban van (`renderRuleKinds`, `readRuleKindEdits`, `settleRuleKind`).
 - **A régi `ui.js` vezérlő** csak bekötést kapott (ADR-001): megnyitás, mégse, megerősítés. Az `authorApply` visszaadja a választ, hogy a köteg eredménye kiírható legyen.
-- **Ismétlés (rögzített tervezési megállapítás):** a megerősítési szint osztályonkénti leképezése a felületen is szerepel (ADR-054). A mag ellenőrzi, eltérésnél elutasít, és a felület a mag üzenetét mutatja.
+- **Ismétlés (rögzített tervezési megállapítás, lezárva: [ADR-065](065-design-debt-removal-and-module-split.md)):** a megerősítési szint osztályonkénti leképezése a felületen is szerepel (ADR-054). A mag ellenőrzi, eltérésnél elutasít, és a felület a mag üzenetét mutatja.
 
 ## Bizonyíték
 

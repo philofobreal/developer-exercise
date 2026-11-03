@@ -92,7 +92,9 @@ test('continuity: every admission is the same author project; practice exercises
 test('link toggle (ADR-024): with an anchor every row shows its direct link as a coloured check, a lock or an empty circle',async()=>{
  const {connectButton,linkWith}=await import('../public/app/rule-board.js');
  const state=make();admit(state,'try');
- const c=(before,after,editability)=>({before,after,editability,origins:['dependency'],reasons:[]});
+ // The core states each constraint's removal requirement (ADR-065).
+ const removal={hard:'impossible',proven:'policy-override',pedagogical:'none'};
+ const c=(before,after,editability)=>({before,after,editability,removal:removal[editability],origins:['dependency'],reasons:[]});
  state.authorInsight={rules:{provenance:'complete',unexplained:0,stale:0,relaxations:[],constraints:[c(1,4,'hard'),c(2,4,'proven'),c(4,5,'pedagogical')]}};
  assert.match(connectButton(state,4),/aria-pressed="false"/);assert.doesNotMatch(connectButton(state,4),/data-link/,'no anchor: a plain circle');
  state.ruleConnect=4;

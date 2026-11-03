@@ -171,7 +171,7 @@ function apply(draft, explanation, edit) {
                     dropPair(before, after);
                 return;
             }
-            if (constraint.editability === 'hard')
+            if (constraint.removal === 'impossible')
                 throw new EditFailure('hard-constraint', `A(z) ${before} → ${after} szerkezeti szabály (${constraint.reasons.map(reason => reason.code).join(', ')}); nem távolítható el.`);
             // Redundant only through constraints that stay: author rules may be removed freely later,
             // so a generated constraint implied by them alone still needs its acknowledgement (ADR-021).
@@ -181,10 +181,11 @@ function apply(draft, explanation, edit) {
             const redundant = reaches(rest, before, after);
             if (!redundant) {
                 const editability = constraint.editability;
-                if (editability === 'conservative' ? !edit.acknowledge : edit.acknowledge !== 'policy-override')
-                    throw new EditFailure('needs-acknowledgement', editability === 'conservative'
+                const required = constraint.removal;
+                if (required !== 'none' && (required === 'unproven-relaxation' ? !edit.acknowledge : edit.acknowledge !== 'policy-override'))
+                    throw new EditFailure('needs-acknowledgement', required === 'unproven-relaxation'
                         ? 'Konzervatív szabály: a lazítás helyessége nem bizonyított; csak kifejezett szerzői megerősítéssel (unproven-relaxation) távolítható el.'
-                        : `${editability === 'proven' ? 'Bizonyított' : 'Ismeretlen eredetű'} szabály: eltávolítása eltér a sorrendpolitikától, csak kifejezett policy-felülírással (policy-override) lehetséges.`, editability === 'conservative' ? 'unproven-relaxation' : 'policy-override');
+                        : `${editability === 'proven' ? 'Bizonyított' : 'Ismeretlen eredetű'} szabály: eltávolítása eltér a sorrendpolitikától, csak kifejezett policy-felülírással (policy-override) lehetséges.`, required);
                 const origins = constraint.origins.filter((origin) => origin !== 'block');
                 const reasons = (authoring.provenance ?? []).filter(entry => pairOf(entry, before, after) && entry.category !== 'author').map(({ category, code }) => ({ category, code }));
                 const ruleNote = authoring.ruleNotes?.find(entry => pairOf(entry, before, after))?.note;

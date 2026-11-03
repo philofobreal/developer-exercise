@@ -57,7 +57,7 @@ async function toggleLink(anchor,line){
  delete state.ruleConnect;
  if(!pair||!draftId){render();return;}
  state.ruleSelection={line:anchor,message:''};
- if(link?.editability==='hard'){state.ruleSelection.message=`A(z) #${link.before} → #${link.after} szerkezeti kapcsolat (blokk vagy egység); nem szüntethető meg.`;render();return;}
+ if(link?.removal==='impossible'){state.ruleSelection.message=`A(z) #${link.before} → #${link.after} szerkezeti kapcsolat (blokk vagy egység); nem szüntethető meg.`;render();return;}
  const blocked=ruleEditBlocked(state);if(blocked){state.ruleSelection.message=blocked;render();return;}
  await authorApply({draftId,edits:[{kind:link?'remove-rule':'add-rule',before:pair.before,after:pair.after}]},{preserveAttempt:true,request:editRules});
 }

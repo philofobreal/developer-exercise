@@ -13,7 +13,8 @@ const SOME_NUMBER = Symbol('number');
 /** The result of an operation on known values that is itself not known. */
 const UNKNOWN = Symbol('unknown');
 const typeofNames = ['undefined', 'object', 'boolean', 'number', 'string', 'function', 'symbol', 'bigint'];
-export function unspelledNames(file, compiler) {
+/** The syntax helpers the three phases share. */
+function syntaxOf(compiler) {
     const k = compiler.SyntaxKind;
     const numeric = new Set([k.MinusToken, k.AsteriskToken, k.SlashToken, k.PercentToken, k.AsteriskAsteriskToken, k.AmpersandToken, k.BarToken, k.CaretToken, k.LessThanLessThanToken, k.GreaterThanGreaterThanToken, k.GreaterThanGreaterThanGreaterThanToken]);
     const numericAssignment = new Set([k.MinusEqualsToken, k.AsteriskEqualsToken, k.SlashEqualsToken, k.PercentEqualsToken, k.AsteriskAsteriskEqualsToken, k.AmpersandEqualsToken, k.BarEqualsToken, k.CaretEqualsToken, k.LessThanLessThanEqualsToken, k.GreaterThanGreaterThanEqualsToken, k.GreaterThanGreaterThanGreaterThanEqualsToken]);
@@ -21,17 +22,37 @@ export function unspelledNames(file, compiler) {
     const consuming = new Set([...numeric, k.PlusToken, k.LessThanToken, k.GreaterThanToken, k.LessThanEqualsToken, k.GreaterThanEqualsToken, k.EqualsEqualsToken, k.EqualsEqualsEqualsToken, k.ExclamationEqualsToken, k.ExclamationEqualsEqualsToken, k.InKeyword, k.InstanceOfKeyword]);
     const assignment = (operator) => operator >= k.FirstAssignment && operator <= k.LastAssignment;
     const transparent = (node) => compiler.isParenthesizedExpression(node) || compiler.isAsExpression(node) || compiler.isSatisfiesExpression(node) || compiler.isNonNullExpression(node) || compiler.isTypeAssertionExpression(node);
-    // ---- What the file gives each name, and where it reads each name and calls each function. ----
+    const bound = (node) => compiler.isIdentifier(node) ? [node.text] : compiler.isShorthandPropertyAssignment(node) ? [node.name.text] : compiler.isPropertyAccessExpression(node) || compiler.isElementAccessExpression(node) ? [] : (() => { const all = []; compiler.forEachChild(node, child => { if (!compiler.isComputedPropertyName(child) && !(compiler.isBindingElement(node) && child === node.propertyName) && !(compiler.isPropertyAssignment(node) && child === node.name))
+        all.push(...bound(child)); }); return all; })();
+    /** A property of an object literal that is the target of a destructuring assignment. */
+    const destructuringTarget = (node) => {
+        let current = node;
+        while (compiler.isPropertyAssignment(current) || compiler.isShorthandPropertyAssignment(current) || compiler.isObjectLiteralExpression(current) || compiler.isArrayLiteralExpression(current) || compiler.isSpreadAssignment(current) || compiler.isSpreadElement(current)) {
+            const parent = current.parent;
+            if (compiler.isBinaryExpression(parent) && parent.left === current && assignment(parent.operatorToken.kind))
+                return true;
+            if ((compiler.isForOfStatement(parent) || compiler.isForInStatement(parent)) && parent.initializer === current)
+                return true;
+            current = parent;
+        }
+        return false;
+    };
+    return { compiler, k, numeric, numericAssignment, consuming, assignment, transparent, bound, destructuringTarget };
+}
+export function unspelledNames(file, compiler) {
+    const syntax = syntaxOf(compiler), survey = surveyNames(file, syntax);
+    if (survey.timer)
+        return 'any';
+    return followEscapes(survey, foldKeys(survey.values, syntax), syntax);
+}
+/** Phase 1: what the file gives each name, and where it reads each name and calls each function. */
+function surveyNames(file, { compiler, k, numericAssignment, assignment, bound, destructuringTarget }) {
     const values = new Map();
     const reads = new Map();
     const members = new Map();
     const give = (name, value) => { const list = values.get(name) ?? []; list.push(value); values.set(name, list); };
-    const bound = (node) => compiler.isIdentifier(node) ? [node.text] : compiler.isShorthandPropertyAssignment(node) ? [node.name.text] : compiler.isPropertyAccessExpression(node) || compiler.isElementAccessExpression(node) ? [] : (() => { const all = []; compiler.forEachChild(node, child => { if (!compiler.isComputedPropertyName(child) && !(compiler.isBindingElement(node) && child === node.propertyName) && !(compiler.isPropertyAssignment(node) && child === node.name))
-        all.push(...bound(child)); }); return all; })();
     const unknown = (target) => { for (const name of bound(target))
         give(name, null); };
-    /** The pattern contains a target that is not a plain name: a property or element write. */
-    const storesInto = (target) => compiler.isPropertyAccessExpression(target) || compiler.isElementAccessExpression(target) || (!compiler.isIdentifier(target) && !compiler.isComputedPropertyName(target) && !!compiler.forEachChild(target, child => child !== target.propertyName && child !== (compiler.isPropertyAssignment(target) ? target.name : undefined) && storesInto(child) || undefined));
     const declarationName = (node) => {
         const parent = node.parent;
         if (compiler.isPropertyAccessExpression(parent))
@@ -45,19 +66,6 @@ export function unspelledNames(file, compiler) {
         if (compiler.isLabeledStatement(parent) || compiler.isBreakOrContinueStatement(parent))
             return true;
         return (compiler.isVariableDeclaration(parent) || compiler.isParameter(parent) || compiler.isFunctionLike(parent) || compiler.isClassLike(parent) || compiler.isEnumDeclaration(parent) || compiler.isEnumMember(parent) || compiler.isPropertyDeclaration(parent) || compiler.isPropertySignature(parent) || compiler.isInterfaceDeclaration(parent) || compiler.isTypeAliasDeclaration(parent) || compiler.isModuleDeclaration(parent) || compiler.isTypeParameterDeclaration(parent) || compiler.isImportClause(parent) || compiler.isImportSpecifier(parent) || compiler.isExportSpecifier(parent) || compiler.isNamespaceImport(parent) || compiler.isImportEqualsDeclaration(parent) || compiler.isNamespaceExport(parent)) && parent.name === node;
-    };
-    /** A property of an object literal that is the target of a destructuring assignment. */
-    const destructuringTarget = (node) => {
-        let current = node;
-        while (compiler.isPropertyAssignment(current) || compiler.isShorthandPropertyAssignment(current) || compiler.isObjectLiteralExpression(current) || compiler.isArrayLiteralExpression(current) || compiler.isSpreadAssignment(current) || compiler.isSpreadElement(current)) {
-            const parent = current.parent;
-            if (compiler.isBinaryExpression(parent) && parent.left === current && assignment(parent.operatorToken.kind))
-                return true;
-            if ((compiler.isForOfStatement(parent) || compiler.isForInStatement(parent)) && parent.initializer === current)
-                return true;
-            current = parent;
-        }
-        return false;
     };
     const candidates = [], computedBindings = [], assignedKeys = [];
     let timer = false;
@@ -118,9 +126,11 @@ export function unspelledNames(file, compiler) {
         compiler.forEachChild(node, visit);
     };
     visit(file);
-    if (timer)
-        return 'any';
-    // ---- Constant folding: the least fixed point of the values each name may hold. ----
+    return { values, reads, members, candidates, computedBindings, assignedKeys, timer };
+}
+/** Phase 2, constant folding: the least fixed point of the values each name may hold. Returns the
+ * property names a key may select, or `'any'`; reaching `constructor` reaches `Function`. */
+function foldKeys(values, { compiler, k, numeric, numericAssignment, transparent }) {
     const known = new Map();
     const unite = (a, b) => {
         if (!a || !b)
@@ -219,15 +229,18 @@ export function unspelledNames(file, compiler) {
             }
         }
     }
-    /** The property names a key may select, or `'any'`. Reaching `constructor` reaches `Function`. */
-    const namesOf = (key) => {
+    return (key) => {
         const all = fold(key);
         if (!all)
             return 'any';
         const names = [...all].filter(value => value !== SOME_NUMBER).map(value => String(value));
         return names.includes('constructor') ? 'any' : names;
     };
-    // ---- Escape analysis. ----
+}
+/** Phase 3, escape analysis: the names whose read values reach code this analysis does not follow. */
+function followEscapes({ reads, members, candidates, computedBindings, assignedKeys }, namesOf, { compiler, k, consuming, assignment, transparent, bound, destructuringTarget }) {
+    /** The pattern contains a target that is not a plain name: a property or element write. */
+    const storesInto = (target) => compiler.isPropertyAccessExpression(target) || compiler.isElementAccessExpression(target) || (!compiler.isIdentifier(target) && !compiler.isComputedPropertyName(target) && !!compiler.forEachChild(target, child => child !== target.propertyName && child !== (compiler.isPropertyAssignment(target) ? target.name : undefined) && storesInto(child) || undefined));
     const reached = new Set();
     let any = false;
     const use = (names) => { if (names === 'any')

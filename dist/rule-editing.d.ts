@@ -1,4 +1,5 @@
 import { type CodeLineExercise, type RuleRelaxation } from './code-line.js';
+import { type RemovalRequirement } from './constraint-explanation.js';
 export type RuleEdit = {
     kind: 'add-rule';
     before: number;
@@ -44,7 +45,8 @@ export interface EditEffect {
     stricterWitness?: number[];
     looserWitness?: number[];
 }
-export type Acknowledgement = 'unproven-relaxation' | 'policy-override';
+/** The acknowledgement a removal may carry: the non-trivial removal requirements (ADR-065). */
+export type Acknowledgement = Exclude<RemovalRequirement, 'impossible' | 'none'>;
 export type RuleEditResult = {
     ok: true;
     model: CodeLineExercise;

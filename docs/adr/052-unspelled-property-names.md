@@ -67,6 +67,6 @@ Minden más út kiírt nevet használ, és azt a meglévő szöveges szabályok 
 ## Tervezési review (ADR-037)
 
 - **Mélység:** a modul egyetlen logikai kérdésre felel, két hívóval (`observesKeyOrder`, `inputFacts`). A szivárgáselemzés és az ártalmatlan kulcs fogalma rejtve marad; a hívók nem ismerik.
-- **Rögzített megállapítás 1:** a csak számot tároló nevek követése részben átfed a `statement-ordering` primitívlokális-elemzésével ([ADR-048](048-primitive-locals.md)). A kérdés más (szám-e, nem az, hogy primitív-e), és a két elemzés más egységen dolgozik, ezért most nem vontuk össze. Jelölt egyesítés.
-- **Rögzített megállapítás 2:** a `readsUnspelledNames` hosszú, belső closure-ökkel. A szerződés a modul fejlécében áll. Felbontás (névgyűjtés, ismert érték, szivárgás) későbbi refaktor, viselkedésváltozás nélkül.
+- **Rögzített megállapítás 1:** a csak számot tároló nevek követése részben átfed a `statement-ordering` primitívlokális-elemzésével ([ADR-048](048-primitive-locals.md)). A kérdés más (szám-e, nem az, hogy primitív-e), és a két elemzés más egységen dolgozik, ezért most nem vontuk össze. **Eldöntve ([ADR-065](065-design-debt-removal-and-module-split.md)):** nem vonjuk össze, mert más kérdésre felel és más helyességi érven áll.
+- **Rögzített megállapítás 2:** a `readsUnspelledNames` hosszú, belső closure-ökkel. A szerződés a modul fejlécében áll. Felbontás (névgyűjtés, ismert érték, szivárgás) későbbi refaktor, viselkedésváltozás nélkül. **Elkészült:** [ADR-065](065-design-debt-removal-and-module-split.md).
 - **Kétszeri bejárás:** a két hívó egymástól függetlenül kérdez, ezért egy generálás kétszer járja be a fájlt. A mért költség elhanyagolható; gyorsítótár nem indokolt.
