@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-03 futásidejű elérési tanú az orákulumban (ADR-058)
+
+- **Az orákulum függetlenné vált** a generátor szöveges és névelemzésétől: a kulcslistázó, reflexiós és horog API-kat átlátszó Proxyra cseréli, és rögzíti, mit hív a program saját sora. A tényei a szöveg és a futás uniója.
+- **Javított mérési hiba:** a ki nem írt nevű `keys` eredménye szerint másolt objektumban a kulcssorrend eddig rendezve hasonlított; most eltérőnek számít.
+- **Mérés:** a korpusz rögzített számai változatlanok, `check:all` zöld; hat új teszt.
+
 ## Unreleased – 2026-11-03 példamigráció és publikálási alapértelmezés (ADR-057)
 
 - **`algo-bfs-js` frissítve** „érvényes egyszerű adat” bemeneti szerződéssel, revízió 2, minősítés „Szerzői döntéssel módosított” (a két rögzített sor miatt). Viselkedésváltozás: a `visited.add` / `queue.push` csere mostantól elutasított, mert a `Set` nincs modellezve. Minden más tanári sorrend, köztük az öt deklaráció 120 permutációja, elfogadott marad. A leírás már nem ígéri a cserét.

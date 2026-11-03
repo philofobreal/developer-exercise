@@ -194,6 +194,7 @@ Minden tétel új policyverzió, ADR, pozitív és negatív fixture, és utána 
 
 ### 5. fázis – az orákulum erősítése (P2)
 
+0. **Független elérési tanú** ([ADR-058](adr/058-oracle-reach-witness.md), kész 2026-11-03): a kulcslistázást, a reflexiót és a horgokat az orákulum a program tényleges hívásaiból is megállapítja, a generátor név- és szivárgáselemzésétől függetlenül.
 1. **Több bemenet:** a fixture több probe-ot és paraméteres belépési pontot kaphat; a véletlen generátorok paraméteres változatot is előállítanak.
 2. **Környezetváltozatok:** sloppy mód, ahol releváns, régebbi ES-cél (az osztálymezők leképezése), és a meglévő mindkét osztálymező-mód.
 3. **Független TS-elemzés:** az orákulum a TS forrást előbb JS-re fordítja, és az Acorn-alapú JS-ágon elemzi. A törölt deklarációkhoz marad a TS AST. Ez szűkíti az A1 feltevést.
