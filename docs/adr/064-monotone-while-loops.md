@@ -33,7 +33,7 @@ Az ADR-046 óta a saját objektumokon dolgozó ciklus hatásnyomot kap. A véget
 
 ## A `flow` maradéka – mérés, nem generátorhiba
 
-A megmaradt `flow`-rések nagy része olyan objektumolvasás, amelynek az eredménye mindkét sorrendben ugyanazt a döntést adja, például `if (c.tag === 't6')`, ha a `tag` értéke `''` vagy `'t3'`. Ezek az [ADR-043](043-dead-code-intent-policy.md) A-politikája alá esnek: a nem választott ág és a döntést nem változtató írás sorrendjét úgy ítéljük meg, mintha számítana. Ezért szándékhű elutasítások. A mérés azért számolja őket résnek, mert a megsértett szabály a lefutó elágazásfejet köti, nem a halott sort. A generátort itt nem lazítjuk, mert az ellentmondana a pedagógiai döntésnek. A mérés pontosítása (érték-perturbáció) nyitott tétel.
+A megmaradt `flow`-rések nagy része olyan objektumolvasás, amelynek az eredménye mindkét sorrendben ugyanazt a döntést adja, például `if (c.tag === 't6')`, ha a `tag` értéke `''` vagy `'t3'`. Ezek az [ADR-043](043-dead-code-intent-policy.md) A-politikája alá esnek: a nem választott ág és a döntést nem változtató írás sorrendjét úgy ítéljük meg, mintha számítana. Ezért szándékhű elutasítások. A mérés azért számolja őket résnek, mert a megsértett szabály a lefutó elágazásfejet köti, nem a halott sort. A generátort itt nem lazítjuk, mert az ellentmondana a pedagógiai döntésnek. A mérés pontosítása (érték-perturbáció) az [ADR-067](067-value-perturbation-in-measurement.md)-ben kész.
 
 **A 3. tétel (hatásösszegzés):** 12 magon a szkriptszintű `effectful-or-unknown-initializer` rés 5. Ehhez nem nyúltunk.
 

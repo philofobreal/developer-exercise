@@ -1,7 +1,8 @@
 /** Plan phase 3: the generative campaign's mandatory metrics as a regression gate. Seeded
  * random programs (support/generative-metrics.mjs, quick configuration) are counted per kind ×
  * language × policy version × whether the reference threw. Soundness and decidability are
- * absolute; the gap rate (equivalent orders rejected) may not grow in any group. A lower rate
+ * absolute; neither the gap rate (equivalent orders rejected against the policy) nor the
+ * equivalent rejection rate (the same with intent-keeping rejections, ADR-067) may grow in any group. A lower rate
  * is an improvement: re-pin it with `node tests/ordering-campaign.mjs --baseline` and review. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -28,6 +29,7 @@ test('generative metrics: the gap rate grows in no group',t=>{
  for(const row of rows){
   const pinned=baseline[key(row)];
   assert.ok(row.gapRate<=pinned.gapRate,`${key(row)}: gap rate ${row.gapRate} > pinned ${pinned.gapRate}`);
+  assert.ok(row.equivalentRejectionRate<=pinned.equivalentRejectionRate,`${key(row)}: equivalent rejection rate ${row.equivalentRejectionRate} > pinned ${pinned.equivalentRejectionRate}`);
   if(row.gapRate<pinned.gapRate)t.diagnostic(`${key(row)} improved: ${pinned.gapRate} → ${row.gapRate}; re-pin with --baseline`);
  }
 });

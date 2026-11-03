@@ -32,7 +32,8 @@
   - a korpusz építése közben talált hibás elfogadás javítva: ki nem írt tulajdonságnevek ([ADR-052](adr/052-unspelled-property-names.md), v27); a szöveges névfelismerést szivárgáselemzés egészíti ki, mérhető pontosságvesztés nélkül.
   - a Pages-kipróbálás után pontosítva ([ADR-053](adr/053-folded-names-and-returns.md), v28): a kiszámítható név a nevével számít, a visszaadott értéket a hívásig követjük.
   - feladatszintű kulcssorrend-beállítás ([ADR-055](adr/055-key-order-setting.md), v29) és szabálytípusonkénti kötegelt feloldás ([ADR-056](adr/056-rule-kinds-batch-lifting.md)): a tanár kézi szabálytörlés nélkül kimondhatja, hogy a kulcsok sorrendje nem számít.
-  - **Következik:** a `flow` maradéka ma főleg objektumütközés (a ciklus túlbecslése) és a `while` nem bizonyított terminálása; a többsoros kifejezések lezárása a v2-ben egységblokkal finomítva ([ADR-066](adr/066-unit-blocks.md), v33), a maradék (overload-csoport) a v3 egységmodellé (6. fázis); a 3. tétel (hatásösszegzés) ma kevés mért rés; a 2d nem mért ok.
+  - a mérés az A-politika szerinti, értékfüggő elutasítást külön számolja ([ADR-067](adr/067-value-perturbation-in-measurement.md)): a teljes kampány rése 560 → 310.
+  - **Következik:** a `flow` maradéka ma főleg objektumütközés (a ciklus túlbecslése); a többsoros kifejezések lezárása a v2-ben egységblokkal finomítva ([ADR-066](adr/066-unit-blocks.md), v33), a maradék (overload-csoport) a v3 egységmodellé (6. fázis); a 3. tétel (hatásösszegzés) ma kevés mért rés; a 2d nem mért ok.
 
 ## 1. Összefoglaló ítélet
 
@@ -78,6 +79,8 @@ A [validator.ts](../src/core/validator.ts) mélységi keresése az azonos tartal
 A véletlen objektum- és vezérlési programok kb. 17%-a (60-ból 10–11) kivételt dob. Ilyenkor a kimenet a dobás után nem függ a sorrendtől, ezért az orákulum sok sorrendet egyenértékűnek lát, amelyet a generátor joggal köt.
 
 A mért arány tehát felső becslés. Az ilyen esetek nem a generátor hibái.
+
+**Javítva ([ADR-067](adr/067-value-perturbation-in-measurement.md)):** az osztályozó a fixture egy-egy literálját más értékre cserélve megkeresi, melyik elutasított sorrend számít más adattal. Ezek szándékhű elutasítások (`intent`, ok: `value`), nem rések. A visszalépés ellen az ekvivalens-elutasítási arány is rögzített.
 
 ### 3.3 Hiányzó szabályjegyzék
 
@@ -188,7 +191,7 @@ Minden tétel új policyverzió, ADR, pozitív és negatív fixture, és utána 
    - Megmarad a sorrend a többi ismeretlen hívással, a globálisokkal és a lehetséges kivételekkel (`may-throw`).
    - Egy objektum megszökik, ha ismeretlen kódnak adják át, globálisba vagy closure-ba kerül, vagy ilyen objektumban tárolják.
 3. **Hatásösszegzés a felső szintű és szkriptszintű függvényekre.** A `var v = f()` és a `new Box()` a hívott, elemezhető törzs összegzése alapján rendeződik, ugyanazzal a hatásnyommal, mint a függvénytörzsben.
-4. **Bizonyítottan véget érő ciklusok:** a `for (let i = 0; i < N; i++)` literál korláttal, ha a magja nem írja `i`-t. Ugyanez a csak `bump()`-szerű, monoton változó `while` feltételre, ha bizonyítható (**kész, v32, [ADR-064](adr/064-monotone-while-loops.md)**: a `flow` `may-throw` rése 46 → 2). A `flow` maradéka nagyrészt A-politika szerinti szándékos elutasítás, amelyet a mérés résnek számol; a mérés pontosítása nyitott.
+4. **Bizonyítottan véget érő ciklusok:** a `for (let i = 0; i < N; i++)` literál korláttal, ha a magja nem írja `i`-t. Ugyanez a csak `bump()`-szerű, monoton változó `while` feltételre, ha bizonyítható (**kész, v32, [ADR-064](adr/064-monotone-while-loops.md)**: a `flow` `may-throw` rése 46 → 2). A `flow` maradéka nagyrészt A-politika szerinti szándékos elutasítás; a mérés ezt az [ADR-067](adr/067-value-perturbation-in-measurement.md) óta külön számolja.
 5. **A mezőirások pontosítása:** holt írás és azonos értékű írás. **Eldöntve (A-politika, ADR-043):** sorrendjük úgy ítélendő meg, mintha lefutnának; a mérés a halott kódot érintő elutasítást szándékhűnek számolja.
 6. **Osztálytag-fázisok és a `switch`, `try` maradékai:** a mért esetekre egyenként.
 

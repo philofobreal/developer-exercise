@@ -3,654 +3,763 @@
   "neighbours": 117,
   "accepted": 6,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 111
  },
  "scope-three-levels-shadowing": {
   "neighbours": 247,
   "accepted": 7,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 240
  },
  "hoisting-var-function": {
   "neighbours": 115,
   "accepted": 4,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 111
  },
  "top-level-functions": {
   "neighbours": 33,
   "accepted": 1,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 32
  },
  "closure-deferred-read": {
   "neighbours": 208,
   "accepted": 2,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 206
  },
  "else-if-shared-boundaries": {
   "neighbours": 328,
   "accepted": 8,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 320
  },
  "labelled-loops": {
   "neighbours": 285,
   "accepted": 10,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 275
  },
  "try-finally-switch": {
   "neighbours": 713,
   "accepted": 10,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 703
  },
  "destructuring-object-template": {
   "neighbours": 51,
   "accepted": 3,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 48
  },
  "js-class-fields-methods": {
   "neighbours": 420,
   "accepted": 7,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 413
  },
  "ts-interface-type-literal": {
   "neighbours": 245,
   "accepted": 7,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 238
  },
  "ts-enum": {
   "neighbours": 68,
   "accepted": 1,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 67
  },
  "ts-fields-declare-parameter-property": {
   "neighbours": 208,
   "accepted": 13,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 195
  },
  "ts-inheritance": {
   "neighbours": 405,
   "accepted": 11,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 394
  },
  "ts-method-outer-declaration": {
   "neighbours": 245,
   "accepted": 7,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 238
  },
  "ch-independent-declarations": {
   "neighbours": 35,
   "accepted": 1,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 34
  },
  "ch-unknown-calls": {
   "neighbours": 22,
   "accepted": 0,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 22
  },
  "ch-shadowing-top-level": {
   "neighbours": 35,
   "accepted": 0,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 35
  },
  "ch-write-then-read": {
   "neighbours": 22,
   "accepted": 0,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 22
  },
  "ch-unknown-call-then-read": {
   "neighbours": 35,
   "accepted": 1,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 34
  },
  "ch-aliasing": {
   "neighbours": 70,
   "accepted": 4,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 66
  },
  "ch-getter": {
   "neighbours": 176,
   "accepted": 2,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 174
  },
  "ch-async-await": {
   "neighbours": 51,
   "accepted": 0,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 51
  },
  "ch-generator": {
   "neighbours": 90,
   "accepted": 1,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 89
  },
  "ch-direct-eval": {
   "neighbours": 35,
   "accepted": 0,
   "completenessGaps": 1,
+  "intentRejections": 0,
   "justifiedRejections": 34
  },
  "ch-loop-and-catch-bindings": {
   "neighbours": 328,
   "accepted": 5,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 323
  },
  "ch-parameter-reads": {
   "neighbours": 90,
   "accepted": 6,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 84
  },
  "ch-fresh-allocations": {
   "neighbours": 70,
   "accepted": 14,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 56
  },
  "ch-multiline-closure": {
   "neighbours": 117,
   "accepted": 6,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 111
  },
  "ch-hoisted-helpers": {
   "neighbours": 245,
   "accepted": 8,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 237
  },
  "ch-let-without-initializer": {
   "neighbours": 208,
   "accepted": 4,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 204
  },
  "ch-typeof-strict-equality": {
   "neighbours": 51,
   "accepted": 2,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 49
  },
  "ch-var-operand": {
   "neighbours": 35,
   "accepted": 2,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 33
  },
  "ch-multiline-object": {
   "neighbours": 92,
   "accepted": 2,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 90
  },
  "ch-template-coercion": {
   "neighbours": 176,
   "accepted": 2,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 174
  },
  "ch-block-function-declaration": {
   "neighbours": 145,
   "accepted": 4,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 141
  },
  "ch-ts-hoisted-types": {
   "neighbours": 202,
   "accepted": 9,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 193
  },
  "ch-ts-class-declarations": {
   "neighbours": 236,
   "accepted": 10,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 226
  },
  "ch-ts-static-initializer": {
   "neighbours": 68,
   "accepted": 2,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 66
  },
  "ch-ts-overloads": {
   "neighbours": 90,
   "accepted": 2,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 88
  },
  "wp6-hoisted-into-continued-call": {
   "neighbours": 70,
   "accepted": 4,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 66
  },
  "wp6-hoisted-into-shared-boundaries": {
   "neighbours": 285,
   "accepted": 7,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 278
  },
  "wp6-member-into-continued-field": {
   "neighbours": 143,
   "accepted": 4,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 139
  },
  "wp6-overload-groups": {
   "neighbours": 322,
   "accepted": 4,
   "completenessGaps": 2,
+  "intentRejections": 0,
   "justifiedRejections": 316
  },
  "refl-prototype-and-static-methods": {
   "neighbours": 1334,
   "accepted": 25,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 1309
  },
  "refl-explicit-property-names": {
   "neighbours": 171,
   "accepted": 5,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 166
  },
  "refl-index-private-accessor-duplicate": {
   "neighbours": 1786,
   "accepted": 21,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 1765
  },
  "refl-ts-erased-and-overloads": {
   "neighbours": 1864,
   "accepted": 42,
   "completenessGaps": 8,
+  "intentRejections": 0,
   "justifiedRejections": 1814
  },
  "refl-script-globals": {
   "neighbours": 168,
   "accepted": 9,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 159
  },
  "refl-ts-accessor-fields": {
   "neighbours": 695,
   "accepted": 23,
   "completenessGaps": 16,
+  "intentRejections": 0,
   "justifiedRejections": 656
  },
  "refl-ts-emitted-globals": {
   "neighbours": 503,
   "accepted": 7,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 496
  },
  "wp6-self-referential-initializer": {
   "neighbours": 176,
   "accepted": 5,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 171
  },
  "wp6-outer-binding-before-initialization": {
   "neighbours": 210,
   "accepted": 3,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 207
  },
  "wp6-case-clause-binding": {
   "neighbours": 477,
   "accepted": 12,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 465
  },
  "wp6-unwritten-let-var": {
   "neighbours": 70,
   "accepted": 5,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 65
  },
  "wp6-written-let-coercion": {
   "neighbours": 117,
   "accepted": 2,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 115
  },
  "prec-else-chain-local-writes": {
   "neighbours": 477,
   "accepted": 6,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 471
  },
  "prec-try-catch-finally": {
   "neighbours": 425,
   "accepted": 9,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 416
  },
  "prec-ts-clause-chain": {
   "neighbours": 475,
   "accepted": 14,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 461
  },
  "cov-function-class-expressions": {
   "neighbours": 174,
   "accepted": 2,
   "completenessGaps": 2,
+  "intentRejections": 0,
   "justifiedRejections": 170
  },
  "cov-for-in-do-while": {
   "neighbours": 176,
   "accepted": 5,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 171
  },
  "cov-optional-delete-regex": {
   "neighbours": 92,
   "accepted": 0,
   "completenessGaps": 4,
+  "intentRejections": 0,
   "justifiedRejections": 88
  },
  "cov-instanceof-in": {
   "neighbours": 117,
   "accepted": 0,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 117
  },
  "cov-ts-assertions": {
   "neighbours": 143,
   "accepted": 5,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 138
  },
  "contract-grid-reads": {
   "neighbours": 143,
   "accepted": 14,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 129
  },
  "contract-read-write": {
   "neighbours": 143,
   "accepted": 2,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 141
  },
  "contract-program-getter": {
   "neighbours": 414,
   "accepted": 7,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 407
  },
  "contract-proxy-fallback": {
   "neighbours": 143,
   "accepted": 2,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 141
  },
  "contract-ts-destructure": {
   "neighbours": 143,
   "accepted": 3,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 140
  },
  "contract-ts-this-reads": {
   "neighbours": 117,
   "accepted": 9,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 108
  },
  "evaluate-ordering": {
   "neighbours": 51,
   "accepted": 6,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 45
  },
  "algo-bfs-js": {
   "neighbours": 803,
   "accepted": 5,
   "completenessGaps": 2,
+  "intentRejections": 0,
   "justifiedRejections": 796
  },
  "algo-bfs-js-valid": {
   "neighbours": 803,
   "accepted": 25,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 778
  },
  "algo-sort-search-js": {
   "neighbours": 1078,
   "accepted": 3,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 1075
  },
  "algo-sort-search-js-valid": {
   "neighbours": 1078,
   "accepted": 3,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 1075
  },
  "class-inventory-ts": {
   "neighbours": 1458,
   "accepted": 20,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 1438
  },
  "class-inventory-ts-valid": {
   "neighbours": 1458,
   "accepted": 20,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 1438
  },
  "class-accounts-ts": {
   "neighbours": 1059,
   "accepted": 27,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 1032
  },
  "class-accounts-ts-valid": {
   "neighbours": 1059,
   "accepted": 27,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 1032
  },
  "keyorder-listing": {
   "neighbours": 115,
   "accepted": 4,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 111
  },
  "keyorder-json": {
   "neighbours": 51,
   "accepted": 5,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 46
  },
  "keyorder-count": {
   "neighbours": 51,
   "accepted": 0,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 51
  },
  "keyorder-entries": {
   "neighbours": 117,
   "accepted": 7,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 110
  },
  "keyorder-methods": {
   "neighbours": 140,
   "accepted": 5,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 135
  },
  "keyorder-ts-fields": {
   "neighbours": 68,
   "accepted": 6,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 62
  },
  "task-word-frequency-js": {
   "neighbours": 208,
   "accepted": 3,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 205
  },
  "task-word-frequency-js-valid": {
   "neighbours": 208,
   "accepted": 3,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 205
  },
  "task-matrix-stats-js": {
   "neighbours": 475,
   "accepted": 9,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 466
  },
  "task-matrix-stats-js-valid": {
   "neighbours": 475,
   "accepted": 9,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 466
  },
  "task-ledger-js": {
   "neighbours": 1994,
   "accepted": 32,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 1962
  },
  "task-ledger-js-valid": {
   "neighbours": 1994,
   "accepted": 32,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 1962
  },
  "task-group-by-js": {
   "neighbours": 774,
   "accepted": 4,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 770
  },
  "task-group-by-js-valid": {
   "neighbours": 774,
   "accepted": 4,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 770
  },
  "task-form-validation-js": {
   "neighbours": 414,
   "accepted": 9,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 405
  },
  "task-form-validation-js-valid": {
   "neighbours": 414,
   "accepted": 12,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 402
  },
  "task-search-tree-js": {
   "neighbours": 2835,
   "accepted": 58,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 2777
  },
  "task-search-tree-js-valid": {
   "neighbours": 2835,
   "accepted": 58,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 2777
  },
  "task-memoize-js": {
   "neighbours": 530,
   "accepted": 4,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 526
  },
  "task-memoize-js-valid": {
   "neighbours": 530,
   "accepted": 6,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 524
  },
  "task-bracket-stack-ts": {
   "neighbours": 1136,
   "accepted": 34,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 1102
  },
  "task-bracket-stack-ts-valid": {
   "neighbours": 1136,
   "accepted": 34,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 1102
  },
  "task-cart-total-ts": {
   "neighbours": 582,
   "accepted": 10,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 572
  },
  "task-cart-total-ts-valid": {
   "neighbours": 582,
   "accepted": 10,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 572
  },
  "task-priority-queue-ts": {
   "neighbours": 1142,
   "accepted": 19,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 1123
  },
  "task-priority-queue-ts-valid": {
   "neighbours": 1142,
   "accepted": 19,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 1123
  },
  "task-grade-report-ts": {
   "neighbours": 2109,
   "accepted": 22,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 2087
  },
  "task-grade-report-ts-valid": {
   "neighbours": 2109,
   "accepted": 22,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 2087
  },
  "task-graph-reach-ts": {
   "neighbours": 1491,
   "accepted": 31,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 1460
  },
  "task-graph-reach-ts-valid": {
   "neighbours": 1491,
   "accepted": 31,
   "completenessGaps": 0,
+  "intentRejections": 0,
   "justifiedRejections": 1460
  }
 }

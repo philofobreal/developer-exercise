@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-11-03 érték-perturbáció a mérésben (ADR-067)
+
+- **Pontosabb résmérés:** az osztályozó a rögzített fixture egy-egy literálját más értékre cseréli. Ha a sorrend így már másként viselkedik, az elutasítás szándékhű (`intent`, ok: `value`), nem rés. Ide tartozik a véletlenül egyező értékű írás, és a biztos kivétel mögött rejtett megfigyelés. A generátor és a tanulói értékelés nem változott.
+- **Tanú:** minden ilyen eredmény megnevezi a sort, a régi és az új értéket.
+- **Kapu:** a gyors generatív mérés az ekvivalens-elutasítási arányt is rögzíti, így egy szigorúbb generátor nem bújhat el „szándékként”. A korpusz a szándékos elutasítások számát is rögzíti.
+- **Mérés:** a teljes 12 magos kampányban a rés 560 → 310 (250 értékfüggő szándékhű elutasítás), 0 hibás elfogadás 351 635 sorrendből. A korpusz változatlan; a valódi generátorkorlátok (ciklus túlbecslése, `param`, overload) résként maradtak.
+
 ## Unreleased – 2026-11-03 egységblokk a többsoros utasításokra (ADR-066, v33)
 
 - **Kevesebb fölösleges szabály:** egy többsoros hívás, tömb- vagy mezőinicializáló (például `record(` … `);`) a validátorban saját blokk. A független sorok átléphetnek rajta, a belsejébe nem kerülhetnek. Eddig minden testvérsort a forrásbeli oldalához kötött.

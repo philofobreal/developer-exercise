@@ -31,7 +31,7 @@ b.flush();         // soha nem fut le; kiolvasná, amit b.add(3) ír
 ## Határok, őszintén
 
 - **A le nem futó kódban az orákulum nem ad futásidejű bizonyítékot.** Az ottani döntést (elfogad vagy elutasít) a statikus elemzés hozza. Ha a generátor ott pontatlan (például a konstruktorban létrehozott mezők miatt egész objektum írását látja), a mérés ezt nem résként, hanem `intent`-ként mutatja.
-- **A semmit nem változtató írást a mérés nem választja külön.** A politika rájuk is érvényes, de a lefedettség nem ismeri fel őket, ezért résként maradnak a mérésben.
+- **A semmit nem változtató írást a mérés nem választja külön.** A politika rájuk is érvényes, de a lefedettség nem ismeri fel őket, ezért résként maradnak a mérésben. *Lezárva:* az [ADR-067](067-value-perturbation-in-measurement.md) érték-perturbációja felismeri őket (`intent`, ok: `value`).
 - **A lefedettség egy futásra szól:** egy másik bemenettel futó ág itt halottnak látszik. A rögzített, bemenet nélküli fixture-öknél ez a teljes viselkedés.
 
 ## Bizonyítékok

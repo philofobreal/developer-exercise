@@ -4,16 +4,23 @@
  *  - `unsound`: accepted, but the oracle sees a different behaviour;
  *  - `accepted`: accepted and equivalent (or undecided by the oracle: `undecided-accepted`);
  *  - `gap`: rejected although the oracle sees the same behaviour (incompleteness);
- *  - `intent` (ADR-043, policy A): rejected, the same behaviour, but every broken constraint
- *    touches a row the reference never executes: its order counts as if that code ran;
+ *  - `intent` (ADR-043, policy A): rejected, the same behaviour, but the rejection keeps the
+ *    reference's intent: every broken constraint touches a row the reference never executes
+ *    (`dead-code`: its order counts as if that code ran), or a literal on a broken constraint's
+ *    rows, replaced by another value, makes the order behave differently (`value`, ADR-067: the
+ *    order counts as if that write or comparison used another value);
  *  - `justified`: rejected, and the behaviour differs;
  *  - `undecided`: rejected, oracle undecided; `indeterminate`: the validator's budget ran out.
  * A rejection's `causes` are the provenance codes of the direct constraints the order breaks,
  * or `scope` when it breaks none and only the lexical structure rejects it. */
 import {compileCodeLineExercise,validateSubmission} from '../../dist/index.js';
 import {createOracle,codesOf} from './semantic-oracle.mjs';
+import {literalsOf,valuesFor,replaced} from './literal-variants.mjs';
 
-export function createClassifier(fixture,model,{maxStates=200_000,policy='reflective'}={}){
+/** At most this many variant verdicts per rejected order (ADR-067); none found is a gap. */
+export const VALUE_VARIANTS=48;
+
+export function createClassifier(fixture,model,{maxStates=200_000,policy='reflective',variants=VALUE_VARIANTS}={}){
  const compiled=compileCodeLineExercise(model);
  if(compiled.status)throw Error(fixture.id+': '+compiled.message);
  const judge=createOracle(fixture,{policy});
@@ -31,7 +38,34 @@ export function createClassifier(fixture,model,{maxStates=200_000,policy='reflec
  const dead=id=>!judge.executedRows().has(row.get(id));
  /** Policy A: an equivalent order rejected only for constraints that touch code the reference
   * never runs keeps the reference's intent, judged as if that code ran; not a gap. */
- const intent=order=>{const pairs=broken(order);return pairs.length>0&&pairs.every(([before,after])=>dead(before)||dead(after));};
+ const deadCode=pairs=>pairs.length>0&&pairs.every(([before,after])=>dead(before)||dead(after));
+ // ADR-067: one oracle per (literal, value), built on first use; null when the variant's own
+ // reference fails (a throw, a timeout or a parse error), which then proves nothing.
+ const source=Array.isArray(fixture.source)?fixture.source:fixture.source.split('\n'),literals=variants?literalsOf(source,fixture.language):[],oracles=new Map();
+ const variantJudge=(literal,value)=>{
+  const key=literals.indexOf(literal)+':'+typeof value+':'+String(value);
+  if(!oracles.has(key)){let judged=null;try{judged=createOracle({...fixture,id:fixture.id+'~'+key,source:replaced(source,literal,value)},{policy});}catch{}oracles.set(key,judged);}
+  return oracles.get(key);
+ };
+ const valueDependent=(order,pairs)=>{
+  // The broken constraints' own rows first (that write or comparison with another value), then
+  // every other literal of the program (the same order under other data).
+  const rows=new Set(pairs.flatMap(pair=>pair.map(id=>row.get(id))));let budget=variants;
+  const ranked=[...literals.filter(literal=>rows.has(literal.row)),...literals.filter(literal=>!rows.has(literal.row))];
+  for(const literal of ranked)for(const value of valuesFor(literal,literals)){
+   if(budget--<=0)return false;
+   const judged=variantJudge(literal,value);if(!judged)continue;
+   const rowsOf=replaced(source,literal,value);
+   if(judged(order.map(id=>rowsOf[row.get(id)])).ok===false)return {row:literal.row+1,literal:literal.value,value};
+  }
+  return null;
+ };
+ /** Why an equivalent rejected order keeps the reference's intent ({reason, witness?}), or null for a gap. */
+ const intent=order=>{
+  const pairs=broken(order);if(deadCode(pairs))return {reason:'dead-code'};
+  const witness=pairs.length?valueDependent(order,pairs):null;
+  return witness?{reason:'value',witness}:null;
+ };
  return {
   /** Whether the reference itself ended in a caught exception (the fixture's own probe convention). */
   referenceThrew:fixture.threw?.(judge.referenceValue)??false,
@@ -41,28 +75,33 @@ export function createClassifier(fixture,model,{maxStates=200_000,policy='reflec
    if(report.status==='indeterminate')return {kind:'indeterminate',states:report.exploredStates};
    const verdict=judge(lines);
    if(report.status==='accepted')return {kind:verdict.ok===false?'unsound':verdict.ok===null?'undecided-accepted':'accepted',reason:verdict.reason,states:report.exploredStates};
-   const kind=verdict.ok===true?(intent(order)?'intent':'gap'):verdict.ok===null?'undecided':'justified';
-   return {kind,reason:verdict.reason,states:report.exploredStates,causes:causes(order)};
+   const why=verdict.ok===true?intent(order):null;
+   const kind=verdict.ok===true?(why?'intent':'gap'):verdict.ok===null?'undecided':'justified';
+   return {kind,reason:why?.reason??verdict.reason,...(why?.witness?{witness:why.witness}:{}),states:report.exploredStates,causes:causes(order)};
   }
  };
 }
 
 const KINDS=['accepted','unsound','undecided-accepted','gap','intent','justified','undecided','indeterminate'];
 /** Counts classifications per group and ranks the causes of the gaps. The gap rate is the share
- * of rejected orders among the equivalent ones: gaps / (accepted + gaps). */
+ * of rejected orders among the equivalent ones: gaps / (accepted + gaps). The equivalent
+ * rejection rate also counts the intent-keeping rejections, (gaps + intent) / (accepted + gaps +
+ * intent): pinned beside the gap rate, a stricter generator cannot hide as intent (ADR-067). */
 export function createTally(){
  const groups=new Map();
  return {
   /** One classified order of program `program` in `group` (e.g. kind, language, policy, throws). */
   add(group,program,result){
    const key=JSON.stringify(group);
-   const row=groups.get(key)??{...group,programs:new Set(),orders:0,...Object.fromEntries(KINDS.map(kind=>[kind,0])),gapCauses:{}};
+   const row=groups.get(key)??{...group,programs:new Set(),orders:0,...Object.fromEntries(KINDS.map(kind=>[kind,0])),intentBy:{},gapCauses:{}};
    groups.set(key,row);
    row.programs.add(program);row.orders++;row[result.kind]++;
+   if(result.kind==='intent')row.intentBy[result.reason]=(row.intentBy[result.reason]??0)+1;
    if(result.kind==='gap')for(const code of result.causes)row.gapCauses[code]=(row.gapCauses[code]??0)+1;
   },
   rows(){
    return [...groups.values()].map(({programs,gapCauses,...row})=>({...row,programs:programs.size,gapRate:row.accepted+row.gap?+(row.gap/(row.accepted+row.gap)).toFixed(4):0,
+    equivalentRejectionRate:row.accepted+row.gap+row.intent?+((row.gap+row.intent)/(row.accepted+row.gap+row.intent)).toFixed(4):0,
     gapCauses:Object.fromEntries(Object.entries(gapCauses).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])))}));
   }
  };

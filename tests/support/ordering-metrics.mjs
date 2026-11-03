@@ -10,7 +10,7 @@ import {createClassifier} from './order-classification.mjs';
 /** Bounded settings used by semantic-corpus.test.mjs and its pinned baseline. */
 export const CORPUS_CAPS={exhaustiveLimit:200,samples:100,repeats:0};
 /** Cap-independent numbers pinned per fixture. */
-export const pinned=row=>({neighbours:row.neighbours,accepted:row.accepted,completenessGaps:row.completenessGaps,justifiedRejections:row.justifiedRejections});
+export const pinned=row=>({neighbours:row.neighbours,accepted:row.accepted,completenessGaps:row.completenessGaps,intentRejections:row.intentRejections,justifiedRejections:row.justifiedRejections});
 export function generate(fixture){return generateCodeLineExercise({source:fixture.source.join('\n'),language:fixture.language,...(fixture.inputs?{inputs:fixture.inputs}:{}),...(fixture.keyOrder?{keyOrder:fixture.keyOrder}:{})},ts);}
 /** True when the statement analysis declines the whole reference (with, direct eval). */
 function analysisDisabled(fixture){

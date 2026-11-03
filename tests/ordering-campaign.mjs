@@ -19,7 +19,7 @@ import {measureCampaign,QUICK} from './support/generative-metrics.mjs';
 if(process.argv.includes('--baseline')){
  const {rows,violations}=measureCampaign(QUICK);
  if(violations)throw Error('unsound orders found; fix them before pinning a baseline');
- const baseline=Object.fromEntries(rows.map(row=>[[row.kind,row.language,row.policy,row.throws?'throws':'returns'].join(' '),{programs:row.programs,orders:row.orders,gap:row.gap,gapRate:row.gapRate}]).sort(([a],[b])=>a.localeCompare(b)));
+ const baseline=Object.fromEntries(rows.map(row=>[[row.kind,row.language,row.policy,row.throws?'throws':'returns'].join(' '),{programs:row.programs,orders:row.orders,gap:row.gap,intent:row.intent,gapRate:row.gapRate,equivalentRejectionRate:row.equivalentRejectionRate}]).sort(([a],[b])=>a.localeCompare(b)));
  await writeFile(new URL('./fixtures/generative-baseline.json',import.meta.url),JSON.stringify(baseline,null,1)+'\n');
  console.log('generative baseline written for',Object.keys(baseline).length,'groups');process.exit(0);
 }
