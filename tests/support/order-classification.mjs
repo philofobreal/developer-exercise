@@ -53,10 +53,10 @@ export function createClassifier(fixture,model,{maxStates=200_000,policy='reflec
  };
  const valueDependent=(order,pairs)=>{
   // The broken constraints' own rows first (that write or comparison with another value), then the
-  // rows of the blocks they open (the branch or case that decides whether the code runs), then
-  // every other literal of the program (the same order under other data).
+  // rows of the blocks they open or close (the branch or case that decides whether the code runs,
+  // ADR-070: a `}` stands for its whole statement), then every other literal of the program.
   const ids=new Set(pairs.flat()),rows=new Set([...ids].map(id=>row.get(id))),inner=new Set();
-  for(const block of model.blocks)if(ids.has(block.openLineId))for(let at=row.get(block.openLineId)+1;at<row.get(block.closeLineId);at++)inner.add(at);
+  for(const block of model.blocks)if(ids.has(block.openLineId)||ids.has(block.closeLineId))for(let at=row.get(block.openLineId);at<=row.get(block.closeLineId);at++)inner.add(at);
   const tier=literal=>rows.has(literal.row)?0:inner.has(literal.row)?1:2;let budget=variants;
   const ranked=[...literals].sort((a,b)=>tier(a)-tier(b));
   for(const literal of ranked)for(const value of valuesFor(literal,literals)){

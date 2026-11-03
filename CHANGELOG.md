@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-11-03 egyszer futó ciklus (ADR-070, v36)
+
+- **Kevesebb fölösleges szabály:** a `for (const entry of boxes) { …; break; }` ciklus, amely legfeljebb egyszer fut, csak a tömb első elemén dolgozik. Így egy másik objektum művelete átléphet rajta. Eddig a tömb minden elemét érintőnek vette a modell.
+- **Biztonsági feltételek:** a feltételes `break`, a ciklusra visszatérő `continue`, valamint az első elemet megváltoztató `unshift`/`pop`/`shift` mellett a régi szabály marad.
+- **Orákulum:** a független ellenőrzés a tömbliterálon futó belső `for … of`-ot is objektumműveletként ismeri.
+- **Mérés:** a teljes kampányban a rés 150 → 116, az elfogadott sorrend +52, 0 hibás elfogadás 351 664 sorrendből. Az érték-perturbáció a lezárt blokk literáljait is előre veszi; ezzel a rés 100.
+
 ## Unreleased – 2026-11-03 mélyen ellenséges bemenet, saját osztályok (ADR-069, v35)
 
 - **Pontosabb mérés:** a paraméteres programok egy mélyen ellenséges bemenetet is kapnak, amely minden olvasást, írást és konverziót naplóz. A korábbi 24 `param`-rés mind indokolt elutasításnak bizonyult; a 424 elfogadott sorrend ezt a próbát is kiállta.

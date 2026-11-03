@@ -2,6 +2,25 @@
 export function loopEnds(statement, file, compiler, objects) {
     return counted(statement, compiler) || monotone(statement, file, compiler, objects);
 }
+/** v36 (ADR-070): the loop's body runs at most once. Its last statement is a `break` that leaves
+ * this loop (unlabelled, or naming the loop's own label), and no `continue` in the body returns to
+ * it: an unlabelled one outside nested loops, or one naming the label (conservatively at any depth). */
+export function atMostOnce(statement, compiler) {
+    const label = compiler.isLabeledStatement(statement.parent) ? statement.parent.label.text : undefined, body = statement.statement;
+    const last = compiler.isBlock(body) ? body.statements.at(-1) : body;
+    if (!last || !compiler.isBreakStatement(last) || last.label && last.label.text !== label)
+        return false;
+    let again = false;
+    const visit = (node, nested) => {
+        if (again || compiler.isFunctionLike(node) || compiler.isClassLike(node))
+            return;
+        if (compiler.isContinueStatement(node) && (node.label ? node.label.text === label : !nested))
+            again = true;
+        compiler.forEachChild(node, child => visit(child, nested || compiler.isIterationStatement(child, false)));
+    };
+    visit(body, false);
+    return !again;
+}
 /** Identifiers assigned anywhere in `root`, nested functions included (they may run in it). */
 export function assignedNames(root, compiler) {
     const S = compiler.SyntaxKind, names = new Set();

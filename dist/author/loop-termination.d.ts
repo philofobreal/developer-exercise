@@ -21,6 +21,10 @@ export interface LoopObjects {
 }
 /** Whether the loop is shown to end: a counting `for` (ADR-046) or a monotone `while` (ADR-064). */
 export declare function loopEnds(statement: ts.IterationStatement, file: ts.SourceFile, compiler: Compiler, objects: LoopObjects): boolean;
+/** v36 (ADR-070): the loop's body runs at most once. Its last statement is a `break` that leaves
+ * this loop (unlabelled, or naming the loop's own label), and no `continue` in the body returns to
+ * it: an unlabelled one outside nested loops, or one naming the label (conservatively at any depth). */
+export declare function atMostOnce(statement: ts.IterationStatement, compiler: Compiler): boolean;
 /** Identifiers assigned anywhere in `root`, nested functions included (they may run in it). */
 export declare function assignedNames(root: ts.Node, compiler: Compiler): Set<string>;
 export {};

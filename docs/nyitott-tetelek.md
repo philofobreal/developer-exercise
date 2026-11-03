@@ -1,6 +1,6 @@
 # Nyitott tételek jegyzéke
 
-Állapot: 2026-11-03, szabályverzió `scoped-effect-analysis-v35`. Ez az egyetlen hely, ahol a lezáratlan tételek össze vannak gyűjtve: a még meg nem oldott generátorhiányok, mérési korlátok, döntések és tervezési adósságok. A részletek a forrásként megadott ADR-ben vannak.
+Állapot: 2026-11-03, szabályverzió `scoped-effect-analysis-v36`. Ez az egyetlen hely, ahol a lezáratlan tételek össze vannak gyűjtve: a még meg nem oldott generátorhiányok, mérési korlátok, döntések és tervezési adósságok. A részletek a forrásként megadott ADR-ben vannak.
 
 **Szabályok:**
 - Minden ADR, amelynek „Nyitott” szakasza van, ide kerül. Ezt a [governance-teszt](../tests/governance.test.mjs) ellenőrzi.
@@ -18,7 +18,7 @@
 
 | ID | Tétel | Típus | Mért hatás (v34) | Forrás | Következő lépés |
 | --- | --- | --- | --- | --- | --- |
-| NY-01 | **A ciklus túlbecslése:** a `for … of` egy `break` után is minden elemre érvényes hatásnyomot kap | generátor | `flow`: 73 rés nyelvenként (objektumütközés) | [ADR-046](adr/046-loops-over-own-objects.md), [ADR-068](adr/068-binding-context-member-phases-early-exit.md) | az első kör utáni feltétel nélküli `break` felismerése |
+| NY-01 | **A `flow` objektumütközés-maradéka:** az egyszer futó ciklus kész ([ADR-070](adr/070-loop-body-at-most-once.md)); maradt a nem ismert első elemű és a többször futó ciklus, valamint az `if ('k' === 'k')` mintájú állandó feltétel körüli ütközés | generátor | `flow`: 15 rés nyelvenként | [ADR-046](adr/046-loops-over-own-objects.md), [ADR-068](adr/068-binding-context-member-phases-early-exit.md), [ADR-070](adr/070-loop-body-at-most-once.md) | okelemzés a 15 tanún |
 | NY-02 | **A nem dobó `object` programok** objektumütközései | generátor | 22 + 22 rés | [ADR-025](adr/025-local-object-effect-footprints.md) | okelemzés tanúkkal (még nem vizsgált) |
 | NY-03 | **Hatásösszegzés** a felső szintű függvényekre (`var v = f()`) | generátor | **0 mért rés** (a korábban ide sorolt 31 rés más okú volt, [ADR-069](adr/069-deep-hostile-input-and-own-class-names.md)) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) | csak ha egy mérés esetet mutat |
 | NY-04 | **v3 egységmodell:** a TS overload-csoport és a blokkot is záró sor (`});`) | generátor | `class` TS: 19 rés, korpusz 3 fixture | [ADR-066](adr/066-unit-blocks.md) | külön epic (15. feladat) |
@@ -53,6 +53,7 @@
 | A halott ág és a véletlenül egyező érték a mérésben | [ADR-067](adr/067-value-perturbation-in-measurement.md) |
 | Függvénynév kötési kontextusa, duplikált definíciók, laza static mezők | [ADR-068](adr/068-binding-context-member-phases-early-exit.md) |
 | A `while` terminálása | [ADR-064](adr/064-monotone-while-loops.md) |
+| A legfeljebb egyszer futó `for … of` túlbecslése | [ADR-070](adr/070-loop-body-at-most-once.md) |
 | A `param` programok rései (gyenge próbák) | [ADR-069](adr/069-deep-hostile-input-and-own-class-names.md) |
 | Számnevű és duplikált metódusú osztály `new`-ja | [ADR-069](adr/069-deep-hostile-input-and-own-class-names.md) |
 | A megerősítési szint a magból, a modulbontások | [ADR-065](adr/065-design-debt-removal-and-module-split.md) |

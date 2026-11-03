@@ -26,7 +26,7 @@
  * external footprints keep their order, and an external one orders like a possible throw.
  */
 import type ts from 'typescript';
-import {assignedNames, loopEnds, type LoopObjects} from './loop-termination.js';
+import {assignedNames, atMostOnce, loopEnds, type LoopObjects} from './loop-termination.js';
 type Compiler = typeof ts;
 
 /** `external` (ADR-040): the statement runs code outside the program (a trace, outside state).
@@ -186,6 +186,9 @@ export function objectFootprints(list: readonly ts.Statement[], file: ts.SourceF
  const kinds = new Map<string, Kind>([...owned.values()].map(entry => [entry.id, entry.kind]));
  if (self) kinds.set(self, {kind: 'class', info: selfInfo!});
  const fields = new Map<string, Map<string, Value>>(), elements = new Map<string, Value>();
+ // v36 (ADR-070): the first element of an own array literal, and the arrays an unshift, pop or
+ // shift may have given another first element (no other array write is in the subset).
+ const firsts = new Map<string, Value>(), reshaped = new Set<string>();
  let changed = false;
  const addField = (object: string, name: string, value: Value): void => {
   const map = fields.get(object) ?? new Map<string, Value>(), before = map.get(name), after = before ? union(before, value) : value;
@@ -289,7 +292,9 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
     for (const id of iterated.objs) frame.fp.reads.add(at(id, WHOLE));
     // Locals the body assigns lose a known value: a later iteration may see another one.
     for (const name of assignedNames(statement.statement, compiler)) if (frame.env.has(name)) frame.env.set(name, union(frame.env.get(name)!, PRIM));
-    const element = union(...[...iterated.objs].map(id => elements.get(id) ?? PRIM));
+    // v36 (ADR-070): a body that runs at most once sees only the first element of one own array literal.
+    const single = iterated.objs.size === 1 ? [...iterated.objs][0]! : undefined;
+    const element = single !== undefined && firsts.has(single) && !reshaped.has(single) && atMostOnce(statement, compiler) ? firsts.get(single)! : union(...[...iterated.objs].map(id => elements.get(id) ?? PRIM));
     if (compiler.isIdentifier(binding)) frame.env.set(binding.text, element);
     // ADR-059: `const [a, b]` over own arrays of own arrays (the pairs of Object.entries): every
     // name may be any element of an inner array, which the destructuring reads.
@@ -440,6 +445,7 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
    if (kind.kind !== 'array') unknown();
    if (ARRAY_WRITES.has(name)) {
     frame.fp.writes.add(at(object, WHOLE));frame.fp.reads.add(at(object, WHOLE));
+    if (name !== 'push' && !reshaped.has(object)) {reshaped.add(object); changed = true;}
     const pushed = args.map(argument => expression(argument, frame));
     if (name === 'push' || name === 'unshift') {pushed.forEach(value => addElements(object, value)); values.push(PRIM);}
     else {if (pushed.length) unknown(); values.push(union(PRIM, elements.get(object) ?? PRIM));}
@@ -612,7 +618,16 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
    if (!own || own.statement !== statement) unknown();
    const init = unwrap(declaration.initializer!);
    if (own!.kind.kind === 'class') construct(own!.id, own!.kind.info, (init as ts.NewExpression).arguments?.map(argument => expression(argument, frame)) ?? [], frame);
-   else if (compiler.isArrayLiteralExpression(init)) {frame.fp.writes.add(at(own!.id, WHOLE)); for (const element of init.elements) {if (compiler.isSpreadElement(element) || compiler.isOmittedExpression(element)) unknown(); addElements(own!.id, expression(element, frame));} if (!elements.has(own!.id)) elements.set(own!.id, PRIM);}
+   else if (compiler.isArrayLiteralExpression(init)) {
+    frame.fp.writes.add(at(own!.id, WHOLE));
+    init.elements.forEach((element, index) => {
+     if (compiler.isSpreadElement(element) || compiler.isOmittedExpression(element)) unknown();
+     const value = expression(element, frame);
+     addElements(own!.id, value);
+     if (!index) firsts.set(own!.id, union(firsts.get(own!.id) ?? value, value));
+    });
+    if (!elements.has(own!.id)) elements.set(own!.id, PRIM);
+   }
    else {
     frame.fp.writes.add(at(own!.id, WHOLE));
     for (const property of (init as ts.ObjectLiteralExpression).properties) {

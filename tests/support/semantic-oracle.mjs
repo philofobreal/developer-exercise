@@ -315,7 +315,9 @@ function jsObjectOperations(program){
     const ok=(!item.test||value(item.test))&&body(item.body);names.forEach(name=>locals.delete(name));return ok;
    }
    if(item.type==='ForOfStatement'){
-    if(item.await||item.right.type!=='Identifier'||!owned.has(item.right.name)||item.left.type!=='VariableDeclaration'||item.left.declarations.length!==1||item.left.declarations[0].id.type!=='Identifier')return false;
+    // ADR-070: also over an array literal of values; its variable may stand for any own object.
+    const iterated=item.right.type==='Identifier'&&owned.has(item.right.name)||item.right.type==='ArrayExpression'&&value(item.right);
+    if(item.await||!iterated||item.left.type!=='VariableDeclaration'||item.left.declarations.length!==1||item.left.declarations[0].id.type!=='Identifier')return false;
     const name=item.left.declarations[0].id.name;aliases.add(name);const ok=body(item.body);aliases.delete(name);return ok;
    }
    const expression=item.type==='ExpressionStatement'?item.expression:null;
@@ -451,7 +453,9 @@ function tsObjectOperations(file){
    }
    if(ts.isForOfStatement(item)){
     const head=item.initializer;
-    if(item.awaitModifier||!ts.isIdentifier(item.expression)||!owned.has(item.expression.text)||!ts.isVariableDeclarationList(head)||head.declarations.length!==1||!ts.isIdentifier(head.declarations[0].name))return false;
+    // ADR-070: also over an array literal of values; its variable may stand for any own object.
+    const iterated=ts.isIdentifier(item.expression)&&owned.has(item.expression.text)||ts.isArrayLiteralExpression(item.expression)&&value(item.expression);
+    if(item.awaitModifier||!iterated||!ts.isVariableDeclarationList(head)||head.declarations.length!==1||!ts.isIdentifier(head.declarations[0].name))return false;
     const name=head.declarations[0].name.text;aliases.add(name);const ok=body(item.statement);aliases.delete(name);return ok;
    }
    const expression=ts.isExpressionStatement(item)?item.expression:null;

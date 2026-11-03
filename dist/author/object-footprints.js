@@ -1,4 +1,4 @@
-import { assignedNames, loopEnds } from './loop-termination.js';
+import { assignedNames, atMostOnce, loopEnds } from './loop-termination.js';
 /** Thrown inside the interpretation when a statement leaves the analysable subset. */
 class Unknown extends Error {
 }
@@ -184,6 +184,9 @@ export function objectFootprints(list, file, compiler, checker, host) {
     if (self)
         kinds.set(self, { kind: 'class', info: selfInfo });
     const fields = new Map(), elements = new Map();
+    // v36 (ADR-070): the first element of an own array literal, and the arrays an unshift, pop or
+    // shift may have given another first element (no other array write is in the subset).
+    const firsts = new Map(), reshaped = new Set();
     let changed = false;
     const addField = (object, name, value) => {
         const map = fields.get(object) ?? new Map(), before = map.get(name), after = before ? union(before, value) : value;
@@ -315,7 +318,9 @@ export function objectFootprints(list, file, compiler, checker, host) {
                 for (const name of assignedNames(statement.statement, compiler))
                     if (frame.env.has(name))
                         frame.env.set(name, union(frame.env.get(name), PRIM));
-                const element = union(...[...iterated.objs].map(id => elements.get(id) ?? PRIM));
+                // v36 (ADR-070): a body that runs at most once sees only the first element of one own array literal.
+                const single = iterated.objs.size === 1 ? [...iterated.objs][0] : undefined;
+                const element = single !== undefined && firsts.has(single) && !reshaped.has(single) && atMostOnce(statement, compiler) ? firsts.get(single) : union(...[...iterated.objs].map(id => elements.get(id) ?? PRIM));
                 if (compiler.isIdentifier(binding))
                     frame.env.set(binding.text, element);
                 // ADR-059: `const [a, b]` over own arrays of own arrays (the pairs of Object.entries): every
@@ -543,6 +548,10 @@ export function objectFootprints(list, file, compiler, checker, host) {
             if (ARRAY_WRITES.has(name)) {
                 frame.fp.writes.add(at(object, WHOLE));
                 frame.fp.reads.add(at(object, WHOLE));
+                if (name !== 'push' && !reshaped.has(object)) {
+                    reshaped.add(object);
+                    changed = true;
+                }
                 const pushed = args.map(argument => expression(argument, frame));
                 if (name === 'push' || name === 'unshift') {
                     pushed.forEach(value => addElements(object, value));
@@ -795,11 +804,14 @@ export function objectFootprints(list, file, compiler, checker, host) {
                 construct(own.id, own.kind.info, init.arguments?.map(argument => expression(argument, frame)) ?? [], frame);
             else if (compiler.isArrayLiteralExpression(init)) {
                 frame.fp.writes.add(at(own.id, WHOLE));
-                for (const element of init.elements) {
+                init.elements.forEach((element, index) => {
                     if (compiler.isSpreadElement(element) || compiler.isOmittedExpression(element))
                         unknown();
-                    addElements(own.id, expression(element, frame));
-                }
+                    const value = expression(element, frame);
+                    addElements(own.id, value);
+                    if (!index)
+                        firsts.set(own.id, union(firsts.get(own.id) ?? value, value));
+                });
                 if (!elements.has(own.id))
                     elements.set(own.id, PRIM);
             }

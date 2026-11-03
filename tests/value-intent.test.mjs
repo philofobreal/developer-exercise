@@ -4,7 +4,8 @@
  * literal that shows the dependency); an order no single-literal variant tells apart stays a gap. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {generate} from './support/ordering-metrics.mjs';
+import {generate,measureFixture,CORPUS_CAPS} from './support/ordering-metrics.mjs';
+import {corpus} from './fixtures/ordering-corpus.mjs';
 import {createClassifier} from './support/order-classification.mjs';
 import {literalsOf,valuesFor,replaced} from './support/literal-variants.mjs';
 
@@ -31,11 +32,13 @@ test('a write hidden only by a certain throw keeps its order: intent by value',(
  assert.equal(result.reason,'value');
 });
 
-test('an order no value tells apart stays a gap: the loop over-approximation',()=>{
- const program=fixture('value-loop-gap',['class Box {','  constructor(label) {','    this.label = label;','  }','  rename(text) {','    this.label = text;','  }','}','function run() {',"  const a = new Box('a');","  const b = new Box('b');",'  const boxes = [a, b];','  for (const entry of boxes) {',"    entry.rename('r1');",'    break;','  }',"  b.rename('r2');",'  return JSON.stringify([a, b]);','}']);
- const result=verdict(program,"b.rename('r2');",'for (const entry of boxes) {');
+test('an order no value tells apart stays a gap: a sealed overload group',()=>{
+ // ADR-070 freed the former example (the for…of over-approximation); an overload group's seal
+ // (ADR-009, v3 unit model pending) is a gap no literal can explain.
+ const program=corpus.get('wp6-overload-groups'),model=generate(program),row=measureFixture(program,CORPUS_CAPS);
+ assert.ok(row.gaps.length>0,'the fixture still has gaps');
+ const result=createClassifier(program,model).classify(row.gaps[0]);
  assert.equal(result.kind,'gap',JSON.stringify(result));
- assert.ok(result.causes.some(code=>code.startsWith('object-')),result.causes.join());
 });
 
 test('literals: names, types, directives and module specifiers are not data; comparisons decide',()=>{
