@@ -48,6 +48,12 @@ A felhasználó jóváhagyta az ajánlást ([ADR-057](adr/057-example-migration-
 
 **`class-accounts-ts`:** a 4. fázis 2d tétele után tér vissza.
 
+**Újramérés a 2d után (2026-11-03, v30, [ADR-059](adr/059-read-only-builtins.md)) – döntés: nem frissítjük.**
+- **Vizsgált sorrendek:** a tanár leírása szerint megengedett mind a 480 sorrend (az öt tag 120 sorrendje, a 6/7 és a 13/14 csere minden kombinációja). A régi modell mindet elfogadja.
+- **A frissített modell 360-at elutasítana,** `any` és `valid` szerződéssel egyaránt: mindet, amelyben a `this.balance` írása és a `this.history.push(…)` hívás cserél helyet. Futásidőben ezek azonosak (lásd a [könyvtártesztet](../tests/complex-scope-ordering.test.mjs)).
+- **Ok:** az absztrakt, öröklő osztály példányát az objektumhatás-elemzés nem modellezi (ADR-025), ezért a mezők műveletei sorompók. A 2d itt nem segít.
+- **Döntés:** a tanár által kimondottan megengedett, helyes válaszokat nem utasítjuk el, ezért a modell „Nem igazolt” marad. A frissítés akkor tér vissza, ha az elemzés az öröklést modellezi.
+
 **`algo-sort-search-js` és `profiles-js`:** a (b) út, „Nem igazolt” marad.
 
 **`verified-only`:** nem lett alapértelmezés.

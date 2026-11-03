@@ -21,6 +21,8 @@
    - A `verified-only` (`CODELINE_PUBLICATION`) választható, de nem alapértelmezett.
    - Ma három példa kiesne vele a katalógusból. A [megbízhatósági terv](../megbizhatosagi-audit-terv.md) 1. fázisának 4. lépése ezért nyitva marad, és az utolsó „Nem igazolt” példa megoldásakor tér vissza.
 
+**Kiegészítés (2026-11-03):** a 2d (ADR-059) után a `class-accounts-ts` újramérve. A frissítés a tanár 480 megengedett sorrendjéből továbbra is 360-at utasítana el, mert az öröklő osztályt az elemzés nem modellezi. A 2. pont döntése ezért marad; a részletek az [eltéréslistában](../peldak-migracioja.md) vannak.
+
 ## Mérés (v29, a frissítés előtt)
 
 Vizsgált sorrendek:
