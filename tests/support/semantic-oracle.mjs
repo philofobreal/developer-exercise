@@ -697,8 +697,25 @@ function analyse(code,language,ordered=false,enumerated=true,inputs='any'){
  * snapshots are sorted by key, as declaration order is not itself observable. */
 /** ADR-055: with key order `ignored`, every key listing the program can call returns its keys in a
  * fixed canonical order (array indices ascending, then names sorted, then symbols), so the creation
- * order is unobservable by construction; values and presence still show. for…in is not normalised. */
-const canonicalKeys=`(()=>{const index=k=>typeof k==='string'&&/^(0|[1-9]\\d*)$/.test(k)&&Number(k)<4294967295;const order=list=>[...list.filter(index),...list.filter(k=>typeof k==='string'&&!index(k)).sort(),...list.filter(k=>typeof k==='symbol')];const ownKeys=Reflect.ownKeys,keys=Object.keys,names=Object.getOwnPropertyNames,stringify=JSON.stringify;Reflect.ownKeys=o=>order(ownKeys(o));Object.getOwnPropertyNames=o=>order(names(o));Object.keys=o=>order(keys(o));Object.values=o=>Object.keys(o).map(k=>o[k]);Object.entries=o=>Object.keys(o).map(k=>[k,o[k]]);JSON.stringify=(v,r,s)=>typeof r==='function'||Array.isArray(r)?stringify(v,r,s):stringify(v,(k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).map(n=>[n,x[n]])):x,s);})();\n`;
+ * order is unobservable by construction; values and presence still show. for…in iterates the same
+ * canonical order (ADR-062, canonicalForIn). */
+const canonicalKeys=`(()=>{const index=k=>typeof k==='string'&&/^(0|[1-9]\\d*)$/.test(k)&&Number(k)<4294967295;const order=list=>[...list.filter(index),...list.filter(k=>typeof k==='string'&&!index(k)).sort(),...list.filter(k=>typeof k==='symbol')];const ownKeys=Reflect.ownKeys,keys=Object.keys,names=Object.getOwnPropertyNames,stringify=JSON.stringify;Reflect.ownKeys=o=>order(ownKeys(o));Object.getOwnPropertyNames=o=>order(names(o));Object.keys=o=>order(keys(o));Object.values=o=>Object.keys(o).map(k=>o[k]);Object.entries=o=>Object.keys(o).map(k=>[k,o[k]]);JSON.stringify=(v,r,s)=>typeof r==='function'||Array.isArray(r)?stringify(v,r,s):stringify(v,(k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).map(n=>[n,x[n]])):x,s);`
+ // for…in (rewritten to for…of over __forIn, see canonicalForIn): enumerable string keys, own first, then each prototype, every level in the canonical order.
+ +`const proto=Object.getPrototypeOf,describe=Object.getOwnPropertyDescriptor;globalThis.__forIn=o=>{const out=[],seen=new Set();if(o===null||o===undefined)return out;for(let p=Object(o);p!==null;p=proto(p))for(const k of order(ownKeys(p))){if(typeof k!=='string'||seen.has(k))continue;seen.add(k);if(describe(p,k).enumerable)out.push(k);}return out;};})();\n`;
+/** ADR-062: with key order ignored, every for…in of the script iterates __forIn(object), the keys a
+ * for…in would visit in the canonical order. The keys are taken when the loop starts: a key added
+ * or deleted during the loop is not followed (the specification leaves that order open anyway). */
+function canonicalForIn(js){
+ let tree;try{tree=parseScript(js,{ecmaVersion:'latest',sourceType:'script'});}catch{return js;}
+ const loops=[];
+ const visit=node=>{if(!node||typeof node!=='object')return;if(Array.isArray(node)){node.forEach(visit);return;}if(node.type==='ForInStatement')loops.push(node);for(const [key,value] of Object.entries(node))if(key!=='type'&&value&&typeof value==='object')visit(value);};
+ visit(tree);
+ for(const loop of loops.sort((a,b)=>b.right.start-a.right.start)){
+  const between=js.slice(loop.left.end,loop.right.start),at=between.search(/\bin\b/);
+  js=js.slice(0,loop.left.end)+between.slice(0,at)+'of'+between.slice(at+2)+'__forIn('+js.slice(loop.right.start,loop.right.end)+')'+js.slice(loop.right.end);
+ }
+ return js;
+}
 /** Independent reach witness (ADR-058): which key-listing, reflection and hook APIs the program
  * actually calls while it runs, however their names are spelled. The oracle's textual rules
  * (enumerationNames, reflectionNames, contractHooks) mirror the generator's; this run-time record
@@ -729,7 +746,9 @@ const reachWitness=wrapEval=>`(()=>{const apply=Reflect.apply,construct=Reflect.
  +(wrapEval?`globalThis.eval=watch(eval,fnKinds);`:'')
  +`const S=Symbol;globalThis.Symbol=new P(S,{get(t,key,self){const v=Reflect.get(t,key);if(typeof v==='symbol')mark(['hooks']);return v;}});`
  +`})();\n`;
-function execute(code,{language,probe,strict=true,asynchronous=false,keyOrder='observed',hit=()=>{}},{classNames=[],globals=[],functions=[],ordered=false,enumerated=true}={},nested=[]){
+function execute(code,{language,probe,strict:strictMode=true,environment='strict',asynchronous=false,keyOrder='observed',hit=()=>{}},{classNames=[],globals=[],functions=[],ordered=false,enumerated=true}={},nested=[]){
+ // ADR-062: `sloppy` runs the script without strict mode; `es2015` runs the emit of an ES2015 target.
+ const strict=strictMode&&environment!=='sloppy',target=environment==='es2015'?ts.ScriptTarget.ES2015:ts.ScriptTarget.ES2022;
  for(const {key,name,end} of [...nested].sort((a,b)=>b.end-a.end))code=code.slice(0,end)+`;__classes.push([${JSON.stringify(key)}, ${name}]);`+code.slice(end);
  const keys=`const keys=o=>Reflect.ownKeys(o).map(k=>{const d=Object.getOwnPropertyDescriptor(o,k);return [String(k),'get' in d||'set' in d?'accessor':'value',d.enumerable,d.configurable,d.writable===undefined?null:d.writable];}),own=o=>{const all=keys(o);if(${ordered})return all;return [...all.filter(k=>!k[2]).sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0),...all.filter(k=>k[2])];};`;
  const reflect=`;__reach.on=false;var __reflection=(()=>{try{${keys}`
@@ -743,14 +762,14 @@ function execute(code,{language,probe,strict=true,asynchronous=false,keyOrder='o
   const tail=asynchronous
    ?`;var __result='pending',__nested='pending';__reach.on=true;Promise.resolve(${probe}).then(value=>{__reach.on=false;__result=JSON.stringify({value,trace},${replacer});__nested=${nestedSnapshot};},error=>{__result='throws:'+(error&&error.name)+':'+(error&&error.message);});`
    :`;__reach.on=true;var __value=(${probe});__reach.on=false;var __result=JSON.stringify({value:__value,trace},${replacer});var __nested=${nestedSnapshot};`;
-  try{new Script(prefix+js+'\n'+reflect+tail,{filename:'fixed-oracle-fixture.js'}).runInContext(context,{timeout});return {call:String(context.__result),reflection:String(context.__reflection)+' nested:'+String(context.__nested),reach:reached(reach)};}
+  try{new Script(prefix+(keyOrder==='ignored'?canonicalForIn(js):js)+'\n'+reflect+tail,{filename:'fixed-oracle-fixture.js'}).runInContext(context,{timeout});return {call:String(context.__result),reflection:String(context.__reflection)+' nested:'+String(context.__nested),reach:reached(reach)};}
   catch(error){if(error?.code==='ERR_SCRIPT_EXECUTION_TIMEOUT')return {call:'timeout',reflection:'',reach:reached(reach)};return {call:'throws:'+error?.name+':'+error?.message,reflection:'',reach:reached(reach)};}
  };
  const run=js=>{let result={call:'timeout',reflection:''};for(const timeout of TIMEOUTS_MS){result=attempt(js,timeout);if(result.call!=='timeout')break;}return result;};
- if(language!=='typescript')return run(code);
+ if(language!=='typescript'&&environment!=='es2015')return run(code);
  const outputs=[];
  for(const define of [false,true]){
-  const transpile=module=>ts.transpileModule(code,{reportDiagnostics:true,compilerOptions:{target:ts.ScriptTarget.ES2022,useDefineForClassFields:define,...module?{module:ts.ModuleKind.CommonJS}:{}}});
+  const transpile=module=>ts.transpileModule(code,{fileName:language==='typescript'?'fixture.ts':'fixture.js',reportDiagnostics:true,compilerOptions:{target,useDefineForClassFields:define,...language==='typescript'?{}:{allowJs:true},...module?{module:ts.ModuleKind.CommonJS}:{}}});
   let output=transpile(false);
   if(output.diagnostics?.length)return {call:'syntax',reflection:'',reach:reached({})};
   // A module's exports run as a script: CommonJS emit keeps every declaration a script binding.
@@ -763,7 +782,7 @@ function execute(code,{language,probe,strict=true,asynchronous=false,keyOrder='o
 /** Plan 5.1: a fixture may carry several probes (`probes`), each run in a fresh context; the
  * results are compared probe by probe, and what any run reaches counts (ADR-058). */
 function executeAll(code,fixture,reflection,nested){
- const runs=(fixture.probes??[fixture.probe]).map(probe=>execute(code,{...fixture,probe},reflection,nested));
+ const runs=(fixture.environments??['strict']).flatMap(environment=>(fixture.probes??[fixture.probe]).map(probe=>execute(code,{...fixture,environment,probe},reflection,nested)));
  return {call:runs.map(run=>run.call).join(' || '),reflection:runs.map(run=>run.reflection).join(' || '),reach:reached(Object.assign({},...runs.map(run=>run.reach)))};
 }
 
@@ -826,12 +845,25 @@ export function createOracle(fixture,{policy='reflective',reach:assumed=null}={}
  const settle=reach=>{
   const {ordered,enumerated,inputs}=facts(reach),reference=analyse(source,fixture.language,ordered,enumerated,inputs);
   if(!reference)throw Error(`oracle fixture ${fixture.id} does not parse`);
-  return {ordered,enumerated,inputs,reference,baseline:executeAll(source,fixture,reference.reflection,reference.nested)};
+  return {ordered,enumerated,inputs,reference,baseline:executeAll(source,{...fixture,environments:['strict']},reference.reflection,reference.nested)};
  };
  let settled=settle(assumed??{});
  if(!assumed){const first=settled.baseline.reach,again=facts(first);if(again.ordered!==settled.ordered||again.enumerated!==settled.enumerated||again.inputs!==settled.inputs)settled=settle(first);}
- const {ordered,enumerated,inputs,reference,baseline}=settled,reach=baseline.reach;
+ const {ordered,enumerated,inputs,reference}=settled;let {baseline}=settled;
  if(/^throws:|timeout|syntax/.test(baseline.call))throw Error(`oracle fixture ${fixture.id} reference fails: ${baseline.call}`);
+ // ADR-062: an environment variant counts where the reference runs in it; sloppy mode only where the
+ // reference gives the strict result, as the contract promises strict scripts.
+ const environments=['strict'];
+ for(const environment of fixture.environments??[]){
+  if(environment==='strict')continue;
+  const run=executeAll(source,{...fixture,environments:[environment]},reference.reflection,reference.nested);
+  if(/^throws:|timeout|syntax/.test(run.call)||run.call.split(/ \|\|? /).some(call=>/^throws:|^syntax|^timeout/.test(call)))continue;
+  if(environment==='sloppy'&&run.call!==baseline.call)continue;
+  environments.push(environment);
+ }
+ const runs={...fixture,environments};
+ if(environments.length>1)baseline=executeAll(source,runs,reference.reflection,reference.nested);
+ const reach=baseline.reach;
  const exceeds=seen=>!!seen&&(seen.reflects&&observed&&!ordered||seen.enumerates&&observed&&!enumerated||seen.hooks&&inputs==='valid');
  let escalated=null;const escalate=()=>escalated??=createOracle(fixture,{policy,reach:{reflects:true,enumerates:true,hooks:true}});
  const reflective=policy==='reflective',cache=new Map();
@@ -844,14 +876,14 @@ export function createOracle(fixture,{policy='reflective',reach:assumed=null}={}
   else if(candidate.effects!==reference.effects)verdict={ok:false,reason:'effect-order'};
   else if(reflective&&candidate.reflection.order!==reference.reflection.order)verdict={ok:false,reason:'reflection'};
   else{
-   const observed=executeAll(code,fixture,reference.reflection,candidate.nested);
+   const observed=executeAll(code,runs,reference.reflection,candidate.nested);
    verdict=exceeds(observed.reach)?escalate()(lines):observed.call.includes('timeout')?{ok:null,reason:'timeout'}:observed.call!==baseline.call?{ok:false,reason:'runtime'}:reflective&&observed.reflection!==baseline.reflection?{ok:false,reason:'reflection'}:{ok:true,reason:'equivalent'};
   }
   cache.set(code,verdict);return verdict;
  };
  judge.referenceValue=JSON.parse(baseline.call.split(' || ')[0].split(' | ')[0]).value;
  // ADR-058: what the reference run reached, and the facts the verdicts assume.
- judge.reach=reach;judge.facts={ordered,enumerated,inputs};
+ judge.reach=reach;judge.facts={ordered,enumerated,inputs};judge.environments=environments;
  // ADR-043: computed on first use, as only a rejected equivalent order needs it.
  let executed=null;
  judge.executedRows=()=>executed??=executedRows(source,fixture);

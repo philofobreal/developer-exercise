@@ -27,7 +27,7 @@ Az orákulum ugyanezt a politikát saját kóddal valósítja meg. `keyOrder: 'i
 - a futtatás előtt az `Object.keys`, `Object.values`, `Object.entries`, `Object.getOwnPropertyNames`, `Reflect.ownKeys` és a `JSON.stringify` kanonikus sorrendet ad (tömbindexek növekvően, majd a nevek rendezve, majd a szimbólumok), így a létrehozási sorrend futásidőben sem figyelhető meg;
 - a P4 halmazként hasonlít.
 
-**Korlát:** a `for…in` bejárási sorrendjét az orákulum nem normalizálja. Ilyen programban a mérés szigorúbb a politikánál, vagyis nem enged át hibát.
+**Korlát (feloldva, [ADR-062](062-oracle-environments-and-for-in.md)):** a `for…in` bejárási sorrendjét az orákulum eredetileg nem normalizálta, ezért ilyen programban a mérés szigorúbb volt a politikánál. Most a `for…in` is kanonikus sorrendben jár.
 
 ## Pedagógiai határ
 

@@ -155,7 +155,7 @@ A P3 és a P4 a következőket figyeli. Ugyanezt hasonlítja össze a független
 - a `record` nélküli konzolkimenet;
 - a modulbetöltés tényleges külső hatása: ezt a modulbetöltő import kötése fedi, nem futtatással igazoljuk.
 
-**Futtatási környezet:** strict klasszikus szkript, TypeScriptnél ES2022-re fordítva, mindkét osztálymezőmódban (`useDefineForClassFields` igaz és hamis). Ami ezen kívül esik (CommonJS-betöltő, bundler, dekorátortranszformáció, más `target`), azt a generátor konzervatív szabállyal kezeli. A ténylegesen feltételezett beállításokat a modell `authoring.evidence.environment` mezője rögzíti (ADR-015).
+**Futtatási környezet:** strict klasszikus szkript, TypeScriptnél ES2022-re fordítva, mindkét osztálymezőmódban (`useDefineForClassFields` igaz és hamis). Ami ezen kívül esik (CommonJS-betöltő, bundler, dekorátortranszformáció, más `target`), azt a generátor konzervatív szabállyal kezeli. Az ES2015-ös célt és a sloppy módot (ahol a referencia nem függ a szigorúságtól) az orákulum környezetváltozatai mérik ([ADR-062](adr/062-oracle-environments-and-for-in.md)). A ténylegesen feltételezett beállításokat a modell `authoring.evidence.environment` mezője rögzíti (ADR-015).
 
 ### Policyverziók
 

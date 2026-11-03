@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-03 környezetváltozatok és kanonikus for…in az orákulumban (ADR-062)
+
+- **Környezetváltozatok:** az orákulum ES2015-re fordított kódon és sloppy módban is futtathat (ez utóbbit csak ott, ahol a referencia nem függ a szigorúságtól); a kampányban `--environments=strict,es2015,sloppy`.
+- **Kanonikus `for…in`:** „Nem számít” kulcssorrend mellett a `for…in` is kanonikus sorrendben jár, így az ADR-055 utolsó korlátja megszűnt.
+- **Mérés:** a teljes korpusz mindhárom változatban 0 hibás elfogadás, a rések száma változatlan; 3 kampánymag minden fajtával 0 hibás elfogadás.
+
 ## Unreleased – 2026-11-03 több bemenet az orákulumban (ADR-061)
 
 - **Több próba fixture-önként:** minden próba friss kontextusban fut, és próbánként hasonlítunk; ami csak egy másik bemeneten tér el, már nem látszik egyenértékűnek.
