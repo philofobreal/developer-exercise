@@ -276,6 +276,11 @@ export function randomParameterProgram(seed,{language='javascript',inputs='any',
  const call=args=>`(() => { try { return evaluate(${args}); } catch (error) { return 'throws ' + error.name + ': ' + error.message; } })()`;
  const plain=["{ a: 1, b: 'x', items: [1, 2, 3] }, 2","{ a: 0, b: '', items: [] }, 0","{ a: -3, b: 'yy', items: [5] }, 10"];
  const hostile=['null, 1',"{ a: 1, b: 'x', items: [1] }, '1'","{ get a() { record('get a'); return 1; }, get b() { record('get b'); return 'g'; }, items: [2] }, 1","new Proxy({ a: 2, b: 'p', items: [1, 1] }, { get(target, key) { record('get', String(key)); return target[key]; } }), 1","{ get a() { record('get a'); return { valueOf() { record('valueOf a'); return 1; } }; }, get b() { record('get b'); return { toString() { record('toString b'); return 'o'; } }; }, get items() { record('get items'); return [3]; } }, { valueOf() { record('valueOf limit'); return 2; } }"];
+ // ADR-069: a deep hostile input. Every read returns another such proxy; every read, write, key
+ // listing, iteration and conversion is recorded, and each conversion yields the next number, so
+ // the order of two conversions shows in the values too, not only in the record log.
+ const deep="(() => { let n = 0; const deep = path => new Proxy(() => {}, { get(target, key) { if (key === Symbol.toPrimitive) return () => { record('convert', path); return ++n; }; if (key === Symbol.iterator) return function* () { record('iterate', path); }; record('get', path + '.' + String(key)); return deep(path + '.' + String(key)); }, set(target, key) { record('set', path + '.' + String(key)); return true; }, ownKeys() { record('keys', path); return []; }, has() { record('has', path); return false; } }); return [deep('data'), deep('limit')]; })()";
+ hostile.push(`...${deep}`);
  const probes=[...plain,...(inputs==='valid'?[]:hostile)].map(call);
  return {id:`param-${language}-${inputs}-${seed}`,origin:'random',language,source:body,probe:probes[0],probes,threw:probeCaughtThrow};
 }

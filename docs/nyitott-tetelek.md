@@ -1,6 +1,6 @@
 # Nyitott tételek jegyzéke
 
-Állapot: 2026-11-03, szabályverzió `scoped-effect-analysis-v34`. Ez az egyetlen hely, ahol a lezáratlan tételek össze vannak gyűjtve: a még meg nem oldott generátorhiányok, mérési korlátok, döntések és tervezési adósságok. A részletek a forrásként megadott ADR-ben vannak.
+Állapot: 2026-11-03, szabályverzió `scoped-effect-analysis-v35`. Ez az egyetlen hely, ahol a lezáratlan tételek össze vannak gyűjtve: a még meg nem oldott generátorhiányok, mérési korlátok, döntések és tervezési adósságok. A részletek a forrásként megadott ADR-ben vannak.
 
 **Szabályok:**
 - Minden ADR, amelynek „Nyitott” szakasza van, ide kerül. Ezt a [governance-teszt](../tests/governance.test.mjs) ellenőrzi.
@@ -20,7 +20,7 @@
 | --- | --- | --- | --- | --- | --- |
 | NY-01 | **A ciklus túlbecslése:** a `for … of` egy `break` után is minden elemre érvényes hatásnyomot kap | generátor | `flow`: 73 rés nyelvenként (objektumütközés) | [ADR-046](adr/046-loops-over-own-objects.md), [ADR-068](adr/068-binding-context-member-phases-early-exit.md) | az első kör utáni feltétel nélküli `break` felismerése |
 | NY-02 | **A nem dobó `object` programok** objektumütközései | generátor | 22 + 22 rés | [ADR-025](adr/025-local-object-effect-footprints.md) | okelemzés tanúkkal (még nem vizsgált) |
-| NY-03 | **Hatásösszegzés** a felső szintű függvényekre és konstruktorokra (`var v = f()`, `new Box()`) | generátor | `script` JS 5, `param` 12 + 12, `class` 2 | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) | **folyamatban (18. feladat)** |
+| NY-03 | **Hatásösszegzés** a felső szintű függvényekre (`var v = f()`) | generátor | **0 mért rés** (a korábban ide sorolt 31 rés más okú volt, [ADR-069](adr/069-deep-hostile-input-and-own-class-names.md)) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) | csak ha egy mérés esetet mutat |
 | NY-04 | **v3 egységmodell:** a TS overload-csoport és a blokkot is záró sor (`});`) | generátor | `class` TS: 19 rés, korpusz 3 fixture | [ADR-066](adr/066-unit-blocks.md) | külön epic (15. feladat) |
 | NY-05 | **2d maradéka:** saját objektumot kapó ismeretlen függvény (a referencia megtartása) | generátor | nem mért; korpusz: `Object.entries(totals)` 3 rés | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md), [ADR-059](adr/059-read-only-builtins.md) | mérés előbb, utána döntés |
 | NY-06 | **Tiszta beépített globálisok** (`Math.max`) külön kódcsaládja | generátor | nem mért | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) | mérés |
@@ -33,6 +33,8 @@
 | NY-13 | **`primitive`/`pure`/`readOnly`:** három egymásra épülő osztályozó | tervezés | nincs | [ADR-050](adr/050-input-contract.md) | nem sürgős |
 | NY-14 | **`POLICY_INTENT`:** kézi lista az osztályozóban | tervezés | nincs | [ADR-068](adr/068-binding-context-member-phases-early-exit.md) | a jegyzékbe, ha lesz második ilyen okkód |
 | NY-15 | **Az ellenőrzési kapu** a blokkszámból következtet az azonos szerkezetre | tervezés | nincs | [ADR-066](adr/066-unit-blocks.md) | saját összevetés, ha a frissítés más finomítást kap |
+| NY-17 | **Szkriptszintű `var` olvasása** koerciós műveletben (`let l3 = v1 + 1`): más szkript írhatja | döntés | `script` JS 5 rés | [ADR-009](adr/009-sealed-units-and-throw-free-reads.md) | szerződésdöntés: egyetlen szkriptnek tekinthető-e a feladat |
+| NY-18 | **`new Item10()`:** overloados, paramétertulajdonságos TS-osztály kimarad az objektummodellből | generátor | `class` TS 1 rés | [ADR-069](adr/069-deep-hostile-input-and-own-class-names.md) | okelemzés, ha több eset lesz |
 | NY-16 | **A böngészőtesztek környezete:** a Python Playwright 1248-as Chromiumot vár, 1243-as van telepítve | környezet | friss konténerben nem indul | — | a környezet beállítása; addig `PLAYWRIGHT_BROWSERS_PATH` alias |
 
 ## Elfogadott korlátok (nem rések, nem javítandók)
@@ -51,6 +53,8 @@
 | A halott ág és a véletlenül egyező érték a mérésben | [ADR-067](adr/067-value-perturbation-in-measurement.md) |
 | Függvénynév kötési kontextusa, duplikált definíciók, laza static mezők | [ADR-068](adr/068-binding-context-member-phases-early-exit.md) |
 | A `while` terminálása | [ADR-064](adr/064-monotone-while-loops.md) |
+| A `param` programok rései (gyenge próbák) | [ADR-069](adr/069-deep-hostile-input-and-own-class-names.md) |
+| Számnevű és duplikált metódusú osztály `new`-ja | [ADR-069](adr/069-deep-hostile-input-and-own-class-names.md) |
 | A megerősítési szint a magból, a modulbontások | [ADR-065](adr/065-design-debt-removal-and-module-split.md) |
 | Szöveges kulcsmegfigyelés (`task-ledger-js`) | [ADR-060](adr/060-key-observation-text.md) |
 | A generátor MJS-része típusos modulba | [ADR-013](adr/013-local-writes-clause-chains-and-imports.md) (ADR-011 utóirata) |

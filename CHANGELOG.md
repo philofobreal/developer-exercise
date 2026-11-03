@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-11-03 mélyen ellenséges bemenet, saját osztályok (ADR-069, v35)
+
+- **Pontosabb mérés:** a paraméteres programok egy mélyen ellenséges bemenetet is kapnak, amely minden olvasást, írást és konverziót naplóz. A korábbi 24 `param`-rés mind indokolt elutasításnak bizonyult; a 424 elfogadott sorrend ezt a próbát is kiállta.
+- **Kevesebb fölösleges szabály:** a számnevű (`0() {}`) és a kétszer definiált metódusú osztály példánya ismét saját objektum. Hívásnál a későbbi definíció számít.
+- **Újramérve:** a felső szintű függvények hatásösszegzésének (NY-03) jelenleg nincs mért haszna, ezért nem került be.
+- **Mérés:** a teljes kampányban a rés 175 → 150, 0 hibás elfogadás 351 664 sorrendből; a korpusz változatlan.
+- **Nyitott tételek** egy helyen: [docs/nyitott-tetelek.md](docs/nyitott-tetelek.md). A governance-teszt bukik, ha egy ADR nyitott szakasza onnan hiányzik.
+
 ## Unreleased – 2026-11-03 kötési kontextus, tagfázisok, korai kilépés (ADR-068, v34)
 
 - **Hibajavítás:** egy függvénydeklaráció neve az elemzésben a függvény törzséhez tartozott, nem ahhoz a környezethez, ahol a kötés él. Ezért egy függvényt olvasó tiszta sor (például `const kind = typeof helper;`) semmilyen külső hívással nem cserélhetett helyet. A `function` programok rése 12 magon 15 → 0.

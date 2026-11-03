@@ -53,7 +53,8 @@ export function objectFootprints(list, file, compiler, checker, host) {
         return result === undefined ? null : literal(result);
     };
     const unwrap = (expr) => compiler.isParenthesizedExpression(expr) || compiler.isAsExpression(expr) || compiler.isSatisfiesExpression(expr) || compiler.isNonNullExpression(expr) || compiler.isTypeAssertionExpression(expr) ? unwrap(expr.expression) : expr;
-    const nameOf = (name) => compiler.isIdentifier(name) || compiler.isPrivateIdentifier(name) || compiler.isStringLiteral(name) ? name.text : undefined;
+    // v35 (ADR-069): a numeric member name is the property key of its canonical numeric string.
+    const nameOf = (name) => compiler.isIdentifier(name) || compiler.isPrivateIdentifier(name) || compiler.isStringLiteral(name) ? name.text : compiler.isNumericLiteral(name) ? String(Number(name.text)) : undefined;
     const has = (node, kind) => (compiler.canHaveModifiers(node) ? compiler.getModifiers(node) ?? [] : []).some(modifier => modifier.kind === kind);
     const classes = new Map();
     /** A class whose instances behave exactly as its own body says: no heritage, decorators,
@@ -91,7 +92,9 @@ export function objectFootprints(list, file, compiler, checker, host) {
                         continue; // an overload signature
                     if (member.asteriskToken || has(member, S.AsyncKeyword))
                         return null;
-                    info.methods.set(claim(nameOf(member.name)), member);
+                    // v35 (ADR-069): a later method of the same name replaces the earlier one on the prototype.
+                    const name = nameOf(member.name);
+                    info.methods.set(name !== undefined && info.methods.has(name) ? name : claim(name), member);
                 }
                 else if (compiler.isGetAccessorDeclaration(member) && member.body) {
                     const name = nameOf(member.name);
