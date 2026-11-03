@@ -317,7 +317,7 @@ Ha a feltételek nem teljesülnek, a generátor a forrássorrendet tartja meg. E
 
 ## A tesztorákulum bizonyítási határai
 
-- **Független kódút, részben közös parser:** JavaScriptre Acorn, TypeScriptre viszont ugyanaz a TypeScript-parser, saját bejárással. Egy TS-parserhiba (A1) mindkét oldalon megjelenhet.
+- **Független kódút, részben közös parser:** JavaScriptre Acorn, TypeScriptre viszont ugyanaz a TypeScript-parser, saját bejárással. Egy TS-parserhiba (A1) mindkét oldalon megjelenhet. A TS szkripteket az orákulum a lefordított kódjukon Acornnal is elemzi ([ADR-063](adr/063-oracle-typescript-emit-reading.md)), ami ezt a közös utat szűkíti.
 - **Véges bemenet:** P3 és a P4 futásidejű része a rögzített probe-ot futtatja vm-kontextusban, strict szkriptként, TS-nél ES2022-re fordítva, mindkét osztálymező-módban. Egy „ekvivalens” ítélet csak erre a bemenetre szól. Ezért lehet completeness-rés például a `ch-typeof-strict-equality` vagy az `algo-bfs-js` esete.
 - **P4-lefedettség:**
   - a felső szintű osztályok és a deklarált globálisok pillanatképe közvetlenül a szkript kiértékelése után készül;

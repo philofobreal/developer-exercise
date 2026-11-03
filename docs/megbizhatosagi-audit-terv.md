@@ -199,7 +199,7 @@ Minden tétel új policyverzió, ADR, pozitív és negatív fixture, és utána 
 0. **Független elérési tanú** ([ADR-058](adr/058-oracle-reach-witness.md), kész 2026-11-03): a kulcslistázást, a reflexiót és a horgokat az orákulum a program tényleges hívásaiból is megállapítja, a generátor név- és szivárgáselemzésétől függetlenül.
 1. **Több bemenet (kész, [ADR-061](adr/061-oracle-multiple-inputs.md)):** a fixture több probe-ot és paraméteres belépési pontot kaphat; a véletlen generátorok paraméteres változatot is előállítanak.
 2. **Környezetváltozatok (kész, [ADR-062](adr/062-oracle-environments-and-for-in.md)):** sloppy mód, ahol releváns, régebbi ES-cél (az osztálymezők leképezése), és a meglévő mindkét osztálymező-mód; a `for…in` „Nem számít” kulcssorrendnél kanonikus.
-3. **Független TS-elemzés:** az orákulum a TS forrást előbb JS-re fordítja, és az Acorn-alapú JS-ágon elemzi. A törölt deklarációkhoz marad a TS AST. Ez szűkíti az A1 feltevést.
+3. **Független TS-elemzés (kész szkriptekre, [ADR-063](adr/063-oracle-typescript-emit-reading.md)):** az orákulum a TS forrást előbb JS-re fordítja, és az Acorn-alapú JS-ágon elemzi. A törölt deklarációkhoz marad a TS AST. Ez szűkíti az A1 feltevést. Nyitott: modulok és a `[[Set]]` mód második olvasata.
 
 ### 6. fázis – reprezentációs veszteség (P2, nagy munka)
 

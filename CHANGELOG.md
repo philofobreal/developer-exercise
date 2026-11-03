@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased – 2026-11-03 a TypeScript második olvasata az orákulumban (ADR-063)
+
+- **Független olvasat:** a TypeScript szkripteket az orákulum a lefordított (ES2022, natív mezős) kódjukon Acornnal is elemzi; egyenértékűnek csak az a sorrend számít, amelyben mindkét olvasat egyezik.
+- **Mérés:** a TS-korpusz számai változatlanok, a két olvasat minden szomszédos sorrendben egyezik; 4 TS-kampánymag 0 hibás elfogadással.
+
 ## Unreleased – 2026-11-03 környezetváltozatok és kanonikus for…in az orákulumban (ADR-062)
 
 - **Környezetváltozatok:** az orákulum ES2015-re fordított kódon és sloppy módban is futtathat (ez utóbbit csak ott, ahol a referencia nem függ a szigorúságtól); a kampányban `--environments=strict,es2015,sloppy`.

@@ -675,6 +675,25 @@ function nestedClasses(code,language){
  try{visit(parseScript(code,{ecmaVersion:'latest',sourceType:'script'}),[],false);}catch{return [];}
  return found;
 }
+/** ADR-063: the independent JavaScript reading of a TypeScript script. The ES2022 emit with native
+ * class fields (useDefineForClassFields), the faithful image of the source, is parsed with Acorn and
+ * judged by the JavaScript P1/P2 checks: its shape and its effect-pair order. The [[Set]] mode moves
+ * fields into constructor assignments, an emit artefact the JavaScript checks would order without
+ * the class-member policy (ADR-012, ADR-029); P3 still runs both modes. The TypeScript AST still
+ * decides what the emit erases (types, interfaces, overload signatures, declare). A module keeps the
+ * TypeScript reading only ('' here), as its CommonJS emit adds a loader prologue. null: the emit
+ * does not parse. */
+function emittedAnalysis(code,file,inputs){
+ if(ts.isExternalModule(file))return '';
+ const parts=[];
+ for(const define of [true]){
+  const js=ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022,useDefineForClassFields:define}}).outputText;
+  let tree;try{tree=parseScript(js,{ecmaVersion:'latest',sourceType:'script'});}catch{return null;}
+  const world=readWorld(js,'javascript',inputs);
+  parts.push(jsShape(tree)+'#'+effectPairs(jsLists(tree),node=>jsShape(node),(statement,chain)=>jsClassify(statement,chain,world),jsPositionFree,jsCommutes(world),jsObjectOperations(tree)));
+ }
+ return parts.join(' | ');
+}
 function analyse(code,language,ordered=false,enumerated=true,inputs='any'){
  // ADR-050: the input contract is the reference's; a candidate is judged under the same facts.
  const world=readWorld(code,language,inputs);
@@ -684,7 +703,9 @@ function analyse(code,language,ordered=false,enumerated=true,inputs='any'){
   // Global-object properties are what the emitted script declares; a module declares none.
   let globals={};
   if(!ts.isExternalModule(file)){try{globals=jsReflection(parseScript(ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,{ecmaVersion:'latest',sourceType:'script'}),ordered);}catch{return null;}}
-  return {shape:tsShape(file),effects:effectPairs(tsLists(file),tsShape,(statement,chain)=>tsClassify(statement,chain,world),tsPositionFree,tsCommutes(world),tsObjectOperations(file)),reflection:tsReflection(file,globals,ordered,enumerated),nested:nestedClasses(code,language)};
+  const emitted=emittedAnalysis(code,file,inputs);
+  if(emitted===null)return null;
+  return {shape:tsShape(file),effects:effectPairs(tsLists(file),tsShape,(statement,chain)=>tsClassify(statement,chain,world),tsPositionFree,tsCommutes(world),tsObjectOperations(file)),reflection:tsReflection(file,globals,ordered,enumerated),nested:nestedClasses(code,language),emitted};
  }
  let tree;try{tree=parseScript(code,{ecmaVersion:'latest',sourceType:'script'});}catch{return null;}
  return {shape:jsShape(tree),effects:effectPairs(jsLists(tree),node=>jsShape(node),(statement,chain)=>jsClassify(statement,chain,world),jsPositionFree,jsCommutes(world),jsObjectOperations(tree)),reflection:jsReflection(tree,ordered,enumerated),nested:nestedClasses(code,language)};
@@ -874,6 +895,7 @@ export function createOracle(fixture,{policy='reflective',reach:assumed=null}={}
   if(!candidate)verdict={ok:false,reason:'syntax'};
   else if(candidate.shape!==reference.shape)verdict={ok:false,reason:'scope'};
   else if(candidate.effects!==reference.effects)verdict={ok:false,reason:'effect-order'};
+  else if(candidate.emitted!==reference.emitted)verdict={ok:false,reason:'emitted-order'};
   else if(reflective&&candidate.reflection.order!==reference.reflection.order)verdict={ok:false,reason:'reflection'};
   else{
    const observed=executeAll(code,runs,reference.reflection,candidate.nested);
@@ -884,6 +906,8 @@ export function createOracle(fixture,{policy='reflective',reach:assumed=null}={}
  judge.referenceValue=JSON.parse(baseline.call.split(' || ')[0].split(' | ')[0]).value;
  // ADR-058: what the reference run reached, and the facts the verdicts assume.
  judge.reach=reach;judge.facts={ordered,enumerated,inputs};judge.environments=environments;
+ // ADR-063: whether a TypeScript fixture is also read through its JavaScript emit.
+ judge.emittedReading=!!reference.emitted;
  // ADR-043: computed on first use, as only a rejected equivalent order needs it.
  let executed=null;
  judge.executedRows=()=>executed??=executedRows(source,fixture);
