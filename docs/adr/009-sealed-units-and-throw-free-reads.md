@@ -1,6 +1,6 @@
 # ADR-009 – Lezárt többsoros egységek, dobásmentes tiszta olvasás, írási halmazok (WP6)
 
-Állapot: implementálva, Node-tesztekkel és a független orákulummal ellenőrizve. Az ADR-008 kiegészítése. A validátor, a séma jelentése, a tanulói parsermentes értékelés és a bizalmi határ változatlan.
+Állapot: implementálva, Node-tesztekkel és a független orákulummal ellenőrizve. A lezárást az [ADR-066](066-unit-blocks.md) (v33) szűkíti: a blokkal ábrázolható lyukas egység egységblokk. Az ADR-008 kiegészítése. A validátor, a séma jelentése, a tanulói parsermentes értékelés és a bizalmi határ változatlan.
 
 ## Kontextus
 

@@ -51,21 +51,25 @@ test('conservative fallbacks and projection loss lower the status to conservativ
  const commented=await verify(generate(['function f(n) {','  const a = n + 1;','  /*','   note','  */','  return a;','}']));
  assert.equal(commented.status,'conservative');
  assert.ok(commented.checks.fallbacks.codes['opaque-row']>0);
- const fixture=corpus.get('wp6-hoisted-into-continued-call');
+ // v33 (ADR-066): the continued call is a unit block, so `size` may cross it and nothing is lost.
+ const continued=corpus.get('wp6-hoisted-into-continued-call');
+ assert.equal((await verify(generate(continued.source,continued.language))).checks.projectionLoss,0);
+ // An overload group's last row also closes the implementation: no block can hold it, it stays sealed (ADR-009).
+ const fixture=corpus.get('wp6-overload-groups');
  const lossy=await verify(generate(fixture.source,fixture.language));
- // v10 (ADR-019): `size` may also cross the continued call, which the closure pins as well.
- assert.equal(lossy.checks.projectionLoss,2);
+ assert.equal(lossy.checks.projectionLoss,3);
  assert.equal(lossy.status,'conservative');
  assert.equal(claim(lossy,'A kezelt esetekben'),'not-established');
 });
 
-test('CopyFieldUtilityService: conservative, publishable, language unverifiable, closure-bound projection loss',async()=>{
+test('CopyFieldUtilityService: conservative, publishable, language unverifiable, no projection loss since unit blocks',async()=>{
  const model=generate(await readFile(new URL('./fixtures/copy-field-utility.service.ts',import.meta.url),'utf8'),'typescript');
  const result=await verify(model);
  assert.equal(result.status,'conservative');
  assert.equal(result.publishable,true);
- assert.deepEqual([result.checks.rederivation,result.checks.audit,result.checks.projectionLoss,result.checks.budget.probed,result.checks.budget.indeterminate],['match','unverifiable',3,expectedProbes(model),0]);
- // ADR-019: the pure arrow `isSourceField` may cross the continued `isTargetField = (` unit, which the closure pins (ADR-009).
+ assert.deepEqual([result.checks.rederivation,result.checks.audit,result.checks.projectionLoss,result.checks.budget.probed,result.checks.budget.indeterminate],['match','unverifiable',0,expectedProbes(model),0]);
+ // ADR-019: the pure arrow `isSourceField` may cross the continued `isTargetField = (` unit; since v33 (ADR-066)
+ // the unit is a block, so the model no longer pins it (until v32 the seal did: 3 lost pairs).
  assert.equal(claim(result,'A referencia nyelvileg'),'not-established');
 });
 

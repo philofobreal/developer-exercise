@@ -194,6 +194,7 @@ A `dependencyPolicy` címke a generálási szabályok verziója. Egy modell áll
 | `scoped-effect-analysis-v30` | [ADR-059](adr/059-read-only-builtins.md) | **Csak olvasó beépített hívás saját objektumon (2d):** az `Object.keys`, `values`, `entries` és a `JSON.stringify` a saját objektumot egészében olvassa, és nem szivárgás. Az első három friss tömböt ad (kulcsok, mezőértékek vagy friss párok), és nem dobhat; a `JSON.stringify` minden elért objektumot olvas és dobhat, a `toJSON` kilép a modellezett részből. A `for (const [a, b] of …)` páros bontása is modellezett. Az árnyékolt globális név a program sajátja. |
 | `scoped-effect-analysis-v31` | [ADR-060](adr/060-key-observation-text.md) | **A kulcsmegfigyelés szöveges mintái pontosabbak:** a kulcslistázás és a reflexió nevei nem számítanak megjegyzésben, a program saját deklarációiban (változó, paraméter, függvény, osztály, tag, literálkulcs), a saját, API-nevű változókra mutató hivatkozásban, és a saját példány tulajdonságában (`this.x` az osztálytörzsben, `v.x` a `const v = new C(…)` blokkjában). Kivétel, ha a metódus újraköthető (`call`, `apply`, `bind`, `Reflect`, `prototype`, hívás nélkül olvasott metódus, ki nem írt név) vagy van `with`. A sztring és más érték tulajdonsága szöveges marad. |
 | `scoped-effect-analysis-v32` | [ADR-064](adr/064-monotone-while-loops.md) | **Bizonyítottan véget érő `while`:** a `while (x.f < K)` (`<=`, fordított alakban `>`/`>=`; `do…while` is) saját objektumon véget ér, ha az `f` mező mindig szám (a fájlban minden írása számliterál, pozitív lépés vagy `+`-tól eltérő aritmetika; nincs számított kulcsú írás, getter, setter vagy paraméterproperty ilyen néven), a ciklusban és az onnan hívható metódusokban minden írása pozitív lépés, és a mag minden körben, korai kilépés előtt, növeli közvetlenül vagy egy metódushívással. Ilyenkor nem `mayHang`. Az orákulum P2-je a saját mező összetett értékadását és `++`/`--` műveletét is helyi objektumműveletnek veszi. |
+| `scoped-effect-analysis-v33` | [ADR-066](adr/066-unit-blocks.md) | lyukas többsoros egység blokkként (egységblokk), lezárás csak a nem ábrázolhatóra |
 
 A v9 P2-je **szigorúan bővebb** a v4–v8 P2-jénél: minden, amit a régi szabály megengedett, az újban is megengedett. Az új szabadságnak két forrása van, és egyiknek sincs megfigyelhető hatása a felcserélt párra nézve (lásd a [megfigyelhető állapotot](#megfigyelhető-állapot)): a lokális írás csak a saját kötését módosítja és nem dob; az emit által törölt import futásidőben nem létezik. Ez nem a régi P2 csendes gyengítése, hanem verziózott újradefiniálás: a régi címkéjű modellek a régi szabállyal maradnak érvényesek, és az orákulum a v9 P2-t saját, független implementációval követi (ADR-013).
 
@@ -259,6 +260,13 @@ lyuk(U) ∧ scope(X.first) = scope(U.first) ∧ X.first > U.last  ⇒  U.last �
 
 A precedencia csak „előtte” vagy „utána” relációt fejez ki, a „nem a belsejében” feltételt nem. Ezért a lezárás a forrásbeli oldalt rögzíti: helyes, de egy pozíciófüggetlen sor ilyen egységen nem léphet át.
 
+**Egységblokk (v33, [ADR-066](adr/066-unit-blocks.md)).** A „nem a belsejében” feltételt a validátor `Scope` szabálya fejezi ki, ha a lyukas egység blokk. Ezért a projekció blokkot ad a lyukas egységnek, ha egy blokk ábrázolhatja: az első sora nyit, az utolsó zár, a folytatósorok `scopeId`-je ez a blokk. Ilyenkor nincs lezáró él, a testvérek az egység előtt és után is állhatnak, a belsejébe nem kerülhetnek. Ábrázolható, ha:
+- egyik határsora sem más blokk (megtartott, elhagyott vagy klauzula) határa, és nem egy másik egységblokké;
+- minden blokk, amely az egység sorait érinti, az egység belsejében van;
+- a 250 blokkos keretben van hely.
+
+A többi lyukas egység (például a `});` sorral záruló hívás, amelynek utolsó sora egy függvényt is zár) a fenti lezárást kapja.
+
 **Osztálytagok** ([type-member-ordering](../src/author/type-member-ordering.ts), JS és TS):
 
 - **Szabad, azaz pozíciófüggetlen** az osztálytörzsben az egyedi nevű metódus, accessor és constructor definíció, valamint a `declare` mező.
@@ -279,12 +287,12 @@ Feltevések:
 - **A1:** a TypeScript parser és checker kötésfeloldása helyes a referencián. A referencia nyelvi helyességét a nyelvi audit (ADR-016) jelzi; `unverifiable` és `not-run` esetén ez nincs ellenőrizve.
 - **A2:** nincsenek egzotikus hoszt-objektumok a primitív műveletekben.
 - **A3:** nincs `with`/`eval` (kizárt).
-- **A4:** a megosztott fizikai határú intervallumok sorosak, és minden lyukas többsoros egység le van zárva (a generátor biztosítja).
+- **A4:** a megosztott fizikai határú intervallumok sorosak, és minden lyukas többsoros egység egységblokk vagy le van zárva (a generátor biztosítja).
 - **A5:** a referencia futtatási környezete a [megfigyelhető állapotnál](#megfigyelhető-állapot) leírt környezet, vagy olyan, amelynek eltérését konzervatív szabály fedi. Ilyen az ismeretlen buildnél alkalmazott `verbatim` import-emit, a dekorátoros fájl és a modulbetöltő importok kötése. A szerző által megadott környezet (`importEmit`) maga is feltevés: ha hibás, az állítás nem érvényes.
 
 Vázlat:
 
-1. **Lokalitás.** A validátor `Scope` feltétele egy sort csak a saját reprezentált scope-jába enged. Ezen belül a lezárás miatt egyetlen testvér sem kerülhet egy másik egység belsejébe (WP6: ez korábban hiányzott, lásd ADR-009). Így minden egység összefüggő marad és a saját listájában áll, a listák függetlenül vizsgálhatók, és P0/P1 teljesül.
+1. **Lokalitás.** A validátor `Scope` feltétele egy sort csak a saját reprezentált scope-jába enged. Ezen belül az egységblokk vagy a lezárás miatt egyetlen testvér sem kerülhet egy másik egység belsejébe (WP6: ez korábban hiányzott, lásd ADR-009). Így minden egység összefüggő marad és a saját listájában áll, a listák függetlenül vizsgálhatók, és P0/P1 teljesül.
 2. **Barrier-stabilitás.** Bármely két barrier közötti szakaszban a pure egységek által olvasható állapot állandó, mert csak barrier ír, hív vagy ad át vezérlést, és a barrier relatív helye minden rendezett testvérhez képest rögzített. ADR-019: egy pure egység akkor léphet át egy barriert, ha a barrier az egység olvasott kötéseit nem írja, a saját kötéseire nem hivatkozik, és closure sem éri el őket. Ilyenkor a barrier számára az egység láthatatlan, az egység számára a barrier által írt állapot nem bemenet. Ha a barrier dob, a vezérlés elhagyja a blokkot, ahol a blokkszintű kötés closure nélkül nem látható.
 3. **Pure kommutáció.** Két pure egység nem futtat kódot és nem dob, mert minden bemenete garantáltan inicializált (WP6: a más kontextusú TDZ-olvasás és az önhivatkozás kizárva; egy dobó „tiszta” sor helye closure-on és `catch`-en át megfigyelhető volt). Csak a saját, egyedi kötését inicializálja, és a másik kötését csak védett éllel olvashatja. Felcserélésük ezért egyetlen kötés értékét, kivételt vagy hatásnaplót sem változtat meg.
 4. **Pozíciófüggetlenség.** Függvénydeklarációt a FunctionDeclarationInstantiation vagy a GlobalDeclarationInstantiation a lista belépésekor hoz létre; törölt TS-deklarációnak nincs emitje. Egy metódust a ClassDefinitionEvaluation minden mezőinicializáló és static kód előtt telepít. A létrehozási sorrend csak a kulcssorrendben látszik (P4). Ezt a kulcslánc rögzíti: osztályonként és objektumonként, a szkript globális objektumán pedig a függvények és a `var`-ok együttes láncával. v11 óta (ADR-020) a nem felsorolható kulcsokra és a függvényglobálisokra a kulcslánc csak akkor vonatkozik, ha a program maga listázhatja őket; különben a sorrendjük a megfigyelt állapotban nem szerepel. A `constructor` kulcs mindig elsőként jön létre, a tömbindex-kulcsok növekvő sorrendben listázódnak, a privát nevek nem reflektálódnak.
@@ -302,7 +310,7 @@ Ha a feltételek nem teljesülnek, a generátor a forrássorrendet tartja meg. E
 | `with` vagy közvetlen `eval` a fájlban | az egész fájl elemzetlen, minden sor soros |
 | nem támogatott vagy ismeretlen utasítás, hívás, írás, property-olvasás, ciklus, vezérlésátadás | barrier |
 | több utasítás egy fizikai soron, vagy a listának nincs saját nyitó/záró sora | a lista soros |
-| többsoros egység saját blokkhatárok nélkül | barrier, valamint lezárás (ADR-009) |
+| többsoros egység saját blokkhatárok nélkül | barrier; egységblokk (ADR-066), ha ábrázolható, különben lezárás (ADR-009) |
 | `} else {`, `} catch {`, `} finally {` közös határ | klauzulalánc: egy konténer szeparátorsorokkal, minden sor a saját klauzulájában (ADR-013) |
 | egyéb közös fizikai határ, illetve olyan klauzulalánc, amelynek első vagy utolsó sora más blokkal közös | elhagyott blokk, sorosított intervallum |
 | ismeretlen TypeScript-build | `verbatim` import-emit: csak az `import type` szabad |
@@ -617,7 +625,7 @@ A szkriptszint szándékosan változatlan, mert ott az ADR-019 nem érvényes.
 | CopyField | 0 → 3 pár | egy tiszta arrow-deklaráció átléphetne egy lyukas többsoros egységet, a lezárás nem engedi |
 | `wp6-hoisted-into-continued-call` | 1 → 2 pár | ugyanez |
 
-Mindkettőt `conservative` státusz jelzi.
+Mindkettőt `conservative` státusz jelzi. A v33 ([ADR-066](adr/066-unit-blocks.md)) óta mindkét egység egységblokk, a veszteség mindkettőn 0. Projekciós veszteség ma az overload-csoportok körül marad (`wp6-overload-groups`: 3 pár).
 
 **A bejelentett eset:**
 
@@ -671,7 +679,7 @@ A [feladatkorpusz](../tests/fixtures/task-programs.mjs) 12 tanórai jellegű JS/
 - **Tiszta egység és barrier (ADR-019):** szabad, kivéve: `var` vagy `using`; szkript- és modulszint; `arguments`; vezérlésátadást tartalmazó barrier; closure-ön át elért kötés; név szerinti egyezés a barrierben (az árnyékoló név is tilt). Egy lyukas többsoros barrier körül a lezárás a forrásbeli oldalt tartja.
 - **Lokális írások (ADR-013):** a lokális írás csak konfliktus esetén kötött. Akadály marad: a paraméter mint cél, az összetett értékadás (`+=`), a `++`/`--`, a property-írás, a szkriptszintű írás, a több deklarációt tartalmazó utasítás és a ciklusfejbeli változó írása.
 - **Importok (ADR-013):** a modulbetöltő importok egymáshoz és a többi utasításhoz képest kötöttek, az ES-modul-hoistolást a szabály nem használja ki. Ismeretlen buildnél a `verbatim` kontextus érvényes.
-- **Lyukas többsoros egység:** egy pozíciófüggetlen sor nem léphet át rajta (lezárás).
+- **Lyukas többsoros egység:** ha a projekció blokkal ábrázolja (ADR-066), egy pozíciófüggetlen sor átléphet rajta, a belsejébe nem kerülhet. Ha nem ábrázolható (a határsora más blokk határa), a lezárás miatt nem léphet át rajta.
 - **Más függvénykontextusból olvasott `let`/`const`/osztály:** barrier, mert a belső függvény a deklaráció előtt is futhat.
 - **Vezérlési szerkezetek (ADR-028, ADR-032, ADR-034):** függvénytörzs listájában az `if / else if / else`, a `switch`, a `try/catch/finally` és a saját tömbön futó, azt nem író `for…of` hatásnyomot kap, ha a tartalma saját objektumokon dolgozik, és nem lép ki belőle `return`. Az ismert érték (literál, kódot nem futtató művelet) eldönti az ágat. Barrier marad:
   - a számlálós `for`, a `while`, a `do` és a `for…in`;
@@ -687,7 +695,7 @@ A [feladatkorpusz](../tests/fixtures/task-programs.mjs) 12 tanórai jellegű JS/
 ## Kompatibilitás és nyelvi határ
 
 - **Régi modellek:** az importált modellek függőségei nem változnak. Újragenerálás csak explicit „Sorfüggőségek újraszámítása” műveletre történik.
-- **Policy-címke:** új generáláskor `scoped-effect-analysis-v32` (ADR-064). A régi enumértékek, köztük a v4–v31, érvényesek maradnak (additív sémabővítés).
+- **Policy-címke:** új generáláskor `scoped-effect-analysis-v33` (ADR-066). A régi enumértékek, köztük a v4–v32, érvényesek maradnak (additív sémabővítés).
 - **Generatív lefedettség:** a kampány `flow` fajtája ([random-programs.mjs](../tests/support/random-programs.mjs), `randomFlowProgram`) a saját objektumokon dolgozó műveleteket vezérlési szerkezetekbe ágyazza, JS-ben és TS-ben. Tartalmazza a fenti szabad és barrier alakokat is (`else if`, `switch`, `try`, `for…of`, számlálós `for`, `while`, címkés ugrás).
 - **Belső szerződés (ADR-011):** az adapter `orderingRelations` metódusa nyelvfüggetlen [`OrderingRelations`](../src/author/ordering-relations.ts) relációt ad: előzmények, védett bemenetek, egységhatárok, megjegyzés, 0-alapú fizikai sorokon. A projekciót a típusos [code-line-projection.ts](../src/author/code-line-projection.ts) végzi (ADR-013), a validátor nem változik.
 - **Proveniencia (ADR-014):** minden előzményhez ok tartozik (kategória és kód), a projekció a saját éleinek okát is rögzíti, és a modell `authoring.provenance` mezőjébe csak a redukció után megmaradt élek okai kerülnek. Ez magyarázat, nem szabály: a validáció nem olvassa. Csak addig érvényes, amíg az `authoring.evidence` digestje egyezik a sorokkal (ADR-015); különben `unbound`.

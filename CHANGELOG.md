@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-11-03 egységblokk a többsoros utasításokra (ADR-066, v33)
+
+- **Kevesebb fölösleges szabály:** egy többsoros hívás, tömb- vagy mezőinicializáló (például `record(` … `);`) a validátorban saját blokk. A független sorok átléphetnek rajta, a belsejébe nem kerülhetnek. Eddig minden testvérsort a forrásbeli oldalához kötött.
+- **Marad a lezárás:** ha az egység utolsó sora egy másik blokkot is zár (`});`), vagy TS overload-csoportról van szó. Ezekhez a v3 egységmodell kell (külön epic).
+- **Frissítés és ellenőrzés:** egy régi modell frissítése átveszi az egységblokkot. Az ellenőrzés egy egységblokk nélküli modellt nem igazol.
+- **Mérés:** a `function` programok rése 12 magon 30 → 15, a korpuszé 41 → 35. Minden mérésben 0 hibás elfogadás.
+- **Címkék:** a v33 additív sémaenumérték; a TypeScript mintakatalógus egy modellje (`19-literal-whitespace`) egységblokkot kapott.
+
 ## Unreleased – 2026-11-03 tervezési adósság (ADR-065)
 
 - **A megerősítési szint a magból:** minden közvetlen szabály megmondja, mi kell az eltávolításához (`DirectConstraint.removal`); a szabálypanel, a kötegelt feloldás, a kapcsolattábla és a régi vezérlő ezt használja, saját táblázat nélkül. Egy teszt köti össze a kiírt és a kikényszerített szintet.

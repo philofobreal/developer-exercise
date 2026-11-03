@@ -28,6 +28,38 @@ function reachability(size, next) {
     return reach;
 }
 const reaches = (reach, from, to) => !!(reach[from][to >> 5] & (1 << (to & 31)));
+/** The innermost of the blocks that strictly contain the row interval. */
+function innermost(blocks, start, end) {
+    let found = null;
+    for (const block of blocks)
+        if (block.start < start && block.end > end && (!found || block.start > found.start))
+            found = block;
+    return found;
+}
+/** Multi-row units with a hole (ADR-009): a non-last row after which the validator's open
+ * scope is the unit's own scope, so a sibling could be placed inside the unit. A unit that a
+ * block can represent becomes one (ADR-066): its first row opens it, its last row closes it, and
+ * the validator itself keeps every sibling out, with no order between them. It can when neither
+ * of its boundary rows is any block's boundary or another such unit's, and every block crossing
+ * its rows nests inside it. Every other hole unit stays sealed by source-side edges. */
+function unitBlocks(spans, blocks, intervals, boundaryRows, projected, room) {
+    const opens = new Map(blocks.map(block => [block.start, block])), units = [], used = new Set();
+    const unique = [...new Map(spans.map(span => [span.first + ':' + span.last, span])).values()].sort((a, b) => a.first - b.first || b.last - a.last);
+    for (const { first, last } of unique) {
+        if (units.length >= room || first >= last || !projected.has(first) || !projected.has(last) || boundaryRows.has(first) || boundaryRows.has(last) || used.has(first) || used.has(last))
+            continue;
+        const own = innermost(blocks, first, last);
+        let hole = false;
+        for (let row = first; row < last && !hole; row++)
+            hole = projected.has(row) && (opens.get(row) ?? innermost(blocks, row, row)) === own;
+        if (!hole || intervals.some(block => block.start < last && block.end > first && !(block.start > first && block.end < last) && !(block.start < first && block.end > last)))
+            continue;
+        used.add(first);
+        used.add(last);
+        units.push({ start: first, end: last, kind: 'block', separators: [], id: '', parent: null, unit: true });
+    }
+    return units;
+}
 /** Joins clause blocks sharing a boundary row (`} else {`) into one container: the
  * shared rows become separators, each clause a segment between two of them. Only a
  * row shared by exactly the two linked clauses qualifies, and the chain's own first
@@ -73,15 +105,18 @@ export function projectCodeLine({ physical, exact, structure, ordering }) {
         else
             retained.push({ ...block, id: 'scope-' + (retained.length + 1), parent: null });
     }
+    const projected = new Set(rows.map(row => row.line));
+    for (const unit of unitBlocks(ordering?.spans ?? [], retained, intervals, counts, projected, 250 - retained.length))
+        retained.push({ ...unit, id: 'scope-' + (retained.length + 1) });
     let nextFunction = 1;
     for (const block of retained) {
-        block.parent = retained.filter(other => other.start < block.start && other.end > block.end).at(-1) ?? null;
+        block.parent = innermost(retained, block.start, block.end);
         if (block.kind === 'function')
             block.functionBlock = nextFunction++;
     }
     const byPhysical = new Map(rows.map((row, i) => [row.line, i + 1]));
     const blocks = retained.map(block => ({ id: block.id, kind: block.kind, parentScopeId: block.parent?.id ?? null, openLineId: byPhysical.get(block.start), closeLineId: byPhysical.get(block.end), ...(block.kind === 'function' ? { functionBlock: block.functionBlock } : {}) }));
-    const scopeOf = (line) => retained.filter(block => block.start < line && line < block.end).at(-1) ?? null;
+    const scopeOf = (line) => innermost(retained, line, line);
     // Reasons per line ID, then per predecessor ID; replaced together with a line's dependencies.
     const why = new Map();
     const explain = (before, after, code) => {
@@ -91,7 +126,7 @@ export function projectCodeLine({ physical, exact, structure, ordering }) {
     };
     // An unlisted row keeps its source predecessor: a closing row for its block, a continued
     // row for its multi-row unit, any other row because no analysis freed it.
-    const closers = new Set(retained.map(block => block.end)), spans = ordering?.spans ?? [];
+    const closers = new Set(retained.filter(block => !block.unit).map(block => block.end)), spans = ordering?.spans ?? [];
     rows.forEach(({ line }, i) => {
         if (!i)
             return;

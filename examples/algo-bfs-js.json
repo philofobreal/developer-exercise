@@ -336,7 +336,7 @@
     "reason": "",
     "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
-    "dependencyPolicy": "scoped-effect-analysis-v32",
+    "dependencyPolicy": "scoped-effect-analysis-v33",
     "provenance": [
       {
         "before": 1,
@@ -665,7 +665,7 @@
     ],
     "evidence": {
       "sourceDigest": "9a7b21addaaa3956",
-      "analyzer": "scoped-effect-analysis-v32",
+      "analyzer": "scoped-effect-analysis-v33",
       "environment": {
         "typescript": "5.8.3",
         "sourceKind": "script",

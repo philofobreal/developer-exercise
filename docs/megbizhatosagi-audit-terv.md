@@ -32,7 +32,7 @@
   - a korpusz építése közben talált hibás elfogadás javítva: ki nem írt tulajdonságnevek ([ADR-052](adr/052-unspelled-property-names.md), v27); a szöveges névfelismerést szivárgáselemzés egészíti ki, mérhető pontosságvesztés nélkül.
   - a Pages-kipróbálás után pontosítva ([ADR-053](adr/053-folded-names-and-returns.md), v28): a kiszámítható név a nevével számít, a visszaadott értéket a hívásig követjük.
   - feladatszintű kulcssorrend-beállítás ([ADR-055](adr/055-key-order-setting.md), v29) és szabálytípusonkénti kötegelt feloldás ([ADR-056](adr/056-rule-kinds-batch-lifting.md)): a tanár kézi szabálytörlés nélkül kimondhatja, hogy a kulcsok sorrendje nem számít.
-  - **Következik:** a `flow` maradéka ma főleg objektumütközés (a ciklus túlbecslése) és a `while` nem bizonyított terminálása; a többsoros kifejezések lezárása (`function` csoport) a v2-ben nem finomítható (6. fázis); a 3. tétel (hatásösszegzés) ma kevés mért rés; a 2d nem mért ok.
+  - **Következik:** a `flow` maradéka ma főleg objektumütközés (a ciklus túlbecslése) és a `while` nem bizonyított terminálása; a többsoros kifejezések lezárása a v2-ben egységblokkal finomítva ([ADR-066](adr/066-unit-blocks.md), v33), a maradék (overload-csoport) a v3 egységmodellé (6. fázis); a 3. tétel (hatásösszegzés) ma kevés mért rés; a 2d nem mért ok.
 
 ## 1. Összefoglaló ítélet
 
@@ -102,7 +102,7 @@ A szkriptszintű `declare const d: number;` `erased-declaration-shape` barrier l
 | 2 | `effectful-or-unknown-initializer` | 253 | `new Box()` és `var v = f()` ismeretlen kódnak számít; ennek nagy része az 1. barrierjei körül keletkezik | **igen:** az 1. javítása, illetve felső szintű függvényösszegzés |
 | 3 | `object-write-after-write/read`, `object-read-after-write` | 234 | valódi mezőütközés; az egyenértékűség nagy része a 3.2 szerinti dobó programokból ered | részben (holt írás); előbb a mérést kell tisztítani |
 | 4 | `erased-declaration-shape` | 36 | `declare const` | **igen, gyors** |
-| 5 | `sealed-unit`, `continued-row` | 48 | v2-projekció | igen, de nagy munka (CodeLine v3) |
+| 5 | `sealed-unit`, `continued-row` | 48 | v2-projekció | **részben kész (v33, ADR-066):** egységblokk; a maradék CodeLine v3 |
 | 6 | `class-evaluation-order`, `unclassified-member` | 24 | osztálytag-fázisok | részben |
 | 7 | `SwitchStatement`, `TryStatement`, `may-throw`, `branch-contains-barrier` | 27 | vezérlés és dobás | részben |
 
@@ -203,8 +203,8 @@ Minden tétel új policyverzió, ADR, pozitív és negatív fixture, és utána 
 
 ### 6. fázis – reprezentációs veszteség (P2, nagy munka)
 
-- **Rövid táv:** a projekciós lezárás finomítása ott, ahol a lyuk nélküli egység lezárása felesleges.
-- **Hosszú táv:** a CodeLine v3 egységszintű modell (a Python-tervben már szereplő natív IR út) integrálása a validátorba. Ez külön epic, saját ADR-rel és sémaverzióval.
+- **Rövid táv (kész, v33, [ADR-066](adr/066-unit-blocks.md)):** a lyukas többsoros egység egységblokk a validátor scope-jában, ha egy blokk ábrázolhatja; a lezárás csak a nem ábrázolhatóra marad. A `function` programok rése 12 magon 30 → 15 (a `sealed-unit` ok megszűnt), a korpuszé 41 → 35. A maradék lezárt egység a TS overload-csoport és a blokkot is záró sor (`});`).
+- **Hosszú táv:** a CodeLine v3 egységszintű modell (a Python-tervben már szereplő natív IR út) integrálása a szerzői láncba. A mag a folytonos egységet már ismeri (`unit-structure.ts`); a szabálytábla, a szerkesztés, az ellenőrzés és a frissítés v2-sor alapú. Ez külön epic, saját ADR-rel és sémaverzióval. A mért haszna ma az overload-csoport körüli rés.
 
 ### G fázis – az AI governance teljessé tétele (tervezés, átfogó)
 

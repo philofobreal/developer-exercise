@@ -241,8 +241,8 @@
  },
  "wp6-hoisted-into-continued-call": {
   "neighbours": 70,
-  "accepted": 2,
-  "completenessGaps": 2,
+  "accepted": 4,
+  "completenessGaps": 0,
   "justifiedRejections": 66
  },
  "wp6-hoisted-into-shared-boundaries": {
@@ -253,8 +253,8 @@
  },
  "wp6-member-into-continued-field": {
   "neighbours": 143,
-  "accepted": 2,
-  "completenessGaps": 2,
+  "accepted": 4,
+  "completenessGaps": 0,
   "justifiedRejections": 139
  },
  "wp6-overload-groups": {
@@ -607,14 +607,14 @@
  },
  "task-cart-total-ts": {
   "neighbours": 582,
-  "accepted": 9,
-  "completenessGaps": 1,
+  "accepted": 10,
+  "completenessGaps": 0,
   "justifiedRejections": 572
  },
  "task-cart-total-ts-valid": {
   "neighbours": 582,
-  "accepted": 9,
-  "completenessGaps": 1,
+  "accepted": 10,
+  "completenessGaps": 0,
   "justifiedRejections": 572
  },
  "task-priority-queue-ts": {

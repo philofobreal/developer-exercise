@@ -140,7 +140,9 @@ export async function verifyAuthorModel(model: CodeLineExercise, ports: Pick<Leg
   const generated = await ports.generate({source: model.lines.map(line => line.code).join('\n'), language: model.language, title: model.title, description: model.description, ...recordedAssumptions(model)});
   currentAnalyzer = generated.authoring?.evidence?.analyzer;
   projectionLoss = generated.authoring?.evidence?.projectionLoss?.pairs;
-  reconcileDependencies(model, generated);
+  // A refinement the model lacks (ADR-066: a unit block) is a difference, not a match:
+  // without it a sibling may enter the unit the regenerated rules leave unsealed.
+  const sameStructure = reconcileDependencies(model, generated).blocks.length === model.blocks.length;
   const id = (generatedId: number): number => model.lines[generatedId - 1]!.id;
   // ADR-044: a relaxation confirmed on another source no longer explains a missing constraint.
   const confirmed = (model.authoring?.relaxations ?? []).filter(entry => relaxationHolds(entry, model.lines));
@@ -151,7 +153,7 @@ export async function verifyAuthorModel(model: CodeLineExercise, ports: Pick<Leg
   const sameEdges = pairs((generated.edges ?? []).map(edge => ({before: id(edge.before), after: id(edge.after)})).filter(kept)) === pairs((model.edges ?? []).filter(edge => !author.has(edge.before + ':' + edge.after)));
   const reasons = (entries: {before: number; after: number; category: string; code: string}[]): string => entries.map(entry => [entry.before, entry.after, entry.category, entry.code].join(':')).sort().join();
   const sameProvenance = reasons((generated.authoring?.provenance ?? []).map(entry => ({...entry, before: id(entry.before), after: id(entry.after)})).filter(kept)) === reasons((model.authoring?.provenance ?? []).filter(entry => entry.category !== 'author'));
-  if (sameDependencies && sameEdges && sameProvenance) rederivation = 'match';
+  if (sameStructure && sameDependencies && sameEdges && sameProvenance) rederivation = 'match';
  } catch { rederivation = 'differs'; }
  return verifyModel(model, {...input, rederivation, ...(currentAnalyzer ? {currentAnalyzer} : {}), ...(projectionLoss === undefined ? {} : {projectionLoss})});
 }
