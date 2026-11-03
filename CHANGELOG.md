@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-03 csak olvasó beépített hívás saját objektumon (ADR-059, v30)
+
+- **Kevesebb fölösleges szabály:** az `Object.keys`, `values`, `entries` és a `JSON.stringify` saját objektumon az objektum olvasása, nem szivárgás. Így egy összesítő objektum feltöltő sorai „Nem számít” kulcssorrend mellett szabadok maradnak, miközben a felsorolás előtti helyük kötött. A `for (const [név, érték] of Object.entries(o))` bontás is modellezett.
+- **Mérés:** a `keyorder-entries` 3 rése megszűnt, a többi korpuszszám változatlan; hat új teszt, 0 hibás elfogadás.
+- **Címkék:** a v30 additív sémaenumérték; a minták csak az új címkét kapták.
+
 ## Unreleased – 2026-11-03 futásidejű elérési tanú az orákulumban (ADR-058)
 
 - **Az orákulum függetlenné vált** a generátor szöveges és névelemzésétől: a kulcslistázó, reflexiós és horog API-kat átlátszó Proxyra cseréli, és rögzíti, mit hív a program saját sora. A tényei a szöveg és a futás uniója.

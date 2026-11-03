@@ -493,8 +493,8 @@
  },
  "keyorder-entries": {
   "neighbours": 117,
-  "accepted": 4,
-  "completenessGaps": 3,
+  "accepted": 7,
+  "completenessGaps": 0,
   "justifiedRejections": 110
  },
  "keyorder-methods": {

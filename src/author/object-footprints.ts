@@ -278,13 +278,25 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
    // ADR-034: for…of over own arrays the body does not write: it ends, and reads every element.
    else if (compiler.isForOfStatement(statement)) {
     const head = statement.initializer;
-    if (statement.awaitModifier || !compiler.isVariableDeclarationList(head) || head.declarations.length !== 1 || !compiler.isIdentifier(head.declarations[0]!.name) || (head.flags & compiler.NodeFlags.BlockScoped) === 0) unknown();
+    if (statement.awaitModifier || !compiler.isVariableDeclarationList(head) || head.declarations.length !== 1 || (head.flags & compiler.NodeFlags.BlockScoped) === 0) unknown();
+    const binding = (head as ts.VariableDeclarationList).declarations[0]!.name;
     const iterated = expression(statement.expression, frame);
     if (iterated.prim || iterated.other || !iterated.objs.size || [...iterated.objs].some(id => kinds.get(id)?.kind !== 'array')) unknown();
     for (const id of iterated.objs) frame.fp.reads.add(at(id, WHOLE));
     // Locals the body assigns lose a known value: a later iteration may see another one.
     for (const name of assignedNames(statement.statement)) if (frame.env.has(name)) frame.env.set(name, union(frame.env.get(name)!, PRIM));
-    frame.env.set(((head as ts.VariableDeclarationList).declarations[0]!.name as ts.Identifier).text, union(...[...iterated.objs].map(id => elements.get(id) ?? PRIM)));
+    const element = union(...[...iterated.objs].map(id => elements.get(id) ?? PRIM));
+    if (compiler.isIdentifier(binding)) frame.env.set(binding.text, element);
+    // ADR-059: `const [a, b]` over own arrays of own arrays (the pairs of Object.entries): every
+    // name may be any element of an inner array, which the destructuring reads.
+    else if (compiler.isArrayBindingPattern(binding) && !element.prim && !element.other && element.objs.size && [...element.objs].every(id => kinds.get(id)?.kind === 'array')) {
+     const inner = union(...[...element.objs].map(id => {frame.fp.reads.add(at(id, WHOLE)); return elements.get(id) ?? PRIM;}));
+     for (const item of binding.elements) {
+      if (compiler.isOmittedExpression(item)) continue;
+      if (!compiler.isIdentifier(item.name) || item.initializer || item.dotDotDotToken || item.propertyName) unknown();
+      frame.env.set((item.name as ts.Identifier).text, union(inner, literal(undefined)));
+     }
+    } else unknown();
     const body: Footprint = {reads: new Set(), writes: new Set(), mayThrow: false, external: false, mayHang: false};
     returned = union(returned, block([statement.statement], {...frame, fp: body, exits: (frame.exits ?? 0) + 1, loops: (frame.loops ?? 0) + 1}));
     // Writing the iterated array may extend the iteration: not shown to end.
@@ -493,6 +505,8 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
     // Its result is no own object: nothing it could return was reachable to it.
     return OTHER;
    }
+   const listed = readingBuiltin(expr, frame);
+   if (listed) return listed;
    if (expr.questionDotToken || !compiler.isPropertyAccessExpression(callee) || callee.questionDotToken || expr.arguments.some(argument => compiler.isSpreadElement(argument))) unknown();
    const access = callee as ts.PropertyAccessExpression;
    return call(expression(access.expression, frame), nameOf(access.name)!, expr.arguments, frame);
@@ -543,6 +557,49 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
    return objects(id);
   }
   return unknown();
+ }
+
+ /** ADR-059 (2d): a global read-only built-in called on own objects; null when the call is no such one.
+  * `Object.keys`, `values` and `entries` list an object's own enumerable keys and values: they run no
+  * program code (a class's accessors live on its prototype) and cannot throw on an object. Each is a
+  * read of the whole object with a fresh array as its result, whose elements are the keys, the field
+  * values, or fresh pairs of both. `JSON.stringify` reads every object it reaches; it may throw (a
+  * BigInt, a cycle) and runs program code only through `toJSON`, which leaves the subset. */
+ function readingBuiltin(expr: ts.CallExpression, frame: Frame): Value | null {
+  const callee = unwrap(expr.expression);
+  if (expr.questionDotToken || !compiler.isPropertyAccessExpression(callee) || callee.questionDotToken || !compiler.isIdentifier(callee.expression) || !compiler.isIdentifier(callee.name)) return null;
+  const owner = callee.expression.text, name = callee.name.text;
+  if (!(owner === 'Object' && (name === 'keys' || name === 'values' || name === 'entries') || owner === 'JSON' && name === 'stringify')) return null;
+  if (frame.env.has(owner) || (checker.getSymbolAtLocation(callee.expression)?.declarations ?? []).some(declaration => declaration.getSourceFile() === file)) return null;
+  if (expr.arguments.length !== 1 || compiler.isSpreadElement(expr.arguments[0]!)) unknown();
+  const argument = expression(expr.arguments[0]!, frame);
+  if (argument.prim || argument.other || !argument.objs.size) unknown();
+  const valuesOf = (id: string): Value => kinds.get(id)!.kind === 'array' ? elements.get(id) ?? PRIM : union(PRIM, ...(fields.get(id)?.values() ?? []));
+  if (name === 'stringify') {
+   const seen = new Set<string>(), queue = [...argument.objs];
+   while (queue.length) {
+    const id = queue.pop()!;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const kind = kinds.get(id)!;
+    if (fields.get(id)?.has('toJSON') || kind.kind === 'class' && (kind.info.methods.has('toJSON') || kind.info.getters.has('toJSON'))) unknown();
+    frame.fp.reads.add(at(id, WHOLE));
+    const inner = valuesOf(id);
+    if (inner.other) unknown();
+    queue.push(...inner.objs);
+   }
+   frame.fp.mayThrow = true;
+   return STR;
+  }
+  const result = fresh(frame.self ?? 'S', expr, {kind: 'array'}), pair = result + '#pair';
+  if (name === 'entries' && !kinds.has(pair)) {kinds.set(pair, {kind: 'array'}); changed = true;}
+  for (const id of argument.objs) {
+   frame.fp.reads.add(at(id, WHOLE));
+   if (name === 'keys') addElements(result, STR);
+   else if (name === 'values') addElements(result, valuesOf(id));
+   else {addElements(pair, union(STR, valuesOf(id))); addElements(result, objects(pair));}
+  }
+  return objects(result);
  }
 
  /** ADR-040: a callee name inside a body (never at list level, policy P2) that is no local of the

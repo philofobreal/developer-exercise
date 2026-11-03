@@ -182,7 +182,7 @@ Minden tétel új policyverzió, ADR, pozitív és negatív fixture, és utána 
    - **2a – tervezés és tanúk (kész):** az [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) szabálya és helyességi érve; tanúprogramok ([escape-witnesses.test.mjs](../tests/escape-witnesses.test.mjs)).
    - **2b – implementáció (kész, v19):** a hatásnyom-értelmezés a törzsben a primitív argumentumú ismeretlen hívást `external` hatásnyomként fogadja el. A saját mezőt olvasó argumentum (eredetileg 2d) ide került, mert a mért minta (`record('shout', this.name)`) ezt igényli.
    - **2c – tesztek és mérés (kész):** a tanúk átállítva (a rés 0), edge case-ek (`eval`, objektum argumentum, deklarált és árnyékolt hívott név, elkapott hívás, ambiens TS-függvény, konstruktor, callback), az `external-call-order` bizonyítéka, a generatív baseline újrarögzítve.
-   - **2d – kiterjesztés (nyitott):** ismeretlen hívás, amely saját objektumot kap argumentumként. Ehhez a referencia megtartását is modellezni kell, ezért ma szökés.
+   - **2d – kiterjesztés (részben kész, v30, [ADR-059](adr/059-read-only-builtins.md)):** a csak olvasó beépített hívás (`Object.keys`, `values`, `entries`, `JSON.stringify`) saját objektumon modellezett olvasás, nem szökés. Az ismeretlen (a program által nem deklarált) függvény, amely saját objektumot kap, továbbra is szökés, mert a referencia megtartását nem modellezzük.
    - **2e – dokumentáció (kész):** ADR elfogadva, formális szerződés v19, CHANGELOG.
    - Ha egy ismeretlen hívás csak primitív értéket kap, nem fér hozzá egyetlen még meg nem szökött saját objektumhoz sem, ezért azok műveleteivel felcserélhető.
    - Megmarad a sorrend a többi ismeretlen hívással, a globálisokkal és a lehetséges kivételekkel (`may-throw`).
