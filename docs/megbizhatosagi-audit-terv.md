@@ -192,6 +192,8 @@ Minden tétel új policyverzió, ADR, pozitív és negatív fixture, és utána 
 5. **A mezőirások pontosítása:** holt írás és azonos értékű írás. **Eldöntve (A-politika, ADR-043):** sorrendjük úgy ítélendő meg, mintha lefutnának; a mérés a halott kódot érintő elutasítást szándékhűnek számolja.
 6. **Osztálytag-fázisok és a `switch`, `try` maradékai:** a mért esetekre egyenként.
 
+**Szöveges kulcsmegfigyelés (kész, v31, [ADR-060](adr/060-key-observation-text.md)):** a saját mező, változó vagy megjegyzés neve már nem számít kulcslistázásnak (`task-ledger-js`: 5 rés megszűnt).
+
 ### 5. fázis – az orákulum erősítése (P2)
 
 0. **Független elérési tanú** ([ADR-058](adr/058-oracle-reach-witness.md), kész 2026-11-03): a kulcslistázást, a reflexiót és a horgokat az orákulum a program tényleges hívásaiból is megállapítja, a generátor név- és szivárgáselemzésétől függetlenül.

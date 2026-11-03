@@ -301,6 +301,6 @@ export function unspelledNames(file: ts.SourceFile, compiler: Compiler): Unspell
 }
 
 /** Whether `pattern` matches the source text or a name the program reaches unspelled. */
-export function namesMatch(file: ts.SourceFile, reached: UnspelledNames, pattern: RegExp): boolean {
- return pattern.test(file.text) || reached === 'any' || reached.some(name => pattern.test(name) || pattern.test('.' + name));
+export function namesMatch(file: ts.SourceFile, reached: UnspelledNames, pattern: RegExp, text = file.text): boolean {
+ return pattern.test(text) || reached === 'any' || reached.some(name => pattern.test(name) || pattern.test('.' + name));
 }

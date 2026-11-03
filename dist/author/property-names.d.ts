@@ -25,5 +25,5 @@ type Compiler = typeof ts;
 export type UnspelledNames = 'any' | readonly string[];
 export declare function unspelledNames(file: ts.SourceFile, compiler: Compiler): UnspelledNames;
 /** Whether `pattern` matches the source text or a name the program reaches unspelled. */
-export declare function namesMatch(file: ts.SourceFile, reached: UnspelledNames, pattern: RegExp): boolean;
+export declare function namesMatch(file: ts.SourceFile, reached: UnspelledNames, pattern: RegExp, text?: string): boolean;
 export {};

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-03 pontosabb szöveges kulcsmegfigyelés (ADR-060, v31)
+
+- **Kevesebb fölösleges szabály:** egy `entries`, `values`, `keys`, `self` vagy `frames` nevű saját mező, változó vagy megjegyzés már nem számít kulcslistázásnak vagy reflexiónak. Például a könyvelő osztály konstruktorának mezőírásai szabadok, ha a program sehol nem listáz kulcsot.
+- **Továbbra is kötött:** ami beépített függvényt vagy a globális objektumot érheti el, így a sztring, más érték tulajdonsága, a destrukturálás, a `with`, valamint a `call`, `apply`, `bind` és a hívás nélkül olvasott metódus.
+- **Mérés:** a `task-ledger-js` 5–5 rése megszűnt, a többi korpuszszám változatlan; a generatív alapértékben csak a címke változott.
+
 ## Unreleased – 2026-11-03 csak olvasó beépített hívás saját objektumon (ADR-059, v30)
 
 - **Kevesebb fölösleges szabály:** az `Object.keys`, `values`, `entries` és a `JSON.stringify` saját objektumon az objektum olvasása, nem szivárgás. Így egy összesítő objektum feltöltő sorai „Nem számít” kulcssorrend mellett szabadok maradnak, miközben a felsorolás előtti helyük kötött. A `for (const [név, érték] of Object.entries(o))` bontás is modellezett.

@@ -535,14 +535,14 @@
  },
  "task-ledger-js": {
   "neighbours": 1994,
-  "accepted": 27,
-  "completenessGaps": 5,
+  "accepted": 32,
+  "completenessGaps": 0,
   "justifiedRejections": 1962
  },
  "task-ledger-js-valid": {
   "neighbours": 1994,
-  "accepted": 27,
-  "completenessGaps": 5,
+  "accepted": 32,
+  "completenessGaps": 0,
   "justifiedRejections": 1962
  },
  "task-group-by-js": {

@@ -366,7 +366,7 @@ export function unspelledNames(file, compiler) {
     return any ? 'any' : [...reached].sort();
 }
 /** Whether `pattern` matches the source text or a name the program reaches unspelled. */
-export function namesMatch(file, reached, pattern) {
-    return pattern.test(file.text) || reached === 'any' || reached.some(name => pattern.test(name) || pattern.test('.' + name));
+export function namesMatch(file, reached, pattern, text = file.text) {
+    return pattern.test(text) || reached === 'any' || reached.some(name => pattern.test(name) || pattern.test('.' + name));
 }
 //# sourceMappingURL=property-names.js.map
