@@ -9,7 +9,9 @@
  *    the model accepts the order once the never-executed one-row statements of functions that do
  *    run are commented out (`dead-code`, ADR-072: its order counts as if that code ran), or a literal on a broken constraint's
  *    rows, replaced by another value, makes the order behave differently (`value`, ADR-067: the
- *    order counts as if that write or comparison used another value), or every broken constraint
+ *    order counts as if that write or comparison used another value), or the order behaves
+ *    differently once every object the reference creates is observed at the end (`heap`, ADR-080:
+ *    a write to an object that is later dropped counts as if it were observed), or every broken constraint
  *    is a documented pedagogical rule the runtime cannot see (`policy`, ADR-068: `early-exit-order`,
  *    ADR-019's declaration that does not move behind a possible return, throw or break), or every
  *    broken constraint is a TypeScript type-level order the runtime cannot see (`type`, ADR-079:
@@ -24,6 +26,7 @@ import {generateCodeLineExercise} from '../../src/author/generator.mjs';
 import {compileCodeLineExercise,validateSubmission} from '../../dist/index.js';
 import {createOracle,codesOf} from './semantic-oracle.mjs';
 import {literalsOf,valuesFor,replaced} from './literal-variants.mjs';
+import {HEAP_HELPERS,observedHeap,observedProbe} from './heap-variant.mjs';
 
 /** Reason codes of pedagogical rules that no run can tell apart (ADR-068). */
 export const POLICY_INTENT=new Set(['early-exit-order']);
@@ -113,13 +116,26 @@ export function createClassifier(fixture,model,{maxStates=200_000,policy='reflec
   }
   return null;
  };
+ // ADR-080: the reference with every object it creates observed at the end, built on first use;
+ // null when it creates none, runs asynchronously, or its own reference fails.
+ let heap;
+ const heapJudge=()=>{
+  if(heap!==undefined)return heap;
+  heap=null;
+  const rows=fixture.asynchronous?null:observedHeap(source,fixture.language);
+  if(!rows)return heap;
+  try{heap={rows,judge:createOracle({...fixture,id:fixture.id+'~heap',source:[...rows,...HEAP_HELPERS],probe:observedProbe(fixture.probe),...(fixture.probes?{probes:fixture.probes.map(observedProbe)}:{})},{policy})};}catch{}
+  return heap;
+ };
+ const heapDependent=order=>{const variant=heapJudge();return !!variant&&variant.judge([...order.map(id=>variant.rows[row.get(id)]),...HEAP_HELPERS]).ok===false;};
  /** Why an equivalent rejected order keeps the reference's intent ({reason, witness?}), or null for a gap. */
  const intent=order=>{
   const pairs=broken(order);if(deadCode(pairs)||pairs.length&&deadCaused(order))return {reason:'dead-code'};
   if(pairs.length&&pairs.every(([before,after])=>(reasons.get(before+'>'+after)??[]).some(code=>POLICY_INTENT.has(code))))return {reason:'policy'};
   if(pairs.length&&pairs.every(([before,after])=>(reasons.get(before+'>'+after)??[]).some(code=>TYPE_INTENT.has(code))))return {reason:'type'};
   const witness=pairs.length?valueDependent(order,pairs):null;
-  return witness?{reason:'value',witness}:null;
+  if(witness)return {reason:'value',witness};
+  return pairs.length&&heapDependent(order)?{reason:'heap'}:null;
  };
  return {
   /** Whether the reference itself ended in a caught exception (the fixture's own probe convention). */

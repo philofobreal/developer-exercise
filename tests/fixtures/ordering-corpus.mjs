@@ -99,6 +99,10 @@ const fixtures=[
  // Position-free rows entering a multi-row statement or a shared-boundary block:
  {id:'wp6-hoisted-into-continued-call',origin:'wp6',language:'javascript',source:[
   'function evaluate() {','  const out = record(','    1,','  );','  const size = 2;','  return [out, size, helper()];','  function helper() { return 2; }','}']},
+ // ADR-079: a call whose last row also closes a callback (`});`) stays sealed (no header, no block):
+ // a sibling may not enter it, and the seal is its only constraint.
+ {id:'wp6-sealed-continued-callback',origin:'wp6',language:'javascript',source:[
+  'function evaluate() {','  const size = 2;','  const out = call(','    1,','    () => {','      return 3;','    });','  return [out, size];','}','function call(value, fn) {','  return value + fn();','}']},
  {id:'wp6-hoisted-into-shared-boundaries',origin:'wp6',language:'javascript',source:[
   'function evaluate() {','  const out = [];','  try {','    out.push(1);','  } catch (error) {','    out.push(2);','  }','  if (out.length > 1) {','    out.push(3);','  } else {','    out.push(4);','  }','  return helper(out);','  function helper(values) { return values.join(); }','}']},
  {id:'wp6-member-into-continued-field',origin:'wp6',language:'typescript',source:[

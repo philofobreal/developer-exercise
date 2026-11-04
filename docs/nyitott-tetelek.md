@@ -20,7 +20,6 @@
 | --- | --- | --- | --- | --- | --- |
 | NY-01 | **A `flow` maradéka: az első kört kihagyó ciklus.** `for (const entry of boxes) { if (seen > 0) { … } seen = seen + 1; }` az első elemen nem fut, a modell mégis minden elemre érvényesnek veszi. Az egyszer futó ciklus ([ADR-070](adr/070-loop-body-at-most-once.md)), a pozíciós cellák ([ADR-071](adr/071-statement-positioned-heap-cells.md)) és a biztos felülírás ([ADR-072](adr/072-certain-overwrites.md)) után ez maradt | generátor | `flow`: 1 rés nyelvenként (v38) | [ADR-046](adr/046-loops-over-own-objects.md), [ADR-070](adr/070-loop-body-at-most-once.md), [ADR-072](adr/072-certain-overwrites.md) | ciklusgörgetés kellene (az ADR-070 elvetette); csak ha több tanú lesz |
 | NY-03 | **Hatásösszegzés** a felső szintű függvényekre (`var v = f()`) | generátor | **0 mért rés** (a korábban ide sorolt 31 rés más okú volt, [ADR-069](adr/069-deep-hostile-input-and-own-class-names.md)) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) | csak ha egy mérés esetet mutat |
-| NY-04 | **v3 egységmodell:** a TS overload-csoport és a blokkot is záró sor (`});`) | generátor | `class` TS: 19 rés (`sealed-unit` 14, `continued-row` 5), korpusz 3 fixture | [ADR-066](adr/066-unit-blocks.md) | külön epic (15. feladat) |
 | NY-05 | **2d maradéka:** saját objektumot kapó ismeretlen függvény (a referencia megtartása) | generátor | nem mért; korpusz: `Object.entries(totals)` 3 rés | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md), [ADR-059](adr/059-read-only-builtins.md) | mérés előbb, utána döntés |
 | NY-06 | **Tiszta beépített globálisok** (`Math.max`) külön kódcsaládja | generátor | nem mért | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) | mérés |
 | NY-07 | **Orákulum:** a modulok és a `[[Set]]` osztálymező-mód második (kibocsátott) olvasata | mérés | az A1 feltevés szűkítése, nem résszám | [ADR-063](adr/063-oracle-typescript-emit-reading.md) | |
@@ -49,6 +48,7 @@
 
 | Tétel | Lezárta |
 | --- | --- |
+| NY-04: TS overload-csoport (a v3 egységmodell mért haszna); a v3 bekötése a szerzői láncba mért haszon nélkül tervezési lehetőség marad | [ADR-079](adr/079-overload-header-blocks.md) |
 | NY-23: JavaScript-mezőmód (döntés: szerzői beállítás „csak szabványos”) | [ADR-075](adr/075-standard-class-fields-setting.md) |
 | NY-21: a kampány nem generált ősosztálybeli accessort | [ADR-074](adr/074-inherit-campaign-kind.md) |
 | NY-18: alapértékes paraméterű konstruktor az objektummodellben | [ADR-073](adr/073-base-chain-fields-and-defaults.md) |

@@ -60,13 +60,35 @@ class Format {
 
 ## Mérés
 
-*A kampány lefutása után kitöltve.*
+**Teljes kampány, 12 mag, 7 fajta, 2 nyelv** (alapbeállítás), v44 → v45:
 
-**Korpusz** (109 fixture, 54 754 szomszéd):
+| Csoport | Elfogadott | Rés | Szándékhű (`type`) | Hibás elfogadás |
+| --- | --- | --- | --- | --- |
+| `class` TS | 933 → 970 | 19 → 0 | 0 → 5 | 0 |
+| a többi csoport | változatlan | változatlan (59) | változatlan | 0 |
+| **Összesen** (366 118 sorrend) | **15 990 → 16 027** | **78 → 59** | | **0** |
+
+- Környezetváltozatokkal és `classFields: 'define'` mellett (`inherit` és `class`) is 0 hibás elfogadás; a `class` TS mindkettőben 0 rés, 5 `type` szándék.
+- A `class` TS 14 `sealed-unit` rése eltűnt. Az 5 `continued-row` rés szignatúracsere: az elutasítás helyes, a mérés most `type` szándéknak sorolja.
+- **A kampány maradék 59 rése** másik tételekhez tartozik:
+
+  | Tétel | Hol | Rés |
+  | --- | --- | --- |
+  | NY-19 | `object`, az eldobott tömb | nyelvenként 11 |
+  | NY-01 | `flow`, a ciklus első köre | nyelvenként 1 |
+  | — | `script` JS | 5 |
+  | ADR-077 mérési torzítása | `inherit` JS, `strict` környezet | 28 |
+  | NY-22 maradéka | `inherit` TS | 2 |
+
+**Korpusz** (a régi 109 fixture, 54 754 szomszéd):
 - rés 19 → 10;
 - elfogadott 1 094 → 1 101;
 - szándékhű elutasítás 0 → 2 (`type`: egy-egy szignatúracsere);
 - 0 hibás elfogadás.
+
+**Új fixture:** `wp6-sealed-continued-callback`, a `});`-vel záruló hívás, amely lezárva marad. Ezzel a korpusz 110 fixture, 54 928 szomszéd, 11 rés. Az új rés a lezárás ismert túlzása (ADR-066): egy tiszta deklaráció a hívás mögé kerülhetne.
+
+**Gyors alapérték:** a `class` TS rése 4 → 0, 1 `type` szándék.
 
 A javulás forrása a `wp6-overload-groups` (rés 2 → 0) és a `refl-ts-erased-and-overloads` (8 → 1) fixture. A projekciós veszteség a `wp6-overload-groups`-ban 3 → 0, a `refl-ts-erased-and-overloads` 1 párja egy interfésztag, nem overload.
 
@@ -83,7 +105,12 @@ A javulás forrása a `wp6-overload-groups` (rés 2 → 0) és a `refl-ts-erased
 
 Módosított régi tesztek:
 - [model-verification.test.mjs](../../tests/model-verification.test.mjs): az overload-csoport vesztesége 0, a veszteséges példa egy interfész;
-- [value-intent.test.mjs](../../tests/value-intent.test.mjs): az overload-csoportnak nincs magyarázandó rése.
+- [value-intent.test.mjs](../../tests/value-intent.test.mjs): az overload-csoportnak nincs magyarázandó rése;
+- [key-order-observation.test.mjs](../../tests/key-order-observation.test.mjs): az overload-csoport vesztesége 0, a szignatúracsere továbbra is elutasított.
+
+**Okkód-bizonyítékok** ([reason-code-evidence.json](../../tests/fixtures/reason-code-evidence.json)):
+- **`sealed-unit`:** az eddigi bizonyítéka (`ch-ts-overloads`) megszűnt, mert ott most a blokk utasítja el a sorrendet. Az új bizonyíték az új fixture: a deklaráció a hívás belsejébe téve szintaxishiba.
+- **`overload-group`:** eddig felmentett volt, most valódi bizonyítéka van (`ch-ts-overloads`: a szignatúra az osztályon kívülre téve). A felmentését ezért töröltem.
 
 ## Felület
 

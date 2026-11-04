@@ -286,6 +286,13 @@
   "intentRejections": 0,
   "justifiedRejections": 66
  },
+ "wp6-sealed-continued-callback": {
+  "neighbours": 174,
+  "accepted": 1,
+  "completenessGaps": 1,
+  "intentRejections": 0,
+  "justifiedRejections": 172
+ },
  "wp6-hoisted-into-shared-boundaries": {
   "neighbours": 285,
   "accepted": 7,

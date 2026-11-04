@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased – 2026-11-04 az overload-csoport egy blokk (ADR-079, v45)
+
+- **Kevesebb fölösleges szabály TypeScriptben:** egy overload-csoport (szignatúrák, majd a megvalósítás) eddig lezárt egység volt, ezért egyetlen másik tag sem léphetett át rajta. Most a megvalósítás blokkja az első szignatúránál nyílik. Más tag átléphet a csoporton, de nem kerülhet bele.
+- **Változatlan biztonság:**
+  - a szignatúrák sorrendje kötött, mert a TypeScript sorrendben próbálja őket;
+  - a törzs a fejléc után áll.
+- **Frissítés és ellenőrzés:**
+  - egy korábbi modell frissítéskor átáll az új blokkra, és megtartja a blokkazonosítóit;
+  - az elemzési igazolás most a teljes blokkszerkezetet veti össze, nem csak a blokkok számát.
+- **Szabálytábla:** a második és további szignatúra és a megvalósítás fejléce egy szinttel beljebb látszik; a tanulói nézet nem változik.
+- **Mérés:**
+  - a teljes kampányban a rés 78 → 59, az elfogadott sorrend +37, 0 hibás elfogadás 366 118 sorrendből;
+  - a `class` TypeScript-csoport rése 19 → 0;
+  - a korpusz rése 19 → 10.
+
 ## Unreleased – 2026-11-04 azonos nevű tagdefiníciók, getteren át olvasó kezdőérték, privát mező (ADR-078, v44)
 
 - **Kevesebb fölösleges szabály az öröklési programokban:**

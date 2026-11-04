@@ -38,10 +38,10 @@ test('methods commute; instance fields keep their order (Object.keys sees it)',(
 });
 
 const overloads=['class Format {','  show(value: string): string;','  show(value: number): string;','  show(value: string | number): string {','    return String(value);','  }','  twice(value: string): string {','    return value + value;','  }','}','function evaluate(): string {','  return new Format().twice(new Format().show(1));','}'];
-test('a plain overload group is one method definition for the analysis; the closure keeps it whole (projection loss)',()=>{
+test('a plain overload group is one method definition for the analysis; its block keeps it whole without loss (ADR-079)',()=>{
  const model=generateCodeLineExercise({source:overloads.join('\n'),language:'typescript'},ts);
  const loss=model.authoring.evidence.projectionLoss;
- assert.ok(loss.pairs>0,'the analysis frees the group, the v2 projection pins the multi-row unit');
+ assert.equal(loss.pairs,0,'v45: the function block opens at the first signature, so the projection keeps the freedom');
  // Inside the group the rows keep their order: swapping two signatures is rejected.
  assert.equal(verdict(overloads,[1,3,2,...Array.from({length:10},(_,i)=>i+4)],'typescript').graded,'rejected');
 });
