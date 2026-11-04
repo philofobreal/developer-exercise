@@ -94,7 +94,7 @@ main {min-width:0;padding:28px 30px 24px;scroll-margin-top:15px}.task-heading {d
 .board-list {list-style:none;margin:0;padding:0;border:1px solid var(--navy-24);border-radius:6px;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:var(--navy-36) var(--navy-10);background:var(--navy-10)}
 .board-row {display:flex;align-items:center;min-height:var(--row);border-bottom:1px solid var(--navy-16);background:var(--navy-10)}.board-row:last-child {border-bottom:0}
 .board-row .code-text {flex:1 0 auto}
-.board-id {flex:0 0 46px;font:11px var(--mono);color:var(--navy-64);text-align:right;padding-right:6px}.board-index {flex:0 0 34px;font:10px var(--mono);color:var(--navy-46)}
+.board-id {flex:0 0 46px;font:11px var(--mono);color:var(--navy-64);text-align:right;padding-right:6px}.board-index {flex:0 0 34px;font:10px var(--mono);color:var(--navy-62)}
 .board-connect {width:28px;min-width:28px;height:28px;min-height:28px;padding:0;margin:0 4px;border-radius:50%;background:var(--navy-16);touch-action:none;cursor:grab}
 .board-connect span {width:10px;height:10px;border-radius:50%;border:2px solid var(--blue-74)}
 .board-connect.link-anchor span,.connect-source .board-connect span {background:var(--accent);border-color:var(--accent)}
@@ -182,3 +182,5 @@ main {min-width:0;padding:28px 30px 24px;scroll-margin-top:15px}.task-heading {d
 /* ADR-095: tap to pick, tap to place. The picked row is outlined; the lists show they take the tap; on small touch screens the up/down buttons give way to it, leaving the code more room. */
 .code-row.picked {outline:2px solid var(--accent);outline-offset:-2px;background:var(--cyan-16)}.drop-zone.tap-target {box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 45%,transparent)}
 @media(pointer:coarse) and (max-width:650px) {.row-actions [data-up],.row-actions [data-down] {display:none}}
+/* ADR-096: class names in highlighted code keep 4.5:1 on every row background (Prism's own red does not). */
+#app .token.class-name {color:var(--red-76)}

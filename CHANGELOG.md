@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased – 2026-11-04 automatikus akadálymentességi átvizsgálás (ADR-096)
+
+- **Új ellenőrzés:** minden változtatás előtt az axe-core átvizsgálja a fő nézeteket asztali gépen és telefonon (a WCAG 2.x A/AA gépileg ellenőrizhető szabályai).
+- **Javítva az első futás 6 hibája:**
+  - a gombok akadálymentes neve a látható felirattal kezdődik (hangvezérlés);
+  - két szövegszín kontrasztja nőtt (a szabálytábla sorindexe, az osztálynevek a kódban);
+  - az üres forráslista nem üres lista;
+  - a görgethető listák billentyűzettel is görgethetők;
+  - a teljes képernyő gombnak mobilon is van neve.
+
 ## Unreleased – 2026-11-04 koppintásos áthelyezés (ADR-095)
 
 - **Új: koppintással is rendezhetsz** érintőképernyőn. Koppints egy sor fogantyújára, majd a helyére: egy üres helyre, vagy egy sorra, amely elé vagy mögé kerüljön. Megoldásbeli sort a forráslistára koppintva veszel vissza. Ugyanarra a fogantyúra koppintva megszünteted a kijelölést.
