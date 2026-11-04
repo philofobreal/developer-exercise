@@ -117,7 +117,9 @@ for(const [name,source,yes,no] of [
  // ADR-029: abstract fields emit nothing and run no code; the program lists no keys.
  ['abstract fields are free','abstract class X {\n abstract a: number;\n abstract b: number;\n}',[[2,3]],[]],
  ['an initialiser that reads another field stays ordered','class X {\n a = 1;\n b = this.a + 1;\n}',[],[[2,3]]],
- ['an initialiser that runs code stays ordered','function f(): number { return 1; }\nclass X {\n a = f();\n b = 2;\n}',[],[[3,4]]],
+ // ADR-076 (v42): code that cannot name the instance cannot observe a loose field; code that can, stays ordered.
+ ['an initialiser that runs code without the instance commutes','function f(): number { return 1; }\nclass X {\n a = f();\n b = 2;\n}',[[3,4]],[]],
+ ['an initialiser that runs code with the instance stays ordered','function f(o: object): number { return 1; }\nclass X {\n a = f(this);\n b = 2;\n}',[],[[3,4]]],
  ['literal fields are ordered when the program lists keys','class X {\n a = 1;\n b = 2;\n}\nconsole.log(Object.keys(new X()));',[],[[2,3]]],
  ['literal fields are free when the program lists no keys','class X {\n a = 1;\n b = [2, {c: "d"}];\n}\nconst x = new X();',[[2,3]],[]],
  ['decorated member stays attached','function tag(...args: unknown[]): void {}\nclass X {\n @tag\n declare a: number;\n declare b: number;\n declare c: number;\n}',[[5,6]],[[3,5],[4,5]]],
