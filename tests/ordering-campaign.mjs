@@ -2,7 +2,7 @@
  *   node tests/ordering-campaign.mjs [--from=1] [--to=200] [--kinds=class,inherit,script,function,object,flow,param]
  *        [--languages=javascript,typescript] [--inputs=any|valid] [--key-order=observed|ignored]
  *        [--class-fields=either|define]
- *        [--environments=strict,es2015,sloppy] [--output=campaign.json]
+ *        [--environments=strict,es2015,sloppy,hostile] [--output=campaign.json]
  *   node tests/ordering-campaign.mjs --baseline   (pins the quick check's thresholds)
  * For every seeded program it grades sampled linear extensions, the single-row
  * neighbourhood and every whole-unit block move with the structural validator and

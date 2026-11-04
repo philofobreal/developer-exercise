@@ -775,8 +775,32 @@ const reachWitness=wrapEval=>`(()=>{const apply=Reflect.apply,construct=Reflect.
  +(wrapEval?`globalThis.eval=watch(eval,fnKinds);`:'')
  +`const S=Symbol;globalThis.Symbol=new P(S,{get(t,key,self){const v=Reflect.get(t,key);if(typeof v==='symbol')mark(['hooks']);return v;}});`
  +`})();\n`;
+/** ADR-081: the `hostile` environment's external code, the adversary of the default `any` input
+ * contract for a script's globals. An earlier script defines an accessor for every top-level `var` of
+ * the program (another script may, and the program's `var` keeps it), and `record` and every such
+ * setter replace each primitive top-level variable with an object that converts back to the same value
+ * and, whenever it is converted, records the values of all of them. A conversion or a setter thus runs
+ * external code that observes the order of the program's other writes. Modules keep their bindings to
+ * themselves: there `record` only records. Returns the earlier script and the `record` declaration. */
+function hostileRecord(js){
+ const names=[],vars=[];
+ if(!/^\s*(import|export)\b/m.test(js)){
+  const file=ts.createSourceFile('hostile.js',js,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);
+  for(const statement of file.statements)if(ts.isVariableStatement(statement))for(const declaration of statement.declarationList.declarations)if(ts.isIdentifier(declaration.name)&&!names.includes(declaration.name.text)){
+   names.push(declaration.name.text);
+   if(!(statement.declarationList.flags&ts.NodeFlags.BlockScoped))vars.push(declaration.name.text);
+  }
+ }
+ const key=JSON.stringify;
+ const snapshot=names.map(name=>`try{s[${key(name)}]=typeof ${name}==='object'||typeof ${name}==='function'?'<object>':${name};}catch(e){s[${key(name)}]='<uninitialised>';}`).join('');
+ const replace=names.map(name=>`try{if(typeof ${name}==='number'||typeof ${name}==='string'||typeof ${name}==='boolean')${name}=__watch(${key(name)},${name});}catch(e){}`).join('');
+ const accessors=vars.map(name=>`Object.defineProperty(globalThis,${key(name)},{configurable:true,get(){return __store[${key(name)}];},set(value){__store[${key(name)}]=value;__hostile();}});`).join('');
+ const setup=`var __store={},__busy=false;function __globals(){const s={};${snapshot}return s;}function __watch(name,value){const seen=()=>{trace.push(['converts',name,__globals()]);return value;};return {valueOf:seen,toString:()=>String(seen())};}function __hostile(){if(__busy)return;__busy=true;try{${replace}}finally{__busy=false;}}${accessors}`;
+ return {setup,record:'function record(...args) { trace.push(args); __hostile(); }\n'};
+}
 function execute(code,{language,probe,strict:strictMode=true,environment='strict',asynchronous=false,keyOrder='observed',classFields='either',hit=()=>{}},{classNames=[],globals=[],functions=[],ordered=false,enumerated=true}={},nested=[]){
  // ADR-062: `sloppy` runs the script without strict mode; `es2015` runs the emit of an ES2015 target.
+ // ADR-081: `hostile` runs it with external code that writes its globals.
  const strict=strictMode&&environment!=='sloppy',target=environment==='es2015'?ts.ScriptTarget.ES2015:ts.ScriptTarget.ES2022;
  for(const {key,name,end} of [...nested].sort((a,b)=>b.end-a.end))code=code.slice(0,end)+`;__classes.push([${JSON.stringify(key)}, ${name}]);`+code.slice(end);
  const keys=`const keys=o=>Reflect.ownKeys(o).map(k=>{const d=Object.getOwnPropertyDescriptor(o,k);return [String(k),'get' in d||'set' in d?'accessor':'value',d.enumerable,d.configurable,d.writable===undefined?null:d.writable];}),own=o=>{const all=keys(o);if(${ordered})return all;return [...all.filter(k=>!k[2]).sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0),...all.filter(k=>k[2])];};`;
@@ -785,13 +809,14 @@ function execute(code,{language,probe,strict:strictMode=true,environment='strict
  // Nested classes exist only once the probe ran: snapshot them afterwards.
  const nestedSnapshot=`(()=>{try{${keys}return JSON.stringify(__classes.map(([k,c])=>JSON.stringify([k,own(c.prototype),own(c)])).sort());}catch(error){return 'throws:'+(error&&error.name);}})()`;
  const attempt=(js,timeout)=>{
-  const prefix=(strict?'"use strict";\n':'')+'function record(...args) { trace.push(args); }\n'+(keyOrder==='ignored'?canonicalKeys:'')+reachWitness(!/\beval\b/.test(js)),from=prefix.split('\n').length,reach={on:true,from,to:from+js.split('\n').length-1},context=createContext({trace:[],__classes:[],exports:{},__hit:hit,__reach:reach},asynchronous?{microtaskMode:'afterEvaluate'}:{});
+  const hostile=environment==='hostile'?hostileRecord(js):null;
+  const prefix=(strict?'"use strict";\n':'')+(hostile?hostile.record:'function record(...args) { trace.push(args); }\n')+(keyOrder==='ignored'?canonicalKeys:'')+reachWitness(!/\beval\b/.test(js)),from=prefix.split('\n').length,reach={on:true,from,to:from+js.split('\n').length-1},context=createContext({trace:[],__classes:[],exports:{},__hit:hit,__reach:reach},asynchronous?{microtaskMode:'afterEvaluate'}:{});
   // ADR-029: unless the program lists enumerable keys itself, an object's key order is not part of the result.
   const replacer=enumerated?'null':`(key,value)=>value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(name=>[name,value[name]])):value`;
   const tail=asynchronous
    ?`;var __result='pending',__nested='pending';__reach.on=true;Promise.resolve(${probe}).then(value=>{__reach.on=false;__result=JSON.stringify({value,trace},${replacer});__nested=${nestedSnapshot};},error=>{__result='throws:'+(error&&error.name)+':'+(error&&error.message);});`
    :`;__reach.on=true;var __value=(${probe});__reach.on=false;var __result=JSON.stringify({value:__value,trace},${replacer});var __nested=${nestedSnapshot};`;
-  try{new Script(prefix+(keyOrder==='ignored'?canonicalForIn(js):js)+'\n'+reflect+tail,{filename:'fixed-oracle-fixture.js'}).runInContext(context,{timeout});return {call:String(context.__result),reflection:String(context.__reflection)+' nested:'+String(context.__nested),reach:reached(reach)};}
+  try{if(hostile)new Script((strict?'"use strict";':'')+hostile.setup,{filename:'fixed-oracle-hostile.js'}).runInContext(context,{timeout});new Script(prefix+(keyOrder==='ignored'?canonicalForIn(js):js)+'\n'+reflect+tail,{filename:'fixed-oracle-fixture.js'}).runInContext(context,{timeout});return {call:String(context.__result),reflection:String(context.__reflection)+' nested:'+String(context.__nested),reach:reached(reach)};}
   catch(error){if(error?.code==='ERR_SCRIPT_EXECUTION_TIMEOUT')return {call:'timeout',reflection:'',reach:reached(reach)};return {call:'throws:'+error?.name+':'+error?.message,reflection:'',reach:reached(reach)};}
  };
  const run=js=>{let result={call:'timeout',reflection:''};for(const timeout of TIMEOUTS_MS){result=attempt(js,timeout);if(result.call!=='timeout')break;}return result;};
@@ -889,6 +914,8 @@ export function createOracle(fixture,{policy='reflective',reach:assumed=null,run
  const environments=['strict'];
  for(const environment of fixture.environments??[]){
   if(environment==='strict')continue;
+  // ADR-081: valid plain data (ADR-050) promises external code that writes no hostile values.
+  if(environment==='hostile'&&fixture.inputs==='valid')continue;
   const run=executeAll(source,{...fixture,environments:[environment]},reference.reflection,reference.nested);
   if(/^throws:|timeout|syntax/.test(run.call)||run.call.split(/ \|\|? /).some(call=>/^throws:|^syntax|^timeout/.test(call)))continue;
   if(environment==='sloppy'&&run.call!==baseline.call)continue;
