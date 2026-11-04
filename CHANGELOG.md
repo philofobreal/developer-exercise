@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-04 obsidian dizájn, 1–2. szakasz (ADR-091)
+
+- **Új megjelenés:** ciánkék kiemelés, mélyebb sötét háttér, monospace nagybetűs címkék, fénylő aktív lépés és módfül. Minden szín egy közös palettából jön.
+- **Halvány sorvégi gombok:** a gombok nyugalmi állapotban halványak, és átlátszik mögülük a hosszú sorok kódja. Egérrel a soron, billentyűzetfókusznál vagy kiemelt sornál teljesen láthatók, érintőképernyőn mindig.
+- **Keret:** „CodeLine.” márka, aláhúzott módfülek, szerzői oldalpanel a projekt adataival és egy tippel, valamint alsó állapotsor (ellenőrzési mód, nézet, nyelv, elhelyezett sorok).
+
 ## Unreleased – 2026-11-04 kódlistánként egy vízszintes görgetés (ADR-090)
 
 - **Javítás:** a hosszú kódsoroknak már nincs saját vízszintes görgetősávjuk. A forrás- és a megoldáslista, valamint a szabálytábla egyben görget, és minden sora egyforma széles.
