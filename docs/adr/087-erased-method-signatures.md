@@ -1,6 +1,6 @@
 # ADR-087 – Az egyedi nevű metódusszignatúra törlődik, szabad (v50)
 
-Állapot: **elfogadva** (2026-11-04), szabályverzió `scoped-effect-analysis-v50`. A [nyitott tételek jegyzékének](../nyitott-tetelek.md) NY-26 tétele; a korpusz projekciós veszteségének egyik oka. Kiegészíti az [ADR-007](007-type-members.md) típustagjait és az [ADR-013](013-local-writes-clause-chains-and-imports.md) törlődő TypeScript-alakjait.
+Állapot: **elfogadva** (2026-11-04), szabályverzió `scoped-effect-analysis-v50`. A [nyitott tételek jegyzékének](../nyitott-tetelek.md) NY-26 tétele; a korpusz projekciós veszteségének egyik oka. Kiegészíti az [ADR-007](007-typescript-erased-member-ordering.md) típustagjait és az [ADR-013](013-local-writes-clause-chains-and-imports.md) törlődő TypeScript-alakjait.
 
 ## Kontextus
 
