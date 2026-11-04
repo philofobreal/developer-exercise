@@ -253,6 +253,27 @@ def single_horizontal_scroll(page):
             assert page.evaluate(CONTROLS_OUTSIDE)==0,left
     finally:page.set_viewport_size({'width':1500,'height':1000})
 
+# ADR-095: tap to pick, tap to place (touch). A tap on a handle picks the row, a tap on an empty slot
+# fills it, a tap on a row splits it at its midpoint, a tap on the pool takes a solution row back, a tap
+# on the picked handle again cancels; on a small touch screen the up/down buttons give way to it.
+def tap_to_place(browser):
+    mobile=browser.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True);page=mobile.new_page()
+    try:
+        page.goto(BASE);practice(page)
+        first=page.locator('.source-zone .code-row').first;text=first.locator('.code-text').inner_text()
+        first.locator('.drag-handle').tap();expect(first).to_have_class(re.compile('picked'));expect(page.locator('[data-move-status]')).to_contain_text('Sor kijelölve')
+        first.locator('.drag-handle').tap();expect(page.locator('.code-row.picked')).to_have_count(0);expect(page.locator('[data-move-status]')).to_contain_text('megszüntetve')
+        page.locator('.source-zone .code-row').first.locator('.drag-handle').tap()
+        slot=page.locator('.solution-zone .code-row.blank-row').nth(1);index=slot.get_attribute('data-index');slot.tap()
+        placed=page.locator(f'.solution-zone .code-row[data-index="{index}"]');expect(placed.locator('.code-text')).to_have_text(text)
+        expect(page.locator('[data-move-status]')).to_contain_text(f'{int(index)+1}. pozíció');expect(page.locator('.code-row.picked')).to_have_count(0)
+        placed.locator('.drag-handle').tap();page.locator('.source-zone').tap()
+        expect(page.locator(f'.solution-zone .code-row[data-index="{index}"]')).to_have_class(re.compile('blank-row'))
+        assert text in [row.inner_text() for row in page.locator('.source-zone .code-row .code-text').all()]
+        assert page.locator('.solution-zone .row-actions [data-up]').count()==0 or not page.locator('.solution-zone .row-actions [data-up]').first.is_visible()
+        assert page.evaluate('document.documentElement.scrollWidth')<=390
+    finally:mobile.close()
+
 def try_rules(page):
     """ADR-022: the try sorter shows and edits rules while arranging; learners and practice never see them."""
     build(page,rules_source);to_try(page);expect(page.locator('[data-try-rules]')).to_be_visible()
@@ -513,6 +534,7 @@ try:
                 reset(page,url);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-author.png')),full_page=True)
                 practice(page);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-practice.png')),full_page=True)
             reset(page,BASE);case('node one horizontal scroll per code list, row controls pinned',lambda:single_horizontal_scroll(page))
+            case('node tap to pick, tap to place on a touch screen',lambda:tap_to_place(browser))
             reset(page,BASE);case('node duplicate-check prevention and async feedback',lambda:busy(page))
             reset(page,BASE);case('node admission preserves newer reference edits',lambda:stale_author_admission(page))
             reset(page,BASE);case('node sample loading preserves newer reference edits',lambda:stale_source_sample(page))

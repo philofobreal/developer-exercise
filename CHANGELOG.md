@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-04 koppintásos áthelyezés (ADR-095)
+
+- **Új: koppintással is rendezhetsz** érintőképernyőn. Koppints egy sor fogantyújára, majd a helyére: egy üres helyre, vagy egy sorra, amely elé vagy mögé kerüljön. Megoldásbeli sort a forráslistára koppintva veszel vissza. Ugyanarra a fogantyúra koppintva megszünteted a kijelölést.
+- **Mobilon több látszik a kódból:** kis érintőképernyőn a fel és le gombok helyét átveszi a koppintás, ezért egy sorban 38%-kal szélesebb a kód.
+- **Belső:** a húzást és a billentyűzetes mozgatást kezelő modul TypeScriptre került, a viselkedése nem változott.
+
 ## Unreleased – 2026-11-04 billentyűsúgó az eszköztárban, mobil rendező (ADR-094)
 
 - **Tömörebb rendező:** a „Billentyűzettel is” súgó a Rendező/Megoldáskód fülek mellé került. A külön útmutató sáv elmaradt, mert a forráslista alja és a Tipp kártya ugyanezt mondja. A rendező laptopképernyőn még feljebb kezdődik.

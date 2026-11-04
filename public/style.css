@@ -179,3 +179,6 @@ main {min-width:0;padding:28px 30px 24px;scroll-margin-top:15px}.task-heading {d
 .source-zone {padding-right:0}.source-row {margin-right:8px}
 /* ADR-094, mobile: the evaluation bar stays at the bottom of the screen while sorting (compact, at most 40% of the height); scroll-padding keeps a focused or scrolled-to element above it; the duplicate list heading hides. */
 @media(max-width:650px) {html {scroll-padding-bottom:132px}.evaluation-bar {position:sticky;bottom:0;z-index:15;max-height:40dvh;overflow:auto;margin-top:12px;padding:10px;box-shadow:0 -12px 24px rgba(3,8,14,.75)}.evaluation-bar .report p {display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.check-action>span {display:none}.library-heading {display:none}.panel-title {flex-wrap:wrap}.pane-clipboard {flex-wrap:nowrap}}
+/* ADR-095: tap to pick, tap to place. The picked row is outlined; the lists show they take the tap; on small touch screens the up/down buttons give way to it, leaving the code more room. */
+.code-row.picked {outline:2px solid var(--accent);outline-offset:-2px;background:var(--cyan-16)}.drop-zone.tap-target {box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 45%,transparent)}
+@media(pointer:coarse) and (max-width:650px) {.row-actions [data-up],.row-actions [data-down] {display:none}}

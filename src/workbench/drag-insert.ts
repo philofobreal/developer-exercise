@@ -1,0 +1,183 @@
+/**
+ * Native, pointer/touch and keyboard insertion adapter: pointer midpoint defines a boundary,
+ * never a target row replacement. Visual preview pushes subsequent IDE rows.
+ * The domain model is updated only on drop; dragover has no data side effects.
+ *
+ * ADR-095: migrated from the hand-written public/app/drag-insert.js to strict TypeScript, and a
+ * fourth input path added beside native drag, pointer drag and keyboard: tap to pick, tap to place
+ * (touch and pen). A tap on a row's handle picks it; a tap on a solution row places it before or
+ * after that row by the same midpoint rule as a drop, a tap on an empty slot fills that slot, a tap
+ * on the pool returns a solution row there; a tap on the picked handle again or Escape cancels.
+ */
+export interface InsertionInfo {from:string|undefined;index:number;id:string|undefined;exercise:string|undefined;}
+export interface InsertionOptions {root:HTMLElement;onInsert:(info:InsertionInfo,boundary:number)=>void;onReturn:(index:number)=>void;}
+interface PointerGesture extends InsertionInfo {pointerId:number;pointerType:string;startX:number;startY:number;x:number;y:number;moving:boolean;}
+
+export function createInsertionDrag({root,onInsert,onReturn}:InsertionOptions):{clear:()=>void} {
+  let drag:InsertionInfo|null=null,previewZone:HTMLElement|null=null,previewBoundary:number|null=null;
+  const clear=():void=>{
+    root.querySelectorAll('.drop-zone .code-row').forEach(row=>row.classList.remove('drop-shift','drop-prev'));
+    root.querySelectorAll('.drop-zone').forEach(zone=>zone.classList.remove('over'));
+    root.querySelectorAll('.insert-caret').forEach(el=>el.remove());
+    previewZone=null;previewBoundary=null;
+  };
+  const rowsOf=(zone:Element):HTMLElement[]=>[...zone.querySelectorAll<HTMLElement>(':scope > .code-row')];
+  const position=(zone:Element,event:{clientY:number}):number=>{
+    const rows=rowsOf(zone);
+    if(!rows.length)return 0;
+    const y=event.clientY;
+    for(let i=0;i<rows.length;i++){
+      const r=rows[i]!,rect=r.getBoundingClientRect();
+      const cssTransform=getComputedStyle(r).transform;
+      const transform=cssTransform==='none'?0:new DOMMatrixReadOnly(cssTransform).m42;
+      if(y<rect.top-transform+rect.height/2)return i;
+    }
+    return rows.length;
+  };
+  const preview=(zone:HTMLElement,boundary:number):void=>{
+    if(previewZone===zone&&previewBoundary===boundary)return;
+    clear();previewZone=zone;previewBoundary=boundary;zone.classList.add('over');
+    if(zone.dataset.zone!=='answer')return;
+    const rows=rowsOf(zone);
+    rows.slice(boundary).forEach(row=>row.classList.add('drop-shift'));
+    if(boundary>0)rows[boundary-1]!.classList.add('drop-prev');
+    const anchor=rows[boundary],last=rows.at(-1);
+    const z=zone.getBoundingClientRect();
+    const top=anchor?anchor.getBoundingClientRect().top-z.top+zone.scrollTop-8:
+      last?last.getBoundingClientRect().bottom-z.top+zone.scrollTop+8:8;
+    const caret=document.createElement('div');caret.className='insert-caret';
+    caret.style.top=`${Math.max(0,top)}px`;
+    caret.setAttribute('aria-hidden','true');zone.append(caret);
+  };
+  const element=(target:EventTarget|null):Element|null=>target instanceof Element?target:null;
+  const announce=(message:string):void=>{const live=root.querySelector('[data-move-status]');if(live)live.textContent=message;};
+  const infoFor=(node:HTMLElement):InsertionInfo=>({from:node.dataset.list,index:Number(node.dataset.index),id:node.dataset.lineId,exercise:root.dataset.renderedExercise});
+  const finish=(info:InsertionInfo,boundary:number,back=false):void=>{
+    if(info.exercise!==root.dataset.renderedExercise)return;
+    if(back)onReturn(info.index);else onInsert(info,boundary);
+    const row=[...root.querySelectorAll<HTMLElement>('.code-row')].find(x=>x.dataset.lineId===info.id&&x.dataset.list===(back?'pool':'answer'));
+    row?.querySelector<HTMLElement>('.drag-handle')?.focus({preventScroll:true});
+    announce(row?`Sor áthelyezve: ${Number(row.dataset.index)+1}. pozíció.`:'A sor nem mozgatható erre a helyre.');
+  };
+  let keyboard:(InsertionInfo&{boundary:number})|null=null,pointer:PointerGesture|null=null,animation:number|null=null,picked:InsertionInfo|null=null;
+  const unpick=():void=>{picked=null;root.querySelectorAll('.code-row.picked').forEach(row=>row.classList.remove('picked'));root.querySelectorAll('.drop-zone.tap-target').forEach(zone=>zone.classList.remove('tap-target'));};
+  const cancelPointer=():void=>{
+    if(animation!==null)cancelAnimationFrame(animation);animation=null;
+    if(pointer&&drag===pointer)drag=null;
+    pointer=null;clear();
+  };
+  /** ADR-095: the tapped place for the picked row: an empty slot is filled, a row splits at its midpoint, the pool takes a solution row back. */
+  const place=(info:InsertionInfo,zone:HTMLElement,event:{clientY:number},row:HTMLElement|null):void=>{
+    unpick();
+    if(zone.dataset.zone==='answer')finish(info,row?.classList.contains('blank-row')?Number(row.dataset.index):position(zone,event));
+    else if(info.from==='answer')finish(info,0,true);
+    else announce('A sor már a felhasználható sorok között van.');
+  };
+  root.addEventListener('dragstart',ev=>{
+    const node=element(ev.target)?.closest<HTMLElement>('.code-row');
+    if(!node||node.draggable!==true)return;
+    // Native HTML drag takes ownership; its browser-generated pointercancel
+    // must never erase the new native drag session.
+    keyboard=null;unpick();cancelPointer();
+    drag=infoFor(node);
+    ev.dataTransfer?.setData('text/plain','ngdynamic-code-line');
+    if(ev.dataTransfer)ev.dataTransfer.effectAllowed='move';
+  });
+  root.addEventListener('dragover',ev=>{
+    if(!drag)return;const zone=element(ev.target)?.closest<HTMLElement>('.drop-zone');if(!zone)return;
+    ev.preventDefault();if(ev.dataTransfer)ev.dataTransfer.dropEffect='move';
+    const box=zone.getBoundingClientRect();
+    // Autoscroll long editors near their top/bottom edge.
+    if(ev.clientY>box.bottom-27)zone.scrollTop+=16;
+    else if(ev.clientY<box.top+27)zone.scrollTop-=16;
+    preview(zone,position(zone,ev));
+  });
+  root.addEventListener('drop',ev=>{
+    if(!drag)return;
+    const zone=element(ev.target)?.closest<HTMLElement>('.drop-zone');
+    if(!zone){clear();drag=null;return;}
+    ev.preventDefault();
+    const info=drag,boundary=position(zone,ev);
+    clear();drag=null;
+    if(info.exercise!==root.dataset.renderedExercise)return;
+    if(zone.dataset.zone==='answer')finish(info,boundary);
+    else if(info.from==='answer')finish(info,0,true);
+  });
+  root.addEventListener('dragend',()=>{drag=null;clear();});
+  const tick=():void=>{
+    if(!pointer?.moving)return;
+    const zone=document.elementFromPoint(pointer.x,pointer.y)?.closest<HTMLElement>('.drop-zone');
+    if(zone){const box=zone.getBoundingClientRect();if(pointer.y<box.top+27)zone.scrollTop-=12;else if(pointer.y>box.bottom-27)zone.scrollTop+=12;preview(zone,position(zone,{clientY:pointer.y}));}
+    animation=requestAnimationFrame(tick);
+  };
+  root.addEventListener('pointerdown',ev=>{
+    const handle=element(ev.target)?.closest<HTMLElement>('.drag-handle'),row=handle?.closest<HTMLElement>('.code-row');
+    if(!handle||!row||row.draggable!==true||ev.button!==0)return;
+    ev.preventDefault();handle.focus({preventScroll:true});
+    keyboard=null;pointer={...infoFor(row),pointerId:ev.pointerId,pointerType:ev.pointerType,startX:ev.clientX,startY:ev.clientY,x:ev.clientX,y:ev.clientY,moving:false};
+    try{root.setPointerCapture(ev.pointerId);}catch{}
+  });
+  root.addEventListener('pointermove',ev=>{
+    if(!pointer||pointer.pointerId!==ev.pointerId)return;
+    pointer.x=ev.clientX;pointer.y=ev.clientY;
+    if(!pointer.moving&&Math.hypot(pointer.x-pointer.startX,pointer.y-pointer.startY)>4){pointer.moving=true;unpick();drag=pointer;tick();}
+  });
+  root.addEventListener('pointerup',ev=>{
+    if(!pointer||pointer.pointerId!==ev.pointerId)return;
+    const info=pointer,hit=document.elementFromPoint(ev.clientX,ev.clientY),zone=hit?.closest<HTMLElement>('.drop-zone')??null;
+    const boundary=zone?position(zone,ev):null;
+    cancelPointer();try{root.releasePointerCapture(ev.pointerId);}catch{}
+    if(!info.moving){
+      // ADR-095: a touch or pen tap on a handle picks its row; on the picked handle it cancels; on another row's handle it places there.
+      if(info.pointerType!=='touch'&&info.pointerType!=='pen')return;
+      if(picked&&picked.id===info.id&&picked.from===info.from){unpick();announce('Kijelölés megszüntetve.');return;}
+      if(picked&&zone&&!(zone.dataset.zone==='pool'&&picked.from==='pool')){place(picked,zone,ev,hit?.closest<HTMLElement>('.code-row')??null);return;}
+      unpick();
+      const node=root.querySelector<HTMLElement>(`.code-row[data-list="${CSS.escape(info.from??'')}"][data-index="${info.index}"]`);
+      picked={from:info.from,index:info.index,id:info.id,exercise:info.exercise};node?.classList.add('picked');
+      root.querySelectorAll('.drop-zone[data-zone]').forEach(z=>z.classList.add('tap-target'));
+      announce('Sor kijelölve. Koppints a helyére: egy üres helyre, egy sor elé vagy mögé. A fogantyúra újra koppintva megszünteted.');
+      return;
+    }
+    if(!zone||boundary===null)return;
+    if(zone.dataset.zone==='answer')finish(info,boundary);
+    else if(info.from==='answer')finish(info,0,true);
+  });
+  // ADR-095: the place tap. Buttons keep their own action (and end the pick); the handle's own taps are handled on pointerup.
+  root.addEventListener('click',ev=>{
+    if(!picked)return;
+    const target=element(ev.target);
+    if(!target||target.closest('.drag-handle'))return;
+    if(target.closest('button,a,input,select,textarea,summary')){unpick();return;}
+    const zone=target.closest<HTMLElement>('.drop-zone[data-zone]');
+    if(!zone){unpick();announce('Kijelölés megszüntetve.');return;}
+    if(picked.exercise!==root.dataset.renderedExercise){unpick();return;}
+    place(picked,zone,ev,target.closest<HTMLElement>('.code-row'));
+  });
+  root.addEventListener('pointercancel',ev=>{
+    // Native dragging intentionally cancels the browser pointer stream. Only
+    // cancel a custom pointer gesture when this adapter owns that pointer ID.
+    if(pointer?.pointerId===ev.pointerId)cancelPointer();
+  });
+  root.addEventListener('keydown',ev=>{
+    if(ev.key==='Escape'){keyboard=null;drag=null;unpick();cancelPointer();announce('Mozgatás megszakítva.');return;}
+    const handle=element(ev.target)?.closest<HTMLElement>('.drag-handle'),row=handle?.closest<HTMLElement>('.code-row');
+    if(!row||row.draggable!==true)return;
+    if(![' ','Enter','ArrowUp','ArrowDown','Home','End'].includes(ev.key))return;
+    ev.preventDefault();
+    if(!keyboard){
+      if(ev.key!==' '&&ev.key!=='Enter')return;
+      unpick();
+      keyboard={...infoFor(row),boundary:row.dataset.list==='answer'?Number(row.dataset.index):0};
+      announce('Sor felvéve. Nyilak: beszúrási hely. Enter: elhelyezés. Escape: megszakítás.');
+    }else if(ev.key===' '||ev.key==='Enter'){
+      const info=keyboard;keyboard=null;clear();finish(info,info.boundary);return;
+    }else{
+      const zone=root.querySelector<HTMLElement>('.solution-zone');if(!zone)return;
+      const length=rowsOf(zone).length;
+      keyboard.boundary=ev.key==='Home'?0:ev.key==='End'?length:Math.max(0,Math.min(length,keyboard.boundary+(ev.key==='ArrowUp'?-1:1)));
+      preview(zone,keyboard.boundary);announce(`Beszúrási határ: ${keyboard.boundary}.`);
+    }
+  });
+  return {clear:()=>{keyboard=null;drag=null;unpick();cancelPointer();}};
+}
