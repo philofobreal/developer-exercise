@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased – 2026-11-04 böngészőtesztek régebbi telepített Chromiummal (NY-16)
+
+- **Futtatható böngészőtesztek friss konténerben:** ha a rögzített Playwright saját Chromium-revíziója nincs telepítve, a böngészőtesztek a böngészőkönyvtár legújabb Chromiumát indítják, és ezt a kimenetben jelzik. Eddig ilyenkor el sem indultak. Más indítási hiba továbbra is hiba.
+
 ## Unreleased – 2026-11-04 a futással nem megfigyelhető okkódot a regiszter jelöli (ADR-088)
 
 - **Megbízhatóbb mérés:** az okkód-regiszter jelöli azokat a szabályokat, amelyeket egyetlen futás sem különböztet meg: a pedagógiai döntést (`early-exit-order`) és a csak típusellenőrzővel látható overload-sorrendet (`overload-group`). A mérés onnan olvassa, mi számít szándéknak, nem egy külön kézi listából, így egy új okkód nem maradhat ki belőle csendben. A generátor és a mérés eredményei nem változtak.
