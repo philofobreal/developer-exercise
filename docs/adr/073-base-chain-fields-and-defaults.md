@@ -31,7 +31,7 @@ A TypeScript `[[Set]]` mezőmódjában (`useDefineForClassFields: false`) az `f5
 2. **Laza mező TypeScriptben.** A mező csak akkor laza, ha a neve privát, vagy az őslánc accessorneveit ismerjük, és a mező neve nincs köztük.
    - Ez minden mezőnévre vonatkozik, mert a `[[Set]]` mód az egész láncon keres settert.
    - A `__proto__` nevű mező sosem laza.
-   - JavaScriptben a mezők mindig `[[Define]]` szerint jönnek létre, ott a szabály változatlan.
+   - JavaScriptben a szabványos mezők `[[Define]]` szerint jönnek létre, ezért ez a szabály eredetileg csak TypeScriptre vonatkozott. *Utóirat:* ez hiba volt. Az ES2015-ös lefordítás (ADR-062) JavaScriptben is értékadással hozza létre a mezőt, és a szerződés mindkét mezőmódra szól. A v40 ([ADR-074](074-inherit-campaign-kind.md)) a szabályt JavaScriptre is kiterjeszti.
 3. **A másoló mező (NY-20).** Az `f = this.g` alakú mező laza, és csak a `g` után kell állnia, ha:
    - a `g` korábbi, egyedi nevű, sima mező ugyanabban az elhelyezésben (példány vagy static);
    - a `g` nem `accessor`, nem `declare`, és nincs dekorátora;

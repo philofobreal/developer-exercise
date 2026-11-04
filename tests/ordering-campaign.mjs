@@ -1,5 +1,5 @@
 /** Manual long generative campaign (not part of check:all):
- *   node tests/ordering-campaign.mjs [--from=1] [--to=200] [--kinds=class,script,function,object,flow,param]
+ *   node tests/ordering-campaign.mjs [--from=1] [--to=200] [--kinds=class,inherit,script,function,object,flow,param]
  *        [--languages=javascript,typescript] [--inputs=any|valid] [--key-order=observed|ignored]
  *        [--environments=strict,es2015,sloppy] [--output=campaign.json]
  *   node tests/ordering-campaign.mjs --baseline   (pins the quick check's thresholds)

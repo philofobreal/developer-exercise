@@ -48,12 +48,12 @@ export function typeMemberOrdering(file, compiler, options = {}) {
         const children = body.getChildren(file), open = children.find(child => child.kind === compiler.SyntaxKind.OpenBraceToken), close = children.filter(child => child.kind === compiler.SyntaxKind.CloseBraceToken).at(-1);
         return !!open && !!close && first(open) === row && first(close) === end && physical[row]?.trim() === file.text.slice(member.getStart(file), open.end).trim() && physical[end]?.trim() === file.text.slice(close.getStart(file), member.end).trim();
     };
-    // v39 (ADR-073): TypeScript's [[Set]] class-field mode assigns a field, which runs a setter of that
-    // name anywhere on the prototype chain; a method or field there is a writable data property, which
+    // v39 (ADR-073): the [[Set]] class-field mode assigns a field, which runs a setter of that name
+    // anywhere on the prototype chain: TypeScript with useDefineForClassFields false, and (v40, ADR-074)
+    // JavaScript too, whose ES2015 down-level emit assigns fields (ADR-062); a method or field there is a writable data property, which
     // the assignment shadows without running code. The accessor names the base classes may define
     // (get, set, `accessor` fields), when every base is a class declared once in this file without a
     // computed accessor name; otherwise unknown.
-    const typescript = file.fileName.endsWith('.ts') || file.fileName.endsWith('.tsx') || file.fileName.endsWith('.mts') || file.fileName.endsWith('.cts');
     const reshapes = /\.prototype\b|__proto__|defineProperty|setPrototypeOf|\bReflect\b|\bProxy\b/.test(file.text);
     const declarations = new Map();
     const collect = (node) => {
@@ -134,7 +134,7 @@ export function typeMemberOrdering(file, compiler, options = {}) {
             };
             // ADR-073: a field assignment in the [[Set]] mode may run code unless no base can define its name.
             const inherited = isClass ? baseAccessors(node) : new Set();
-            const assignable = (key, member) => key !== '__proto__' && (!typescript || compiler.isPrivateIdentifier(member.name) || !!inherited && !inherited.has(key));
+            const assignable = (key, member) => key !== '__proto__' && (compiler.isPrivateIdentifier(member.name) || !!inherited && !inherited.has(key));
             const members = node.members.map(member => {
                 const key = name(member), row = first(member), end = last(member);
                 const modifiers = compiler.canHaveModifiers(member) ? compiler.getModifiers(member) : undefined;

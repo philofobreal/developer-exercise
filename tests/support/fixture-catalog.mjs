@@ -5,7 +5,7 @@ import {corpus} from '../fixtures/ordering-corpus.mjs';
 import {objectFixtures} from '../fixtures/object-programs.mjs';
 import {reasonCodePrograms} from '../fixtures/reason-code-programs.mjs';
 import {escapePrograms} from '../fixtures/escape-programs.mjs';
-import {randomProgram,randomClassProgram,randomScriptProgram,randomObjectProgram,randomFlowProgram,randomParameterProgram} from './random-programs.mjs';
+import {randomProgram,randomClassProgram,randomInheritProgram,randomScriptProgram,randomObjectProgram,randomFlowProgram,randomParameterProgram} from './random-programs.mjs';
 
 const seeded=[
  [/^random-(extended-)?(\d+)$/,match=>randomProgram(Number(match[2]),{extended:!!match[1]})],
@@ -24,7 +24,7 @@ export function fixtureById(id){
 }
 /** The seeded program kinds: kind → (seed, {language, inputs}) → program, or null when the kind has
  * no program in that language. `inputs` (ADR-050) selects the probes of a parametric program. */
-export const PROGRAM_KINDS={class:randomClassProgram,script:randomScriptProgram,object:randomObjectProgram,flow:randomFlowProgram,param:randomParameterProgram,
+export const PROGRAM_KINDS={class:randomClassProgram,inherit:randomInheritProgram,script:randomScriptProgram,object:randomObjectProgram,flow:randomFlowProgram,param:randomParameterProgram,
  function:(seed,{language})=>language==='javascript'?randomProgram(seed,{extended:seed%2===0}):null};
 export const LANGUAGES=['javascript','typescript'];
 

@@ -33,6 +33,12 @@ test('a base setter of the field name runs on assignment: the loose fields keep 
  clean(program);
 });
 
+test('JavaScript too: an ES2015 down-level emit assigns fields, so a base setter keeps the order (v40, ADR-074)',()=>{
+ const program={id:'adr074-js-setter',origin:'adr-074',language:'javascript',probe:'evaluate()',environments:['strict','es2015','sloppy'],source:['class B {','  set f5(value) {',"    record('set', this.g);",'  }','}','class A extends B {','  f5 = 6;','  g = 7;','}',...evaluate]};
+ assert.equal(verdict(program,'f5 = 6;','g = 7;'),'justified');
+ clean(program);
+});
+
 test('no base defines the names: the loose fields commute',()=>{
  const program=fixture('adr073-free',['class B {','  h = 1;','}','class A extends B {','  f5 = 6;','  g = 7;','}',...evaluate]);
  assert.equal(verdict(program,'f5 = 6;','g = 7;'),'accepted');

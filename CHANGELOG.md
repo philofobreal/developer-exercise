@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-11-04 öröklési programok a kampányban; az őslánc JavaScriptben is (ADR-074, v40)
+
+- **Bővebb mérés:** a véletlen kampány új programfajtát kapott (`inherit`). Az ősosztályban getter, setter, `accessor` mező és számított nevű accessor áll, a leszármazott mezői ezekkel találkozhatnak. A magok mintegy háromnegyedében benne van az a minta, amelyet az ADR-073 javított.
+- **Visszamenőleges próba:** a v38-as szabályokon az új fajta 3 TypeScript-programban 33 hibás elfogadást talál. A v39-en egyet sem.
+- **Hibás elfogadás javítva JavaScriptben is:** a szabványos JavaScript `[[Define]]` szerint hozza létre a mezőket, de egy ES2015-re fordított változat értékadással, és ilyenkor az ős settere fut. Az ADR-073 szabálya ezért JavaScriptre is vonatkozik (v40). Ennek ára: az öröklési programokban JS-ben 129 sorrenddel kevesebb elfogadott, ebből 28 a lefordított változatban valóban hibás lett volna. Hogy a JavaScript-feladatok ígérjék-e a lefordítást, az döntés (NY-23).
+- **Új rések:** az új programokban JS-ben 133, TS-ben 77 fölösleges elutasítás látszik (NY-22). Ezek eddig rejtve voltak, mert nem volt ilyen program.
+
 ## Unreleased – 2026-11-03 őslánc, másoló mező, alapértékes paraméter (ADR-073, v39)
 
 - **Hibás elfogadás javítva:** TypeScriptben a `useDefineForClassFields: false` mezőmódban egy mező értékadása az ősosztály azonos nevű setterét futtatja. Két ilyen mező cseréje eddig elfogadott volt, holott a setter megfigyelheti a másikat. Most egy mező csak akkor szabad, ha egyik ős sem definiál ilyen nevű accessort.

@@ -1,11 +1,11 @@
 # Nyitott tételek jegyzéke
 
-Állapot: 2026-11-03, szabályverzió `scoped-effect-analysis-v39`. Ez az egyetlen hely, ahol a lezáratlan tételek össze vannak gyűjtve: a még meg nem oldott generátorhiányok, mérési korlátok, döntések és tervezési adósságok. A részletek a forrásként megadott ADR-ben vannak.
+Állapot: 2026-11-03, szabályverzió `scoped-effect-analysis-v40`. Ez az egyetlen hely, ahol a lezáratlan tételek össze vannak gyűjtve: a még meg nem oldott generátorhiányok, mérési korlátok, döntések és tervezési adósságok. A részletek a forrásként megadott ADR-ben vannak.
 
 **Szabályok:**
 - Minden ADR, amelynek „Nyitott” szakasza van, ide kerül. Ezt a [governance-teszt](../tests/governance.test.mjs) ellenőrzi.
 - Egy tétel lezárásakor a sor „Lezárva” részbe kerül a lezáró ADR-rel. Nem törlődik.
-- A mért hatás a legutóbbi teljes kampányból (12 mag, 6 fajta, 2 nyelv) és a korpuszból való. A szám a rés, vagyis a fölöslegesen elutasított, futásidőben egyenértékű sorrend.
+- A mért hatás a legutóbbi teljes kampányból (12 mag, 7 fajta, 2 nyelv; az `inherit` fajta az ADR-074 óta) és a korpuszból való. A szám a rés, vagyis a fölöslegesen elutasított, futásidőben egyenértékű sorrend.
 
 **Típusok:**
 - **generátor:** a szabályok fölöslegesen szigorúak;
@@ -34,7 +34,8 @@
 | NY-15 | **Az ellenőrzési kapu** a blokkszámból következtet az azonos szerkezetre | tervezés | nincs | [ADR-066](adr/066-unit-blocks.md) | saját összevetés, ha a frissítés más finomítást kap |
 | NY-17 | **Szkriptszintű `var` olvasása** koerciós műveletben (`let l3 = v1 + 1`): más szkript írhatja | döntés | `script` JS 5 rés | [ADR-009](adr/009-sealed-units-and-throw-free-reads.md) | szerződésdöntés: egyetlen szkriptnek tekinthető-e a feladat |
 | NY-19 | **Eldobott objektumba írás sorrendje:** két írás egy tömbbe, amelyre később már semmi nem hivatkozik (`a.note('n2')` ↔ `a.note('n3')`, majd `a.attach(shared)`). Az A-politika mintájára a generátor kötve tartja; a mérés még résnek számolja | mérés | `object` 11 + 11 rés | [ADR-071](adr/071-statement-positioned-heap-cells.md) | a mérésben szándékként elkülöníteni (a próba a létrehozott objektumokat is megfigyeli), ha egy második tanú is ide esik |
-| NY-21 | **A kampány osztályprogramjai** nem generálnak ősosztálybeli accessort (getter, setter, `accessor` mező); a `[[Set]]` mezőmód hibás elfogadását (ADR-073) egy célzott próba hozta elő | mérés | nem résszám: lefedettségi hiány | [ADR-073](adr/073-base-chain-fields-and-defaults.md) | a `randomClassProgram` bővítése ősaccessorral (az alapértékek újrarögzítésével) |
+| NY-22 | **Az `inherit` fajta rései** (öröklés ősaccessorokkal, ADR-074): (a) egy `record(…) ?? 7` kezdőértékű mező minden laza mező után kötött, holott a külső hívás csak primitívet kap, és a példányt nem éri el; (b) az ős azonos nevű settere minden literál mezőt köt, akkor is, ha a setter más mezőt figyel (az ADR-073 szándékos óvatossága, v40 óta JS-ben is); (c) az ős duplikált accessorai | generátor | JS 133, TS 77 rés (környezetváltozatokkal JS 105) | [ADR-074](adr/074-inherit-campaign-kind.md), [ADR-073](adr/073-base-chain-fields-and-defaults.md), [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) | az (a) okelemzése és szabálya (a legnagyobb rész) |
+| NY-23 | **JavaScript-mezőmód:** a szerződés JS-ben is mindkét mezőmódot ígéri (`classFields: 'either'`), ezért az ES2015-ös lefordítás `[[Set]]`-je miatt az ős azonos nevű accessora szabványos JS-ben egyenértékű sorrendeket is köt | döntés | `inherit` JS: 101 sorrend | [ADR-074](adr/074-inherit-campaign-kind.md), [ADR-062](adr/062-oracle-environments-and-for-in.md) | a felhasználó döntése: marad a „mindkét mód”, vagy szerzői beállítás „csak natív `[[Define]]`” |
 | NY-16 | **A böngészőtesztek környezete:** a Python Playwright 1248-as Chromiumot vár, 1243-as van telepítve | környezet | friss konténerben nem indul | — | a környezet beállítása; addig `PLAYWRIGHT_BROWSERS_PATH` alias |
 
 ## Elfogadott korlátok (nem rések, nem javítandók)
@@ -49,6 +50,7 @@
 
 | Tétel | Lezárta |
 | --- | --- |
+| NY-21: a kampány nem generált ősosztálybeli accessort | [ADR-074](adr/074-inherit-campaign-kind.md) |
 | NY-18: alapértékes paraméterű konstruktor az objektummodellben | [ADR-073](adr/073-base-chain-fields-and-defaults.md) |
 | NY-20: a korábbi saját adatmezőt másoló mező (`f7 = this.f5`); közben a laza mezők `[[Set]]` módbeli hibás elfogadása ősosztálybeli setterrel | [ADR-073](adr/073-base-chain-fields-and-defaults.md) |
 | NY-01 nagy része: a biztosan felülírt mező korábbi értékei, a getter ismert értéke, a `switch` ismert értékkel, a halott `catch` okozta kötés a mérésben | [ADR-072](adr/072-certain-overwrites.md) |

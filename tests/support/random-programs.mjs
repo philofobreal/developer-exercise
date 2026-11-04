@@ -102,6 +102,46 @@ export function randomClassProgram(seed,{language='javascript',members=6,nested=
  return {id:`random-class-${language}-${seed}`,origin:'random',language,source:lines,probe:'evaluate()'};
 }
 
+/** NY-21 (ADR-074): seeded class pairs whose base defines accessors the derived class's fields may
+ * meet. TypeScript's [[Set]] class-field mode assigns a field, which runs a base setter of that name;
+ * [[Define]] (JavaScript, and TypeScript's other mode) defines an own property instead, so the oracle's
+ * two TypeScript field modes see different programs. The base may hold: a getter/setter pair whose
+ * setter records a derived field, a getter reading one, an `accessor` field (TypeScript), a method,
+ * a field and a computed-name accessor; the derived class holds literal fields (some named like a base
+ * member), copies of earlier fields, reads through a base getter, a recorded initialiser and a
+ * constructor with a defaulted parameter. The probe sometimes serialises the instance (key order). */
+export function randomInheritProgram(seed,{language='javascript'}={}){
+ const rng=random(seed*104729+17),pick=items=>items[Math.floor(rng()*items.length)],chance=p=>rng()<p,typescript=language==='typescript';
+ let counter=0;const fresh=prefix=>`${prefix}${counter++}`,returns=type=>typescript?`: ${type}`:'',self=typescript?'(this as any)':'this';
+ const fields=Array.from({length:2+Math.floor(rng()*4)},()=>fresh('f'));
+ const base=[],getters=[],probes=[],literal=new Set();
+ const setter=(id,observed)=>{base.push(`  get ${id}()${returns('unknown')} {`,`    return ${self}._${id} ?? 'unset';`,'  }',`  set ${id}(value${returns('unknown')}) {`,`    record('set ${id}', value, ${self}.${observed});`,`    ${self}._${id} = value;`,'  }');getters.push(id);probes.push(`item.${id}`);};
+ // The hazard of ADR-073: a setter named like a derived field with a literal initialiser, recording
+ // another derived field; in the [[Set]] mode the two fields' order is observable.
+ if(chance(0.75)){const id=pick(fields),others=fields.filter(field=>field!==id);literal.add(id);setter(id,pick(others));}
+ const kinds=['setter','getter','method','field','computed',...(typescript?['auto']:[])];
+ for(let i=0,count=Math.floor(rng()*3);i<count;i++){
+  const kind=pick(kinds),shared=chance(0.5)?pick(fields):null;
+  if(kind==='setter')setter(shared??fresh('n'),pick(fields));
+  else if(kind==='getter'){const id=fresh('t');base.push(`  get ${id}()${returns('unknown')} {`,`    return ${self}.${pick(fields)} ?? 0;`,'  }');getters.push(id);probes.push(`item.${id}`);}
+  else if(kind==='auto'){const id=shared??fresh('a');base.push(`  accessor ${id} = ${counter};`);probes.push(`item.${id}`);}
+  else if(kind==='method'){const id=shared??fresh('m');base.push(`  ${id}()${returns('unknown')} { return '${id}'; }`);}
+  else if(kind==='field'){const id=shared??fresh('b');base.push(`  ${id} = ${counter};`);probes.push(`item.${id}`);}
+  else {const id=fresh('k');base.push(`  get ['${id}']()${returns('unknown')} {`,`    return ${self}.${pick(fields)} ?? 'k';`,'  }');probes.push(`item['${id}']`);}
+ }
+ const derived=[];
+ fields.forEach((id,index)=>{
+  const earlier=fields.slice(0,index),roll=literal.has(id)?1:rng();
+  const init=earlier.length&&roll<0.2?`this.${pick(earlier)}`:getters.length&&roll<0.3?`this.${pick(getters)}`:roll<0.4?`record('${id}') ?? ${counter}`:String(counter++);
+  derived.push(`  ${id} = ${init};`);probes.push(`item.${id}`);
+ });
+ if(chance(0.3)){const id=fresh('h');derived.splice(Math.floor(rng()*(derived.length+1)),0,`  #${id} = ${counter};`);}
+ if(chance(0.4)){const id=fresh('c');derived.push(...(typescript?[`  constructor(readonly ${id}: number = ${counter}) {`,'    super();','  }']:[`  constructor(${id} = ${counter}) {`,'    super();',`    this.${id} = ${id};`,'  }']));probes.push(`item.${id}`);}
+ if(chance(0.2))probes.push('JSON.stringify(item)');
+ const source=[`class Base${seed} {`,...base,'}',`class Item${seed} extends Base${seed} {`,...derived,'}','function evaluate() {',`  const item = new Item${seed}();`,`  return [${probes.join(', ')}];`,'}'];
+ return {id:`random-inherit-${language}-${seed}`,origin:'random',language,source,probe:'evaluate()'};
+}
+
 /** Seeded classic scripts mixing top-level function, var, let, const, class,
  * assignment and call statements; TypeScript adds enums, instantiated and
  * type-only namespaces, import aliases, interfaces, type aliases and declare
