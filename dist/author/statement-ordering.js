@@ -146,14 +146,16 @@ export function statementOrdering(file, compiler, options = {}) {
     collectUses(file);
     /** Script-level units summarised so far, in source order (filled while the file's list is summarised). */
     const scriptUnits = [];
-    /** ADR-041 (v20): a read at script level that no script-level statement able to run code precedes.
-     * A pure unit and a barrier of the script list keep their order (P2), so every accepted order has
-     * no such statement before the read either: no code ran yet, through the global scope or not. */
-    const codeFreeBefore = (identifier) => {
-        if (context(identifier) !== file)
+    /** ADR-041 (v20), v46 (ADR-082): a read at script level that no script-level statement able to run
+     * code precedes since the binding's declaration `declared` completed. A pure unit and a barrier of the
+     * script list keep their order (P2), so every accepted order has no such statement there either.
+     * Code that ran before cannot change the value the declaration stored: a `let` was still uninitialised
+     * then, and a `var` declaration's own assignment overwrites any earlier write. */
+    const codeFreeSince = (declared, identifier) => {
+        if (context(identifier) !== file || declared.parent !== file)
             return false;
-        const index = file.statements.findIndex(statement => within(statement, identifier));
-        return index >= 0 && scriptUnits.length >= index && scriptUnits.slice(0, index).every(unit => unit.kind === 'pure' || unit.kind === 'position-free');
+        const from = file.statements.indexOf(declared), index = file.statements.findIndex(statement => within(statement, identifier));
+        return from >= 0 && index > from && scriptUnits.length >= index && scriptUnits.slice(from + 1, index).every(unit => unit.kind === 'pure' || unit.kind === 'position-free');
     };
     /** Resolves an evaluation-time identifier read to a binding that is initialised whenever the read runs. */
     function binding(identifier, symbol) {
@@ -188,7 +190,7 @@ export function statementOrdering(file, compiler, options = {}) {
                 return null;
             // Never-written let/var behave like const; script-level ones stay writable through the global
             // scope, so only a script-level read that no code-running statement precedes sees them unchanged.
-            const constant = (list.flags & compiler.NodeFlags.BlockScoped) === compiler.NodeFlags.Const || !!symbol && !written.has(symbol) && (context(owner) !== file || codeFreeBefore(identifier));
+            const constant = (list.flags & compiler.NodeFlags.BlockScoped) === compiler.NodeFlags.Const || !!symbol && !written.has(symbol) && (context(owner) !== file || codeFreeSince(owner, identifier));
             return { row, primitiveInitializer: !destructured && (constant || counter() || !!symbol && primitiveLocals.has(symbol)) && declaration.initializer ? declaration.initializer : null };
         }
         if (compiler.isParameter(declaration) && (destructured || compiler.isIdentifier(declaration.name))) {
@@ -216,7 +218,7 @@ export function statementOrdering(file, compiler, options = {}) {
             if (!found || !initializer || visiting.has(initializer))
                 return false;
             if (!primitiveCache.has(initializer))
-                primitiveCache.set(initializer, primitive(initializer, new Set(), new Set([...visiting, initializer])));
+                primitiveCache.set(initializer, primitiveResult(initializer, new Set([...visiting, initializer])));
             if (!primitiveCache.get(initializer))
                 return false;
             if (found.row !== null)
@@ -236,6 +238,31 @@ export function statementOrdering(file, compiler, options = {}) {
         }
         if (compiler.isConditionalExpression(expr))
             return pure(expr.condition, reads) && primitive(expr.whenTrue, reads, visiting) && primitive(expr.whenFalse, reads, visiting);
+        return false;
+    }
+    /** v46 (ADR-082): an initialiser whose value is a primitive whatever its evaluation runs: what the
+     * binding holds once the declaration completed. An operator that converts its operands returns a
+     * primitive (or throws, and the declaration never completes); a literal is one; a name is one when
+     * `primitive` says so at its own position. Effects are not this predicate's question: the declaration
+     * statement keeps them (its own order), the read of the binding has none. */
+    function primitiveResult(raw, visiting) {
+        const expr = unwrap(raw);
+        if (compiler.isNumericLiteral(expr) || compiler.isBigIntLiteral(expr) || compiler.isStringLiteral(expr) || compiler.isNoSubstitutionTemplateLiteral(expr) || compiler.isTemplateExpression(expr) || [S.TrueKeyword, S.FalseKeyword, S.NullKeyword].includes(expr.kind))
+            return true;
+        if (compiler.isIdentifier(expr))
+            return primitive(expr, new Set(), visiting);
+        if (compiler.isPrefixUnaryExpression(expr) || compiler.isPostfixUnaryExpression(expr) || compiler.isTypeOfExpression(expr) || compiler.isVoidExpression(expr) || compiler.isDeleteExpression(expr))
+            return true;
+        if (compiler.isBinaryExpression(expr)) {
+            const operator = expr.operatorToken.kind;
+            if ([S.AmpersandAmpersandToken, S.BarBarToken, S.QuestionQuestionToken].includes(operator))
+                return primitiveResult(expr.left, visiting) && primitiveResult(expr.right, visiting);
+            if (operator === S.CommaToken)
+                return primitiveResult(expr.right, visiting);
+            return coercing.has(operator) || operator === S.EqualsEqualsEqualsToken || operator === S.ExclamationEqualsEqualsToken || operator === S.InstanceOfKeyword || operator === S.InKeyword;
+        }
+        if (compiler.isConditionalExpression(expr))
+            return primitiveResult(expr.whenTrue, visiting) && primitiveResult(expr.whenFalse, visiting);
         return false;
     }
     const coercing = new Set([S.PlusToken, S.MinusToken, S.AsteriskToken, S.SlashToken, S.PercentToken, S.AsteriskAsteriskToken, S.LessThanToken, S.LessThanEqualsToken, S.GreaterThanToken, S.GreaterThanEqualsToken, S.EqualsEqualsToken, S.ExclamationEqualsToken, S.AmpersandToken, S.BarToken, S.CaretToken, S.LessThanLessThanToken, S.GreaterThanGreaterThanToken, S.GreaterThanGreaterThanGreaterThanToken, S.AmpersandAmpersandToken, S.BarBarToken, S.QuestionQuestionToken]);

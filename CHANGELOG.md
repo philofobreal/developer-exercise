@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-11-04 szkriptkötés a deklarációja óta (ADR-082, v46); rosszindulatú orákulumkörnyezet (ADR-081); heap-szándék a mérésben (ADR-080)
+
+- **Kevesebb fölösleges szabály szkriptekben (v46):** egy szkriptszintű változó, amelyet a program nem ír újra, a deklarációja óta megtartja az értékét, ha azóta nem futott kód. Egy `+`, `-` vagy összehasonlítás eredménye mindig primitív. A `const c6 = l3 + 1` így nem kötődik egy olyan globális íráshoz, amelyet nem olvas.
+- **Új biztonsági mérés:** az ellenőrző orákulum egy rosszindulatú környezetben is futtatja a programokat. Ebben a külső `record` hívás a szkript globális változóit megfigyelő objektumokra cseréli. A szigorú bemeneti beállítás ezt megengedi, ezért az elemzésnek erre is helyesnek kell lennie. A teljes kampányban 0 hibás elfogadás.
+- **Pontosabb mérés:** ha egy objektumot a program később eldob, a beleírt sorrend továbbra is kötött. A mérés ezt most szándéknak számolja, nem fölösleges elutasításnak. A generátor nem változott.
+- **Mérés:** a teljes kampányban, a rosszindulatú környezettel együtt, a rés 59 → 32, az elfogadott sorrend +7, 0 hibás elfogadás 366 123 sorrendből.
+
 ## Unreleased – 2026-11-04 az overload-csoport egy blokk (ADR-079, v45)
 
 - **Kevesebb fölösleges szabály TypeScriptben:** egy overload-csoport (szignatúrák, majd a megvalósítás) eddig lezárt egység volt, ezért egyetlen másik tag sem léphetett át rajta. Most a megvalósítás blokkja az első szignatúránál nyílik. Más tag átléphet a csoporton, de nem kerülhet bele.

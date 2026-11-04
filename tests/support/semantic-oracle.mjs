@@ -775,8 +775,28 @@ const reachWitness=wrapEval=>`(()=>{const apply=Reflect.apply,construct=Reflect.
  +(wrapEval?`globalThis.eval=watch(eval,fnKinds);`:'')
  +`const S=Symbol;globalThis.Symbol=new P(S,{get(t,key,self){const v=Reflect.get(t,key);if(typeof v==='symbol')mark(['hooks']);return v;}});`
  +`})();\n`;
+/** ADR-081: the `hostile` environment's external code, the adversary of the default `any` input
+ * contract for a script's globals. After recording, `record` replaces every primitive top-level
+ * variable of the program with an object that converts back to the same value and, whenever it is
+ * converted, records the values of all of them: external code may write a script's globals (they share
+ * one global environment), and a conversion then runs external code that observes the order of the
+ * program's other writes. The realm itself stays untampered, as the contract assumes (no earlier
+ * script redefines built-ins or the program's global names). Modules keep their bindings to themselves:
+ * there `record` only records. */
+function hostileRecord(js){
+ const names=[];
+ if(!/^\s*(import|export)\b/m.test(js)){
+  const file=ts.createSourceFile('hostile.js',js,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);
+  for(const statement of file.statements)if(ts.isVariableStatement(statement))for(const declaration of statement.declarationList.declarations)if(ts.isIdentifier(declaration.name)&&!names.includes(declaration.name.text))names.push(declaration.name.text);
+ }
+ const key=JSON.stringify;
+ const snapshot=names.map(name=>`try{s[${key(name)}]=typeof ${name}==='object'||typeof ${name}==='function'?'<object>':${name};}catch(e){s[${key(name)}]='<uninitialised>';}`).join('');
+ const replace=names.map(name=>`try{if(typeof ${name}==='number'||typeof ${name}==='string'||typeof ${name}==='boolean')${name}=__watch(${key(name)},${name});}catch(e){}`).join('');
+ return `function __globals() { const s = {}; ${snapshot} return s; }\nfunction __watch(name, value) { const seen = () => { trace.push(['converts', name, __globals()]); return value; }; return {valueOf: seen, toString: () => String(seen())}; }\nfunction record(...args) { trace.push(args); ${replace} }\n`;
+}
 function execute(code,{language,probe,strict:strictMode=true,environment='strict',asynchronous=false,keyOrder='observed',classFields='either',hit=()=>{}},{classNames=[],globals=[],functions=[],ordered=false,enumerated=true}={},nested=[]){
  // ADR-062: `sloppy` runs the script without strict mode; `es2015` runs the emit of an ES2015 target.
+ // ADR-081: `hostile` runs it with external code that writes its globals.
  const strict=strictMode&&environment!=='sloppy',target=environment==='es2015'?ts.ScriptTarget.ES2015:ts.ScriptTarget.ES2022;
  for(const {key,name,end} of [...nested].sort((a,b)=>b.end-a.end))code=code.slice(0,end)+`;__classes.push([${JSON.stringify(key)}, ${name}]);`+code.slice(end);
  const keys=`const keys=o=>Reflect.ownKeys(o).map(k=>{const d=Object.getOwnPropertyDescriptor(o,k);return [String(k),'get' in d||'set' in d?'accessor':'value',d.enumerable,d.configurable,d.writable===undefined?null:d.writable];}),own=o=>{const all=keys(o);if(${ordered})return all;return [...all.filter(k=>!k[2]).sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0),...all.filter(k=>k[2])];};`;
@@ -785,7 +805,7 @@ function execute(code,{language,probe,strict:strictMode=true,environment='strict
  // Nested classes exist only once the probe ran: snapshot them afterwards.
  const nestedSnapshot=`(()=>{try{${keys}return JSON.stringify(__classes.map(([k,c])=>JSON.stringify([k,own(c.prototype),own(c)])).sort());}catch(error){return 'throws:'+(error&&error.name);}})()`;
  const attempt=(js,timeout)=>{
-  const prefix=(strict?'"use strict";\n':'')+'function record(...args) { trace.push(args); }\n'+(keyOrder==='ignored'?canonicalKeys:'')+reachWitness(!/\beval\b/.test(js)),from=prefix.split('\n').length,reach={on:true,from,to:from+js.split('\n').length-1},context=createContext({trace:[],__classes:[],exports:{},__hit:hit,__reach:reach},asynchronous?{microtaskMode:'afterEvaluate'}:{});
+  const prefix=(strict?'"use strict";\n':'')+(environment==='hostile'?hostileRecord(js):'function record(...args) { trace.push(args); }\n')+(keyOrder==='ignored'?canonicalKeys:'')+reachWitness(!/\beval\b/.test(js)),from=prefix.split('\n').length,reach={on:true,from,to:from+js.split('\n').length-1},context=createContext({trace:[],__classes:[],exports:{},__hit:hit,__reach:reach},asynchronous?{microtaskMode:'afterEvaluate'}:{});
   // ADR-029: unless the program lists enumerable keys itself, an object's key order is not part of the result.
   const replacer=enumerated?'null':`(key,value)=>value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(name=>[name,value[name]])):value`;
   const tail=asynchronous
@@ -862,7 +882,10 @@ function executedRows(code,fixture){
  * policy 'call-only' is the pre-ADR-010 P0–P3 policy, kept for comparison.
  * `judge.referenceValue` is the probe's value on the reference (the first class-field mode
  * for TypeScript), so a fixture can say whether its own probe caught an exception. */
-export function createOracle(fixture,{policy='reflective',reach:assumed=null}={}){
+/** `runtimeOnly` (ADR-080): judge a variant only by its runs, after the syntax and scope checks.
+ * For a measurement variant whose original the full oracle already found equivalent: its added
+ * calls would otherwise change the static effect analysis, not the question. */
+export function createOracle(fixture,{policy='reflective',reach:assumed=null,runtimeOnly=false}={}){
  if(!['reflective','call-only'].includes(policy))throw Error('unknown oracle policy '+policy);
  const source=Array.isArray(fixture.source)?fixture.source.join('\n'):fixture.source;
  // ADR-055: with key order ignored no key list keeps its creation order (P4 compares sets).
@@ -886,6 +909,8 @@ export function createOracle(fixture,{policy='reflective',reach:assumed=null}={}
  const environments=['strict'];
  for(const environment of fixture.environments??[]){
   if(environment==='strict')continue;
+  // ADR-081: valid plain data (ADR-050) promises external code that writes no hostile values.
+  if(environment==='hostile'&&fixture.inputs==='valid')continue;
   const run=executeAll(source,{...fixture,environments:[environment]},reference.reflection,reference.nested);
   if(/^throws:|timeout|syntax/.test(run.call)||run.call.split(/ \|\|? /).some(call=>/^throws:|^syntax|^timeout/.test(call)))continue;
   if(environment==='sloppy'&&run.call!==baseline.call)continue;
@@ -895,7 +920,7 @@ export function createOracle(fixture,{policy='reflective',reach:assumed=null}={}
  if(environments.length>1)baseline=executeAll(source,runs,reference.reflection,reference.nested);
  const reach=baseline.reach;
  const exceeds=seen=>!!seen&&(seen.reflects&&observed&&!ordered||seen.enumerates&&observed&&!enumerated||seen.hooks&&inputs==='valid');
- let escalated=null;const escalate=()=>escalated??=createOracle(fixture,{policy,reach:{reflects:true,enumerates:true,hooks:true}});
+ let escalated=null;const escalate=()=>escalated??=createOracle(fixture,{policy,runtimeOnly,reach:{reflects:true,enumerates:true,hooks:true}});
  const reflective=policy==='reflective',cache=new Map();
  const judge=lines=>{
   const code=lines.join('\n');
@@ -903,9 +928,9 @@ export function createOracle(fixture,{policy='reflective',reach:assumed=null}={}
   let verdict;const candidate=analyse(code,fixture.language,ordered,enumerated,inputs);
   if(!candidate)verdict={ok:false,reason:'syntax'};
   else if(candidate.shape!==reference.shape)verdict={ok:false,reason:'scope'};
-  else if(candidate.effects!==reference.effects)verdict={ok:false,reason:'effect-order'};
-  else if(candidate.emitted!==reference.emitted)verdict={ok:false,reason:'emitted-order'};
-  else if(reflective&&candidate.reflection.order!==reference.reflection.order)verdict={ok:false,reason:'reflection'};
+  else if(!runtimeOnly&&candidate.effects!==reference.effects)verdict={ok:false,reason:'effect-order'};
+  else if(!runtimeOnly&&candidate.emitted!==reference.emitted)verdict={ok:false,reason:'emitted-order'};
+  else if(!runtimeOnly&&reflective&&candidate.reflection.order!==reference.reflection.order)verdict={ok:false,reason:'reflection'};
   else{
    const observed=executeAll(code,runs,reference.reflection,candidate.nested);
    verdict=exceeds(observed.reach)?escalate()(lines):observed.call.includes('timeout')?{ok:null,reason:'timeout'}:observed.call!==baseline.call?{ok:false,reason:'runtime'}:reflective&&observed.reflection!==baseline.reflection?{ok:false,reason:'reflection'}:{ok:true,reason:'equivalent'};
