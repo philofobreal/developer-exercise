@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased – 2026-11-04 kódlistánként egy vízszintes görgetés (ADR-090)
+
+- **Javítás:** a hosszú kódsoroknak már nincs saját vízszintes görgetősávjuk. A forrás- és a megoldáslista, valamint a szabálytábla egyben görget, és minden sora egyforma széles.
+- **Kezelhetőség:** a fogantyú és a sorszám bal oldalt, a sorvégi gombok jobb oldalt a helyükön maradnak görgetés közben is. A szabályívek követik a gombokat.
+
 ## Unreleased – 2026-11-04 az orákulum modul- és `[[Set]]`-olvasata elfogadott korlát (NY-07)
 
 - **Mérés, nem kódváltozás:** az orákulum második, kibocsátott kódon alapuló olvasata (ADR-063) a modulokra és a `[[Set]]` mezőmódra továbbra sincs meg. Ma egyetlen modulfixture van, a `[[Set]]` olvasat pedig a meglévőhöz csak a fordító saját átalakítását adná, amelyet a futtatás már ellenőriz. Egy új teszt jelez, ha egy második modulfixture megjelenik.

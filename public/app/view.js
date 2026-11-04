@@ -17,6 +17,10 @@ export function createWorkbenchView({ root, state, ex, at, attempt, scroll }) {
     installWorkbenchKeyboard(root);
     installAuthoringFlows(root, state, render);
     addEventListener('resize', () => drawRuleArcs(root, state));
+    // ADR-090: a code list scrolls sideways as one; its rule arcs follow the row controls pinned at its right edge.
+    let arcFrame = 0;
+    root.addEventListener('scroll', event => { if (arcFrame || !(event.target instanceof HTMLElement) || !event.target.matches('.drop-zone[data-zone]') || !event.target.querySelector(':scope > svg.zone-arcs'))
+        return; arcFrame = requestAnimationFrame(() => { arcFrame = 0; drawRuleArcs(root, state); }); }, { capture: true, passive: true });
     function syntax(code, language = ex()?.language ?? state.author.language) { try {
         const prism = window.Prism, grammar = prism?.languages[language];
         if (prism && grammar)

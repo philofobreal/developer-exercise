@@ -235,6 +235,24 @@ def input_contract(page):
     assert generated['authoring']['evidence']['environment']['inputs']=='valid';assert 2 not in generated['lines'][2]['dependencies']
     page.locator('[data-step="source"]').click();expect(page.locator('[data-author="inputs"]')).to_have_value('valid');expect(page.locator('[data-author-status]')).to_contain_text('ebből a forrásból')
 
+# ADR-090: rows never scroll on their own; a list scrolls sideways as one, and its row controls stay
+# inside the list's visible area at both ends of that scroll.
+ROW_SCROLLERS="""()=>[...document.querySelectorAll('.drop-zone .code-row *, .board-row *')].filter(e=>{const s=getComputedStyle(e);return (s.overflowX==='auto'||s.overflowX==='scroll')&&e.scrollWidth>e.clientWidth;}).length"""
+CONTROLS_OUTSIDE="""()=>[...document.querySelectorAll('.drop-zone[data-zone],[data-board-list]')].flatMap(z=>{const r=z.getBoundingClientRect();return [...z.querySelectorAll('.row-actions')].filter(a=>a.children.length).filter(a=>{const b=a.getBoundingClientRect();return b.right>r.right+1||b.left<r.left-1;});}).length"""
+def single_horizontal_scroll(page):
+    page.set_viewport_size({'width':900,'height':1000})
+    try:
+        json_model(page,json.loads((ROOT/'examples/class-inventory-ts.json').read_text(encoding='utf-8')))
+        assert page.evaluate(ROW_SCROLLERS)==0 and page.evaluate(CONTROLS_OUTSIDE)==0
+        to_try(page);page.locator('[data-all]').click();expect(page.locator('.source-zone .code-row')).to_have_count(0)
+        zone=page.locator('.solution-zone');assert zone.evaluate('z=>z.scrollWidth>z.clientWidth'),'the long rows make the list itself scroll'
+        assert zone.evaluate("z=>new Set([...z.querySelectorAll(':scope > .code-row')].map(row=>row.offsetWidth)).size")==1,'every row is as wide as the widest'
+        for left in [0,100000]:
+            zone.evaluate(f'z=>{{z.scrollLeft={left};}}');page.wait_for_timeout(100)
+            assert page.evaluate(ROW_SCROLLERS)==0,left
+            assert page.evaluate(CONTROLS_OUTSIDE)==0,left
+    finally:page.set_viewport_size({'width':1500,'height':1000})
+
 def try_rules(page):
     """ADR-022: the try sorter shows and edits rules while arranging; learners and practice never see them."""
     build(page,rules_source);to_try(page);expect(page.locator('[data-try-rules]')).to_be_visible()
@@ -494,6 +512,7 @@ try:
                     reset(page,url);case(mode+' '+name,lambda:action(page))
                 reset(page,url);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-author.png')),full_page=True)
                 practice(page);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-practice.png')),full_page=True)
+            reset(page,BASE);case('node one horizontal scroll per code list, row controls pinned',lambda:single_horizontal_scroll(page))
             reset(page,BASE);case('node duplicate-check prevention and async feedback',lambda:busy(page))
             reset(page,BASE);case('node admission preserves newer reference edits',lambda:stale_author_admission(page))
             reset(page,BASE);case('node sample loading preserves newer reference edits',lambda:stale_source_sample(page))

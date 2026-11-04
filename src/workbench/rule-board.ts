@@ -94,8 +94,10 @@ export function drawRuleArcs(root:HTMLElement,state:WorkbenchState):void {
   const rows=[...zone.querySelectorAll<HTMLElement>(':scope > .code-row')].filter(row=>/^\d+$/.test(row.dataset.lineId??''));
   let layer=zone.querySelector<SVGSVGElement>(':scope > svg.zone-arcs');
   if(!layer){layer=document.createElementNS(SVG,'svg');layer.setAttribute('class','zone-arcs');layer.setAttribute('aria-hidden','true');layer.setAttribute('focusable','false');layer.dataset.zoneArcs=zone.dataset.zone??'';layer.dataset.arcPrefix='arc-'+(zone.dataset.zone??'zone');zone.append(layer);}
-  const controls=rows[0]?.querySelector<HTMLElement>('.row-actions'),anchor=controls?controls.offsetLeft-6:zone.clientWidth-8;
-  paintArcs(layer,state,new Map(rows.map(row=>[Number(row.dataset.lineId),row.offsetTop+row.offsetHeight/2])),anchor,Math.min(140,anchor-60),zone.clientWidth,zone.scrollHeight);
+  // ADR-090: the row controls stay at the zone's right edge while the list scrolls sideways; the arcs
+  // follow their visible place (the layer is in the zone's content coordinates).
+  const controls=rows[0]?.querySelector<HTMLElement>('.row-actions'),visible=controls?controls.getBoundingClientRect().left-zone.getBoundingClientRect().left-zone.clientLeft-6:zone.clientWidth-8,anchor=visible+zone.scrollLeft;
+  paintArcs(layer,state,new Map(rows.map(row=>[Number(row.dataset.lineId),row.offsetTop+row.offsetHeight/2])),anchor,Math.min(140,visible-60),Math.ceil(anchor+8),zone.scrollHeight);
  }
 }
 /** The reference order decides direction: a mandatory rule can only follow it (ADR-018). */
