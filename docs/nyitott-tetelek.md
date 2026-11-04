@@ -24,7 +24,6 @@
 | NY-08 | **Érték-perturbáció korlátja:** egy literál egyszerre, legfeljebb 96 változat | mérés | a rés felső becslés marad | [ADR-067](adr/067-value-perturbation-in-measurement.md) | csak ha egy rés gyanúsan szándékhű |
 | NY-27 | **Mobil: a hosszú sor teljes szövege.** 390 képpont szélesen egy megoldássorban 245 képpont jut a kódnak ([ADR-095](adr/095-tap-to-place-and-drag-insert-migration.md)); a hosszabb sort a lista vízszintes görgetése mutatja | felület | alacsony prioritás (a felhasználó döntése: kevés ráfordítás a mobilra) | [ADR-094](adr/094-toolbar-help-and-mobile-sorter.md), [ADR-095](adr/095-tap-to-place-and-drag-insert-migration.md) | lehetőségek: a kijelölt sor teljes szövege egy sávban; tördelés csak mobilon (a húzás fix sormagasságát érinti) |
 | NY-28 | **Régi, TypeScript-forrás nélküli felületi modulok:** `api`, `author-session`, `clipboard`, `pages-api` (`public/app`); az `attempt` és a `persistence` migrálva ([ADR-097](adr/097-attempt-and-persistence-migration.md)), a `drag-insert` is ([ADR-095](adr/095-tap-to-place-and-drag-insert-migration.md)) | tervezés | 4 modul; a lista rögzített (`workbench-sources.test.mjs`) | [ADR-001](adr/001-typescript-workbench-and-boundaries.md), [ADR-097](adr/097-attempt-and-persistence-migration.md) | a két HTTP-adapter és a vágólap, ha módosítani kell őket |
-| NY-11 | **G fázis:** az AI-governance teljessé tétele | tervezés | „részleges” jelölés | [megbízhatósági terv, G fázis](megbizhatosagi-audit-terv.md#g-fázis--az-ai-governance-teljessé-tétele-tervezés-átfogó) | leltár és terv |
 | NY-13 | **`primitive`/`pure`/`readOnly`:** három egymásra épülő osztályozó | tervezés | nincs | [ADR-050](adr/050-input-contract.md) | nem sürgős |
 
 ## Elfogadott korlátok (nem rések, nem javítandók)
@@ -42,6 +41,7 @@
 
 | Tétel | Lezárta |
 | --- | --- |
+| NY-11: az AI-governance teljes (tulajdonos, kikényszerítés és bizonyíték minden elemhez); a jegyzék sora elavult volt. 2026-11-04: a kockázati osztályok kiegészítve az akadálymentességi átvizsgálással és a régi modulok őrtesztjével | [ADR-049](adr/049-ai-governance-completion.md), [ADR-096](adr/096-automated-accessibility-scan.md), [ADR-097](adr/097-attempt-and-persistence-migration.md) |
 | NY-09 és NY-10: minden példa igazolt (`class-accounts-ts` igazolt szabállyal, `algo-sort-search-js` újragenerálva, `profiles-js` forráscserével), az alapértelmezés `verified-only` | [ADR-089](adr/089-verified-examples-and-default.md) |
 | NY-16: a böngészőtesztek a telepített legújabb Chromiummal indulnak, ha a Playwright saját revíziója hiányzik (a 1.64.1-es csomag 1248-at vár, a konténerben 1243 van) | [browser_support.py](../tests/browser_support.py), [README](../README.md) |
 | NY-14: a futással nem megfigyelhető okkódot a regiszter jelöli (`unobservable`), az osztályozó onnan olvas | [ADR-088](adr/088-unobservable-reason-codes.md) |

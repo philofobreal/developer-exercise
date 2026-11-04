@@ -36,7 +36,7 @@ A gyökér [AGENTS.md](../AGENTS.md) a humán és AI közreműködők munkaszerz
 | Mag | `src/core` (validátor, séma, szabályszerkesztés, kapu) | `check:all`; regressziós teszt; interfész-szélesítésnél ADR; felhasználó által látható változásnál böngészős teszt |
 | Szerzői elemzés | `src/author` (sorrendelemzés, hatásnyom, projekció) | új szabályverzió és ADR; orákulummal ellenőrzött tanúk pozitív és negatív esettel; generatív és korpuszmérés hibás elfogadás nélkül; a baseline csak dokumentált javulással rögzíthető újra |
 | Orákulum és mérés | `tests/support` (orákulum, osztályozó, kampány) | a változás szerződésváltozás: ADR, és az előtte–utána összevetés azonos mércével; teszt nem gyengíthető pusztán a zöld eredményért |
-| Megjelenítés | `src/workbench`, `public` | böngészős tesztek; escape-elés; akadálymentességi és interakciós paritás |
+| Megjelenítés | `src/workbench`, `public` | böngészős tesztek; escape-elés; interakciós paritás (egér, érintés, billentyűzet); gépi akadálymentességi átvizsgálás a fő nézeteken asztali gépen és telefonon, 0 hibával ([ADR-096](adr/096-automated-accessibility-scan.md), nem WCAG-tanúsítás); új modul szigorú TypeScriptben, a régi, kézzel írt modulok rögzített listája csak csökkenhet ([ADR-097](adr/097-attempt-and-persistence-migration.md)) |
 | Dokumentáció és eszközök | `docs`, `scripts` | dokumentum-kapu (UTF-8, linkek, ADR-ek is), sorvég-kapu |
 
 ## Tervezési governance: Ousterhout-féle moduláris architektúra
