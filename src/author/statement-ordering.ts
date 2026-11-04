@@ -40,7 +40,8 @@ type Compiler = typeof ts;
 
 export type UnitKind = 'pure' | 'local-write' | 'read' | 'position-free' | 'barrier' | 'opaque';
 /** Evidence for one unit: why it may move, or why it may not. */
-export interface StatementUnit {first: number; last: number; kind: UnitKind; reason: string;}
+/** `header` (ADR-079): the unit's rows before the block its last row closes are that block's header. */
+export interface StatementUnit {first: number; last: number; kind: UnitKind; reason: string; header?: 'overload-group';}
 /** `inputsUnavailable` (ADR-050): the `valid` input contract was asked for, but the program itself can make property access or conversion run code, so the analysis stayed strict. */
 export interface StatementOrdering {entries: OrderingEntry[]; protectedInputs: Map<number, Set<number>>; units: StatementUnit[]; inputsUnavailable?: boolean;}
 /** `readSet`/`writeSet`: bindings a pure or local-write unit reads or writes when it runs
@@ -665,7 +666,8 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
      const previous = node.statements[i - 1], current = node.statements[i]!;
      if (previous && compiler.isFunctionDeclaration(previous) && !previous.body && compiler.isFunctionDeclaration(current) && !!previous.name && previous.name.text === current.name?.text) {
       const head = grouped.pop()!;
-      grouped.push({...unit, first: head.first, start: head.start, kind: 'barrier', reason: 'overload-group', code: 'overload-group'});
+      // v45 (ADR-079): the signatures are the header of the implementation's body block.
+      grouped.push({...unit, first: head.first, start: head.start, kind: 'barrier', reason: 'overload-group', code: 'overload-group', ...(current.body ? {header: 'overload-group' as const} : {})});
      } else grouped.push(unit);
     });
     // ADR-025: a row holding one complete comment is free inside its list. Other non-statement
@@ -688,7 +690,7 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
     }
     if (grouped.length) gap(grouped.at(-1)!.last + 1, outer, false);
     for (const unit of complete) {
-     units.push({first: unit.first, last: unit.last, kind: unit.kind, reason: unit.reason});
+     units.push({first: unit.first, last: unit.last, kind: unit.kind, reason: unit.reason, ...(unit.header ? {header: unit.header} : {})});
      entries.set(unit.first, new Set()); reasons.delete(unit.first);
      for (const row of unit.reads) add(row, unit.first, 'binding-input', true);
      if (!sourceFile && !entries.get(unit.first)!.size) add(line(node), unit.first, 'block-open');

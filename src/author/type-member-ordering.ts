@@ -36,15 +36,15 @@ type Phase = 'key' | 'static' | 'instance';
 /** `copies` (ADR-073): the last row of the earlier own data field a loose copy field (`f = this.g`) reads. */
 /** v43 (ADR-077): the instance property names a unit reads and writes. */
 interface Footprint {reads: string[]; writes: string[];}
-interface Unit {first: number; last: number; pure: boolean; free?: boolean; reflect?: 'prototype' | 'static'; phases?: Phase[]; pair?: string; plain?: boolean; loose?: boolean; half?: 'get' | 'set'; touches?: Footprint; detached?: boolean; footprint?: Footprint; sameKey?: string; copies?: number;}
+interface Unit {first: number; last: number; header?: 'overload-group'; pure: boolean; free?: boolean; reflect?: 'prototype' | 'static'; phases?: Phase[]; pair?: string; plain?: boolean; loose?: boolean; half?: 'get' | 'set'; touches?: Footprint; detached?: boolean; footprint?: Footprint; sameKey?: string; copies?: number;}
 /** `spans` lists every ordered member/comment unit (0-based physical rows) so the
  * generator can keep same-scope siblings out of a multi-row unit's interior. */
-export interface TypeMemberOrdering {entries: OrderingEntry[]; spans: {first: number; last: number}[]; note: string;}
+export interface TypeMemberOrdering {entries: OrderingEntry[]; spans: {first: number; last: number; header?: 'overload-group'}[]; note: string;}
 
 /** `reflectedKeys` (ADR-020): the program may list non-enumerable keys, so the ADR-010 key chain applies.
  * `enumeratedKeys` (ADR-029): the program may list enumerable keys, so instance fields keep their order. */
 export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, options: {reflectedKeys?: boolean; enumeratedKeys?: boolean; classFields?: 'either' | 'define'} = {}): TypeMemberOrdering {
- const physical = file.text.split('\n'), entries: OrderingEntry[] = [], spans: {first: number; last: number}[] = [];
+ const physical = file.text.split('\n'), entries: OrderingEntry[] = [], spans: {first: number; last: number; header?: 'overload-group'}[] = [];
  /** `row` follows every row of `after` for the same reason. */
  const order = (row: number, after: number[], code: OrderingReason['code']): void => {entries.push({row, after, reasons: after.map(before => ({before, code}))});};
  let hasClass = false, hasTypes = false;
@@ -361,7 +361,9 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
     if (isClass && previous && signature(previous) && name(previous) === name(node.members[i]!)) {
      const head = grouped.pop()!, size = sizes.pop()! + 1, key = name(node.members[i]!);
      const definition = !!head.plain && !!member.plain && !!(node.members[i] as ts.MethodDeclaration).body && key !== undefined && counts.get(key) === size;
-     grouped.push({first: head.first, last: member.last, pure: false, plain: !!head.plain && !!member.plain, ...(definition ? {free: true} : {}), ...(member.reflect ? {reflect: member.reflect} : {})}); sizes.push(size);
+     // v45 (ADR-079): the signatures are the header of the implementation's body block.
+     const implemented = !!(node.members[i] as ts.MethodDeclaration | ts.ConstructorDeclaration).body;
+     grouped.push({first: head.first, last: member.last, pure: false, plain: !!head.plain && !!member.plain, ...(implemented ? {header: 'overload-group' as const} : {}), ...(definition ? {free: true} : {}), ...(member.reflect ? {reflect: member.reflect} : {})}); sizes.push(size);
     } else {grouped.push(member); sizes.push(1);}
    });
    // No edits on shared physical boundaries. A row with one complete comment is free (ADR-025);
@@ -391,7 +393,7 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
      if (predecessors.length) order(member.first, predecessors.map(unit => unit.last), 'duplicate-definition-order');
      defined.set(member.sameKey, joins ? {last: [...chain.last, member], before: chain.before} : {last: [member], before: chain.last});
     }
-    for (const unit of [...units, ...free]) spans.push({first: unit.first, last: unit.last});
+    for (const unit of [...units, ...free]) spans.push({first: unit.first, last: unit.last, ...(unit.header ? {header: unit.header} : {})});
     for (let start = 0; start < units.length;) {
      if (!units[start]!.pure) {start++; continue;}
      let end = start + 1; while (end < units.length && units[end]!.pure) end++;

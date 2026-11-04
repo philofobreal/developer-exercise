@@ -11,7 +11,10 @@
  *    rows, replaced by another value, makes the order behave differently (`value`, ADR-067: the
  *    order counts as if that write or comparison used another value), or every broken constraint
  *    is a documented pedagogical rule the runtime cannot see (`policy`, ADR-068: `early-exit-order`,
- *    ADR-019's declaration that does not move behind a possible return, throw or break);
+ *    ADR-019's declaration that does not move behind a possible return, throw or break), or every
+ *    broken constraint is a TypeScript type-level order the runtime cannot see (`type`, ADR-079:
+ *    `overload-group`, the order and adjacency of overload signatures, which overload resolution
+ *    and TS2389/TS2391 read; the emitted JavaScript erases them);
  *  - `justified`: rejected, and the behaviour differs;
  *  - `undecided`: rejected, oracle undecided; `indeterminate`: the validator's budget ran out.
  * A rejection's `causes` are the provenance codes of the direct constraints the order breaks,
@@ -24,6 +27,8 @@ import {literalsOf,valuesFor,replaced} from './literal-variants.mjs';
 
 /** Reason codes of pedagogical rules that no run can tell apart (ADR-068). */
 export const POLICY_INTENT=new Set(['early-exit-order']);
+/** ADR-079: constraints that only TypeScript's type checker observes. */
+export const TYPE_INTENT=new Set(['overload-group']);
 /** At most this many variant verdicts per rejected order (ADR-067); none found is a gap. */
 export const VALUE_VARIANTS=96;
 
@@ -112,6 +117,7 @@ export function createClassifier(fixture,model,{maxStates=200_000,policy='reflec
  const intent=order=>{
   const pairs=broken(order);if(deadCode(pairs)||pairs.length&&deadCaused(order))return {reason:'dead-code'};
   if(pairs.length&&pairs.every(([before,after])=>(reasons.get(before+'>'+after)??[]).some(code=>POLICY_INTENT.has(code))))return {reason:'policy'};
+  if(pairs.length&&pairs.every(([before,after])=>(reasons.get(before+'>'+after)??[]).some(code=>TYPE_INTENT.has(code))))return {reason:'type'};
   const witness=pairs.length?valueDependent(order,pairs):null;
   return witness?{reason:'value',witness}:null;
  };

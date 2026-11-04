@@ -28,6 +28,7 @@ export interface TypeMemberOrdering {
     spans: {
         first: number;
         last: number;
+        header?: 'overload-group';
     }[];
     note: string;
 }

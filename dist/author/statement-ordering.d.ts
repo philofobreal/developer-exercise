@@ -36,11 +36,13 @@ import { type InputContract } from './input-contract.js';
 type Compiler = typeof ts;
 export type UnitKind = 'pure' | 'local-write' | 'read' | 'position-free' | 'barrier' | 'opaque';
 /** Evidence for one unit: why it may move, or why it may not. */
+/** `header` (ADR-079): the unit's rows before the block its last row closes are that block's header. */
 export interface StatementUnit {
     first: number;
     last: number;
     kind: UnitKind;
     reason: string;
+    header?: 'overload-group';
 }
 /** `inputsUnavailable` (ADR-050): the `valid` input contract was asked for, but the program itself can make property access or conversion run code, so the analysis stayed strict. */
 export interface StatementOrdering {

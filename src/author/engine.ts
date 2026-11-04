@@ -1,6 +1,6 @@
 /** Typed author-time entry point. ASTs and parser infrastructure stay inside adapters. */
 import { applyRuleEdits, codeLineDigest, compileCodeLineExercise, relaxationHolds, compileCodeLineExerciseV3, evidenceStatus, explainConstraints, mergeAuthorRules, prepareRenderPlan, upgradeCodeLineExerciseV2, verifyModel } from '../../dist/index.js';
-import {reconcileDependencies} from './dependency-refresh.js';
+import {reconcileDependencies, sameStructure as sameBlockStructure} from './dependency-refresh.js';
 import {reasonCode} from './reason-codes.js';
 import type { CodeLineExercise, CodeLineExerciseV3, CompiledRules, ConstraintExplanation, DirectConstraint, IndentPolicy, LanguageIR, ModelVerification, RefreshReport, RenderPlan, RuleEdit, RuleEditResult, VerificationInput } from '../../dist/index.js';
 
@@ -140,9 +140,9 @@ export async function verifyAuthorModel(model: CodeLineExercise, ports: Pick<Leg
   const generated = await ports.generate({source: model.lines.map(line => line.code).join('\n'), language: model.language, title: model.title, description: model.description, ...recordedAssumptions(model)});
   currentAnalyzer = generated.authoring?.evidence?.analyzer;
   projectionLoss = generated.authoring?.evidence?.projectionLoss?.pairs;
-  // A refinement the model lacks (ADR-066: a unit block) is a difference, not a match:
-  // without it a sibling may enter the unit the regenerated rules leave unsealed.
-  const sameStructure = reconcileDependencies(model, generated).blocks.length === model.blocks.length;
+  // A refinement the model lacks (ADR-066: a unit block; ADR-079: an anchored header) is a
+  // difference, not a match: without it a sibling may enter the unit the regenerated rules leave unsealed.
+  const sameStructure = sameBlockStructure(model, generated);
   const id = (generatedId: number): number => model.lines[generatedId - 1]!.id;
   // ADR-044: a relaxation confirmed on another source no longer explains a missing constraint.
   const confirmed = (model.authoring?.relaxations ?? []).filter(entry => relaxationHolds(entry, model.lines));

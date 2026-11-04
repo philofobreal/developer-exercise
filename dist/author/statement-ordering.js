@@ -796,7 +796,8 @@ export function statementOrdering(file, compiler, options = {}) {
                     const previous = node.statements[i - 1], current = node.statements[i];
                     if (previous && compiler.isFunctionDeclaration(previous) && !previous.body && compiler.isFunctionDeclaration(current) && !!previous.name && previous.name.text === current.name?.text) {
                         const head = grouped.pop();
-                        grouped.push({ ...unit, first: head.first, start: head.start, kind: 'barrier', reason: 'overload-group', code: 'overload-group' });
+                        // v45 (ADR-079): the signatures are the header of the implementation's body block.
+                        grouped.push({ ...unit, first: head.first, start: head.start, kind: 'barrier', reason: 'overload-group', code: 'overload-group', ...(current.body ? { header: 'overload-group' } : {}) });
                     }
                     else
                         grouped.push(unit);
@@ -826,7 +827,7 @@ export function statementOrdering(file, compiler, options = {}) {
                 if (grouped.length)
                     gap(grouped.at(-1).last + 1, outer, false);
                 for (const unit of complete) {
-                    units.push({ first: unit.first, last: unit.last, kind: unit.kind, reason: unit.reason });
+                    units.push({ first: unit.first, last: unit.last, kind: unit.kind, reason: unit.reason, ...(unit.header ? { header: unit.header } : {}) });
                     entries.set(unit.first, new Set());
                     reasons.delete(unit.first);
                     for (const row of unit.reads)

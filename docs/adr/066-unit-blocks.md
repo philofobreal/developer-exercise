@@ -88,3 +88,5 @@ Az egységen belüli sorrendet a `continued-row` élek tartják. Egy egységblok
 ## Nyitott
 
 A v3 egységmodell integrálása a szerzői láncba (külön epic, saját ADR-rel és sémaverzióval). A mért haszna ma az overload-csoport körüli rés.
+
+*Utóirat:* az overload-csoport rését az [ADR-079](079-overload-header-blocks.md) (v45) a v2-ben megszüntette: a függvényblokk az első szignatúránál nyílik, és a kapu a szerkezetet veti össze, nem a blokkszámot. A v3 bekötésének így ma nincs mért haszna. A `});`-vel záruló hívás lezárva marad (a korpuszban `wp6-sealed-continued-callback`, 1 rés).

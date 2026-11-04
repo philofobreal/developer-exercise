@@ -15,5 +15,4 @@ export const reasonCodePrograms=new Map([
  * reason-codes.test.mjs accepts a waiver only for these codes. */
 export const reasonCodeWaivers={
  'module-import':'a modul betöltése a rögzített orákulumban nem futtatható, ezért viselkedési ellenpélda nem képezhető',
- 'overload-group':'a szétválasztott TS-overload típushiba; az orákulum csak a szintaxist és a futást látja',
 };

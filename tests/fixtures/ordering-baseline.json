@@ -286,6 +286,13 @@
   "intentRejections": 0,
   "justifiedRejections": 66
  },
+ "wp6-sealed-continued-callback": {
+  "neighbours": 174,
+  "accepted": 1,
+  "completenessGaps": 1,
+  "intentRejections": 0,
+  "justifiedRejections": 172
+ },
  "wp6-hoisted-into-shared-boundaries": {
   "neighbours": 285,
   "accepted": 7,
@@ -302,9 +309,9 @@
  },
  "wp6-overload-groups": {
   "neighbours": 322,
-  "accepted": 4,
-  "completenessGaps": 2,
-  "intentRejections": 0,
+  "accepted": 5,
+  "completenessGaps": 0,
+  "intentRejections": 1,
   "justifiedRejections": 316
  },
  "refl-prototype-and-static-methods": {
@@ -330,9 +337,9 @@
  },
  "refl-ts-erased-and-overloads": {
   "neighbours": 1864,
-  "accepted": 42,
-  "completenessGaps": 8,
-  "intentRejections": 0,
+  "accepted": 48,
+  "completenessGaps": 1,
+  "intentRejections": 1,
   "justifiedRejections": 1814
  },
  "refl-script-globals": {
