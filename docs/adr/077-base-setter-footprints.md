@@ -59,7 +59,27 @@ A setter csak az `f1`-et olvassa és az `_f3`-at írja. Az `f0`, az `f2` és az 
 
 ## Mérés
 
-**Teljes kampány, 12 mag, 7 fajta, 2 nyelv** (alapbeállítás, `strict` környezet), v42 → v43: *a kampány lefutása után kitöltve.*
+**Teljes kampány, 12 mag, 7 fajta, 2 nyelv** (alapbeállítás, `strict` környezet), v42 → v43:
+
+| Csoport | Elfogadott | Rés | Hibás elfogadás |
+| --- | --- | --- | --- |
+| `inherit` JS | 395 → 488 | 108 → 44 | 0 |
+| `inherit` TS | 412 → 459 | 52 → 18 | 0 |
+| a többi 6 fajta | változatlan | változatlan (48) | 0 |
+| **Összesen** (366 024 sorrend) | **15 746 → 15 886** | **208 → 110** | **0** |
+
+**Környezetváltozatokkal** (`strict`, `es2015`, `sloppy`; `inherit` és `class`):
+
+| Csoport | `either` rés | `define` rés | Hibás elfogadás |
+| --- | --- | --- | --- |
+| `inherit` JS | 80 → 16 | 13, változatlan | 0 / 0 |
+| `inherit` TS | 52 → 18 | 15, változatlan | 0 / 0 |
+| `class` JS/TS | 0 / 19, változatlan | 0 / 19, változatlan | 0 / 0 |
+
+- **A `strict` JS rés (44) és a környezetváltozatos rés (16) különbsége:** 28 sorrendet a generátor helyesen köt, mert a setter olvassa a mezőt. A `strict` környezet natív `[[Define]]` mezőket futtat, ott a setter nem fut, ezért a mérés ezeket résnek látja. Az ES2015-ös kibocsátásban viszont a csere valóban eltér.
+- **A „mindkét mód” és a „csak szabványos” beállítás különbsége** így nyelvenként 3 rés. A v40-ben ez még 92 (JS) és 62 (TS) volt.
+- **A maradék** az NY-22 (c) oka: az ős mezőjével azonos nevű vagy duplikált accessor, és egy-egy másoló mező.
+- **Korpusz:** változatlan. **Gyors alapérték:** az `inherit` JS csoport rése 23 → 9, a többiben csak a szabályverzió címkéje változott.
 
 ## Bizonyíték
 
