@@ -775,7 +775,7 @@ const reachWitness=wrapEval=>`(()=>{const apply=Reflect.apply,construct=Reflect.
  +(wrapEval?`globalThis.eval=watch(eval,fnKinds);`:'')
  +`const S=Symbol;globalThis.Symbol=new P(S,{get(t,key,self){const v=Reflect.get(t,key);if(typeof v==='symbol')mark(['hooks']);return v;}});`
  +`})();\n`;
-function execute(code,{language,probe,strict:strictMode=true,environment='strict',asynchronous=false,keyOrder='observed',hit=()=>{}},{classNames=[],globals=[],functions=[],ordered=false,enumerated=true}={},nested=[]){
+function execute(code,{language,probe,strict:strictMode=true,environment='strict',asynchronous=false,keyOrder='observed',classFields='either',hit=()=>{}},{classNames=[],globals=[],functions=[],ordered=false,enumerated=true}={},nested=[]){
  // ADR-062: `sloppy` runs the script without strict mode; `es2015` runs the emit of an ES2015 target.
  const strict=strictMode&&environment!=='sloppy',target=environment==='es2015'?ts.ScriptTarget.ES2015:ts.ScriptTarget.ES2022;
  for(const {key,name,end} of [...nested].sort((a,b)=>b.end-a.end))code=code.slice(0,end)+`;__classes.push([${JSON.stringify(key)}, ${name}]);`+code.slice(end);
@@ -797,7 +797,8 @@ function execute(code,{language,probe,strict:strictMode=true,environment='strict
  const run=js=>{let result={call:'timeout',reflection:''};for(const timeout of TIMEOUTS_MS){result=attempt(js,timeout);if(result.call!=='timeout')break;}return result;};
  if(language!=='typescript'&&environment!=='es2015')return run(code);
  const outputs=[];
- for(const define of [false,true]){
+ // ADR-075: a `define` fixture runs only the standard [[Define]] class-field mode.
+ for(const define of classFields==='define'?[true]:[false,true]){
   const transpile=module=>ts.transpileModule(code,{fileName:language==='typescript'?'fixture.ts':'fixture.js',reportDiagnostics:true,compilerOptions:{target,useDefineForClassFields:define,...language==='typescript'?{}:{allowJs:true},...module?{module:ts.ModuleKind.CommonJS}:{}}});
   let output=transpile(false);
   if(output.diagnostics?.length)return {call:'syntax',reflection:'',reach:reached({})};

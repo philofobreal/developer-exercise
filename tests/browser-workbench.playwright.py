@@ -305,6 +305,25 @@ def key_order_and_rule_kinds(page):
     expect(kinds.locator('.rule-status')).to_contain_text('1 szabály feloldva');expect(page.locator('[data-step-verification]')).to_have_text('Nem igazolt')
     expect(swapped_verdict()).to_contain_text('Elfogadva')
     page.screenshot(path=str(ARTIFACTS/('ux-key-order-'+('node' if page.url.startswith(BASE) else 'pages')+'.png')),full_page=True)
+def class_fields_setting(page):
+    """ADR-075: with both class-field modes (default) a base setter of the field name keeps the two fields
+    in order; with standard [[Define]] fields only, the swap is accepted without any rule edit, the model
+    stays analysis-verified and the rules step names the setting."""
+    source='\n'.join(['class B {','  set f5(value) {',"    record('set', this.g);",'  }','}','class A extends B {','  f5 = 6;','  g = 7;','}','function evaluate() {','  const a = new A();','  return [a.g, a.f5];','}'])
+    def make(class_fields):
+        page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill(source)
+        page.locator('[data-author="classFields"]').select_option(class_fields);page.locator('[data-author-apply]').click();current(page,'rules')
+    def swapped_verdict():
+        to_try(page)
+        if page.locator('[data-all]').count():page.locator('[data-all]').click()
+        if page.locator('.solution-zone .code-row code').nth(6).text_content().strip()=='f5 = 6;':page.locator('[data-down="6"]').click()
+        expect(page.locator('.solution-zone .code-row code').nth(7)).to_have_text('f5 = 6;')
+        page.locator('[data-check]').click();return page.locator('.report')
+    make('either');expect(page.locator('[data-analysis-settings]')).to_contain_text('mindkét mód')
+    expect(swapped_verdict()).to_contain_text('Hibás')
+    make('define');expect(page.locator('[data-analysis-settings]')).to_contain_text('csak szabványos');expect(page.locator('[data-step-verification]')).to_have_text('Elemzéssel igazolt')
+    expect(swapped_verdict()).to_contain_text('Elfogadva')
+    page.locator('[data-step="source"]').click();expect(page.locator('[data-author="classFields"]')).to_have_value('define')
 def rule_edit_keeps_scroll(page):
     """A rule edit yields a new draft id, but it is the same project: the sorter keeps its scroll like after a drag."""
     source='\n'.join(['function f() {',*[f'  const v{i} = {i};' for i in range(38)],'  g(v0, v37);','}'])
@@ -471,7 +490,7 @@ try:
         browser=launch(p);context=browser.new_context(viewport={'width':1500,'height':1000},permissions=['clipboard-read','clipboard-write']);context.tracing.start(screenshots=True,snapshots=True,sources=True);page=context.new_page();page.set_default_timeout(10000);errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
         try:
             for mode,url in [('node',BASE),('pages',f'http://127.0.0.1:{static.server_port}/developer-exercise/')]:
-                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('model-first creation',model_first),('a rejected order names its rule and how to lift it',rule_cause_lifts),('key order setting and rule kinds',key_order_and_rule_kinds),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('the input contract is chosen, recorded and restored',input_contract),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll),('circles toggle links: checks, removal and exact restore',link_toggle),('pins fix and release a line on the board',pin_lines),('feedback marks graded rows, invalidates on a move and respects the learner view',learner_feedback)]:
+                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('model-first creation',model_first),('a rejected order names its rule and how to lift it',rule_cause_lifts),('key order setting and rule kinds',key_order_and_rule_kinds),('class-field mode setting',class_fields_setting),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('the input contract is chosen, recorded and restored',input_contract),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll),('circles toggle links: checks, removal and exact restore',link_toggle),('pins fix and release a line on the board',pin_lines),('feedback marks graded rows, invalidates on a move and respects the learner view',learner_feedback)]:
                     reset(page,url);case(mode+' '+name,lambda:action(page))
                 reset(page,url);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-author.png')),full_page=True)
                 practice(page);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-practice.png')),full_page=True)

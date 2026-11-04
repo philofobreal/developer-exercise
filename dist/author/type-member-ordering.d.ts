@@ -36,5 +36,6 @@ export interface TypeMemberOrdering {
 export declare function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, options?: {
     reflectedKeys?: boolean;
     enumeratedKeys?: boolean;
+    classFields?: 'either' | 'define';
 }): TypeMemberOrdering;
 export {};

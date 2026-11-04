@@ -68,15 +68,15 @@ export class LanguageEngine {
 
 /** Narrow transitional ports; this does not claim the legacy MJS is type checked. */
 export interface LegacyJSTSPorts {
-  generate(input: AuthorSource & { language: 'javascript' | 'typescript'; importEmit?: 'verbatim' | 'elide-unused'; inputs?: 'any' | 'valid'; keyOrder?: 'observed' | 'ignored' }): CodeLineExercise | Promise<CodeLineExercise>;
+  generate(input: AuthorSource & { language: 'javascript' | 'typescript'; importEmit?: 'verbatim' | 'elide-unused'; inputs?: 'any' | 'valid'; keyOrder?: 'observed' | 'ignored'; classFields?: 'either' | 'define' }): CodeLineExercise | Promise<CodeLineExercise>;
   audit(model: CodeLineExercise): void | Promise<void>;
   format(source: string, language: 'javascript' | 'typescript'): FormatResult | Promise<FormatResult>;
 }
 
-/** The generation assumptions a model records (ADR-015): its import emit, input contract and key order. */
-function recordedAssumptions(model: CodeLineExercise): {importEmit?: 'verbatim' | 'elide-unused'; inputs?: 'any' | 'valid'; keyOrder?: 'observed' | 'ignored'} {
+/** The generation assumptions a model records (ADR-015): its import emit, input contract, key order and class-field mode. */
+function recordedAssumptions(model: CodeLineExercise): {importEmit?: 'verbatim' | 'elide-unused'; inputs?: 'any' | 'valid'; keyOrder?: 'observed' | 'ignored'; classFields?: 'define'} {
  const environment = model.authoring?.evidence?.environment;
- return {...(environment?.importEmit ? {importEmit: environment.importEmit} : {}), ...(environment?.inputs ? {inputs: environment.inputs} : {}), ...(environment?.keyOrder ? {keyOrder: environment.keyOrder} : {})};
+ return {...(environment?.importEmit ? {importEmit: environment.importEmit} : {}), ...(environment?.inputs ? {inputs: environment.inputs} : {}), ...(environment?.keyOrder ? {keyOrder: environment.keyOrder} : {}), ...(environment?.classFields === 'define' ? {classFields: 'define' as const} : {})};
 }
 
 /** Explicit author reanalysis: preserve reference identity/content, fixed slots and manual edges/profiles. */

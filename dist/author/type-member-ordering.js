@@ -133,7 +133,8 @@ export function typeMemberOrdering(file, compiler, options = {}) {
                 return assignable(target, source) ? source : undefined;
             };
             // ADR-073: a field assignment in the [[Set]] mode may run code unless no base can define its name.
-            const inherited = isClass ? baseAccessors(node) : new Set();
+            // ADR-075: in the `define` mode a field is defined on the instance and runs no inherited setter.
+            const inherited = isClass && options.classFields !== 'define' ? baseAccessors(node) : new Set();
             const assignable = (key, member) => key !== '__proto__' && (compiler.isPrivateIdentifier(member.name) || !!inherited && !inherited.has(key));
             const members = node.members.map(member => {
                 const key = name(member), row = first(member), end = last(member);

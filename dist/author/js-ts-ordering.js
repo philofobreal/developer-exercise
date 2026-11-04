@@ -24,10 +24,10 @@ export function jsTsStructure(file, compiler) {
 }
 /** The emit and runtime assumptions behind the JS/TS analysis (ADR-015): the compiler that
  * analysed it, the TypeScript import emit, script or module semantics (as the global-order
- * rule decides it), class-field-mode independence (ADR-012 holds in both modes) and, when the
- * author chose it, the `valid` input contract (ADR-050) and ignored key order (ADR-055). */
+ * rule decides it), the class-field mode (ADR-012 holds in both modes; ADR-075: `define` when the author
+ * chose it) and, when the author chose it, the `valid` input contract (ADR-050) and ignored key order (ADR-055). */
 export function jsTsEnvironment(file, compiler, options = {}) {
-    return { typescript: compiler.version, ...(file.fileName.endsWith('.ts') ? { importEmit: options.imports ?? 'verbatim' } : {}), sourceKind: compiler.isExternalModule(file) ? 'module' : 'script', classFields: 'either', ...(options.inputs === 'valid' ? { inputs: 'valid' } : {}), ...(options.keyOrder === 'ignored' ? { keyOrder: 'ignored' } : {}) };
+    return { typescript: compiler.version, ...(file.fileName.endsWith('.ts') ? { importEmit: options.imports ?? 'verbatim' } : {}), sourceKind: compiler.isExternalModule(file) ? 'module' : 'script', classFields: options.classFields === 'define' ? 'define' : 'either', ...(options.inputs === 'valid' ? { inputs: 'valid' } : {}), ...(options.keyOrder === 'ignored' ? { keyOrder: 'ignored' } : {}) };
 }
 /** ADR-060: the source text the key-observation patterns are matched against. Occurrences that
  * cannot reach a built-in or the global object are blanked (newlines kept):
@@ -188,8 +188,8 @@ export function enumeratesKeys(file, compiler, reached = unspelledNames(file, co
 export function jsTsOrderingRelations(file, compiler, options = {}) {
     const observed = options.keyOrder !== 'ignored', reached = unspelledNames(file, compiler), text = observed ? keyObservationText(file, compiler, reached) : '';
     const reflectedKeys = observed && observesKeyOrder(file, compiler, reached, text), enumeratedKeys = observed && enumeratesKeys(file, compiler, reached, text);
-    const { imports, inputs } = options;
-    const statements = statementOrdering(file, compiler, { ...(file.fileName.endsWith('.ts') && imports ? { imports } : {}), ...(inputs ? { inputs } : {}), reflectedKeys, enumeratedKeys }), members = typeMemberOrdering(file, compiler, { reflectedKeys, enumeratedKeys });
+    const { imports, inputs, classFields } = options;
+    const statements = statementOrdering(file, compiler, { ...(file.fileName.endsWith('.ts') && imports ? { imports } : {}), ...(inputs ? { inputs } : {}), reflectedKeys, enumeratedKeys }), members = typeMemberOrdering(file, compiler, { reflectedKeys, enumeratedKeys, ...(classFields === 'define' ? { classFields } : {}) });
     const unavailable = statements.inputsUnavailable ? 'Az érvényes bemenet szerződése nem alkalmazható: a program módosíthatja az olvasást (Proxy, prototípus, eval, képzett név), ezért szigorú.' : '';
     return combineOrderingRelations([
         { entries: statements.entries, protectedInputs: statements.protectedInputs, spans: statements.units.map(({ first, last }) => ({ first, last })), note: unavailable },

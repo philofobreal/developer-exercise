@@ -41,7 +41,7 @@ export interface TypeMemberOrdering {entries: OrderingEntry[]; spans: {first: nu
 
 /** `reflectedKeys` (ADR-020): the program may list non-enumerable keys, so the ADR-010 key chain applies.
  * `enumeratedKeys` (ADR-029): the program may list enumerable keys, so instance fields keep their order. */
-export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, options: {reflectedKeys?: boolean; enumeratedKeys?: boolean} = {}): TypeMemberOrdering {
+export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, options: {reflectedKeys?: boolean; enumeratedKeys?: boolean; classFields?: 'either' | 'define'} = {}): TypeMemberOrdering {
  const physical = file.text.split('\n'), entries: OrderingEntry[] = [], spans: {first: number; last: number}[] = [];
  /** `row` follows every row of `after` for the same reason. */
  const order = (row: number, after: number[], code: OrderingReason['code']): void => {entries.push({row, after, reasons: after.map(before => ({before, code}))});};
@@ -142,7 +142,8 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
     return assignable(target, source) ? source : undefined;
    };
    // ADR-073: a field assignment in the [[Set]] mode may run code unless no base can define its name.
-   const inherited = isClass ? baseAccessors(node as ts.ClassLikeDeclaration) : new Set<string>();
+   // ADR-075: in the `define` mode a field is defined on the instance and runs no inherited setter.
+   const inherited = isClass && options.classFields !== 'define' ? baseAccessors(node as ts.ClassLikeDeclaration) : new Set<string>();
    const assignable = (key: string, member: ts.ClassElement | ts.TypeElement): boolean => key !== '__proto__' && (compiler.isPrivateIdentifier(member.name!) || !!inherited && !inherited.has(key));
    const members: Unit[] = node.members.map(member => {
     const key = name(member), row = first(member), end = last(member);

@@ -73,7 +73,7 @@ export function createClassifier(fixture,model,{maxStates=200_000,policy='reflec
   if(!changed)return withoutDead;
   try{
    const environment=model.authoring?.evidence?.environment??{};
-   const variant=generateCodeLineExercise({source:rows.join('\n'),language:fixture.language,...environment.importEmit?{importEmit:environment.importEmit}:{},...environment.inputs?{inputs:environment.inputs}:{},...environment.keyOrder?{keyOrder:environment.keyOrder}:{}},ts),built=compileCodeLineExercise(variant);
+   const variant=generateCodeLineExercise({source:rows.join('\n'),language:fixture.language,...environment.importEmit?{importEmit:environment.importEmit}:{},...environment.inputs?{inputs:environment.inputs}:{},...environment.keyOrder?{keyOrder:environment.keyOrder}:{},...environment.classFields==='define'?{classFields:'define'}:{}},ts),built=compileCodeLineExercise(variant);
    if(!built.status)withoutDead={variant,compiled:built.compiled,bySource:new Map(variant.lines.map(line=>[line.sourceLine,line]))};
   }catch{}
   return withoutDead;

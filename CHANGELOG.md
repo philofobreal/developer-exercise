@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased – 2026-11-04 szerzői beállítás: csak szabványos osztálymezők (ADR-075, v41)
+
+- **Új szerzői beállítás a Forrás lépésben: „Osztálymezők létrehozása”.** Alapértelmezés: „mindkét mód”, ilyenkor a szabályok változatlanok. A „csak szabványos” mód kimondja, hogy a feladat mezőit a JavaScript szabványa szerint definiálják (natív osztálymezők, TypeScript `useDefineForClassFields: true`). Ilyenkor az ősosztály azonos nevű settere nem köti a mezők sorrendjét. A régebbi célra fordított kódra ez a mód nem ígér semmit, és a magyarázat ezt kimondja.
+- **A modell része:** a beállítást az elemzés környezete rögzíti, a Szabályok lépés kiírja, és az ellenőrzés meg a frissítés is ezzel generál újra. Az orákulum függetlenül, csak a szabványos módban futtatja az ilyen feladatot.
+- **Mérés (`inherit`, környezetváltozatokkal):**
+  - JavaScript: 358 → 487 elfogadott sorrend, a rés 105 → 56;
+  - TypeScript: 374 → 474 elfogadott sorrend, a rés 77 → 58;
+  - 0 hibás elfogadás.
+
 ## Unreleased – 2026-11-04 öröklési programok a kampányban; az őslánc JavaScriptben is (ADR-074, v40)
 
 - **Bővebb mérés:** a véletlen kampány új programfajtát kapott (`inherit`). Az ősosztályban getter, setter, `accessor` mező és számított nevű accessor áll, a leszármazott mezői ezekkel találkozhatnak. A magok mintegy háromnegyedében benne van az a minta, amelyet az ADR-073 javított.

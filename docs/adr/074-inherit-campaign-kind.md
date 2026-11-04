@@ -55,7 +55,7 @@ A kampány `class` fajtájában (`randomClassProgram`) az ősosztálynak legfelj
 - 0 hibás elfogadás.
 - Az `inherit` JS rése 105. A v40 által visszavont 129 sorrendből 28 az ES2015-ös lefordításban valóban másként fut (a v39 ezeket hibásan fogadta el). A többi 101 csak ott kockázatos, szabványos JavaScriptben egyenértékű.
 
-**A JavaScript ára:** a v40 szabványos (`[[Define]]`) JavaScriptben egyenértékű sorrendeket is elutasít, ha az ősnek ilyen nevű accessora van. Ezt a szerződés diktálja: az elemzés mindkét mezőmódot ígéri. Egy „csak `[[Define]]`” JavaScript-beállítás visszaadná ezeket, de ez szerződésdöntés (NY-23).
+**A JavaScript ára:** a v40 szabványos (`[[Define]]`) JavaScriptben egyenértékű sorrendeket is elutasít, ha az ősnek ilyen nevű accessora van. Ezt a szerződés diktálja: az elemzés mindkét mezőmódot ígéri. Egy „csak `[[Define]]`” JavaScript-beállítás visszaadná ezeket, de ez szerződésdöntés (NY-23). *Utóirat:* a felhasználó a szerzői beállítást választotta; az [ADR-075](075-standard-class-fields-setting.md) (v41) `classFields: 'define'` értéke mindkét nyelven visszaadja ezeket, az alapértelmezés változatlan.
 
 A 210 új rés (JS 133, TS 77) eddig rejtve volt. Okai (NY-22):
 - **(a)** egy `record(…) ?? 7` kezdőértékű mező minden laza mező után kötött, holott a külső hívás csak primitívet kap, és a példányt nem éri el;

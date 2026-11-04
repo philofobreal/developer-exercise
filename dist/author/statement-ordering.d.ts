@@ -63,10 +63,14 @@ export type { InputContract };
 /** `keyOrder` (ADR-055): whether the creation order of object keys is part of the exercise; `ignored` is the
  * author's choice that it is not (read by `jsTsOrderingRelations`, which then sets both key flags off). */
 export type KeyOrder = 'observed' | 'ignored';
+/** `classFields` (ADR-075): `either` (default) holds in both class-field modes; `define` is the author's
+ * statement that fields are defined ([[Define]]), never assigned (read by `typeMemberOrdering`). */
+export type ClassFields = 'either' | 'define';
 export interface OrderingOptions {
     imports?: ImportEmit;
     inputs?: InputContract;
     keyOrder?: KeyOrder;
+    classFields?: ClassFields;
     reflectedKeys?: boolean;
     enumeratedKeys?: boolean;
 }

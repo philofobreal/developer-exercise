@@ -57,10 +57,10 @@ export class LanguageEngine {
         return { ...formatted };
     }
 }
-/** The generation assumptions a model records (ADR-015): its import emit, input contract and key order. */
+/** The generation assumptions a model records (ADR-015): its import emit, input contract, key order and class-field mode. */
 function recordedAssumptions(model) {
     const environment = model.authoring?.evidence?.environment;
-    return { ...(environment?.importEmit ? { importEmit: environment.importEmit } : {}), ...(environment?.inputs ? { inputs: environment.inputs } : {}), ...(environment?.keyOrder ? { keyOrder: environment.keyOrder } : {}) };
+    return { ...(environment?.importEmit ? { importEmit: environment.importEmit } : {}), ...(environment?.inputs ? { inputs: environment.inputs } : {}), ...(environment?.keyOrder ? { keyOrder: environment.keyOrder } : {}), ...(environment?.classFields === 'define' ? { classFields: 'define' } : {}) };
 }
 /** Explicit author reanalysis: preserve reference identity/content, fixed slots and manual edges/profiles. */
 export async function refreshLegacyDependencies(input, ports) {

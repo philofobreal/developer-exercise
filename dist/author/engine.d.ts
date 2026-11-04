@@ -45,6 +45,7 @@ export interface LegacyJSTSPorts {
         importEmit?: 'verbatim' | 'elide-unused';
         inputs?: 'any' | 'valid';
         keyOrder?: 'observed' | 'ignored';
+        classFields?: 'either' | 'define';
     }): CodeLineExercise | Promise<CodeLineExercise>;
     audit(model: CodeLineExercise): void | Promise<void>;
     format(source: string, language: 'javascript' | 'typescript'): FormatResult | Promise<FormatResult>;

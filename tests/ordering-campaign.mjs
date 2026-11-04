@@ -1,6 +1,7 @@
 /** Manual long generative campaign (not part of check:all):
  *   node tests/ordering-campaign.mjs [--from=1] [--to=200] [--kinds=class,inherit,script,function,object,flow,param]
  *        [--languages=javascript,typescript] [--inputs=any|valid] [--key-order=observed|ignored]
+ *        [--class-fields=either|define]
  *        [--environments=strict,es2015,sloppy] [--output=campaign.json]
  *   node tests/ordering-campaign.mjs --baseline   (pins the quick check's thresholds)
  * For every seeded program it grades sampled linear extensions, the single-row
@@ -24,9 +25,9 @@ if(process.argv.includes('--baseline')){
  console.log('generative baseline written for',Object.keys(baseline).length,'groups');process.exit(0);
 }
 const option=(name,fallback)=>process.argv.find(arg=>arg.startsWith(`--${name}=`))?.slice(name.length+3)??fallback;
-const from=Number(option('from','1')),to=Number(option('to','200')),kinds=option('kinds','class,script,function,object,flow,param').split(','),languages=option('languages','javascript,typescript').split(','),inputs=option('inputs','any'),keyOrder=option('key-order','observed'),output=option('output',null);
+const from=Number(option('from','1')),to=Number(option('to','200')),kinds=option('kinds','class,inherit,script,function,object,flow,param').split(','),languages=option('languages','javascript,typescript').split(','),inputs=option('inputs','any'),keyOrder=option('key-order','observed'),classFields=option('class-fields','either'),output=option('output',null);
 const environments=option('environments',null)?.split(',')??null;
-const {rows,violations}=measureCampaign({from,to,kinds,languages,inputs,keyOrder,environments,onUnsound:({id,reason,minimal,source})=>console.log(`UNSOUND ${id} (${reason}) minimal order ${minimal.join(',')}\n${source.join('\n')}\n`)});
+const {rows,violations}=measureCampaign({from,to,kinds,languages,inputs,keyOrder,classFields,environments,onUnsound:({id,reason,minimal,source})=>console.log(`UNSOUND ${id} (${reason}) minimal order ${minimal.join(',')}\n${source.join('\n')}\n`)});
 for(const row of rows)console.log(JSON.stringify(row));
 if(output)await writeFile(output,JSON.stringify({from,to,rows},null,1)+'\n');
 process.exitCode=violations?1:0;

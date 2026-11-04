@@ -155,7 +155,7 @@ A P3 és a P4 a következőket figyeli. Ugyanezt hasonlítja össze a független
 - a `record` nélküli konzolkimenet;
 - a modulbetöltés tényleges külső hatása: ezt a modulbetöltő import kötése fedi, nem futtatással igazoljuk.
 
-**Futtatási környezet:** strict klasszikus szkript, TypeScriptnél ES2022-re fordítva, mindkét osztálymezőmódban (`useDefineForClassFields` igaz és hamis). Ami ezen kívül esik (CommonJS-betöltő, bundler, dekorátortranszformáció, más `target`), azt a generátor konzervatív szabállyal kezeli. Az ES2015-ös célt és a sloppy módot (ahol a referencia nem függ a szigorúságtól) az orákulum környezetváltozatai mérik ([ADR-062](adr/062-oracle-environments-and-for-in.md)). A ténylegesen feltételezett beállításokat a modell `authoring.evidence.environment` mezője rögzíti (ADR-015).
+**Futtatási környezet:** strict klasszikus szkript, TypeScriptnél ES2022-re fordítva, mindkét osztálymezőmódban (`useDefineForClassFields` igaz és hamis). Ha a szerző a „csak szabványos” beállítást választja (`classFields: 'define'`, [ADR-075](adr/075-standard-class-fields-setting.md)), csak a `[[Define]]` módban. Ami ezen kívül esik (CommonJS-betöltő, bundler, dekorátortranszformáció, más `target`), azt a generátor konzervatív szabállyal kezeli. Az ES2015-ös célt és a sloppy módot (ahol a referencia nem függ a szigorúságtól) az orákulum környezetváltozatai mérik ([ADR-062](adr/062-oracle-environments-and-for-in.md)). A ténylegesen feltételezett beállításokat a modell `authoring.evidence.environment` mezője rögzíti (ADR-015).
 
 ### Policyverziók
 
@@ -202,6 +202,7 @@ A `dependencyPolicy` címke a generálási szabályok verziója. Egy modell áll
 | `scoped-effect-analysis-v38` | [ADR-072](adr/072-certain-overwrites.md) | egy biztosan felülíró listautasítás elrejti a mező korábbi értékeit; getter egyenes visszatérése és switch ismert értékkel |
 | `scoped-effect-analysis-v39` | [ADR-073](adr/073-base-chain-fields-and-defaults.md) | TS [[Set]] mezőmód: laza mező csak setter nélküli ősláncon; korábbi saját adatmezőt másoló mező; alapértékes paraméter |
 | `scoped-effect-analysis-v40` | [ADR-074](adr/074-inherit-campaign-kind.md) | a laza mező ősláncfeltétele JavaScriptre is (ES2015-ös lefordítás: [[Set]] mezőmód) |
+| `scoped-effect-analysis-v41` | [ADR-075](adr/075-standard-class-fields-setting.md) | szerzői beállítás: csak szabványos osztálymezők (`classFields: 'define'`), ilyenkor az őslánc settere nem köti a laza mezőket |
 
 A v9 P2-je **szigorúan bővebb** a v4–v8 P2-jénél: minden, amit a régi szabály megengedett, az újban is megengedett. Az új szabadságnak két forrása van, és egyiknek sincs megfigyelhető hatása a felcserélt párra nézve (lásd a [megfigyelhető állapotot](#megfigyelhető-állapot)): a lokális írás csak a saját kötését módosítja és nem dob; az emit által törölt import futásidőben nem létezik. Ez nem a régi P2 csendes gyengítése, hanem verziózott újradefiniálás: a régi címkéjű modellek a régi szabállyal maradnak érvényesek, és az orákulum a v9 P2-t saját, független implementációval követi (ADR-013).
 
@@ -702,7 +703,7 @@ A [feladatkorpusz](../tests/fixtures/task-programs.mjs) 12 tanórai jellegű JS/
 ## Kompatibilitás és nyelvi határ
 
 - **Régi modellek:** az importált modellek függőségei nem változnak. Újragenerálás csak explicit „Sorfüggőségek újraszámítása” műveletre történik.
-- **Policy-címke:** új generáláskor `scoped-effect-analysis-v40` (ADR-074). A régi enumértékek, köztük a v4–v39, érvényesek maradnak (additív sémabővítés).
+- **Policy-címke:** új generáláskor `scoped-effect-analysis-v41` (ADR-075). A régi enumértékek, köztük a v4–v40, érvényesek maradnak (additív sémabővítés).
 - **Generatív lefedettség:** a kampány `flow` fajtája ([random-programs.mjs](../tests/support/random-programs.mjs), `randomFlowProgram`) a saját objektumokon dolgozó műveleteket vezérlési szerkezetekbe ágyazza, JS-ben és TS-ben. Tartalmazza a fenti szabad és barrier alakokat is (`else if`, `switch`, `try`, `for…of`, számlálós `for`, `while`, címkés ugrás). Az `inherit` fajta (`randomInheritProgram`, [ADR-074](adr/074-inherit-campaign-kind.md)) az öröklést próbálja: ősosztálybeli getter, setter, `accessor` mező és számított nevű accessor, amelyekkel a leszármazott mezői találkozhatnak, mindkét TypeScript mezőmódban.
 - **Belső szerződés (ADR-011):** az adapter `orderingRelations` metódusa nyelvfüggetlen [`OrderingRelations`](../src/author/ordering-relations.ts) relációt ad: előzmények, védett bemenetek, egységhatárok, megjegyzés, 0-alapú fizikai sorokon. A projekciót a típusos [code-line-projection.ts](../src/author/code-line-projection.ts) végzi (ADR-013), a validátor nem változik.
 - **Proveniencia (ADR-014):** minden előzményhez ok tartozik (kategória és kód), a projekció a saját éleinek okát is rögzíti, és a modell `authoring.provenance` mezőjébe csak a redukció után megmaradt élek okai kerülnek. Ez magyarázat, nem szabály: a validáció nem olvassa. Csak addig érvényes, amíg az `authoring.evidence` digestje egyezik a sorokkal (ADR-015); különben `unbound`.

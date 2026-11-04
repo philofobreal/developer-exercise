@@ -230,7 +230,11 @@
                   ]
                 },
                 "classFields": {
-                  "const": "either"
+                  "type": "string",
+                  "enum": [
+                    "either",
+                    "define"
+                  ]
                 },
                 "inputs": {
                   "type": "string",
@@ -619,7 +623,8 @@
         "scoped-effect-analysis-v37",
         "scoped-effect-analysis-v38",
         "scoped-effect-analysis-v39",
-        "scoped-effect-analysis-v40"
+        "scoped-effect-analysis-v40",
+        "scoped-effect-analysis-v41"
       ]
     }
   }

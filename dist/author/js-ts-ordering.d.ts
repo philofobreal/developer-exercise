@@ -13,8 +13,8 @@ import type { AnalysisEnvironment } from '../../dist/index.js';
 export declare function jsTsStructure(file: ts.SourceFile, compiler: typeof ts): StructureBlock[];
 /** The emit and runtime assumptions behind the JS/TS analysis (ADR-015): the compiler that
  * analysed it, the TypeScript import emit, script or module semantics (as the global-order
- * rule decides it), class-field-mode independence (ADR-012 holds in both modes) and, when the
- * author chose it, the `valid` input contract (ADR-050) and ignored key order (ADR-055). */
+ * rule decides it), the class-field mode (ADR-012 holds in both modes; ADR-075: `define` when the author
+ * chose it) and, when the author chose it, the `valid` input contract (ADR-050) and ignored key order (ADR-055). */
 export declare function jsTsEnvironment(file: ts.SourceFile, compiler: typeof ts, options?: OrderingOptions): AnalysisEnvironment;
 export declare function keyObservationText(file: ts.SourceFile, compiler: typeof ts, reached?: import("./property-names.js").UnspelledNames): string;
 /** ADR-020: whether the program itself may observe the creation order of method,
