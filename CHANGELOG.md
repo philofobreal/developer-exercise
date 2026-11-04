@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased – 2026-11-04 az orákulum modul- és `[[Set]]`-olvasata elfogadott korlát (NY-07)
+
+- **Mérés, nem kódváltozás:** az orákulum második, kibocsátott kódon alapuló olvasata (ADR-063) a modulokra és a `[[Set]]` mezőmódra továbbra sincs meg. Ma egyetlen modulfixture van, a `[[Set]]` olvasat pedig a meglévőhöz csak a fordító saját átalakítását adná, amelyet a futtatás már ellenőriz. Egy új teszt jelez, ha egy második modulfixture megjelenik.
+
 ## Unreleased – 2026-11-04 minden példa igazolt, az alapértelmezés `verified-only` (ADR-089)
 
 - **Igazolt példák:**

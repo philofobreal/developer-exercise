@@ -21,7 +21,6 @@
 | NY-03 | **Hatásösszegzés** a felső szintű függvényekre (`var v = f()`) | generátor | **0 mért rés** (a korábban ide sorolt 31 rés más okú volt, [ADR-069](adr/069-deep-hostile-input-and-own-class-names.md)) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) | csak ha egy mérés esetet mutat |
 | NY-05 | **2d maradéka:** saját objektumot kapó ismeretlen függvény (a referencia megtartása) | generátor | **0 mért rés** (2026-11-04: a korpusz `Object.entries(totals)` tanúja már nem rés, a kampányban sincs ilyen) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md), [ADR-059](adr/059-read-only-builtins.md) | csak ha egy mérés esetet mutat |
 | NY-06 | **Tiszta beépített globálisok** (`Math.max`) külön kódcsaládja | generátor | **0 mért rés** (2026-11-04: sem a korpuszban, sem a kampányban) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) | csak ha egy mérés esetet mutat |
-| NY-07 | **Orákulum:** a modulok és a `[[Set]]` osztálymező-mód második (kibocsátott) olvasata | mérés | az A1 feltevés szűkítése, nem résszám | [ADR-063](adr/063-oracle-typescript-emit-reading.md) | |
 | NY-08 | **Érték-perturbáció korlátja:** egy literál egyszerre, legfeljebb 96 változat | mérés | a rés felső becslés marad | [ADR-067](adr/067-value-perturbation-in-measurement.md) | csak ha egy rés gyanúsan szándékhű |
 | NY-11 | **G fázis:** az AI-governance teljessé tétele | tervezés | „részleges” jelölés | [megbízhatósági terv, G fázis](megbizhatosagi-audit-terv.md#g-fázis--az-ai-governance-teljessé-tétele-tervezés-átfogó) | leltár és terv |
 | NY-13 | **`primitive`/`pure`/`readOnly`:** három egymásra épülő osztályozó | tervezés | nincs | [ADR-050](adr/050-input-contract.md) | nem sürgős |
@@ -34,6 +33,7 @@
 | A halott kód és a korai kilépés sorrendje kötött | pedagógiai döntés (A-politika) | [ADR-043](adr/043-dead-code-intent-policy.md), [ADR-019](adr/019-pure-effect-commutation.md) |
 | `classFields: 'define'` mellett az ős elfedett `accessor` mezője és getter–setter párja (`random-inherit-typescript-7`, 4 rés) | a leszármazott saját mezője minden példányon elfedi a prototípust, és az ősosztályt a program nem példányosítja; a feloldáshoz programszintű elérhetőségi elemzés kellene egy ritka mintáért | [ADR-083](adr/083-accessor-field-in-key-chain.md) |
 | Az `inherit` JS 28 elutasított sorrendje, amely csak a régi (`[[Set]]`) mezőmódban fut máshogy | az alapbeállítás („bármelyik mezőmód”) mindkét módban helyes; `classFields: 'define'` mellett 0 rés | [ADR-075](adr/075-standard-class-fields-setting.md), [ADR-084](adr/084-loop-first-iteration.md) |
+| Az orákulum modulokat és a `[[Set]]` mezőmódot csak a TypeScript AST-ből olvassa, a kibocsátott kódból nem (volt NY-07) | ma egy modulfixture van; a `[[Set]]` kimenet a natív mezős olvasathoz csak a fordító átalakítását adná, azt a P3 futtatja; egy második modulfixture-nél a teszt jelez | [ADR-063](adr/063-oracle-typescript-emit-reading.md) |
 | Univerzális szemantikai ekvivalencia | eldönthetetlen | [formális szerződés](formal-ordering-contract.md) |
 
 ## Lezárva
