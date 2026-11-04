@@ -21,12 +21,12 @@ test('a conversion after external code observes the global writes: the kept orde
  assert.equal(verdict(witness(['strict','hostile']),'var v5 = 6;','let l3 = v1 + 1;'),'justified');
 });
 
-test('the realm stays untampered: a var assignment runs no code, so the order the generator keeps there stays a gap (NY-24)',()=>{
+test('the realm stays untampered: a var assignment runs no code, so the swap the generator frees is equivalent (ADR-082)',()=>{
  // No earlier script defines accessors for the program's names (the contract's environment); after
  // `l3 = v1 + 1` (always a primitive) no external code runs, so `c6 = l3 + 1` runs none either.
- assert.equal(verdict(witness(['strict','hostile']),'const c6 = l3 + 1;','var v5 = 6;'),'gap');
+ assert.equal(verdict(witness(['strict','hostile']),'const c6 = l3 + 1;','var v5 = 6;'),'accepted');
  const row=measureFixture(witness(['strict','hostile']),CORPUS_CAPS);
- assert.deepEqual([row.unsound,row.gaps.length],[0,2]);
+ assert.deepEqual([row.unsound,row.gaps.length],[0,0]);
 });
 
 test('valid plain data promises no hostile external code: the swap is accepted and the environment is skipped',()=>{
