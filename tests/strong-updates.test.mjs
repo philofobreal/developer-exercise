@@ -77,7 +77,7 @@ test('a constraint only a catch that never runs creates keeps the intent: dead-c
  clean(fixture);
 });
 
-test('a constraint live code creates stays a gap: the dropped array of NY-19',()=>{
+test('a constraint live code creates is no dead-code intent: the dropped array of NY-19 is heap intent (ADR-080)',()=>{
  const fixture=program('adr072-live',["  a.note('n2');","  a.note('n3');",'  a.attach(shared);']);
- assert.equal(verdict(fixture,"a.note('n3');","a.note('n2');"),'gap');
+ assert.equal(verdict(fixture,"a.note('n3');","a.note('n2');"),'intent');
 });

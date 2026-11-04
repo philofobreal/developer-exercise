@@ -84,3 +84,15 @@ test('reading an own private field before it exists throws: the read stays after
  assert.equal(verdict(p,'g = 1;','#h = 7;'),'accepted');
  clean(p);
 });
+
+/** ADR-083 (v47): an `accessor` field defines its get/set pair at class definition among the methods, in
+ * member order; in a same-key chain it replaces what came before. Its initialiser stays with the fields. */
+test('an accessor field is a member of its key\'s definition chain (ADR-083)',async()=>{
+ const {readFile}=await import('node:fs/promises'),contract=await readFile(new URL('../docs/formal-ordering-contract.md',import.meta.url),'utf8');
+ assert.match(contract,/\| `scoped-effect-analysis-v47` \| \[ADR-083\]/);
+ const p=fixture('adr083-accessor-chain',['class B {',"  get f(): unknown { return (this as any)._f ?? 'unset'; }","  set f(value: unknown) { record('set', value); (this as any)._f = value; }","  m(): string { return 'm'; }",'  accessor f = 3;','}','class A extends B {','  f = 4;','  g = 5;','}','function evaluate() {','  const a = new A();','  return [a.f, a.g, a.m()];','}'],'typescript');
+ assert.equal(verdict(p,"get f(): unknown { return (this as any)._f ?? 'unset'; }","set f(value: unknown) { record('set', value); (this as any)._f = value; }"),'accepted','the halves merge in either order');
+ assert.equal(verdict(p,"m(): string { return 'm'; }",'accessor f = 3;'),'accepted','another key is free of the chain');
+ assert.equal(verdict(p,'accessor f = 3;','class B {'),'justified','[[Set]]: a.f = 4 then runs the explicit setter, which records');
+ clean(p);
+});

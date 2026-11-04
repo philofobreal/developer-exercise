@@ -47,7 +47,18 @@ A kezdőérték hatásai a deklaráció utasításáé maradnak, és az a saját
 
 ## Mérés
 
-*A kampány lefutása után kitöltve.*
+**Teljes kampány, 12 mag, 7 fajta, 2 nyelv, `--environments=strict,hostile`**, v45 → v46:
+
+| Csoport | Elfogadott | Rés | Hibás elfogadás |
+| --- | --- | --- | --- |
+| `script` JS | 477 → 484 | 2 → 0 | 0 |
+| a többi csoport | változatlan | változatlan | 0 |
+
+**Korpusz** (110 fixture): az `algo-bfs-js` 5 → 6 elfogadott sorrend, rés 2 → 1, 0 hibás elfogadás; a korpusz rése 11 → 10.
+
+**Gyors alapérték:** a `script` JS rése 2 marad. A gyors kapu csak `strict` környezetben fut, és ott ez a kettő a szerződés által indokolt kötés.
+
+Csak `strict` környezetben a `script` JS-ben 3 rés marad. Ezek a szigorú szerződés által indokolt kötések (ADR-081), amelyeket csak a rosszindulatú környezet mutat meg.
 
 ## Bizonyíték
 

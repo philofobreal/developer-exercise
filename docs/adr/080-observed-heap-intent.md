@@ -60,6 +60,13 @@ Ha a sorrend semmilyen objektumállapotot nem változtat, például egy tiszta d
 
 A szabály tehát pontosan az NY-19 mintáját sorolja át, mást nem.
 
+**Egy második tanú a tesztekben:** az `escape-bound-shadowed-callee` ([escape-witnesses.test.mjs](../../tests/escape-witnesses.test.mjs)).
+- A `b.call(1)` dob, mert az elfedő `record` paraméter nem függvény.
+- A próba csak a hibaüzenetet adja vissza, a csere viszont megváltoztatja, mit tart az `a`, amikor a program eldobja.
+- Eddig a teszt túlzó óvatosságnak (résnek) minősítette, most `heap` szándék.
+
+**Teljes kampány** (v46, `strict` és `hostile`): az `object` nem dobó csoportjai 11 + 11 rés helyett 0 rés, 11 + 11 `heap` szándék.
+
 **Két mérési hiba, amelyet az elfedési próba talált, és amelyet a végleges változat kijavított:**
 1. **Szétterítés a segédsorban:** az első segédsor szétterítést (`...`) használt. Az orákulum ezt kulcsfelsorolásnak vette, ezért a változatban a mezők sorrendje is számított, és az `inherit` JS 28 rése tévesen szándék lett. A végleges segédsor nem terít szét.
 2. **A statikus elemzés:** az orákulum statikus hatássorrend-elemzése (P2) a `__keep(…)` hívásokat ismeretlen hívásnak vette, és elvesztette a saját objektummodelljét. Ezért a `flow-*-7` rését is szándéknak sorolta. A végleges változatot az orákulum csak futás alapján ítéli meg (`runtimeOnly`). Az eredeti forrást a teljes orákulum már egyenértékűnek találta, a változat csak a heap végállapotát kérdezi.

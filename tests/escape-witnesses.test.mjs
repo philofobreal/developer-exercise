@@ -70,10 +70,16 @@ for(const [id,call,cause,why] of [
  ['escape-bound-eval','b.evalShout();','source-order','direct eval sees the method scope'],
  ['escape-bound-object-argument','b.dump();','ExpressionStatement','an object argument escapes (item 2d)'],
  ['escape-bound-declared-callee','b.noted();','ExpressionStatement','a callee the program declares'],
- ['escape-bound-shadowed-callee','b.call(1);','ExpressionStatement','a parameter shadows the global name'],
+ // ADR-080: `b.call(1)` throws (the shadowing parameter is not a function), and the swap changes
+ // what `a` holds when it is dropped: heap intent, not a gap; see the test after this table.
 ])test(`still unknown: ${why}`,()=>{
  // Conservative, not wrong: the order is equivalent, and v19 still rejects it.
  assert.deepEqual(Object.entries(classify(id,'a.add(1);',call)).filter(([key])=>key==='kind'||key==='causes'),[['kind','gap'],['causes',[cause]]]);
+});
+
+test('a parameter shadows the global name: the call throws, and the write before it is heap intent (ADR-080)',()=>{
+ const result=classify('escape-bound-shadowed-callee','a.add(1);','b.call(1);');
+ assert.deepEqual([result.kind,result.reason,result.causes],['intent','heap',['ExpressionStatement']]);
 });
 
 test('kept order: a caught external call may write a script binding a local write reads',()=>{

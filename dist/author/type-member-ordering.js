@@ -260,7 +260,11 @@ export function typeMemberOrdering(file, compiler, options = {}) {
             // the fields; the later of two same-key definitions on one object replaces the earlier one.
             const definitionOnly = (member) => (compiler.isMethodDeclaration(member) || compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member)) && !!member.body && plainNamed(member)
                 && !(compiler.canHaveDecorators(member) && compiler.getDecorators(member)?.length) && ((compiler.canHaveModifiers(member) ? compiler.getModifiers(member) : undefined) ?? []).every(modifier => definitionModifiers.has(modifier.kind)) && definitionRows(member);
-            const duplicates = new Set(isClass ? [...counts].filter(([key, count]) => count > 1 && !pairs.has(key) && node.members.every(member => name(member) !== key || definitionOnly(member))).map(([key]) => key) : []);
+            // v47 (ADR-083): an `accessor` field defines its get/set pair at class definition among the methods,
+            // in member order, replacing what an earlier definition of its key left; its initialiser runs later,
+            // with the fields. In a same-key chain it counts by its definition; its field part stays ordered.
+            const autoField = (member) => compiler.isPropertyDeclaration(member) && plainNamed(member) && !(compiler.canHaveDecorators(member) && compiler.getDecorators(member)?.length) && !!compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.AccessorKeyword) && !compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.AbstractKeyword || modifier.kind === compiler.SyntaxKind.DeclareKeyword);
+            const duplicates = new Set(isClass ? [...counts].filter(([key, count]) => count > 1 && !pairs.has(key) && node.members.every(member => name(member) !== key || definitionOnly(member) || autoField(member))).map(([key]) => key) : []);
             /** ADR-073: the earlier field `this.g` names, when `member`'s initialiser is just that read and `g`
              * is a uniquely named plain field of the same placement that no base can define. */
             const copySource = (member, all) => {
@@ -393,7 +397,7 @@ export function typeMemberOrdering(file, compiler, options = {}) {
                 // v44 (ADR-078): when the program lists keys, a public field that runs no code is not loose; it
                 // stays ordered with every other public field (its key), but not with the private loose fields.
                 const detached = !!footprint && (!assignable(key, member) || !!member.initializer || !!options.enumeratedKeys);
-                return { first: row, last: end, pure, plain, free: definition || isClass && pure, ...(definition && duplicate ? { sameKey: key + (isStatic(member) ? ' static' : ' prototype'), ...(compiler.isGetAccessorDeclaration(member) ? { half: 'get' } : compiler.isSetAccessorDeclaration(member) ? { half: 'set' } : {}) } : {}), ...(reflected ? { reflect: isStatic(member) ? 'static' : 'prototype' } : {}), ...(phases ? { phases } : {}), ...(definition && paired ? { pair: key } : {}), ...(loose || copied ? { loose: true } : {}), ...(copied ? { copies: last(copied) } : {}), ...(loose || copied ? { touches: { reads: copied ? [name(copied)] : [], writes: [key] } } : {}), ...(detached ? { detached: true, ...(footprint ? { footprint } : {}) } : {}) };
+                return { first: row, last: end, pure, plain, free: definition || isClass && pure, ...((definition || autoAccessor) && duplicate ? { sameKey: key + (isStatic(member) ? ' static' : ' prototype'), ...(compiler.isGetAccessorDeclaration(member) ? { half: 'get' } : compiler.isSetAccessorDeclaration(member) ? { half: 'set' } : {}) } : {}), ...(reflected ? { reflect: isStatic(member) ? 'static' : 'prototype' } : {}), ...(phases ? { phases } : {}), ...(definition && paired ? { pair: key } : {}), ...(loose || copied ? { loose: true } : {}), ...(copied ? { copies: last(copied) } : {}), ...(loose || copied ? { touches: { reads: copied ? [name(copied)] : [], writes: [key] } } : {}), ...(detached ? { detached: true, ...(footprint ? { footprint } : {}) } : {}) };
             });
             // An overload signature must directly precede the next signature or the
             // implementation (TS2389/TS2391): the whole group is one unit. Its signatures are
@@ -441,7 +445,7 @@ export function typeMemberOrdering(file, compiler, options = {}) {
                 // v44 (ADR-078): a getter and a setter next to each other in a same-key chain merge into one
                 // accessor property in either order; the next definition follows both.
                 const defined = new Map();
-                for (const member of free)
+                for (const member of grouped)
                     if (member.sameKey) {
                         const chain = defined.get(member.sameKey) ?? { last: [], before: [] };
                         const joins = !!member.half && chain.last.length === 1 && !!chain.last[0].half && chain.last[0].half !== member.half;

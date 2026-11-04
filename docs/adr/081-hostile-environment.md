@@ -52,7 +52,14 @@ A változat nem teljes ellenfél: objektumargumentumokat nem módosít, és nem 
 
 ## Mérés
 
-*A kampány lefutása után kitöltve.*
+**Teljes kampány, 12 mag, 7 fajta, 2 nyelv, `--environments=strict,hostile`:**
+- **v45-ön** (az [ADR-082](082-script-bindings-since-declaration.md) előtt), a `function`, `class`, `param`, `script` és `inherit` fajtán: 0 hibás elfogadás. A `script` JS 5 réséből 3 indokolt elutasítás lett, 2 rés maradt (NY-24).
+- **v46-on**, mind a 7 fajtán: 366 123 sorrend, 0 hibás elfogadás.
+  - A `script` JS 0 rés.
+  - A rés 59 → 32 (a többi változás az [ADR-080](080-observed-heap-intent.md) és az ADR-082 hatása).
+- **Az első ellenfél** (korábbi szkript accessorokkal) a `script` JS-ben 114 hibás elfogadást mutatott. Ez az ellenfél hibája volt (4. pont), nem a generátoré.
+
+A szigorú bemeneti szerződés globális változókra vonatkozó oldalát ez a mérés vizsgálja először. Hibás elfogadást nem talált.
 
 ## Bizonyíték
 
