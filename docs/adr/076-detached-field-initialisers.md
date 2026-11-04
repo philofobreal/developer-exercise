@@ -53,6 +53,7 @@ Az `f1` kezdőértéke kódot futtat, ezért a tagrendezés minden laza mező (`
 | `inherit` JS | 358 → 395 | 133 → 108 | 0 |
 | `inherit` TS | 374 → 412 | 77 → 52 | 0 |
 | a többi 6 fajta | változatlan | változatlan (48) | 0 |
+| **Összesen** (365 982 sorrend) | **15 671 → 15 746** | **258 → 208** | **0** |
 
 **Környezetváltozatokkal** (`strict`, `es2015`, `sloppy`; `inherit` és `class`):
 
