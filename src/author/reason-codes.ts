@@ -17,6 +17,11 @@ export interface ReasonCodeEntry {
   /** What the constraint protects, in Hungarian, for authors and reviews. */
   readonly meaning: string;
   readonly adr: string;
+  /** Set when no run of the program can tell the constraint apart (NY-14, ADR-088):
+   *  - `policy`: a pedagogical decision (ADR-068);
+   *  - `type`: only TypeScript's type checker observes it (ADR-079).
+   * The measurement counts an equivalent order rejected only for such constraints as intent, not as a gap. */
+  readonly unobservable?: 'policy' | 'type';
 }
 
 const entries = [
@@ -35,7 +40,7 @@ const entries = [
   { code: 'class-evaluation-order', category: 'effect', meaning: 'osztálytagok ugyanabban a kiértékelési fázisban', adr: 'ADR-012' },
   { code: 'may-throw', category: 'effect', meaning: 'két esetleg rendellenesen végződő művelet (kivétel, külső kód, végtelen ciklus)', adr: 'ADR-028' },
   { code: 'external-call-order', category: 'effect', meaning: 'programon kívüli kódot hívó művelet egy másikkal, vagy egy általa írható kötés olvasásával', adr: 'ADR-040' },
-  { code: 'early-exit-order', category: 'policy', meaning: 'tiszta deklaráció és egy korán kiléphető (return, throw, break) utasítás: a deklaráció nem kerül a kilépés mögé (pedagógiai döntés)', adr: 'ADR-019' },
+  { code: 'early-exit-order', category: 'policy', meaning: 'tiszta deklaráció és egy korán kiléphető (return, throw, break) utasítás: a deklaráció nem kerül a kilépés mögé (pedagógiai döntés)', adr: 'ADR-019', unobservable: 'policy' },
   { code: 'reflected-key-order', category: 'policy', meaning: 'a program felsorolja a kulcsokat, ezért a létrehozás sorrendje megfigyelhető', adr: 'ADR-010' },
   { code: 'script-global-order', category: 'policy', meaning: 'szkriptszintű globális kötések létrehozási sorrendje', adr: 'ADR-010' },
   { code: 'block-open', category: 'structure', meaning: 'a sor a blokk nyitó sora után áll', adr: 'ADR-014' },
@@ -43,7 +48,7 @@ const entries = [
   { code: 'clause-boundary', category: 'structure', meaning: 'klauzulalánc határa (`} else {`, `case`)', adr: 'ADR-013' },
   { code: 'clause-segment', category: 'structure', meaning: 'a klauzula sorai a határa után', adr: 'ADR-013' },
   { code: 'clause-separator', category: 'structure', meaning: 'a következő klauzula a határ után', adr: 'ADR-013' },
-  { code: 'overload-group', category: 'structure', meaning: 'TS overload-szignatúrák és megvalósításuk egymás mellett', adr: 'ADR-009' },
+  { code: 'overload-group', category: 'structure', meaning: 'TS overload-szignatúrák és megvalósításuk egymás mellett', adr: 'ADR-009', unobservable: 'type' },
   { code: 'continued-row', category: 'unit', meaning: 'egy többsoros utasítás folytató sora', adr: 'ADR-009' },
   { code: 'sealed-unit', category: 'unit', meaning: 'lezárt többsoros egység a v2-projekcióban', adr: 'ADR-009' },
   { code: 'declaration-shape', category: 'conservative', meaning: 'nem elemzett deklarációalak', adr: 'ADR-008' },

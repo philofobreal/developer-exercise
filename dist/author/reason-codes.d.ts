@@ -16,6 +16,11 @@ export interface ReasonCodeEntry {
     /** What the constraint protects, in Hungarian, for authors and reviews. */
     readonly meaning: string;
     readonly adr: string;
+    /** Set when no run of the program can tell the constraint apart (NY-14, ADR-088):
+     *  - `policy`: a pedagogical decision (ADR-068);
+     *  - `type`: only TypeScript's type checker observes it (ADR-079).
+     * The measurement counts an equivalent order rejected only for such constraints as intent, not as a gap. */
+    readonly unobservable?: 'policy' | 'type';
 }
 declare const entries: readonly [{
     readonly code: "binding-input";
@@ -97,6 +102,7 @@ declare const entries: readonly [{
     readonly category: "policy";
     readonly meaning: "tiszta deklaráció és egy korán kiléphető (return, throw, break) utasítás: a deklaráció nem kerül a kilépés mögé (pedagógiai döntés)";
     readonly adr: "ADR-019";
+    readonly unobservable: "policy";
 }, {
     readonly code: "reflected-key-order";
     readonly category: "policy";
@@ -137,6 +143,7 @@ declare const entries: readonly [{
     readonly category: "structure";
     readonly meaning: "TS overload-szignatúrák és megvalósításuk egymás mellett";
     readonly adr: "ADR-009";
+    readonly unobservable: "type";
 }, {
     readonly code: "continued-row";
     readonly category: "unit";

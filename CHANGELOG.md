@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased – 2026-11-04 a futással nem megfigyelhető okkódot a regiszter jelöli (ADR-088)
+
+- **Megbízhatóbb mérés:** az okkód-regiszter jelöli azokat a szabályokat, amelyeket egyetlen futás sem különböztet meg: a pedagógiai döntést (`early-exit-order`) és a csak típusellenőrzővel látható overload-sorrendet (`overload-group`). A mérés onnan olvassa, mi számít szándéknak, nem egy külön kézi listából, így egy új okkód nem maradhat ki belőle csendben. A generátor és a mérés eredményei nem változtak.
+
 ## Unreleased – 2026-11-04 accessor mező az azonos kulcsú láncban (ADR-083, v47); a ciklus első köre (ADR-084, v48); objektumheap-modul (ADR-085); reguláris kifejezés literálja (ADR-086, v49); metódusszignatúra (ADR-087, v50)
 
 - **Kevesebb fölösleges szabály az öröklési programokban (v47):** egy `accessor` mező ugyanazon a néven álló getter–setter pár mellett az azonos kulcsú definíciók láncának tagja. A TypeScript `inherit` csoport rése 2 → 0.

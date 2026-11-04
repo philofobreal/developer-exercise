@@ -27,7 +27,6 @@
 | NY-10 | **`class-accounts-ts` migrációja:** a frissítés a tanár 480 sorrendjéből 360-at elutasítana | döntés | 360 sorrend | [ADR-057](adr/057-example-migration-and-publication-default.md) | a felhasználó döntése |
 | NY-11 | **G fázis:** az AI-governance teljessé tétele | tervezés | „részleges” jelölés | [megbízhatósági terv, G fázis](megbizhatosagi-audit-terv.md#g-fázis--az-ai-governance-teljessé-tétele-tervezés-átfogó) | leltár és terv |
 | NY-13 | **`primitive`/`pure`/`readOnly`:** három egymásra épülő osztályozó | tervezés | nincs | [ADR-050](adr/050-input-contract.md) | nem sürgős |
-| NY-14 | **`POLICY_INTENT`:** kézi lista az osztályozóban | tervezés | nincs | [ADR-068](adr/068-binding-context-member-phases-early-exit.md) | a jegyzékbe, ha lesz második ilyen okkód |
 | NY-16 | **A böngészőtesztek környezete:** a Python Playwright 1248-as Chromiumot vár, 1243-as van telepítve | környezet | friss konténerben nem indul | — | a környezet beállítása; addig `PLAYWRIGHT_BROWSERS_PATH` alias |
 
 ## Elfogadott korlátok (nem rések, nem javítandók)
@@ -44,6 +43,7 @@
 
 | Tétel | Lezárta |
 | --- | --- |
+| NY-14: a futással nem megfigyelhető okkódot a regiszter jelöli (`unobservable`), az osztályozó onnan olvas | [ADR-088](adr/088-unobservable-reason-codes.md) |
 | NY-01: a ciklus első köre külön (`flow`: 1 → 0 rés nyelvenként) | [ADR-084](adr/084-loop-first-iteration.md) |
 | NY-22: az `inherit` fajta maradéka; az `accessor` mező az azonos kulcsú láncban (TS 2 → 0 rés); a `define` mód árnyékolt ősét az elfogadott korlátok sorolják | [ADR-083](adr/083-accessor-field-in-key-chain.md) |
 | NY-26: az egyedi nevű interfész-metódusszignatúra törlődik (`refl-ts-erased-and-overloads`, 1 rés, 1 projekciós veszteség) | [ADR-087](adr/087-erased-method-signatures.md) |
