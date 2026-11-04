@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased – 2026-11-04 három új igazolt példafeladat (ADR-098)
+
+- **Új gyakorlófeladatok:**
+  - **Szógyakoriság Map-pel** (JavaScript, közepes);
+  - **Generikus verem** (TypeScript, közepes, sok szabad tagsorrenddel);
+  - **Fibonacci memoizálással** (JavaScript, rekurzió és korai kilépés).
+- **Mindegyik igazolt,** és nem utasít el olyan sorrendet, amely futáskor azonos lenne.
+- **Egy kezdő statisztika-feladat nem került be:** az elemzés hat helyes átrendezést utasítana el benne. Ezt a jegyzék generátorjavításként tartja nyilván (NY-06).
+
 ## Unreleased – 2026-11-04 az `attempt` és a `persistence` modul TypeScriptben (ADR-097)
 
 - **Belső, a viselkedés nem változott:** a tanulói elrendezést (beszúrás, nem csere, rögzített helyek) és a munkamenet mentését, betöltését kezelő két modul szigorú TypeScriptre került. Egy különbségi teszt 16 804 esetben igazolta, hogy a régi és az új modul ugyanazt adja.

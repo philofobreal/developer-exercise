@@ -5,6 +5,9 @@ import {readFile} from 'node:fs/promises';
 import {taskPrograms} from './task-programs.mjs';
 
 const library={
+ 'word-count-js':"(() => [topWords('a b a c b a', 2), topWords('Egy ketto egy HAROM ketto egy', 3), topWords('', 1)])()",
+ 'stack-ts':"(() => { const stack = new Stack(); const empty = stack.isEmpty(); stack.push(1); stack.push(2); const top = stack.peek(); const popped = [stack.pop(), stack.pop(), stack.pop()]; return [empty, top, popped, stack.size, stack.isEmpty()]; })()",
+ 'fib-memo-js':'(() => [fibonacci(0), fibonacci(1), fibonacci(10), fibonacci(40)])()',
  'algo-bfs-js':'(() => { const grid = [[0, 0, 0, 0], [1, 1, 0, 1], [0, 0, 0, 0], [0, 1, 1, 0]]; return [shortestPath(grid, [0, 0], [3, 3]), shortestPath(grid, [0, 0], [2, 0]), shortestPath(grid, [3, 0], [0, 3]), shortestPath([[0, 1], [1, 0]], [0, 0], [1, 1]), shortestPath(grid, [2, 2], [2, 2]), shortestPath([[0, 0], [0, 0]], [0, 0], [5, 5])]; })()',
  'algo-sort-search-js':'(() => { const input = [5, 2, 9, 1, 5, 6, -3]; const sorted = insertionSort(input); return [sorted, input, [-3, 1, 5, 6, 9, 4, 10].map((target) => binarySearch(sorted, target))]; })()',
  'class-inventory-ts':"(() => { const inventory = new Inventory(3); inventory.add({ sku: 'a', name: 'alma', quantity: 2, price: 100 }); inventory.add({ sku: 'b', name: 'barack', quantity: 5, price: 40 }); inventory.add({ sku: 'a', name: 'alma', quantity: 4, price: 100 }); inventory.add({ sku: 'c', name: 'citrom', quantity: 1, price: 70 }); return [inventory.totalValue(), inventory.lowStock(), Object.keys(inventory)]; })()",

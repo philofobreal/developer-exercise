@@ -1,0 +1,301 @@
+{
+  "schemaVersion": 2,
+  "id": "word-count-js",
+  "revision": 1,
+  "language": "javascript",
+  "title": "Szógyakoriság Map-pel",
+  "description": "Szavak megszámlálása Map-pel, majd rendezés gyakoriság szerint. A szöveg felbontása, a számlálás a ciklusban és a rendezés egymásra épül, ezért egyetlen helyes sorrend van. A bemenet egyszerű szöveg és egy szám.",
+  "lines": [
+    {
+      "id": 1,
+      "sourceLine": 1,
+      "code": "function topWords(text, limit) {",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "sourceLine": 2,
+      "code": "const counts = new Map();",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "sourceLine": 3,
+      "code": "const words = text.toLowerCase().split(' ').filter((word) => word.length > 0);",
+      "dependencies": [
+        2
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 4,
+      "sourceLine": 4,
+      "code": "for (const word of words) {",
+      "dependencies": [
+        3
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 5,
+      "sourceLine": 5,
+      "code": "const seen = counts.get(word) ?? 0;",
+      "dependencies": [
+        2
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 6,
+      "sourceLine": 6,
+      "code": "counts.set(word, seen + 1);",
+      "dependencies": [
+        4,
+        5
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 7,
+      "sourceLine": 7,
+      "code": "}",
+      "dependencies": [
+        6
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 8,
+      "sourceLine": 8,
+      "code": "const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));",
+      "dependencies": [
+        7
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 9,
+      "sourceLine": 9,
+      "code": "return ranked.slice(0, limit);",
+      "dependencies": [
+        8
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 10,
+      "sourceLine": 10,
+      "code": "}",
+      "dependencies": [
+        9
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "scope-1",
+      "kind": "function",
+      "parentScopeId": null,
+      "openLineId": 1,
+      "closeLineId": 10,
+      "functionBlock": 1
+    },
+    {
+      "id": "scope-2",
+      "kind": "block",
+      "parentScopeId": "scope-1",
+      "openLineId": 4,
+      "closeLineId": 7
+    }
+  ],
+  "edges": [],
+  "profiles": [],
+  "authoring": {
+    "strategy": "ast-hierarchy",
+    "reason": "",
+    "omittedBlocks": 0,
+    "semanticEquivalenceProven": false,
+    "dependencyPolicy": "scoped-effect-analysis-v50",
+    "provenance": [
+      {
+        "before": 1,
+        "after": 2,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 2,
+        "after": 3,
+        "category": "effect",
+        "code": "effectful-or-unknown-initializer"
+      },
+      {
+        "before": 3,
+        "after": 4,
+        "category": "effect",
+        "code": "effectful-or-unknown-initializer"
+      },
+      {
+        "before": 3,
+        "after": 4,
+        "category": "effect",
+        "code": "ForOfStatement"
+      },
+      {
+        "before": 2,
+        "after": 5,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 4,
+        "after": 6,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 5,
+        "after": 6,
+        "category": "effect",
+        "code": "ExpressionStatement"
+      },
+      {
+        "before": 6,
+        "after": 7,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 7,
+        "after": 8,
+        "category": "effect",
+        "code": "ForOfStatement"
+      },
+      {
+        "before": 7,
+        "after": 8,
+        "category": "effect",
+        "code": "effectful-or-unknown-initializer"
+      },
+      {
+        "before": 8,
+        "after": 9,
+        "category": "effect",
+        "code": "effectful-or-unknown-initializer"
+      },
+      {
+        "before": 8,
+        "after": 9,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 9,
+        "after": 10,
+        "category": "structure",
+        "code": "block-close"
+      }
+    ],
+    "evidence": {
+      "sourceDigest": "92c1e9f9723d3130",
+      "analyzer": "scoped-effect-analysis-v50",
+      "environment": {
+        "typescript": "5.8.3",
+        "sourceKind": "script",
+        "classFields": "either",
+        "inputs": "valid"
+      },
+      "projectionLoss": {
+        "pairs": 0,
+        "examples": []
+      }
+    },
+    "dependencyHints": [
+      {
+        "name": "text",
+        "declarationLine": 1,
+        "usageLine": 3
+      },
+      {
+        "name": "words",
+        "declarationLine": 3,
+        "usageLine": 4
+      },
+      {
+        "name": "counts",
+        "declarationLine": 2,
+        "usageLine": 5
+      },
+      {
+        "name": "word",
+        "declarationLine": 4,
+        "usageLine": 5
+      },
+      {
+        "name": "counts",
+        "declarationLine": 2,
+        "usageLine": 6
+      },
+      {
+        "name": "word",
+        "declarationLine": 4,
+        "usageLine": 6
+      },
+      {
+        "name": "seen",
+        "declarationLine": 5,
+        "usageLine": 6
+      },
+      {
+        "name": "counts",
+        "declarationLine": 2,
+        "usageLine": 8
+      },
+      {
+        "name": "ranked",
+        "declarationLine": 8,
+        "usageLine": 9
+      },
+      {
+        "name": "limit",
+        "declarationLine": 1,
+        "usageLine": 9
+      }
+    ]
+  }
+}
