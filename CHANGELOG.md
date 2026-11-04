@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased – 2026-11-04 obsidian dizájn, 4. szakasz (ADR-093)
+
+- **A rendező feljebb került:** a Próba lépés fejléce tömörebb („Próbarendező”, egysoros leírás, kompakt haladássáv). A szabályok hosszabb magyarázata egy „Jelmagyarázat” blokkba csukható. Laptopképernyőn egy rövid feladat minden sora a képernyőn belül marad.
+- **Rendezőpanelek:** információs sáv „HÚZÁS” címkével, darabszám-jelvények a panelcímek mellett, szaggatott keretes „+ Sor beszúrása” üres helyek, keretes állapotkártya az ellenőrző gombbal.
+
 ## Unreleased – 2026-11-04 obsidian dizájn, 3. szakasz (ADR-092)
 
 - **Feladatfejléc:** útvonalsor („Studio / Feladatkészítés / Próba”), nagyobb cím és nyelvjelvény („TS TypeScript · 34 sor”).
