@@ -302,9 +302,9 @@
  },
  "wp6-overload-groups": {
   "neighbours": 322,
-  "accepted": 4,
-  "completenessGaps": 2,
-  "intentRejections": 0,
+  "accepted": 5,
+  "completenessGaps": 0,
+  "intentRejections": 1,
   "justifiedRejections": 316
  },
  "refl-prototype-and-static-methods": {
@@ -330,9 +330,9 @@
  },
  "refl-ts-erased-and-overloads": {
   "neighbours": 1864,
-  "accepted": 42,
-  "completenessGaps": 8,
-  "intentRejections": 0,
+  "accepted": 48,
+  "completenessGaps": 1,
+  "intentRejections": 1,
   "justifiedRejections": 1814
  },
  "refl-script-globals": {

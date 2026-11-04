@@ -54,10 +54,13 @@ test('conservative fallbacks and projection loss lower the status to conservativ
  // v33 (ADR-066): the continued call is a unit block, so `size` may cross it and nothing is lost.
  const continued=corpus.get('wp6-hoisted-into-continued-call');
  assert.equal((await verify(generate(continued.source,continued.language))).checks.projectionLoss,0);
- // An overload group's last row also closes the implementation: no block can hold it, it stays sealed (ADR-009).
- const fixture=corpus.get('wp6-overload-groups');
+ // v45 (ADR-079): an overload group's function block opens at its first signature, so nothing is sealed.
+ const overloads=corpus.get('wp6-overload-groups');
+ assert.equal((await verify(generate(overloads.source,overloads.language))).checks.projectionLoss,0);
+ // A loss that remains: interface members the projection keeps in order.
+ const fixture=corpus.get('refl-ts-erased-and-overloads');
  const lossy=await verify(generate(fixture.source,fixture.language));
- assert.equal(lossy.checks.projectionLoss,3);
+ assert.equal(lossy.checks.projectionLoss,1);
  assert.equal(lossy.status,'conservative');
  assert.equal(claim(lossy,'A kezelt esetekben'),'not-established');
 });

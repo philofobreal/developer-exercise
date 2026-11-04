@@ -406,7 +406,9 @@ export function typeMemberOrdering(file, compiler, options = {}) {
                 if (isClass && previous && signature(previous) && name(previous) === name(node.members[i])) {
                     const head = grouped.pop(), size = sizes.pop() + 1, key = name(node.members[i]);
                     const definition = !!head.plain && !!member.plain && !!node.members[i].body && key !== undefined && counts.get(key) === size;
-                    grouped.push({ first: head.first, last: member.last, pure: false, plain: !!head.plain && !!member.plain, ...(definition ? { free: true } : {}), ...(member.reflect ? { reflect: member.reflect } : {}) });
+                    // v45 (ADR-079): the signatures are the header of the implementation's body block.
+                    const implemented = !!node.members[i].body;
+                    grouped.push({ first: head.first, last: member.last, pure: false, plain: !!head.plain && !!member.plain, ...(implemented ? { header: 'overload-group' } : {}), ...(definition ? { free: true } : {}), ...(member.reflect ? { reflect: member.reflect } : {}) });
                     sizes.push(size);
                 }
                 else {
@@ -449,7 +451,7 @@ export function typeMemberOrdering(file, compiler, options = {}) {
                         defined.set(member.sameKey, joins ? { last: [...chain.last, member], before: chain.before } : { last: [member], before: chain.last });
                     }
                 for (const unit of [...units, ...free])
-                    spans.push({ first: unit.first, last: unit.last });
+                    spans.push({ first: unit.first, last: unit.last, ...(unit.header ? { header: unit.header } : {}) });
                 for (let start = 0; start < units.length;) {
                     if (!units[start].pure) {
                         start++;

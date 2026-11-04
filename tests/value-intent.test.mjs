@@ -32,13 +32,11 @@ test('a write hidden only by a certain throw keeps its order: intent by value',(
  assert.equal(result.reason,'value');
 });
 
-test('an order no value tells apart stays a gap: a sealed overload group',()=>{
- // ADR-070 freed the former example (the for…of over-approximation); an overload group's seal
- // (ADR-009, v3 unit model pending) is a gap no literal can explain.
- const program=corpus.get('wp6-overload-groups'),model=generate(program),row=measureFixture(program,CORPUS_CAPS);
- assert.ok(row.gaps.length>0,'the fixture still has gaps');
- const result=createClassifier(program,model).classify(row.gaps[0]);
- assert.equal(result.kind,'gap',JSON.stringify(result));
+test('an overload group is one block: no gap remains to explain (ADR-079)',()=>{
+ // ADR-070 freed the former example (the for…of over-approximation); v45 (ADR-079) opens an overload
+ // group's function block at its first signature, so the seal that left a gap no literal explains is gone.
+ const program=corpus.get('wp6-overload-groups'),row=measureFixture(program,CORPUS_CAPS);
+ assert.deepEqual([row.gaps.length,row.unsound],[0,0]);
 });
 
 test('literals: names, types, directives and module specifiers are not data; comparisons decide',()=>{

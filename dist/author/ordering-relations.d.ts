@@ -25,10 +25,14 @@ export interface OrderingRelations {
     entries: OrderingEntry[];
     /** Value inputs (row → declaration rows) that transitive reduction must keep. */
     protectedInputs: Map<number, Set<number>>;
-    /** Row span of every ordered unit (statement or member); a multi-row span is one indivisible unit. */
+    /** Row span of every ordered unit (statement or member); a multi-row span is one indivisible unit.
+     * `header` (ADR-079): the span's rows before the block its last row closes belong to that block's
+     * header (TypeScript overload signatures before the implementation), so the block may open at the
+     * span's first row; the value is the reason of the header rows' order. */
     spans: {
         first: number;
         last: number;
+        header?: ReasonCodeName;
     }[];
     /** Human explanation for authors, never a grading rule; '' when there is nothing to say. */
     note: string;

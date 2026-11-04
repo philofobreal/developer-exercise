@@ -60,6 +60,32 @@ function unitBlocks(spans, blocks, intervals, boundaryRows, projected, room) {
     }
     return units;
 }
+/** v45 (ADR-079): a multi-row unit whose rows before the block its last row closes are that block's
+ * header (`header`: TypeScript overload signatures before the implementation). The block opens at the
+ * unit's first row instead, so the validator keeps every sibling out of the whole unit, with no order
+ * between them; the header rows lie in the block and keep their order (`continued-row`), and the
+ * block's own rows follow the original opening row. It applies when the unit's first row and every
+ * row before the original opening row is no block's boundary, the block is a plain retained block
+ * (not a unit or clause chain), and every block crossing the unit's rows nests in that block or
+ * contains the unit. Returns the original opening row and the header's reason per anchored block. */
+function anchorHeaders(spans, blocks, intervals, boundaryRows, projected) {
+    const anchored = new Map();
+    for (const { first, last, header } of spans) {
+        if (!header || first >= last || !projected.has(first))
+            continue;
+        const block = blocks.find(candidate => candidate.end === last && !candidate.unit && !candidate.separators.length && candidate.start > first && candidate.start < last);
+        if (!block || anchored.has(block) || boundaryRows.get(last) !== 1)
+            continue;
+        let free = true;
+        for (let row = first; row < block.start && free; row++)
+            free = !boundaryRows.has(row);
+        if (!free || intervals.some(other => other.start < last && other.end > first && !(other.start >= block.start && other.end <= block.end) && !(other.start < first && other.end > last)))
+            continue;
+        anchored.set(block, { opening: block.start, code: header });
+        block.start = first;
+    }
+    return anchored;
+}
 /** Joins clause blocks sharing a boundary row (`} else {`) into one container: the
  * shared rows become separators, each clause a segment between two of them. Only a
  * row shared by exactly the two linked clauses qualifies, and the chain's own first
@@ -108,6 +134,7 @@ export function projectCodeLine({ physical, exact, structure, ordering }) {
     const projected = new Set(rows.map(row => row.line));
     for (const unit of unitBlocks(ordering?.spans ?? [], retained, intervals, counts, projected, 250 - retained.length))
         retained.push({ ...unit, id: 'scope-' + (retained.length + 1) });
+    const anchored = anchorHeaders(ordering?.spans ?? [], retained, intervals, counts, projected);
     let nextFunction = 1;
     for (const block of retained) {
         block.parent = innermost(retained, block.start, block.end);
@@ -130,8 +157,11 @@ export function projectCodeLine({ physical, exact, structure, ordering }) {
     rows.forEach(({ line }, i) => {
         if (!i)
             return;
+        const header = [...anchored].find(([block, { opening }]) => block.start < line && line <= opening)?.[1].code;
         if (closers.has(line))
             explain(i, i + 1, 'block-close');
+        else if (header)
+            explain(i, i + 1, header);
         else if (spans.some(span => span.first < line && line <= span.last))
             explain(i, i + 1, 'continued-row');
         else
@@ -164,6 +194,20 @@ export function projectCodeLine({ physical, exact, structure, ordering }) {
             const id = byPhysical.get(row);
             if (id !== undefined)
                 protectedById.set(id, new Set(toIds(inputs)));
+        }
+    }
+    // ADR-079: an anchored block's own rows (and the blocks it contains) follow its original opening row.
+    for (const [block, { opening }] of anchored) {
+        const head = byPhysical.get(opening);
+        if (head === undefined)
+            continue;
+        for (const row of rows) {
+            if (row.line <= opening || row.line >= block.end || scopeOf(row.line) !== block)
+                continue;
+            const id = byPhysical.get(row.line), dependencies = lines[id - 1].dependencies;
+            if (!dependencies.includes(head))
+                dependencies.push(head);
+            explain(head, id, 'block-open');
         }
     }
     // Clause segments: a separator follows the previous boundary and every top-level row of

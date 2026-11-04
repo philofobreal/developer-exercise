@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased – 2026-11-04 azonos nevű tagdefiníciók, getteren át olvasó kezdőérték, privát mező (ADR-078, v44)
+
+- **Kevesebb fölösleges szabály az öröklési programokban:**
+  - a `get ['k3']()` alakú, szöveges nevű tag ugyanaz, mint a `get k3()`;
+  - egy getter–setter pár azonos nevű mező mellett is egy tulajdonság;
+  - az egymás melletti getter és setter bármely sorrendben állhat;
+  - egy `f = this.t` alakú mező csak azt köti, amit az ős `t` gettere valóban olvas;
+  - egy privát mező akkor is szabad, ha a program kiírja az objektum kulcsait.
+- **Biztonsági feltételek:** ha a tagok azonos nevű definíciói közül egy metódus az utolsó, az írás adatot ér, és nem fut kód. Ha egy setter az utolsó, a setter kódja köt. Egy még nem létező saját privát mező olvasása a létrehozása után marad.
+- **Mérés:** a teljes kampányban a rés 110 → 78, az elfogadott sorrend +104, 0 hibás elfogadás 366 095 sorrendből. Az öröklési programok rése régi célra fordítással is: JavaScript 16 → 0, TypeScript 18 → 2.
+
 ## Unreleased – 2026-11-04 az ős settere csak az általa elért mezőket köti (ADR-077, v43)
 
 - **Kevesebb fölösleges szabály:** ha egy mező neve egy ősosztály setterével egyezik, a régi mezőmódban a mező létrehozása lefuttatja a settert. Eddig az ilyen mező minden egyszerű mező sorrendjét kötötte. Most csak azokét köti, amelyeket a setter olvas vagy ír; két olvasás egymáshoz képest szabad.

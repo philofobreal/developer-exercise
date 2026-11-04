@@ -54,7 +54,27 @@ A v43 után az `inherit` kampány maradék rései (környezetváltozatokkal: JS 
 
 ## Mérés
 
-*A kampány lefutása után kitöltve.*
+**Teljes kampány, 12 mag, 7 fajta, 2 nyelv** (alapbeállítás, `strict` környezet), v43 → v44:
+
+| Csoport | Elfogadott | Rés | Hibás elfogadás |
+| --- | --- | --- | --- |
+| `inherit` JS | 488 → 537 | 44 → 28 | 0 |
+| `inherit` TS | 459 → 514 | 18 → 2 | 0 |
+| a többi 6 fajta | változatlan | változatlan (48) | 0 |
+| **Összesen** (366 095 sorrend) | **15 886 → 15 990** | **110 → 78** | **0** |
+
+**Környezetváltozatokkal** (`strict`, `es2015`, `sloppy`; `inherit` és `class`):
+
+| Csoport | `either` rés | `define` rés | Hibás elfogadás |
+| --- | --- | --- | --- |
+| `inherit` JS | 16 → 0 | 13 → 0 | 0 / 0 |
+| `inherit` TS | 18 → 2 | 15 → 6 | 0 / 0 |
+| `class` JS/TS | 0 / 19, változatlan | 0 / 19, változatlan | 0 / 0 |
+
+- **A `strict` JS 28 rése** mind a mérés torzítása (ADR-077): a setter az ES2015-ös kibocsátásban fut és olvassa a mezőt, a natív mezőknél nem. Környezetváltozatokkal 0.
+- **A maradék TypeScript-rés** (2, illetve `define` mellett 6) egyetlen tanú, a `random-inherit-typescript-7`, lásd lent.
+- **Korpusz:** változatlan. **Gyors alapérték:** az `inherit` JS rése 9 → 2, a TS-é 7 → 0.
+- **A `class` TS 19 rése** az NY-04 (`sealed-unit`, `continued-row`), nem ennek a tételnek a része.
 
 ## Bizonyíték
 

@@ -192,7 +192,7 @@ export function jsTsOrderingRelations(file, compiler, options = {}) {
     const statements = statementOrdering(file, compiler, { ...(file.fileName.endsWith('.ts') && imports ? { imports } : {}), ...(inputs ? { inputs } : {}), reflectedKeys, enumeratedKeys }), members = typeMemberOrdering(file, compiler, { reflectedKeys, enumeratedKeys, ...(classFields === 'define' ? { classFields } : {}) });
     const unavailable = statements.inputsUnavailable ? 'Az érvényes bemenet szerződése nem alkalmazható: a program módosíthatja az olvasást (Proxy, prototípus, eval, képzett név), ezért szigorú.' : '';
     return combineOrderingRelations([
-        { entries: statements.entries, protectedInputs: statements.protectedInputs, spans: statements.units.map(({ first, last }) => ({ first, last })), note: unavailable },
+        { entries: statements.entries, protectedInputs: statements.protectedInputs, spans: statements.units.map(({ first, last, header }) => ({ first, last, ...(header ? { header } : {}) })), note: unavailable },
         { entries: members.entries, protectedInputs: new Map(), spans: members.spans, note: members.note }
     ]);
 }
