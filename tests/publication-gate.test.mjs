@@ -9,7 +9,7 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import ts from 'typescript';
 import {generateCodeLineExercise} from '../src/author/generator.mjs';
-import {ExerciseCatalog,publicationPolicy} from '../src/server/catalog.mjs';
+import {ExerciseCatalog,publicationPolicy,publicationNotice} from '../src/server/catalog.mjs';
 import {publishExamples} from '../scripts/publish-examples.mjs';
 import {verifyModel,publicationRefusal} from '../dist/index.js';
 
@@ -51,11 +51,17 @@ test('the refusal names the language error first, under both policies, even besi
 });
 
 test('the publication policy is read strictly: a misspelt value fails instead of serving more',()=>{
- assert.equal(publicationPolicy(undefined),'publishable');
- assert.equal(publicationPolicy(''),'publishable');
+ assert.equal(publicationPolicy(undefined),'verified-only','ADR-089: unset means verified-only');
+ assert.equal(publicationPolicy(''),'verified-only');
  assert.equal(publicationPolicy('publishable'),'publishable');
  assert.equal(publicationPolicy('verified-only'),'verified-only');
  for(const value of ['verified_only','Verified-Only',' verified-only','strict'])assert.throws(()=>publicationPolicy(value),/Unknown CODELINE_PUBLICATION/,value);
+});
+
+test('ADR-089: only the legacy publishable policy carries a warning for the composition roots to log',()=>{
+ assert.match(publicationNotice('publishable'),/Örökölt publikálási mód.*nem igazolt/);
+ assert.equal(publicationNotice('verified-only'),null);
+ assert.equal(publicationNotice(publicationPolicy(undefined)),null);
 });
 
 test('catalog: a type-error reference is skipped under the default policy too; a clean generated model is served under both',async t=>{
@@ -73,7 +79,8 @@ test('catalog: a type-error reference is skipped under the default policy too; a
 
 test('catalog fails closed when the only reference has a language error',async t=>{
  const dir=await folder(t,{'typed.json':typed()});
- await assert.rejects(ExerciseCatalog.open(dir),/No publishable JSON exercises.*publishable/);
+ await assert.rejects(ExerciseCatalog.open(dir,{publication:'publishable'}),/No publishable JSON exercises.*publishable/,'even the legacy policy');
+ await assert.rejects(ExerciseCatalog.open(dir),/No publishable JSON exercises.*verified-only/);
 });
 
 test('Pages publication copies and lists only what the catalog serves, and records why the rest was refused',async t=>{
@@ -85,7 +92,7 @@ test('Pages publication copies and lists only what the catalog serves, and recor
  assert.deepEqual((await readdir(out)).sort(),['clean.json','manifest.json','publication.json']);
  assert.deepEqual(JSON.parse(await readFile(path.join(out,'manifest.json'),'utf8')),['clean.json']);
  const record=JSON.parse(await readFile(path.join(out,'publication.json'),'utf8'));
- assert.equal(record.policy,'publishable');
+ assert.equal(record.policy,'verified-only','ADR-089: the default policy');
  assert.deepEqual(record.skipped.map(({file,status})=>[file,status]),[['typed.json','unverified']]);
  assert.match(record.skipped[0].reason,/nyelvi hibát/);
  assert.equal(await readFile(path.join(out,'clean.json'),'utf8'),before['clean.json'],'a served model is copied byte for byte');
@@ -93,7 +100,7 @@ test('Pages publication copies and lists only what the catalog serves, and recor
 });
 
 test('Pages publication under verified-only refuses legacy unverified models with the same reason as the server',async t=>{
- const legacy=JSON.parse(await readFile(path.join(root,'examples','profiles-js.json'),'utf8'));
+ const legacy=JSON.parse(await readFile(path.join(root,'tests','fixtures','legacy-examples','profiles-js.json'),'utf8'));
  const dir=await folder(t,{'legacy.json':legacy,'clean.json':clean()});
  const {served,skipped}=await publishExamples(dir,path.join(dir,'site'),{publication:'verified-only'});
  assert.deepEqual(served.map(item=>item.file),['clean.json']);
@@ -111,7 +118,7 @@ test('verify-models runs the same gate: a refused example fails the check, a cle
  const passing=await folder(t,{'clean.json':clean()});
  const ok=run(passing);
  assert.equal(ok.status,0,ok.stdout+ok.stderr);
- assert.match(ok.stdout,/1 exercises verified for publication \(publishable\)/);
+ assert.match(ok.stdout,/1 exercises verified for publication \(verified-only\)/);
  const misspelt=run(passing,{CODELINE_PUBLICATION:'verified_only'});
  assert.notEqual(misspelt.status,0);
  assert.match(misspelt.stderr,/Unknown CODELINE_PUBLICATION/);

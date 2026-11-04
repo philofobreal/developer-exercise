@@ -348,6 +348,9 @@ export function statementOrdering(file, compiler, options = {}) {
         const converts = (operand) => readOnly(operand, reads) && (facts.conversions || primitive(operand, new Set()));
         if (expr.kind === S.ThisKeyword)
             return true;
+        // v51 (ADR-099): Infinity and NaN are non-writable, non-configurable globals; reading them runs nothing.
+        if (builtin(expr) && (expr.text === 'Infinity' || expr.text === 'NaN'))
+            return true;
         if (compiler.isPropertyAccessExpression(expr))
             return expr.expression.kind !== S.SuperKeyword && !facts.accessor(expr.name.text) && readOnly(expr.expression, reads);
         if (compiler.isElementAccessExpression(expr))
@@ -371,22 +374,40 @@ export function statementOrdering(file, compiler, options = {}) {
         if (compiler.isObjectLiteralExpression(expr))
             return expr.properties.every(property => compiler.isSpreadAssignment(property) ? !facts.anyAccessor && readOnly(property.expression, reads) : pureProperty(property, reads, readOnly));
         // Built-in functions and methods that neither call back, nor write, nor throw on valid data.
-        if (compiler.isCallExpression(expr) && !expr.questionDotToken && expr.arguments.every(argument => !compiler.isSpreadElement(argument) && converts(argument))) {
+        if (compiler.isCallExpression(expr) && !expr.questionDotToken) {
             const callee = unwrap(expr.expression);
+            const plainArguments = expr.arguments.every(argument => !compiler.isSpreadElement(argument) && converts(argument));
+            // v51 (ADR-099): a built-in function's arguments may spread valid plain data, iterated by the built-in iterator.
+            const spreadArguments = !facts.generators && (!facts.anyAccessor || !expr.arguments.some(argument => compiler.isSpreadElement(argument))) && expr.arguments.every(argument => compiler.isSpreadElement(argument) ? readOnly(argument.expression, reads) : converts(argument));
             if (builtin(callee))
-                return facts.builtinFunction(callee.text);
+                return spreadArguments && facts.builtinFunction(callee.text);
             if (!compiler.isPropertyAccessExpression(callee) || callee.questionDotToken)
                 return false;
             const name = callee.name.text, owner = unwrap(callee.expression);
             if (builtin(owner) && facts.builtinStatic(owner.text, name, expr.arguments.length))
-                return true;
-            return facts.builtinMethod(name) && readOnly(callee.expression, reads);
+                return spreadArguments;
+            // v51 (ADR-099): an array method calling back a concise arrow whose body only reads.
+            if (facts.callbackMethod(name, expr.arguments.length) && readOnly(callee.expression, reads)) {
+                const [first, ...rest] = expr.arguments;
+                return !!first && readCallback(first, reads) && rest.every(argument => !compiler.isSpreadElement(argument) && converts(argument));
+            }
+            return plainArguments && facts.builtinMethod(name) && readOnly(callee.expression, reads);
         }
         if (compiler.isNewExpression(expr) && builtin(expr.expression)) {
             const args = expr.arguments ?? [];
             return facts.builtinConstructor(expr.expression.text, args.length) && args.every(argument => !compiler.isSpreadElement(argument) && readOnly(argument, reads));
         }
         return false;
+    }
+    /** v51 (ADR-099): a callback the built-in calls on each element of valid plain data: a concise, non-async
+     * arrow with plain identifier parameters whose body only reads (its parameters, other read-only values). */
+    function readCallback(raw, reads) {
+        const callback = unwrap(raw);
+        if (!compiler.isArrowFunction(callback) || compiler.isBlock(callback.body) || (compiler.getModifiers(callback) ?? []).length)
+            return false;
+        if (!callback.parameters.every(parameter => compiler.isIdentifier(parameter.name) && !parameter.initializer && !parameter.dotDotDotToken))
+            return false;
+        return readOnly(callback.body, reads);
     }
     /** ADR-048 (v25): function-local let/var bindings whose every write stores a primitive: an
      * initializer, `=` or an arithmetic compound assignment of a primitive, or ++/--. The greatest set
@@ -511,6 +532,7 @@ export function statementOrdering(file, compiler, options = {}) {
         return into;
     }
     /** `x = e` where x is a let/var declared earlier in this function context and e is pure (ADR-013). */
+    /** The binding an assignment statement writes, and whether its right side reads object state (v51, ADR-099: a read-only right side under the `valid` contract). */
     function localWrite(statement, reads) {
         const expr = unwrap(statement.expression);
         if (!compiler.isBinaryExpression(expr) || expr.operatorToken.kind !== S.EqualsToken || !compiler.isIdentifier(expr.left))
@@ -525,10 +547,11 @@ export function statementOrdering(file, compiler, options = {}) {
         const scope = context(statement);
         if (scope === file || context(owner) !== scope || owner.end > statement.getStart(file) || compiler.isCaseClause(owner.parent) || compiler.isDefaultClause(owner.parent))
             return null;
-        if (!pure(expr.right, reads))
+        const read = !pure(expr.right, reads);
+        if (read && !readOnly(expr.right, reads))
             return null;
         reads.add(line(owner));
-        return new Set([symbol]);
+        return { symbols: new Set([symbol]), read };
     }
     function summary(node, list) {
         const reads = new Set(), readSet = new Set(), writeSet = new Set(), base = { first: line(node), last: end(node), start: node.getStart(file), reads, readSet, writeSet, node };
@@ -598,8 +621,8 @@ export function statementOrdering(file, compiler, options = {}) {
             const written = localWrite(node, reads);
             if (written && ownsRows(node)) {
                 symbolReads(unwrap(node.expression).right, readSet);
-                written.forEach(symbol => writeSet.add(symbol));
-                return { ...base, kind: 'local-write', reason: 'local-write' };
+                written.symbols.forEach(symbol => writeSet.add(symbol));
+                return written.read ? { ...base, kind: 'read', reason: 'read-local-write' } : { ...base, kind: 'local-write', reason: 'local-write' };
             }
             return barrier(kindName(node));
         }
@@ -622,6 +645,22 @@ export function statementOrdering(file, compiler, options = {}) {
                 return barrier('branch-contains-barrier');
             symbolReads(node.expression, readSet);
             return compose(branches, 'branch', readTest) ?? barrier('branch-contains-barrier');
+        }
+        // v51 (ADR-099): under the `valid` contract a for…of over a read-only value (valid plain data, iterated by
+        // the built-in iterator; no generator in the program) whose body only reads and writes locals, with no
+        // jump out of it, is a read unit like a block: it ends, and it runs no code.
+        if (compiler.isForOfStatement(node) && facts.applies && !facts.generators && !facts.anyAccessor && !node.awaitModifier && compiler.isBlock(node.statement) && compiler.isVariableDeclarationList(node.initializer) && (node.initializer.flags & compiler.NodeFlags.BlockScoped) !== 0 && node.initializer.declarations.length === 1 && compiler.isIdentifier(node.initializer.declarations[0].name) && !transfers(node.statement)) {
+            const body = summary(node.statement, node);
+            for (const row of body.reads)
+                if (row < base.first)
+                    reads.add(row);
+            if (readOnly(node.expression, reads)) {
+                symbolReads(node.expression, readSet);
+                const loop = compose([body], 'loop', true);
+                if (loop)
+                    return loop;
+            }
+            return barrier(kindName(node));
         }
         if (compiler.isReturnStatement(node) && node.expression)
             pure(node.expression, reads);

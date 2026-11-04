@@ -32,6 +32,9 @@ export interface InputFacts {
     builtinStatic(owner: string, name: string, count: number): boolean;
     /** `x.name(…)` is a listed built-in method that no member of the program shadows. */
     builtinMethod(name: string): boolean;
+    /** v51 (ADR-099): `value.name(callback, …)` is a listed array method that calls a read-only callback
+     * on each element and writes nothing; `reduce` and `reduceRight` only with an initial value. */
+    callbackMethod(name: string, count: number): boolean;
     /** `new name(…)` of an undeclared global is a listed built-in constructor with this many arguments. */
     builtinConstructor(name: string, count: number): boolean;
 }

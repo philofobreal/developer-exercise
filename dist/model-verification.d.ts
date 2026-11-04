@@ -55,9 +55,11 @@ export interface ModelVerification {
     claims: VerificationClaim[];
 }
 export declare function verifyModel(model: CodeLineExercise, input?: VerificationInput): ModelVerification;
-/** What a trusted catalog serves (ADR-027, ADR-035). `publishable` (default): every model whose
- * reference has no language error and, with its adjacent swaps, is decided within the production
- * budget, whatever its qualification. `verified-only`: additionally no `unverified` model. A refused
- * model is skipped, never rewritten. */
+/** What a trusted catalog serves (ADR-027, ADR-035). `publishable`: every model whose reference has
+ * no language error and, with its adjacent swaps, is decided within the production budget, whatever
+ * its qualification. `verified-only` (default since ADR-089): additionally no `unverified` model. A
+ * refused model is skipped, never rewritten. */
 export type PublicationPolicy = 'publishable' | 'verified-only';
+/** ADR-089 (NY-09): the policy a catalog applies when none is configured. */
+export declare const DEFAULT_PUBLICATION_POLICY: PublicationPolicy;
 export declare function publicationRefusal(verification: ModelVerification, policy?: PublicationPolicy): string | null;

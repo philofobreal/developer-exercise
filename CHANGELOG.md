@@ -1,5 +1,83 @@
 # Changelog
 
+## Unreleased – 2026-11-04 három új igazolt példafeladat (ADR-098)
+
+- **Új gyakorlófeladatok:**
+  - **Szógyakoriság Map-pel** (JavaScript, közepes);
+  - **Generikus verem** (TypeScript, közepes, sok szabad tagsorrenddel);
+  - **Fibonacci memoizálással** (JavaScript, rekurzió és korai kilépés).
+- **Mindegyik igazolt,** és nem utasít el olyan sorrendet, amely futáskor azonos lenne.
+- **Egy kezdő statisztika-feladat nem került be:** az elemzés hat helyes átrendezést utasítana el benne. Ezt a jegyzék generátorjavításként tartja nyilván (NY-06).
+
+## Unreleased – 2026-11-04 az `attempt` és a `persistence` modul TypeScriptben (ADR-097)
+
+- **Belső, a viselkedés nem változott:** a tanulói elrendezést (beszúrás, nem csere, rögzített helyek) és a munkamenet mentését, betöltését kezelő két modul szigorú TypeScriptre került. Egy különbségi teszt 16 804 esetben igazolta, hogy a régi és az új modul ugyanazt adja.
+- **Új őrteszt:** a felület kézzel írt, régi JavaScript-moduljainak listája rögzített, és csak csökkenhet (most 4 modul).
+
+## Unreleased – 2026-11-04 automatikus akadálymentességi átvizsgálás (ADR-096)
+
+- **Új ellenőrzés:** minden változtatás előtt az axe-core átvizsgálja a fő nézeteket asztali gépen és telefonon (a WCAG 2.x A/AA gépileg ellenőrizhető szabályai).
+- **Javítva az első futás 6 hibája:**
+  - a gombok akadálymentes neve a látható felirattal kezdődik (hangvezérlés);
+  - két szövegszín kontrasztja nőtt (a szabálytábla sorindexe, az osztálynevek a kódban);
+  - az üres forráslista nem üres lista;
+  - a görgethető listák billentyűzettel is görgethetők;
+  - a teljes képernyő gombnak mobilon is van neve.
+
+## Unreleased – 2026-11-04 koppintásos áthelyezés (ADR-095)
+
+- **Új: koppintással is rendezhetsz** érintőképernyőn. Koppints egy sor fogantyújára, majd a helyére: egy üres helyre, vagy egy sorra, amely elé vagy mögé kerüljön. Megoldásbeli sort a forráslistára koppintva veszel vissza. Ugyanarra a fogantyúra koppintva megszünteted a kijelölést.
+- **Mobilon több látszik a kódból:** kis érintőképernyőn a fel és le gombok helyét átveszi a koppintás, ezért egy sorban 38%-kal szélesebb a kód.
+- **Belső:** a húzást és a billentyűzetes mozgatást kezelő modul TypeScriptre került, a viselkedése nem változott.
+
+## Unreleased – 2026-11-04 billentyűsúgó az eszköztárban, mobil rendező (ADR-094)
+
+- **Tömörebb rendező:** a „Billentyűzettel is” súgó a Rendező/Megoldáskód fülek mellé került. A külön útmutató sáv elmaradt, mert a forráslista alja és a Tipp kártya ugyanezt mondja. A rendező laptopképernyőn még feljebb kezdődik.
+- **Javítás:** a forráslista sorvégi gombja mögött már nem látszik ki a sor vége.
+- **Mobil:** az ellenőrző gomb rendezés közben a képernyő alján marad, a kettős listacím eltűnt, a panelgombok egy sorban vannak.
+
+## Unreleased – 2026-11-04 obsidian dizájn, 4. szakasz (ADR-093)
+
+- **A rendező feljebb került:** a Próba lépés fejléce tömörebb („Próbarendező”, egysoros leírás, kompakt haladássáv). A szabályok hosszabb magyarázata egy „Jelmagyarázat” blokkba csukható. Laptopképernyőn egy rövid feladat minden sora a képernyőn belül marad.
+- **Rendezőpanelek:** információs sáv „HÚZÁS” címkével, darabszám-jelvények a panelcímek mellett, szaggatott keretes „+ Sor beszúrása” üres helyek, keretes állapotkártya az ellenőrző gombbal.
+
+## Unreleased – 2026-11-04 obsidian dizájn, 3. szakasz (ADR-092)
+
+- **Feladatfejléc:** útvonalsor („Studio / Feladatkészítés / Próba”), nagyobb cím és nyelvjelvény („TS TypeScript · 34 sor”).
+- **Lépéssor:** a három lépés egy sávban, „01 · Forrás” címkékkel. A kész lépés pipát kap, az aktív kitöltött számot és fénylő aláhúzást. Mobilon is elfér.
+
+## Unreleased – 2026-11-04 obsidian dizájn, 1–2. szakasz (ADR-091)
+
+- **Új megjelenés:** ciánkék kiemelés, mélyebb sötét háttér, monospace nagybetűs címkék, fénylő aktív lépés és módfül. Minden szín egy közös palettából jön.
+- **Halvány sorvégi gombok:** a gombok nyugalmi állapotban halványak, és átlátszik mögülük a hosszú sorok kódja. Egérrel a soron, billentyűzetfókusznál vagy kiemelt sornál teljesen láthatók, érintőképernyőn mindig.
+- **Keret:** „CodeLine.” márka, aláhúzott módfülek, szerzői oldalpanel a projekt adataival és egy tippel, valamint alsó állapotsor (ellenőrzési mód, nézet, nyelv, elhelyezett sorok).
+
+## Unreleased – 2026-11-04 kódlistánként egy vízszintes görgetés (ADR-090)
+
+- **Javítás:** a hosszú kódsoroknak már nincs saját vízszintes görgetősávjuk. A forrás- és a megoldáslista, valamint a szabálytábla egyben görget, és minden sora egyforma széles.
+- **Kezelhetőség:** a fogantyú és a sorszám bal oldalt, a sorvégi gombok jobb oldalt a helyükön maradnak görgetés közben is. A szabályívek követik a gombokat.
+
+## Unreleased – 2026-11-04 az orákulum modul- és `[[Set]]`-olvasata elfogadott korlát (NY-07)
+
+- **Mérés, nem kódváltozás:** az orákulum második, kibocsátott kódon alapuló olvasata (ADR-063) a modulokra és a `[[Set]]` mezőmódra továbbra sincs meg. Ma egyetlen modulfixture van, a `[[Set]]` olvasat pedig a meglévőhöz csak a fordító saját átalakítását adná, amelyet a futtatás már ellenőriz. Egy új teszt jelez, ha egy második modulfixture megjelenik.
+
+## Unreleased – 2026-11-04 minden példa igazolt, az alapértelmezés `verified-only` (ADR-089)
+
+- **Igazolt példák:**
+  - **`class-accounts-ts` (revízió 3):** a metódustörzs két állapotfrissítése (`this.balance …` és `this.history.push(…)`) már nem cserélhető. Egy nem szám összeg mindkét sorban kódot futtathat, és ekkor a csere más egyenleget ad. A leírás ezt mondja ki. A két mező viszont most szabadon mozoghat.
+  - **`algo-sort-search-js` (revízió 2):** a forrásból újragenerálva; a tanuló számára semmi nem változik.
+  - **`profiles-js` (revízió 2):** új forrás, három független deklarációval. A két sorrendprofil (előre és fordítva) szerzői szűkítés; a régi példa futáskor valóban sorrendfüggő hívásokon mutatta be.
+  - A régi revíziókra mentett félkész elrendezéseket a felület nem tölti vissza.
+- **Szigorúbb alapbeállítás:** a szerver és a Pages-demó alapból csak igazolt (vagy szerzői döntéssel módosított) feladatot szolgál ki. A régi mód csak `CODELINE_PUBLICATION=publishable` beállítással érhető el, és ilyenkor figyelmeztetést naplóz.
+
+## Unreleased – 2026-11-04 böngészőtesztek régebbi telepített Chromiummal (NY-16)
+
+- **Futtatható böngészőtesztek friss konténerben:** ha a rögzített Playwright saját Chromium-revíziója nincs telepítve, a böngészőtesztek a böngészőkönyvtár legújabb Chromiumát indítják, és ezt a kimenetben jelzik. Eddig ilyenkor el sem indultak. Más indítási hiba továbbra is hiba.
+
+## Unreleased – 2026-11-04 a futással nem megfigyelhető okkódot a regiszter jelöli (ADR-088)
+
+- **Megbízhatóbb mérés:** az okkód-regiszter jelöli azokat a szabályokat, amelyeket egyetlen futás sem különböztet meg: a pedagógiai döntést (`early-exit-order`) és a csak típusellenőrzővel látható overload-sorrendet (`overload-group`). A mérés onnan olvassa, mi számít szándéknak, nem egy külön kézi listából, így egy új okkód nem maradhat ki belőle csendben. A generátor és a mérés eredményei nem változtak.
+
 ## Unreleased – 2026-11-04 accessor mező az azonos kulcsú láncban (ADR-083, v47); a ciklus első köre (ADR-084, v48); objektumheap-modul (ADR-085); reguláris kifejezés literálja (ADR-086, v49); metódusszignatúra (ADR-087, v50)
 
 - **Kevesebb fölösleges szabály az öröklési programokban (v47):** egy `accessor` mező ugyanazon a néven álló getter–setter pár mellett az azonos kulcsú definíciók láncának tagja. A TypeScript `inherit` csoport rése 2 → 0.

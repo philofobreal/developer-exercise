@@ -1,13 +1,14 @@
 {
   "schemaVersion": 2,
   "id": "algo-sort-search-js",
-  "revision": 1,
+  "revision": 2,
+  "language": "javascript",
   "title": "Beszúrásos rendezés + bináris keresés",
   "description": "Két felső szintű függvény, egymásba ágyazott for/while ciklusok és megosztott } else { határ. A két függvénydeklaráció sorrendje szabad; a current/j és a low/high kezdőértékek felcserélhetők. Az else-ág és a ciklusmag sorai kötöttek.",
-  "language": "javascript",
   "lines": [
     {
       "id": 1,
+      "sourceLine": 1,
       "code": "function insertionSort(input) {",
       "dependencies": [],
       "fixed": false,
@@ -17,8 +18,11 @@
     },
     {
       "id": 2,
+      "sourceLine": 2,
       "code": "const values = [...input];",
-      "dependencies": [],
+      "dependencies": [
+        1
+      ],
       "fixed": false,
       "functionBlock": 1,
       "scopeId": "scope-1",
@@ -26,6 +30,7 @@
     },
     {
       "id": 3,
+      "sourceLine": 3,
       "code": "for (let i = 1; i < values.length; i++) {",
       "dependencies": [
         2
@@ -37,8 +42,11 @@
     },
     {
       "id": 4,
+      "sourceLine": 4,
       "code": "const current = values[i];",
-      "dependencies": [],
+      "dependencies": [
+        3
+      ],
       "fixed": false,
       "functionBlock": 1,
       "scopeId": "scope-2",
@@ -46,8 +54,11 @@
     },
     {
       "id": 5,
+      "sourceLine": 5,
       "code": "let j = i - 1;",
-      "dependencies": [],
+      "dependencies": [
+        3
+      ],
       "fixed": false,
       "functionBlock": 1,
       "scopeId": "scope-2",
@@ -55,6 +66,7 @@
     },
     {
       "id": 6,
+      "sourceLine": 6,
       "code": "while (j >= 0 && values[j] > current) {",
       "dependencies": [
         4,
@@ -67,6 +79,7 @@
     },
     {
       "id": 7,
+      "sourceLine": 7,
       "code": "values[j + 1] = values[j];",
       "dependencies": [
         6
@@ -78,6 +91,7 @@
     },
     {
       "id": 8,
+      "sourceLine": 8,
       "code": "j--;",
       "dependencies": [
         7
@@ -89,6 +103,7 @@
     },
     {
       "id": 9,
+      "sourceLine": 9,
       "code": "}",
       "dependencies": [
         8
@@ -100,6 +115,7 @@
     },
     {
       "id": 10,
+      "sourceLine": 10,
       "code": "values[j + 1] = current;",
       "dependencies": [
         9
@@ -111,6 +127,7 @@
     },
     {
       "id": 11,
+      "sourceLine": 11,
       "code": "}",
       "dependencies": [
         10
@@ -122,8 +139,10 @@
     },
     {
       "id": 12,
+      "sourceLine": 12,
       "code": "return values;",
       "dependencies": [
+        2,
         11
       ],
       "fixed": false,
@@ -133,6 +152,7 @@
     },
     {
       "id": 13,
+      "sourceLine": 13,
       "code": "}",
       "dependencies": [
         12
@@ -144,6 +164,7 @@
     },
     {
       "id": 14,
+      "sourceLine": 14,
       "code": "function binarySearch(sorted, target) {",
       "dependencies": [],
       "fixed": false,
@@ -153,8 +174,11 @@
     },
     {
       "id": 15,
+      "sourceLine": 15,
       "code": "let low = 0;",
-      "dependencies": [],
+      "dependencies": [
+        14
+      ],
       "fixed": false,
       "functionBlock": 2,
       "scopeId": "scope-4",
@@ -162,8 +186,11 @@
     },
     {
       "id": 16,
+      "sourceLine": 16,
       "code": "let high = sorted.length - 1;",
-      "dependencies": [],
+      "dependencies": [
+        14
+      ],
       "fixed": false,
       "functionBlock": 2,
       "scopeId": "scope-4",
@@ -171,6 +198,7 @@
     },
     {
       "id": 17,
+      "sourceLine": 17,
       "code": "while (low <= high) {",
       "dependencies": [
         15,
@@ -183,6 +211,7 @@
     },
     {
       "id": 18,
+      "sourceLine": 18,
       "code": "const mid = Math.floor((low + high) / 2);",
       "dependencies": [
         17
@@ -194,6 +223,7 @@
     },
     {
       "id": 19,
+      "sourceLine": 19,
       "code": "if (sorted[mid] === target) {",
       "dependencies": [
         18
@@ -205,9 +235,10 @@
     },
     {
       "id": 20,
+      "sourceLine": 20,
       "code": "return mid;",
       "dependencies": [
-        19
+        18
       ],
       "fixed": false,
       "functionBlock": 2,
@@ -216,6 +247,7 @@
     },
     {
       "id": 21,
+      "sourceLine": 21,
       "code": "}",
       "dependencies": [
         20
@@ -227,6 +259,7 @@
     },
     {
       "id": 22,
+      "sourceLine": 22,
       "code": "if (sorted[mid] < target) {",
       "dependencies": [
         21
@@ -238,39 +271,43 @@
     },
     {
       "id": 23,
+      "sourceLine": 23,
       "code": "low = mid + 1;",
       "dependencies": [
         22
       ],
       "fixed": false,
       "functionBlock": 2,
-      "scopeId": "scope-5",
+      "scopeId": "scope-7",
       "normalization": "indent"
     },
     {
       "id": 24,
+      "sourceLine": 24,
       "code": "} else {",
       "dependencies": [
         23
       ],
       "fixed": false,
       "functionBlock": 2,
-      "scopeId": "scope-5",
+      "scopeId": "scope-7",
       "normalization": "indent"
     },
     {
       "id": 25,
+      "sourceLine": 25,
       "code": "high = mid - 1;",
       "dependencies": [
         24
       ],
       "fixed": false,
       "functionBlock": 2,
-      "scopeId": "scope-5",
+      "scopeId": "scope-7",
       "normalization": "indent"
     },
     {
       "id": 26,
+      "sourceLine": 26,
       "code": "}",
       "dependencies": [
         25
@@ -282,6 +319,7 @@
     },
     {
       "id": 27,
+      "sourceLine": 27,
       "code": "}",
       "dependencies": [
         26
@@ -293,6 +331,7 @@
     },
     {
       "id": 28,
+      "sourceLine": 28,
       "code": "return -1;",
       "dependencies": [
         27
@@ -304,6 +343,7 @@
     },
     {
       "id": 29,
+      "sourceLine": 29,
       "code": "}",
       "dependencies": [
         28
@@ -358,24 +398,440 @@
       "parentScopeId": "scope-5",
       "openLineId": 19,
       "closeLineId": 21
+    },
+    {
+      "id": "scope-7",
+      "kind": "block",
+      "parentScopeId": "scope-5",
+      "openLineId": 22,
+      "closeLineId": 26
     }
   ],
-  "edges": [
-    {
-      "before": 22,
-      "after": 23
+  "edges": [],
+  "profiles": [],
+  "authoring": {
+    "strategy": "ast-hierarchy",
+    "reason": "",
+    "omittedBlocks": 0,
+    "semanticEquivalenceProven": false,
+    "dependencyPolicy": "scoped-effect-analysis-v50",
+    "provenance": [
+      {
+        "before": 1,
+        "after": 2,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 2,
+        "after": 3,
+        "category": "effect",
+        "code": "effectful-or-unknown-initializer"
+      },
+      {
+        "before": 2,
+        "after": 3,
+        "category": "effect",
+        "code": "ForStatement"
+      },
+      {
+        "before": 3,
+        "after": 4,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 3,
+        "after": 5,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 4,
+        "after": 6,
+        "category": "effect",
+        "code": "effectful-or-unknown-initializer"
+      },
+      {
+        "before": 4,
+        "after": 6,
+        "category": "effect",
+        "code": "WhileStatement"
+      },
+      {
+        "before": 5,
+        "after": 6,
+        "category": "effect",
+        "code": "WhileStatement"
+      },
+      {
+        "before": 6,
+        "after": 7,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 7,
+        "after": 8,
+        "category": "effect",
+        "code": "ExpressionStatement"
+      },
+      {
+        "before": 8,
+        "after": 9,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 9,
+        "after": 10,
+        "category": "effect",
+        "code": "WhileStatement"
+      },
+      {
+        "before": 9,
+        "after": 10,
+        "category": "effect",
+        "code": "ExpressionStatement"
+      },
+      {
+        "before": 10,
+        "after": 11,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 2,
+        "after": 12,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 2,
+        "after": 12,
+        "category": "effect",
+        "code": "effectful-or-unknown-initializer"
+      },
+      {
+        "before": 2,
+        "after": 12,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 11,
+        "after": 12,
+        "category": "effect",
+        "code": "ForStatement"
+      },
+      {
+        "before": 11,
+        "after": 12,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 12,
+        "after": 13,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 14,
+        "after": 15,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 14,
+        "after": 16,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 15,
+        "after": 17,
+        "category": "effect",
+        "code": "WhileStatement"
+      },
+      {
+        "before": 16,
+        "after": 17,
+        "category": "effect",
+        "code": "effectful-or-unknown-initializer"
+      },
+      {
+        "before": 16,
+        "after": 17,
+        "category": "effect",
+        "code": "WhileStatement"
+      },
+      {
+        "before": 17,
+        "after": 18,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 18,
+        "after": 19,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 18,
+        "after": 19,
+        "category": "effect",
+        "code": "effectful-or-unknown-initializer"
+      },
+      {
+        "before": 18,
+        "after": 19,
+        "category": "effect",
+        "code": "branch-contains-barrier"
+      },
+      {
+        "before": 18,
+        "after": 20,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 20,
+        "after": 21,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 21,
+        "after": 22,
+        "category": "effect",
+        "code": "branch-contains-barrier"
+      },
+      {
+        "before": 22,
+        "after": 23,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 23,
+        "after": 24,
+        "category": "structure",
+        "code": "clause-segment"
+      },
+      {
+        "before": 24,
+        "after": 25,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 24,
+        "after": 25,
+        "category": "structure",
+        "code": "clause-separator"
+      },
+      {
+        "before": 25,
+        "after": 26,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 26,
+        "after": 27,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 27,
+        "after": 28,
+        "category": "effect",
+        "code": "WhileStatement"
+      },
+      {
+        "before": 27,
+        "after": 28,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 28,
+        "after": 29,
+        "category": "structure",
+        "code": "block-close"
+      }
+    ],
+    "evidence": {
+      "sourceDigest": "8387f89912abe1d4",
+      "analyzer": "scoped-effect-analysis-v50",
+      "environment": {
+        "typescript": "5.8.3",
+        "sourceKind": "script",
+        "classFields": "either"
+      },
+      "projectionLoss": {
+        "pairs": 0,
+        "examples": []
+      }
     },
-    {
-      "before": 23,
-      "after": 24
-    },
-    {
-      "before": 24,
-      "after": 25
-    },
-    {
-      "before": 25,
-      "after": 26
-    }
-  ]
+    "dependencyHints": [
+      {
+        "name": "input",
+        "declarationLine": 1,
+        "usageLine": 2
+      },
+      {
+        "name": "values",
+        "declarationLine": 2,
+        "usageLine": 3
+      },
+      {
+        "name": "values",
+        "declarationLine": 2,
+        "usageLine": 4
+      },
+      {
+        "name": "i",
+        "declarationLine": 3,
+        "usageLine": 4
+      },
+      {
+        "name": "i",
+        "declarationLine": 3,
+        "usageLine": 5
+      },
+      {
+        "name": "j",
+        "declarationLine": 5,
+        "usageLine": 6
+      },
+      {
+        "name": "values",
+        "declarationLine": 2,
+        "usageLine": 6
+      },
+      {
+        "name": "current",
+        "declarationLine": 4,
+        "usageLine": 6
+      },
+      {
+        "name": "values",
+        "declarationLine": 2,
+        "usageLine": 7
+      },
+      {
+        "name": "j",
+        "declarationLine": 5,
+        "usageLine": 7
+      },
+      {
+        "name": "j",
+        "declarationLine": 5,
+        "usageLine": 8
+      },
+      {
+        "name": "values",
+        "declarationLine": 2,
+        "usageLine": 10
+      },
+      {
+        "name": "j",
+        "declarationLine": 5,
+        "usageLine": 10
+      },
+      {
+        "name": "current",
+        "declarationLine": 4,
+        "usageLine": 10
+      },
+      {
+        "name": "values",
+        "declarationLine": 2,
+        "usageLine": 12
+      },
+      {
+        "name": "sorted",
+        "declarationLine": 14,
+        "usageLine": 16
+      },
+      {
+        "name": "low",
+        "declarationLine": 15,
+        "usageLine": 17
+      },
+      {
+        "name": "high",
+        "declarationLine": 16,
+        "usageLine": 17
+      },
+      {
+        "name": "low",
+        "declarationLine": 15,
+        "usageLine": 18
+      },
+      {
+        "name": "high",
+        "declarationLine": 16,
+        "usageLine": 18
+      },
+      {
+        "name": "sorted",
+        "declarationLine": 14,
+        "usageLine": 19
+      },
+      {
+        "name": "mid",
+        "declarationLine": 18,
+        "usageLine": 19
+      },
+      {
+        "name": "target",
+        "declarationLine": 14,
+        "usageLine": 19
+      },
+      {
+        "name": "mid",
+        "declarationLine": 18,
+        "usageLine": 20
+      },
+      {
+        "name": "sorted",
+        "declarationLine": 14,
+        "usageLine": 22
+      },
+      {
+        "name": "mid",
+        "declarationLine": 18,
+        "usageLine": 22
+      },
+      {
+        "name": "target",
+        "declarationLine": 14,
+        "usageLine": 22
+      },
+      {
+        "name": "low",
+        "declarationLine": 15,
+        "usageLine": 23
+      },
+      {
+        "name": "mid",
+        "declarationLine": 18,
+        "usageLine": 23
+      },
+      {
+        "name": "high",
+        "declarationLine": 16,
+        "usageLine": 25
+      },
+      {
+        "name": "mid",
+        "declarationLine": 18,
+        "usageLine": 25
+      }
+    ]
+  }
 }

@@ -1,0 +1,353 @@
+{
+  "schemaVersion": 2,
+  "id": "fib-memo-js",
+  "revision": 1,
+  "language": "javascript",
+  "title": "Fibonacci memoizálással",
+  "description": "Rekurzív Fibonacci memoizálással. A két korai kilépés, a számítás, a tárolás és a visszatérés sorrendje kötött: a memo egy hívó által átadott Map is lehet. A bemenet nemnegatív egész szám.",
+  "lines": [
+    {
+      "id": 1,
+      "sourceLine": 1,
+      "code": "function fibonacci(n, memo = new Map()) {",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "sourceLine": 2,
+      "code": "if (n < 2) {",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "sourceLine": 3,
+      "code": "return n;",
+      "dependencies": [
+        2
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-2",
+      "normalization": "indent"
+    },
+    {
+      "id": 4,
+      "sourceLine": 4,
+      "code": "}",
+      "dependencies": [
+        3
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 5,
+      "sourceLine": 5,
+      "code": "if (memo.has(n)) {",
+      "dependencies": [
+        4
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 6,
+      "sourceLine": 6,
+      "code": "return memo.get(n);",
+      "dependencies": [
+        5
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-3",
+      "normalization": "indent"
+    },
+    {
+      "id": 7,
+      "sourceLine": 7,
+      "code": "}",
+      "dependencies": [
+        6
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 8,
+      "sourceLine": 8,
+      "code": "const value = fibonacci(n - 1, memo) + fibonacci(n - 2, memo);",
+      "dependencies": [
+        7
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 9,
+      "sourceLine": 9,
+      "code": "memo.set(n, value);",
+      "dependencies": [
+        8
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 10,
+      "sourceLine": 10,
+      "code": "return value;",
+      "dependencies": [
+        8,
+        9
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 11,
+      "sourceLine": 11,
+      "code": "}",
+      "dependencies": [
+        10
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "scope-1",
+      "kind": "function",
+      "parentScopeId": null,
+      "openLineId": 1,
+      "closeLineId": 11,
+      "functionBlock": 1
+    },
+    {
+      "id": "scope-2",
+      "kind": "block",
+      "parentScopeId": "scope-1",
+      "openLineId": 2,
+      "closeLineId": 4
+    },
+    {
+      "id": "scope-3",
+      "kind": "block",
+      "parentScopeId": "scope-1",
+      "openLineId": 5,
+      "closeLineId": 7
+    }
+  ],
+  "edges": [],
+  "profiles": [],
+  "authoring": {
+    "strategy": "ast-hierarchy",
+    "reason": "",
+    "omittedBlocks": 0,
+    "semanticEquivalenceProven": false,
+    "dependencyPolicy": "scoped-effect-analysis-v50",
+    "provenance": [
+      {
+        "before": 1,
+        "after": 2,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 2,
+        "after": 3,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 3,
+        "after": 4,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 4,
+        "after": 5,
+        "category": "effect",
+        "code": "branch-contains-barrier"
+      },
+      {
+        "before": 5,
+        "after": 6,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 6,
+        "after": 7,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 7,
+        "after": 8,
+        "category": "effect",
+        "code": "branch-contains-barrier"
+      },
+      {
+        "before": 7,
+        "after": 8,
+        "category": "effect",
+        "code": "effectful-or-unknown-initializer"
+      },
+      {
+        "before": 8,
+        "after": 9,
+        "category": "effect",
+        "code": "effectful-or-unknown-initializer"
+      },
+      {
+        "before": 8,
+        "after": 9,
+        "category": "effect",
+        "code": "ExpressionStatement"
+      },
+      {
+        "before": 8,
+        "after": 10,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 8,
+        "after": 10,
+        "category": "effect",
+        "code": "effectful-or-unknown-initializer"
+      },
+      {
+        "before": 8,
+        "after": 10,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 9,
+        "after": 10,
+        "category": "effect",
+        "code": "ExpressionStatement"
+      },
+      {
+        "before": 9,
+        "after": 10,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 10,
+        "after": 11,
+        "category": "structure",
+        "code": "block-close"
+      }
+    ],
+    "evidence": {
+      "sourceDigest": "4dfd13b719de4098",
+      "analyzer": "scoped-effect-analysis-v50",
+      "environment": {
+        "typescript": "5.8.3",
+        "sourceKind": "script",
+        "classFields": "either",
+        "inputs": "valid"
+      },
+      "projectionLoss": {
+        "pairs": 0,
+        "examples": []
+      }
+    },
+    "dependencyHints": [
+      {
+        "name": "n",
+        "declarationLine": 1,
+        "usageLine": 2
+      },
+      {
+        "name": "n",
+        "declarationLine": 1,
+        "usageLine": 3
+      },
+      {
+        "name": "memo",
+        "declarationLine": 1,
+        "usageLine": 5
+      },
+      {
+        "name": "n",
+        "declarationLine": 1,
+        "usageLine": 5
+      },
+      {
+        "name": "memo",
+        "declarationLine": 1,
+        "usageLine": 6
+      },
+      {
+        "name": "n",
+        "declarationLine": 1,
+        "usageLine": 6
+      },
+      {
+        "name": "fibonacci",
+        "declarationLine": 1,
+        "usageLine": 8
+      },
+      {
+        "name": "n",
+        "declarationLine": 1,
+        "usageLine": 8
+      },
+      {
+        "name": "memo",
+        "declarationLine": 1,
+        "usageLine": 8
+      },
+      {
+        "name": "memo",
+        "declarationLine": 1,
+        "usageLine": 9
+      },
+      {
+        "name": "n",
+        "declarationLine": 1,
+        "usageLine": 9
+      },
+      {
+        "name": "value",
+        "declarationLine": 8,
+        "usageLine": 9
+      },
+      {
+        "name": "value",
+        "declarationLine": 8,
+        "usageLine": 10
+      }
+    ]
+  }
+}

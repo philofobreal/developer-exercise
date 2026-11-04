@@ -1,11 +1,12 @@
 /** Composition root: infrastructure assembled without domain policy. */
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {ExerciseCatalog,publicationPolicy} from './src/server/catalog.mjs';
+import {ExerciseCatalog,publicationPolicy,publicationNotice} from './src/server/catalog.mjs';
 import {createApplication} from './src/server/http.mjs';
 import {listenApplication} from './src/server/listen.mjs';
 const root=path.dirname(fileURLToPath(import.meta.url));
 const publication=publicationPolicy(process.env.CODELINE_PUBLICATION);
+if(publicationNotice(publication))console.warn(publicationNotice(publication));
 const catalog=await ExerciseCatalog.open(path.join(root,'examples'),{publication});
 for(const {file,status,reason} of catalog.skipped)console.warn(`Kihagyott feladat (${publication}): ${file} [${status}] – ${reason}`);
 const authorToken=process.env.CODELINE_AUTHOR_TOKEN||undefined;

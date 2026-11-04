@@ -33,7 +33,8 @@ export function pinButton(id, index, fixed) {
     const place = `${index + 1}. helyen`;
     return `<button type="button" class="pin-toggle" data-rule-pin="${id}" aria-pressed="${fixed}" aria-label="${fixed ? `A(z) #${id} sor rögzítésének feloldása (most a ${place} rögzített)` : `A(z) #${id} sor rögzítése a ${place}`}" title="${fixed ? `Rögzített: a megoldásban csak a ${place} állhat. Kattints a feloldáshoz.` : `Rögzítés: a sor a megoldásban csak a ${place} állhat.`}">${icon('pin')}</button>`;
 }
-const legend = '<p class="board-legend"><span class="rule-swatch before" aria-hidden="true"></span>előtte kell állnia <span class="rule-swatch selected" aria-hidden="true"></span>kijelölt <span class="rule-swatch after" aria-hidden="true"></span>utána kell állnia · Láncszem: a sor szabályai. Kör: kipipálja a sor kapcsolatait; pipára kattintva megszünteted, üres körre kattintva létrehozod a kapcsolatot. Rajzszög: a sort a helyére rögzíted, vagy feloldod.</p>';
+// ADR-093: the colour keys stay in sight; the longer explanation of the controls folds away.
+const legend = '<div class="board-legend"><span class="board-legend-keys"><span class="rule-swatch before" aria-hidden="true"></span>előtte kell állnia <span class="rule-swatch selected" aria-hidden="true"></span>kijelölt <span class="rule-swatch after" aria-hidden="true"></span>utána kell állnia</span><details class="legend-help" data-memory="legend-help"><summary>Jelmagyarázat</summary><p>Láncszem: a sor szabályai. Kör: kipipálja a sor kapcsolatait; pipára kattintva megszünteted, üres körre kattintva létrehozod a kapcsolatot. Rajzszög: a sort a helyére rögzíted, vagy feloldod.</p></details></div>';
 const toggle = (state) => `<label class="board-toggle"><input type="checkbox" data-board-all ${state.boardAll ? 'checked' : ''}> Minden nem szerkezeti szabály rajzolása</label>`;
 const connecting = (state) => state.ruleConnect !== undefined ? `<p class="board-connecting" role="status">A(z) #${state.ruleConnect} sor kapcsolatai kipipálva: kék – előtte kell állnia, borostyán – utána, lakat – szerkezeti. Pipára kattintva megszünteted, üres körre kattintva létrehozod a kapcsolatot. Escape vagy a kiinduló kör: befejezés.</p>` : '';
 export function renderRuleBoard(state, highlight) {
@@ -106,8 +107,10 @@ export function drawRuleArcs(root, state) {
             layer.dataset.arcPrefix = 'arc-' + (zone.dataset.zone ?? 'zone');
             zone.append(layer);
         }
-        const controls = rows[0]?.querySelector('.row-actions'), anchor = controls ? controls.offsetLeft - 6 : zone.clientWidth - 8;
-        paintArcs(layer, state, new Map(rows.map(row => [Number(row.dataset.lineId), row.offsetTop + row.offsetHeight / 2])), anchor, Math.min(140, anchor - 60), zone.clientWidth, zone.scrollHeight);
+        // ADR-090: the row controls stay at the zone's right edge while the list scrolls sideways; the arcs
+        // follow their visible place (the layer is in the zone's content coordinates).
+        const controls = rows[0]?.querySelector('.row-actions'), visible = controls ? controls.getBoundingClientRect().left - zone.getBoundingClientRect().left - zone.clientLeft - 6 : zone.clientWidth - 8, anchor = visible + zone.scrollLeft;
+        paintArcs(layer, state, new Map(rows.map(row => [Number(row.dataset.lineId), row.offsetTop + row.offsetHeight / 2])), anchor, Math.min(140, visible - 60), Math.ceil(anchor + 8), zone.scrollHeight);
     }
 }
 /** The reference order decides direction: a mandatory rule can only follow it (ADR-018). */

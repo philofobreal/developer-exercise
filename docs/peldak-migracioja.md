@@ -64,6 +64,35 @@ A felhasználó jóváhagyta az ajánlást ([ADR-057](adr/057-example-migration-
   - Érvényes bemeneten a program ugyanazt adja. A régi modell tehát a mai szabály szerint nem egyenértékű sorrendeket is elfogadott.
 - **Valóban azonos:** az orákulum futtatással is azonosnak találta. Az elutasítás ilyenkor a generátor túlszigorúsága, vagyis teljességi rés.
 
+### Újramérés v50 (2026-11-04) – döntésre vár (NY-09, NY-10)
+
+**Eldöntve és alkalmazva:** [ADR-089](adr/089-verified-examples-and-default.md). Igazolt szabály a `class-accounts-ts`-ben (revízió 3), újragenerálás az `algo-sort-search-js`-nél (revízió 2), forráscsere a `profiles-js`-nél (revízió 2); az alapértelmezés `verified-only`.
+
+Mérés a mai generátorral (`scoped-effect-analysis-v50`), `any` és `valid` szerződéssel. Mindkettővel ugyanaz az eredmény.
+
+**`class-accounts-ts`:**
+- **A szám változatlan:** a tanár 480 megengedett sorrendjéből a frissítés 360-at utasítana el, ugyanazokat, mint a v30-on. Mindegyikben a 6/7 vagy a 13/14 sorpár cserél helyet (`this.balance += …` / `this.history.push(…)`).
+  - Az öt tag mind a 120 sorrendje elfogadott marad.
+  - Új elfogadás 8, mind helyes.
+  - Minősítés frissítés után: `analysis-verified`.
+- **Az ok nem az öröklés, ahogy az ADR-057 írta.** A metódustörzs `this.…` utasításait az elemzés nem modellezi, ezért általános utasításgátak (`ExpressionStatement`). Az öröklés modellezése (v40–v47) ezen nem segített, és magától nem is fog.
+- **A csere csak számbemenetre azonos:**
+  - Az orákulum mind a 360 sorrendet `effect-order` okkal eltérőnek minősíti.
+  - Egy objektum `amount` esetén valóban az: például `{ valueOf() { return account.history.length; } }` mellett a `+=` és a `'+' + amount` a csere előtt és után mást lát.
+  - A `valid` szerződéssel (egyszerű adat) a csere azonos, de ezt sem a generátor, sem az orákulum nem bizonyítja.
+
+**`algo-sort-search-js`:**
+- **Helyben frissítve „Nem igazolt” maradna** (`rederivation: differs`), mert a mai generátor egy blokkal többet lát (6 helyett 7).
+- **A forrásból újragenerálva `analysis-verified`:**
+  - a tanár mindhárom cseréje (a két függvény, `current`/`j`, `low`/`high`) elfogadott marad;
+  - az 1 162 egysoros áthelyezés és csere közül egyetlen döntés sem változik;
+  - a 4 régi kézi él fölöslegessé válik.
+- **Ára:** új revízió. A régi revízióra mentett tanulói elrendezéseket a felület nem tölti vissza.
+
+**`profiles-js`:** változatlan. A frissítés körkörös feltételt talál a `reverse` profilban (`first(); middle(); last();` ismeretlen hívások).
+
+**Döntési pontok:** [nyitott tételek jegyzéke](nyitott-tetelek.md), NY-09 és NY-10.
+
 ## Példánként
 
 ### class-inventory-ts – alkalmazva, változás nélkül

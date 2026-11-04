@@ -25,4 +25,6 @@ JavaScriptre az orákulum Acornnal elemez, a generátor a TypeScript-parserrel, 
 ## Korlátok
 
 - **A TypeScript-fordító közös marad:** a kimenetet ugyanaz a TypeScript állítja elő. Egy olyan parserhiba, amely a kimenetet is elrontja, mindkét olvasatban megjelenik; ilyenkor viszont a P3 futás eltér.
-- **A modulok és a `[[Set]]` mód** második olvasata nyitott.
+- **A modulok és a `[[Set]]` mód** második olvasata nincs meg; ez elfogadott korlát (NY-07, lezárva 2026-11-04):
+  - **modulok:** a 264 fixture közül egyetlen TypeScript-modul van (`prompt-mini-fixture`), JavaScript-modul egy sincs, és a kampány nem generál modult. A második olvasathoz az orákulum JavaScript-ágát modulokra kellene felkészíteni. A [teszt](../../tests/oracle-typescript-emit.test.mjs) jelez, ha egy második modulfixture megjelenik, és ekkor a tétel újranyílik;
+  - **`[[Set]]` mód:** a natív mezős kimenet ugyanazt a forrást már egy független parserrel olvassa, ezért a mi TypeScript-bejárónk hibáit (A1) kiszűri. A `[[Set]]` kimenet ehhez csak a TypeScript-fordító saját átalakítását adná, és azt a P3 futtatás mindkét mezőmódban lefuttatja. Az olvasathoz az osztálytag-politikát a konstruktorbeli értékadásokra is újra kellene írni (3. pont: 33 téves riasztás).

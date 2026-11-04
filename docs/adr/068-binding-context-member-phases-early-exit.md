@@ -92,7 +92,7 @@ A tanúk négy okot mutattak.
 - **Design twice:**
   - *Az ADR-019 korai kilépési szabályának elhagyása:* elvetve. Pedagógiai döntés, a felhasználó politikája szerint (ADR-043) a halott kódot úgy ítéljük meg, mintha lefutna.
   - *Duplikált nevek a kulcssorrend-láncban külön kezelve:* nem kell, a lánc már tartalmazza őket.
-- **Rögzített megállapítás:** a `POLICY_INTENT` egy kézi lista az osztályozóban. Ha több pedagógiai okkód lesz, a jegyzék (`reason-codes.ts`) kapjon egy „futással nem megfigyelhető” jelzést, és az osztályozó onnan olvassa.
+- **Rögzített megállapítás:** a `POLICY_INTENT` egy kézi lista az osztályozóban. Ha több pedagógiai okkód lesz, a jegyzék (`reason-codes.ts`) kapjon egy „futással nem megfigyelhető” jelzést, és az osztályozó onnan olvassa. Ezt az [ADR-088](088-unobservable-reason-codes.md) megvalósította.
 
 ## Nyitott
 

@@ -20,15 +20,11 @@
 | --- | --- | --- | --- | --- | --- |
 | NY-03 | **Hatásösszegzés** a felső szintű függvényekre (`var v = f()`) | generátor | **0 mért rés** (a korábban ide sorolt 31 rés más okú volt, [ADR-069](adr/069-deep-hostile-input-and-own-class-names.md)) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) | csak ha egy mérés esetet mutat |
 | NY-05 | **2d maradéka:** saját objektumot kapó ismeretlen függvény (a referencia megtartása) | generátor | **0 mért rés** (2026-11-04: a korpusz `Object.entries(totals)` tanúja már nem rés, a kampányban sincs ilyen) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md), [ADR-059](adr/059-read-only-builtins.md) | csak ha egy mérés esetet mutat |
-| NY-06 | **Tiszta beépített globálisok** (`Math.max`) külön kódcsaládja | generátor | **0 mért rés** (2026-11-04: sem a korpuszban, sem a kampányban) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) | csak ha egy mérés esetet mutat |
-| NY-07 | **Orákulum:** a modulok és a `[[Set]]` osztálymező-mód második (kibocsátott) olvasata | mérés | az A1 feltevés szűkítése, nem résszám | [ADR-063](adr/063-oracle-typescript-emit-reading.md) | |
+| NY-06 | **Tiszta beépített hívások és műveletek a `valid` szerződés alatt** (`Math.min(...values)`, `values.reduce(...)`, `-Infinity`, összehasonlítás és összeadás paraméterből származó értéken) | generátor | **újranyitva (2026-11-04):** az első tanú a `stats-js` példajelölt, 6 rés (gyűjtőváltozók és független ciklusmag-sorok cseréje); a példa ezért nem került be ([ADR-098](adr/098-three-new-verified-examples.md)) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md), [ADR-050](adr/050-input-contract.md) | szabályverzió a `valid` szerződés egyszerű adataira, a kampánnyal és a `stats-js` tanúval mérve |
 | NY-08 | **Érték-perturbáció korlátja:** egy literál egyszerre, legfeljebb 96 változat | mérés | a rés felső becslés marad | [ADR-067](adr/067-value-perturbation-in-measurement.md) | csak ha egy rés gyanúsan szándékhű |
-| NY-09 | **Alapértelmezés `verified-only`** (1. fázis 4. lépés) | döntés | 3 példa „Nem igazolt” | [ADR-057](adr/057-example-migration-and-publication-default.md) | a felhasználó döntése: példafrissítés, kivétel a kiszolgálásból vagy marad |
-| NY-10 | **`class-accounts-ts` migrációja:** a frissítés a tanár 480 sorrendjéből 360-at elutasítana | döntés | 360 sorrend | [ADR-057](adr/057-example-migration-and-publication-default.md) | a felhasználó döntése |
-| NY-11 | **G fázis:** az AI-governance teljessé tétele | tervezés | „részleges” jelölés | [megbízhatósági terv, G fázis](megbizhatosagi-audit-terv.md#g-fázis--az-ai-governance-teljessé-tétele-tervezés-átfogó) | leltár és terv |
+| NY-27 | **Mobil: a hosszú sor teljes szövege.** 390 képpont szélesen egy megoldássorban 245 képpont jut a kódnak ([ADR-095](adr/095-tap-to-place-and-drag-insert-migration.md)); a hosszabb sort a lista vízszintes görgetése mutatja | felület | alacsony prioritás (a felhasználó döntése: kevés ráfordítás a mobilra) | [ADR-094](adr/094-toolbar-help-and-mobile-sorter.md), [ADR-095](adr/095-tap-to-place-and-drag-insert-migration.md) | lehetőségek: a kijelölt sor teljes szövege egy sávban; tördelés csak mobilon (a húzás fix sormagasságát érinti) |
+| NY-28 | **Régi, TypeScript-forrás nélküli felületi modulok:** `api`, `author-session`, `clipboard`, `pages-api` (`public/app`); az `attempt` és a `persistence` migrálva ([ADR-097](adr/097-attempt-and-persistence-migration.md)), a `drag-insert` is ([ADR-095](adr/095-tap-to-place-and-drag-insert-migration.md)) | tervezés | 4 modul; a lista rögzített (`workbench-sources.test.mjs`) | [ADR-001](adr/001-typescript-workbench-and-boundaries.md), [ADR-097](adr/097-attempt-and-persistence-migration.md) | a két HTTP-adapter és a vágólap, ha módosítani kell őket |
 | NY-13 | **`primitive`/`pure`/`readOnly`:** három egymásra épülő osztályozó | tervezés | nincs | [ADR-050](adr/050-input-contract.md) | nem sürgős |
-| NY-14 | **`POLICY_INTENT`:** kézi lista az osztályozóban | tervezés | nincs | [ADR-068](adr/068-binding-context-member-phases-early-exit.md) | a jegyzékbe, ha lesz második ilyen okkód |
-| NY-16 | **A böngészőtesztek környezete:** a Python Playwright 1248-as Chromiumot vár, 1243-as van telepítve | környezet | friss konténerben nem indul | — | a környezet beállítása; addig `PLAYWRIGHT_BROWSERS_PATH` alias |
 
 ## Elfogadott korlátok (nem rések, nem javítandók)
 
@@ -38,12 +34,17 @@
 | A halott kód és a korai kilépés sorrendje kötött | pedagógiai döntés (A-politika) | [ADR-043](adr/043-dead-code-intent-policy.md), [ADR-019](adr/019-pure-effect-commutation.md) |
 | `classFields: 'define'` mellett az ős elfedett `accessor` mezője és getter–setter párja (`random-inherit-typescript-7`, 4 rés) | a leszármazott saját mezője minden példányon elfedi a prototípust, és az ősosztályt a program nem példányosítja; a feloldáshoz programszintű elérhetőségi elemzés kellene egy ritka mintáért | [ADR-083](adr/083-accessor-field-in-key-chain.md) |
 | Az `inherit` JS 28 elutasított sorrendje, amely csak a régi (`[[Set]]`) mezőmódban fut máshogy | az alapbeállítás („bármelyik mezőmód”) mindkét módban helyes; `classFields: 'define'` mellett 0 rés | [ADR-075](adr/075-standard-class-fields-setting.md), [ADR-084](adr/084-loop-first-iteration.md) |
+| Az orákulum modulokat és a `[[Set]]` mezőmódot csak a TypeScript AST-ből olvassa, a kibocsátott kódból nem (volt NY-07) | ma egy modulfixture van; a `[[Set]]` kimenet a natív mezős olvasathoz csak a fordító átalakítását adná, azt a P3 futtatja; egy második modulfixture-nél a teszt jelez | [ADR-063](adr/063-oracle-typescript-emit-reading.md) |
 | Univerzális szemantikai ekvivalencia | eldönthetetlen | [formális szerződés](formal-ordering-contract.md) |
 
 ## Lezárva
 
 | Tétel | Lezárta |
 | --- | --- |
+| NY-11: az AI-governance teljes (tulajdonos, kikényszerítés és bizonyíték minden elemhez); a jegyzék sora elavult volt. 2026-11-04: a kockázati osztályok kiegészítve az akadálymentességi átvizsgálással és a régi modulok őrtesztjével | [ADR-049](adr/049-ai-governance-completion.md), [ADR-096](adr/096-automated-accessibility-scan.md), [ADR-097](adr/097-attempt-and-persistence-migration.md) |
+| NY-09 és NY-10: minden példa igazolt (`class-accounts-ts` igazolt szabállyal, `algo-sort-search-js` újragenerálva, `profiles-js` forráscserével), az alapértelmezés `verified-only` | [ADR-089](adr/089-verified-examples-and-default.md) |
+| NY-16: a böngészőtesztek a telepített legújabb Chromiummal indulnak, ha a Playwright saját revíziója hiányzik (a 1.64.1-es csomag 1248-at vár, a konténerben 1243 van) | [browser_support.py](../tests/browser_support.py), [README](../README.md) |
+| NY-14: a futással nem megfigyelhető okkódot a regiszter jelöli (`unobservable`), az osztályozó onnan olvas | [ADR-088](adr/088-unobservable-reason-codes.md) |
 | NY-01: a ciklus első köre külön (`flow`: 1 → 0 rés nyelvenként) | [ADR-084](adr/084-loop-first-iteration.md) |
 | NY-22: az `inherit` fajta maradéka; az `accessor` mező az azonos kulcsú láncban (TS 2 → 0 rés); a `define` mód árnyékolt ősét az elfogadott korlátok sorolják | [ADR-083](adr/083-accessor-field-in-key-chain.md) |
 | NY-26: az egyedi nevű interfész-metódusszignatúra törlődik (`refl-ts-erased-and-overloads`, 1 rés, 1 projekciós veszteség) | [ADR-087](adr/087-erased-method-signatures.md) |

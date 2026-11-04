@@ -5,6 +5,16 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parent.parent
 ARTIFACTS=ROOT/'test-results'
 ARTIFACTS.mkdir(exist_ok=True)
+def installed_chromium():
+    """The newest Chromium in Playwright's browser directory, for a Python Playwright whose own
+    revision is not installed there (NY-16: the package expects a newer build than the image has)."""
+    root=Path(os.environ.get('PLAYWRIGHT_BROWSERS_PATH') or Path.home()/'.cache'/'ms-playwright')
+    found=[]
+    for directory in root.glob('chromium-*'):
+        revision=directory.name.split('-',1)[1]
+        for name in ['chrome-linux64/chrome','chrome-linux/chrome','chrome-mac/Chromium.app/Contents/MacOS/Chromium','chrome-win/chrome.exe']:
+            if revision.isdigit() and (directory/name).is_file():found.append((int(revision),directory/name))
+    return str(max(found)[1]) if found else None
 def launch(p):
     executable=os.environ.get('CHROMIUM')
     if not executable and os.name=='nt':
@@ -12,7 +22,14 @@ def launch(p):
             if Path(candidate).is_file():executable=candidate;break
     options={'headless':True}
     if executable:options['executable_path']=executable
-    return p.chromium.launch(**options)
+    try:
+        return p.chromium.launch(**options)
+    except Exception as error:
+        # Only a missing bundled browser falls back; every other launch failure stays an error.
+        fallback=None if executable or "Executable doesn't exist" not in str(error) else installed_chromium()
+        if not fallback:raise
+        print(f'browser_support: the bundled Chromium is not installed; using {fallback}',flush=True)
+        return p.chromium.launch(**options,executable_path=fallback)
 class StaticServer(ThreadingHTTPServer):
     """Test static host. The default listen backlog of 5 refuses part of a browser's parallel
     ES-module requests on Windows (net::ERR_CONNECTION_REFUSED); a real static host does not."""

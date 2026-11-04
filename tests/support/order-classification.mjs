@@ -24,14 +24,13 @@
 import ts from 'typescript';
 import {generateCodeLineExercise} from '../../src/author/generator.mjs';
 import {compileCodeLineExercise,validateSubmission} from '../../dist/index.js';
+import {reasonCode} from '../../dist/author/reason-codes.js';
 import {createOracle,codesOf} from './semantic-oracle.mjs';
 import {literalsOf,valuesFor,replaced} from './literal-variants.mjs';
 import {HEAP_HELPERS,observedHeap,observedProbe} from './heap-variant.mjs';
 
-/** Reason codes of pedagogical rules that no run can tell apart (ADR-068). */
-export const POLICY_INTENT=new Set(['early-exit-order']);
-/** ADR-079: constraints that only TypeScript's type checker observes. */
-export const TYPE_INTENT=new Set(['overload-group']);
+/** NY-14 (ADR-088): the register marks the constraints no run can tell apart, `policy` (ADR-068) or `type` (ADR-079). */
+const unobservable=code=>reasonCode(code)?.unobservable;
 /** At most this many variant verdicts per rejected order (ADR-067); none found is a gap. */
 export const VALUE_VARIANTS=96;
 
@@ -131,8 +130,7 @@ export function createClassifier(fixture,model,{maxStates=200_000,policy='reflec
  /** Why an equivalent rejected order keeps the reference's intent ({reason, witness?}), or null for a gap. */
  const intent=order=>{
   const pairs=broken(order);if(deadCode(pairs)||pairs.length&&deadCaused(order))return {reason:'dead-code'};
-  if(pairs.length&&pairs.every(([before,after])=>(reasons.get(before+'>'+after)??[]).some(code=>POLICY_INTENT.has(code))))return {reason:'policy'};
-  if(pairs.length&&pairs.every(([before,after])=>(reasons.get(before+'>'+after)??[]).some(code=>TYPE_INTENT.has(code))))return {reason:'type'};
+  for(const reason of ['policy','type'])if(pairs.length&&pairs.every(([before,after])=>(reasons.get(before+'>'+after)??[]).some(code=>unobservable(code)===reason)))return {reason};
   const witness=pairs.length?valueDependent(order,pairs):null;
   if(witness)return {reason:'value',witness};
   return pairs.length&&heapDependent(order)?{reason:'heap'}:null;

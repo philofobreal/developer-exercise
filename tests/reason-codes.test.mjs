@@ -23,7 +23,12 @@ test('the register is well formed: unique kebab-case codes, known categories, ex
   assert.ok(['data','effect','structure','unit','policy','conservative','unknown'].includes(entry.category),entry.code);
   assert.ok(adrs.has(entry.adr),entry.code+' '+entry.adr);
   assert.ok(entry.meaning.length>8,entry.code);
+  assert.ok([undefined,'policy','type'].includes(entry.unobservable),entry.code);
  }
+ // NY-14 (ADR-088): the measurement reads intent from the register. A new unobservable code turns its
+ // rejections into intent rather than gaps, so the set is pinned for review.
+ assert.deepEqual(REASON_CODES.filter(entry=>entry.unobservable).map(entry=>[entry.code,entry.unobservable]),[['early-exit-order','policy'],['overload-group','type']]);
+ assert.equal(reasonCode('early-exit-order').category,'policy','a pedagogical intent is a policy constraint');
  // Syntax-kind barriers form one family; anything else is unregistered.
  assert.deepEqual([reasonCode('ExpressionStatement')?.category,reasonCode('DoStatement')?.category],['effect','effect']);
  for(const code of ['unknown-code','expressionStatement','Expression-Statement',''])assert.equal(reasonCode(code),undefined,code);

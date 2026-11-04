@@ -503,6 +503,48 @@
   "intentRejections": 0,
   "justifiedRejections": 45
  },
+ "word-count-js": {
+  "neighbours": 115,
+  "accepted": 1,
+  "completenessGaps": 0,
+  "intentRejections": 0,
+  "justifiedRejections": 114
+ },
+ "word-count-js-valid": {
+  "neighbours": 115,
+  "accepted": 1,
+  "completenessGaps": 0,
+  "intentRejections": 0,
+  "justifiedRejections": 114
+ },
+ "stack-ts": {
+  "neighbours": 575,
+  "accepted": 7,
+  "completenessGaps": 0,
+  "intentRejections": 0,
+  "justifiedRejections": 568
+ },
+ "stack-ts-valid": {
+  "neighbours": 575,
+  "accepted": 7,
+  "completenessGaps": 0,
+  "intentRejections": 0,
+  "justifiedRejections": 568
+ },
+ "fib-memo-js": {
+  "neighbours": 137,
+  "accepted": 1,
+  "completenessGaps": 0,
+  "intentRejections": 0,
+  "justifiedRejections": 136
+ },
+ "fib-memo-js-valid": {
+  "neighbours": 137,
+  "accepted": 1,
+  "completenessGaps": 0,
+  "intentRejections": 0,
+  "justifiedRejections": 136
+ },
  "algo-bfs-js": {
   "neighbours": 803,
   "accepted": 6,

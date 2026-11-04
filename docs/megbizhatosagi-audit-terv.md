@@ -138,7 +138,7 @@ A szkriptszintű `declare const d: number;` `erased-declaration-shape` barrier l
    - Mind az 5 példát a mai generátorral újraszámoljuk („Sorfüggőségek újraszámítása”).
    - A régi és az új szabályok eltérését soronként dokumentáljuk, és a szerzői döntéseket (rögzített rések, OR-profilok) megtartjuk. Az eredmény így `author-modified` vagy `conservative` minősítésű, nem `unverified`.
    - **Döntési pont:** ha egy régi kézi szabály szándékos volt, azt szerzői szabályként rögzítjük.
-4. **Az alapértelmezés `verified-only`.**
+4. **Az alapértelmezés `verified-only`.** Kész (2026-11-04, [ADR-089](adr/089-verified-examples-and-default.md)).
    - A `publishable` mód csak explicit, naplózott beállítással érhető el, „örökölt” felirattal.
    - **Teszt:** az alapértelmezett szerverindítás nem szolgál ki `unverified` modellt; a fail-closed viselkedés megmarad.
 
@@ -252,6 +252,6 @@ Minden tétel új policyverzió, ADR, pozitív és negatív fixture, és utána 
 
 **Döntést igényel:**
 - ~~**A példák migrációja.**~~ Eldöntve 2026-11-03 ([ADR-057](adr/057-example-migration-and-publication-default.md)): az `algo-bfs-js` frissítve `valid` szerződéssel; a `class-accounts-ts` a 4. fázis (2d) után tér vissza; az `algo-sort-search-js` és a `profiles-js` változatlan.
-- ~~**Az alapértelmezés átállítása `verified-only`-ra.**~~ Eldöntve 2026-11-03: marad `publishable`, amíg „Nem igazolt” példa van ([ADR-057](adr/057-example-migration-and-publication-default.md)).
+- ~~**Az alapértelmezés átállítása `verified-only`-ra.**~~ Eldöntve 2026-11-03: marad `publishable`, amíg „Nem igazolt” példa van ([ADR-057](adr/057-example-migration-and-publication-default.md)). 2026-11-04: minden példa igazolt, az alapértelmezés `verified-only` ([ADR-089](adr/089-verified-examples-and-default.md)).
 - **A szimmetriatörés ADR-je.** Ez a core validátor algoritmusát érinti, a döntési szabályát nem.
 - ~~**A holt írások és az azonos értékű írások pedagógiai megítélése.**~~ Eldöntve 2026-10-30: A-politika ([ADR-043](adr/043-dead-code-intent-policy.md)), a szerzői lazítás forráshoz kötésével ([ADR-044](adr/044-relaxation-source-fingerprint.md)).
