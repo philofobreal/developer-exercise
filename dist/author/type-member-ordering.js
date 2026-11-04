@@ -21,15 +21,14 @@ export function typeMemberOrdering(file, compiler, options = {}) {
             const value = Number(key.text);
             return compiler.isClassLike(node.parent) && Number.isFinite(value) ? String(value) : undefined;
         }
+        // v44 (ADR-078): a class member's computed name that is a string literal (`['k5']`) is that key;
+        // evaluating it runs no code.
+        if (key && compiler.isComputedPropertyName(key) && compiler.isClassLike(node.parent) && (compiler.isStringLiteral(key.expression) || compiler.isNoSubstitutionTemplateLiteral(key.expression)))
+            return key.expression.text;
         return key && (compiler.isIdentifier(key) || compiler.isStringLiteral(key) || compiler.isPrivateIdentifier(key)) ? key.text : undefined;
     };
-    /** v43 (ADR-077): an accessor's property name; a computed name only when it is a string literal (`['k5']`). */
-    const accessorName = (member) => {
-        if (!member.name || !compiler.isComputedPropertyName(member.name))
-            return name(member);
-        const expression = member.name.expression;
-        return compiler.isStringLiteral(expression) || compiler.isNoSubstitutionTemplateLiteral(expression) ? expression.text : undefined;
-    };
+    /** v44 (ADR-078): a member name that is known without evaluating code. */
+    const plainNamed = (member) => !!member.name && (!compiler.isComputedPropertyName(member.name) || name(member) !== undefined);
     const arrayIndex = (key) => /^(0|[1-9]\d*)$/.test(key) && Number(key) < 4294967295;
     /** ADR-029: an initialiser that evaluates no code: a literal, or a fresh array/object of such literals. */
     const inert = (raw) => {
@@ -93,7 +92,7 @@ export function typeMemberOrdering(file, compiler, options = {}) {
             const accessor = compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member) || compiler.isPropertyDeclaration(member) && !!compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.AccessorKeyword);
             if (!accessor)
                 continue;
-            const key = accessorName(member);
+            const key = name(member);
             if (key === undefined)
                 return null;
             inherited.add(key);
@@ -141,7 +140,7 @@ export function typeMemberOrdering(file, compiler, options = {}) {
                 const accessor = compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member) || compiler.isPropertyDeclaration(member) && !!compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.AccessorKeyword);
                 if (!accessor)
                     continue;
-                const key = accessorName(member);
+                const key = name(member);
                 if (key === undefined)
                     return null;
                 accessors.add(key);
@@ -162,7 +161,7 @@ export function typeMemberOrdering(file, compiler, options = {}) {
                         return null;
                     const auto = !!compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.AccessorKeyword);
                     if (assigns && !auto && !compiler.isPrivateIdentifier(member.name)) {
-                        const key = compiler.isComputedPropertyName(member.name) ? undefined : name(member);
+                        const key = name(member);
                         if (key === undefined || key === '__proto__' || accessors.has(key))
                             return null;
                     }
@@ -170,11 +169,7 @@ export function typeMemberOrdering(file, compiler, options = {}) {
             }
         return accessors;
     };
-    /** v43 (ADR-077): the instance property names a setter reads and writes, when it uses `this` only in
-     * `this.name` accesses that are not called, outside nested functions, and none names an accessor of
-     * the chain; otherwise `undefined` (it may run more code on the instance, or let it escape). A plain
-     * `=` target is a write; a compound, `++`/`--`, `delete` or destructuring target is both. */
-    const thisNames = (setter, accessors) => {
+    const instanceFootprint = (roots, resolve) => {
         const reads = new Set(), writes = new Set();
         let ok = true;
         const assignment = (kind) => kind >= compiler.SyntaxKind.FirstAssignment && kind <= compiler.SyntaxKind.LastAssignment;
@@ -213,23 +208,28 @@ export function typeMemberOrdering(file, compiler, options = {}) {
                     ok = false;
                     return;
                 }
-                if (!compiler.isPrivateIdentifier(access.name)) {
-                    if (accessors.has(access.name.text)) {
-                        ok = false;
-                        return;
-                    }
-                    const how = role(access);
-                    if (how !== 'write')
-                        reads.add(access.name.text);
-                    if (how !== 'read')
-                        writes.add(access.name.text);
+                const key = access.name.text, how = role(access), runs = resolve(key, how);
+                if (!runs) {
+                    ok = false;
+                    return;
                 }
+                if (how !== 'write')
+                    reads.add(key);
+                if (how !== 'read')
+                    writes.add(key);
+                for (const touched of runs.reads)
+                    reads.add(touched);
+                for (const touched of runs.writes)
+                    writes.add(touched);
             }
             compiler.forEachChild(node, child => scan(child, nested || compiler.isFunctionLike(child) || compiler.isClassLike(child)));
         };
-        compiler.forEachChild(setter, child => scan(child, compiler.isFunctionLike(child) || compiler.isClassLike(child)));
+        for (const root of roots)
+            scan(root, compiler.isFunctionLike(root) || compiler.isClassLike(root));
         return ok ? { reads: [...reads], writes: [...writes] } : undefined;
     };
+    const none = { reads: [], writes: [] };
+    const union = (a, b) => ({ reads: [...new Set([...a.reads, ...b.reads])], writes: [...new Set([...a.writes, ...b.writes])] });
     function visit(node) {
         if (compiler.isInterfaceDeclaration(node) || compiler.isTypeLiteralNode(node) || compiler.isClassLike(node)) {
             const isClass = compiler.isClassLike(node);
@@ -245,18 +245,20 @@ export function typeMemberOrdering(file, compiler, options = {}) {
             const isStatic = (member) => compiler.canHaveModifiers(member) && !!compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.StaticKeyword);
             // ADR-012: exactly one getter and one setter with bodies, the same name and the same placement form one property.
             const pairs = new Set();
+            // v44 (ADR-078): fields of that name may stand beside the pair; a field creates an instance or
+            // constructor property when it runs, never a prototype definition, so the pair stays one property.
             if (isClass)
                 for (const [key, count] of counts) {
-                    if (count !== 2)
+                    if (count < 2)
                         continue;
-                    const both = node.members.filter(member => name(member) === key);
-                    if (both.some(member => compiler.isGetAccessorDeclaration(member) && !!member.body) && both.some(member => compiler.isSetAccessorDeclaration(member) && !!member.body) && isStatic(both[0]) === isStatic(both[1]))
+                    const named = node.members.filter(member => name(member) === key), halves = named.filter(member => !compiler.isPropertyDeclaration(member) || !!compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.AccessorKeyword));
+                    if (halves.length === 2 && halves.some(member => compiler.isGetAccessorDeclaration(member) && !!member.body) && halves.some(member => compiler.isSetAccessorDeclaration(member) && !!member.body) && isStatic(halves[0]) === isStatic(halves[1]))
                         pairs.add(key);
                 }
             // v34 (ADR-068): a name whose every member is a whole method or accessor definition. Each is
             // installed at class definition, before any initialiser or static code runs, so it is free of
             // the fields; the later of two same-key definitions on one object replaces the earlier one.
-            const definitionOnly = (member) => (compiler.isMethodDeclaration(member) || compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member)) && !!member.body && !!member.name && !compiler.isComputedPropertyName(member.name)
+            const definitionOnly = (member) => (compiler.isMethodDeclaration(member) || compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member)) && !!member.body && plainNamed(member)
                 && !(compiler.canHaveDecorators(member) && compiler.getDecorators(member)?.length) && ((compiler.canHaveModifiers(member) ? compiler.getModifiers(member) : undefined) ?? []).every(modifier => definitionModifiers.has(modifier.kind)) && definitionRows(member);
             const duplicates = new Set(isClass ? [...counts].filter(([key, count]) => count > 1 && !pairs.has(key) && node.members.every(member => name(member) !== key || definitionOnly(member))).map(([key]) => key) : []);
             /** ADR-073: the earlier field `this.g` names, when `member`'s initialiser is just that read and `g`
@@ -280,23 +282,64 @@ export function typeMemberOrdering(file, compiler, options = {}) {
             // ADR-075: in the `define` mode a field is defined on the instance and runs no inherited setter.
             const inherited = isClass && options.classFields !== 'define' ? baseAccessors(node) : new Set();
             const assignable = (key, member) => key !== '__proto__' && (compiler.isPrivateIdentifier(member.name) || !!inherited && !inherited.has(key));
-            const chainAccessors = isClass && !reshapes && !options.enumeratedKeys ? quietConstruction(node) : null, quiet = !!chainAccessors;
-            /** v43 (ADR-077): what assigning instance field `key` touches through the [[Set]] mode: the names the
-             * nearest base member of that name reads or writes (none for a method or field there, a data
-             * property); `undefined` when unknown (no single setter, or one that may run more code). */
-            const setterFootprint = (key) => {
+            const chainAccessors = isClass && !reshapes ? quietConstruction(node) : null, quiet = !!chainAccessors;
+            const plainField = (member) => compiler.isPropertyDeclaration(member) && !compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.AccessorKeyword);
+            /** v43 (ADR-077), v44 (ADR-078): what accessing instance property `key` runs, as the names that code
+             * touches. An own property (a base field already created it) or a prototype method is data; the
+             * nearest accessor runs its getter (read) or setter (write), analysed in turn; a getter-only name
+             * written, a mix of member kinds, a cycle or an unknown chain is refused. */
+            const resolving = new Set();
+            const resolve = (key, how) => {
                 if (!chainAccessors || key === '__proto__')
                     return undefined;
-                for (let current = baseOf(node); current; current = baseOf(current)) {
-                    const named = current.members.filter(member => !isStatic(member) && name(member) === key);
+                if (!chainAccessors.has(key))
+                    return none;
+                const chain = [];
+                for (let current = node; current; current = baseOf(current))
+                    chain.push(current);
+                if (chain.slice(1).some(owner => owner.members.some(member => !isStatic(member) && name(member) === key && plainField(member))))
+                    return none;
+                for (const owner of chain) {
+                    const named = owner.members.filter(member => !isStatic(member) && name(member) === key && !plainField(member));
                     if (!named.length)
                         continue;
-                    const setters = named.filter(compiler.isSetAccessorDeclaration);
-                    if (named.every(member => compiler.isMethodDeclaration(member) || compiler.isPropertyDeclaration(member) && !compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.AccessorKeyword)))
-                        return { reads: [], writes: [] };
-                    if (setters.length !== 1 || !setters[0].body || !named.every(member => compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member)) || named.length > 2)
-                        return undefined;
-                    return thisNames(setters[0], chainAccessors);
+                    // The definitions install in member order and their order is kept (duplicate-definition-order):
+                    // the property is what the last ones leave. A method or `accessor` field replaces the property; a
+                    // getter or setter replaces one half of an accessor property, or a data property as a whole.
+                    let getter, setter, data = false;
+                    for (const member of named) {
+                        if (compiler.isMethodDeclaration(member) || compiler.isPropertyDeclaration(member)) {
+                            data = true;
+                            getter = setter = undefined;
+                            continue;
+                        }
+                        if (!(compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member)) || !member.body)
+                            return undefined;
+                        if (data) {
+                            data = false;
+                            getter = setter = undefined;
+                        }
+                        if (compiler.isGetAccessorDeclaration(member))
+                            getter = member;
+                        else
+                            setter = member;
+                    }
+                    // An `accessor` field's halves only read and write its private storage.
+                    if (data)
+                        return none;
+                    const getters = getter ? [getter] : [], setters = setter ? [setter] : [];
+                    const run = (accessor) => {
+                        if (!accessor)
+                            return none;
+                        if (resolving.has(accessor))
+                            return undefined;
+                        resolving.add(accessor);
+                        const result = instanceFootprint(accessor.getChildren(file), resolve);
+                        resolving.delete(accessor);
+                        return result;
+                    };
+                    const read = how === 'write' ? none : run(getters[0]), write = how === 'read' ? none : setters[0] ? run(setters[0]) : undefined;
+                    return read && write ? union(read, write) : undefined;
                 }
                 return undefined;
             };
@@ -322,7 +365,7 @@ export function typeMemberOrdering(file, compiler, options = {}) {
                 const reflected = emitted && !(member.name && compiler.isPrivateIdentifier(member.name)) && !(key !== undefined && arrayIndex(key));
                 // ADR-012 phases: a named field initialises in its placement's phase; a computed
                 // method/accessor key is evaluated at definition, before any initialiser runs.
-                const plainName = !!member.name && !compiler.isComputedPropertyName(member.name);
+                const plainName = plainNamed(member);
                 const phases = !isClass || decorated || leadingComment ? undefined
                     : compiler.isPropertyDeclaration(member) && plainName && !erased ? [isStatic(member) ? 'static' : 'instance']
                         : compiler.isClassStaticBlockDeclaration(member) ? ['static']
@@ -333,18 +376,24 @@ export function typeMemberOrdering(file, compiler, options = {}) {
                 // ADR-029: a uniquely named instance field that runs no code creates only its key; unless the program enumerates keys, that order is unobserved.
                 // v34 (ADR-068): likewise a static field (a key of the constructor) and an `accessor` field, whose
                 // initialiser only fills a private storage; its get/set key is created at definition (the key chain).
-                const loose = !options.enumeratedKeys && phases?.length === 1 && key !== undefined && counts.get(key) === 1 && compiler.isPropertyDeclaration(member) && assignable(key, member) && (!member.initializer || inert(member.initializer));
+                // v44 (ADR-078): a private field is never listed, so it is loose even when the program lists keys.
+                const loose = (!options.enumeratedKeys || !!member.name && compiler.isPrivateIdentifier(member.name)) && phases?.length === 1 && key !== undefined && counts.get(key) === 1 && compiler.isPropertyDeclaration(member) && assignable(key, member) && (!member.initializer || inert(member.initializer));
                 // v39 (ADR-073): a field that copies an earlier own data field of the same placement (`f = this.g`)
                 // runs no code either: `g` is then an own data property (defined, or assigned without a setter on
                 // the chain), so the read runs no getter. It follows `g`, but no other loose field.
                 const copied = !loose && !options.enumeratedKeys && !reshapes && phases?.length === 1 && phases[0] !== 'key' && key !== undefined && counts.get(key) === 1 && compiler.isPropertyDeclaration(member) && !autoAccessor && assignable(key, member) && member.initializer ? copySource(member, node.members) : undefined;
                 // v42 (ADR-076): an instance field whose initialiser cannot name the instance, in a construction
                 // that cannot leak it before: its code cannot observe the loose fields, only other code.
-                const plainField = quiet && !loose && !copied && phases?.length === 1 && phases[0] === 'instance' && key !== undefined && counts.get(key) === 1 && compiler.isPropertyDeclaration(member) && !autoAccessor && !modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.DeclareKeyword || modifier.kind === compiler.SyntaxKind.AbstractKeyword) && thisFree(member.initializer);
+                const candidate = quiet && !loose && !copied && phases?.length === 1 && phases[0] === 'instance' && key !== undefined && counts.get(key) === 1 && compiler.isPropertyDeclaration(member) && !autoAccessor && !modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.DeclareKeyword || modifier.kind === compiler.SyntaxKind.AbstractKeyword);
+                // v44 (ADR-078): an initialiser may read the instance through `this.name`, with what that runs.
+                const initial = candidate ? member.initializer ? instanceFootprint([member.initializer], resolve) : none : undefined;
                 // v43 (ADR-077): a field that may run a base setter is detached too, with what that setter touches.
-                const footprint = plainField && !assignable(key, member) ? setterFootprint(key) : undefined;
-                const detached = plainField && (assignable(key, member) && !!member.initializer || !!footprint);
-                return { first: row, last: end, pure, plain, free: definition || isClass && pure, ...(definition && duplicate ? { sameKey: key + (isStatic(member) ? ' static' : ' prototype') } : {}), ...(reflected ? { reflect: isStatic(member) ? 'static' : 'prototype' } : {}), ...(phases ? { phases } : {}), ...(definition && paired ? { pair: key } : {}), ...(loose || copied ? { loose: true } : {}), ...(copied ? { copies: last(copied) } : {}), ...(loose || copied ? { touches: { reads: copied ? [name(copied)] : [], writes: [key] } } : {}), ...(detached ? { detached: true, ...(footprint ? { footprint } : {}) } : {}) };
+                const assigned = initial && !assignable(key, member) ? resolve(key, 'write') : none;
+                const footprint = initial && assigned ? union(initial, assigned) : undefined;
+                // v44 (ADR-078): when the program lists keys, a public field that runs no code is not loose; it
+                // stays ordered with every other public field (its key), but not with the private loose fields.
+                const detached = !!footprint && (!assignable(key, member) || !!member.initializer || !!options.enumeratedKeys);
+                return { first: row, last: end, pure, plain, free: definition || isClass && pure, ...(definition && duplicate ? { sameKey: key + (isStatic(member) ? ' static' : ' prototype'), ...(compiler.isGetAccessorDeclaration(member) ? { half: 'get' } : compiler.isSetAccessorDeclaration(member) ? { half: 'set' } : {}) } : {}), ...(reflected ? { reflect: isStatic(member) ? 'static' : 'prototype' } : {}), ...(phases ? { phases } : {}), ...(definition && paired ? { pair: key } : {}), ...(loose || copied ? { loose: true } : {}), ...(copied ? { copies: last(copied) } : {}), ...(loose || copied ? { touches: { reads: copied ? [name(copied)] : [], writes: [key] } } : {}), ...(detached ? { detached: true, ...(footprint ? { footprint } : {}) } : {}) };
             });
             // An overload signature must directly precede the next signature or the
             // implementation (TS2389/TS2391): the whole group is one unit. Its signatures are
@@ -387,13 +436,17 @@ export function typeMemberOrdering(file, compiler, options = {}) {
                 const wired = new Set();
                 for (const member of free)
                     order(member.first, [first(open)], 'block-open');
-                const definedLast = new Map();
+                // v44 (ADR-078): a getter and a setter next to each other in a same-key chain merge into one
+                // accessor property in either order; the next definition follows both.
+                const defined = new Map();
                 for (const member of free)
                     if (member.sameKey) {
-                        const previous = definedLast.get(member.sameKey);
-                        if (previous)
-                            order(member.first, [previous.last], 'duplicate-definition-order');
-                        definedLast.set(member.sameKey, member);
+                        const chain = defined.get(member.sameKey) ?? { last: [], before: [] };
+                        const joins = !!member.half && chain.last.length === 1 && !!chain.last[0].half && chain.last[0].half !== member.half;
+                        const predecessors = joins ? chain.before : chain.last;
+                        if (predecessors.length)
+                            order(member.first, predecessors.map(unit => unit.last), 'duplicate-definition-order');
+                        defined.set(member.sameKey, joins ? { last: [...chain.last, member], before: chain.before } : { last: [member], before: chain.last });
                     }
                 for (const unit of [...units, ...free])
                     spans.push({ first: unit.first, last: unit.last });
