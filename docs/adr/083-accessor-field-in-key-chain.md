@@ -46,7 +46,13 @@ Környezetváltozatokkal: TypeScriptben 2 rés, `classFields: 'define'` mellett 
 
 ## Mérés
 
-*A kampány lefutása után kitöltve.*
+**Kampány, 12 mag, v46 → v47:**
+- **`strict` és `hostile` környezet** (a `function`, `class`, `param`, `script`, `inherit` és `object` fajta): az `inherit` TS-ben 514 → 517 elfogadott sorrend, a rés 2 → 0. A többi csoport változatlan, 0 hibás elfogadás.
+- **Környezetváltozatokkal** (`strict`, `es2015`, `sloppy`; `inherit` és `class`):
+  - mindkét mód: az `inherit` TS rése 0;
+  - `classFields: 'define'`: 4 rés (lásd: Ami marad);
+  - 0 hibás elfogadás mindkét módban.
+- A `flow` fajtát a v48 kampánya méri ([ADR-084](084-loop-first-iteration.md)), amely ezt a változást is tartalmazza.
 
 ## Bizonyíték
 

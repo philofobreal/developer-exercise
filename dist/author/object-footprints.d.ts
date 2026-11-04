@@ -39,10 +39,16 @@ export interface Footprint {
 /** `primitive`: whether a list-level expression is an effect-free primitive (the analyser's own test). */
 /** `enumeratedKeys` (ADR-029): the program may list enumerable keys, so a write that adds a key orders like a whole-object write. */
 /** `assignable` (ADR-048): a list-level identifier is a primitive local of the list's function, which a statement may assign. */
+/** `entry` (ADR-084): the literal a list-level local holds whenever the list statement `loop` starts,
+ * when every accepted order gives it the same one (a literal declaration in the list before `loop`,
+ * and no write but in `loop`, outside nested functions); undefined otherwise. */
 export interface FootprintHost {
     primitive(expr: ts.Expression): boolean;
     assignable?(identifier: ts.Identifier): boolean;
     enumeratedKeys?: boolean;
+    entry?(identifier: ts.Identifier, loop: ts.Statement): {
+        lit: string | number | boolean | null;
+    } | undefined;
 }
 export declare function objectFootprints(list: readonly ts.Statement[], file: ts.SourceFile, compiler: Compiler, checker: ts.TypeChecker, host: FootprintHost): Map<ts.Statement, Footprint>;
 /** Why two footprinted statements must keep their order; empty when they commute. */

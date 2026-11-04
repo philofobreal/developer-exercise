@@ -201,6 +201,8 @@ export function objectFootprints(list, file, compiler, checker, host) {
     // v36 (ADR-070): the first element of an own array literal, and the arrays an unshift, pop or
     // shift may have given another first element (no other array write is in the subset).
     const firsts = new Map(), reshaped = new Set();
+    // v48 (ADR-084): the element values of an own array literal in order, and the list position that created it.
+    const literals = new Map(), createdAt = new Map();
     let changed = false;
     const grow = (cell, value) => {
         const before = cell.get(position), after = before ? union(before, value) : value;
@@ -414,6 +416,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
                     unknown();
                 for (const id of iterated.objs)
                     frame.fp.reads.add(at(id, WHOLE));
+                const entryEnv = new Map(frame.env);
                 // Locals the body assigns lose a known value: a later iteration may see another one.
                 for (const name of assignedNames(statement.statement, compiler))
                     if (frame.env.has(name))
@@ -438,12 +441,54 @@ export function objectFootprints(list, file, compiler, checker, host) {
                 else
                     unknown();
                 const body = { reads: new Set(), writes: new Set(), mayThrow: false, external: false, mayHang: false };
+                // v48 (ADR-084): the first iteration of a loop over one own array literal that no statement but
+                // its creation wrote (and no unshift, pop or shift reshaped), with no jump in the body, binds the
+                // first element and the list-level locals the body reads at their known entry values; the other
+                // iterations bind the other elements, with those locals unknown as before.
+                let rest;
+                const list = single !== undefined && !reshaped.has(single) && [...elements.get(single)?.keys() ?? []].every(written => written === createdAt.get(single)) ? literals.get(single) : undefined;
+                if (list?.length && frame.self === null && host.entry && compiler.isIdentifier(binding) && !jumps(statement.statement)) {
+                    const seeds = new Map(), names = new Map();
+                    const collect = (node) => {
+                        if (compiler.isIdentifier(node)) {
+                            const symbol = checker.getSymbolAtLocation(node);
+                            if (names.has(node.text) && names.get(node.text) !== symbol)
+                                names.set(node.text, undefined);
+                            else if (!names.has(node.text))
+                                names.set(node.text, symbol);
+                            const known = !entryEnv.has(node.text) ? host.entry(node, statement) : undefined;
+                            if (known)
+                                seeds.set(node.text, literal(known.lit));
+                        }
+                        compiler.forEachChild(node, collect);
+                    };
+                    collect(statement.statement);
+                    for (const name of [...seeds.keys()])
+                        if (!names.get(name))
+                            seeds.delete(name);
+                    if (seeds.size) {
+                        const first = new Map(entryEnv);
+                        for (const [name, value] of seeds)
+                            first.set(name, value);
+                        first.set(binding.text, list[0]);
+                        returned = union(returned, block([statement.statement], { ...frame, env: first, fp: body, exits: (frame.exits ?? 0) + 1, loops: (frame.loops ?? 0) + 1, every: undefined }));
+                        for (const [name] of entryEnv)
+                            if (frame.env.has(name))
+                                frame.env.set(name, union(frame.env.get(name), first.get(name)));
+                        rest = list.slice(1);
+                    }
+                }
+                if (rest && compiler.isIdentifier(binding))
+                    frame.env.set(binding.text, rest.length ? union(...rest) : PRIM);
                 // v38 (ADR-072): a loop that no jump cuts short visits every member of one own array literal (no
                 // unshift, pop or shift removed one); its body's certain code runs on each of them.
-                const visited = frame.certain && single !== undefined && !reshaped.has(single) && compiler.isIdentifier(binding) && !jumps(statement.statement) ? members.get(single) : undefined;
+                const remaining = rest ? new Set(rest.flatMap(value => [...value.objs])) : undefined;
+                const literalMembers = single !== undefined ? members.get(single) : undefined;
+                const visited = frame.certain && literalMembers && !reshaped.has(single) && compiler.isIdentifier(binding) && !jumps(statement.statement) ? remaining ?? literalMembers : undefined;
                 const variable = visited ? checker.getSymbolAtLocation(binding) : undefined;
                 const each = visited && variable ? { variable, members: visited } : undefined;
-                returned = union(returned, block([statement.statement], { ...frame, fp: body, exits: (frame.exits ?? 0) + 1, loops: (frame.loops ?? 0) + 1, certain: !!each, every: each }));
+                if (!rest || rest.length)
+                    returned = union(returned, block([statement.statement], { ...frame, fp: body, exits: (frame.exits ?? 0) + 1, loops: (frame.loops ?? 0) + 1, certain: !!each, every: each }));
                 // Writing the iterated array may extend the iteration: not shown to end.
                 if ([...iterated.objs].some(id => body.writes.has(at(id, WHOLE))))
                     unknown();
@@ -926,6 +971,8 @@ export function objectFootprints(list, file, compiler, checker, host) {
                         literalMembers.add([...value.objs][0]);
                 });
                 members.set(own.id, single ? literalMembers : null);
+                literals.set(own.id, init.elements.map(element => expression(element, frame)));
+                createdAt.set(own.id, position);
                 if (!elements.get(own.id)?.has(position))
                     addElements(own.id, PRIM);
             }
