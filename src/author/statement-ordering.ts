@@ -307,6 +307,9 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
   }
   // Creating a closure evaluates nothing inside it; its reads happen at call time, after a call barrier.
   if (compiler.isArrowFunction(expr) || compiler.isFunctionExpression(expr)) return true;
+  // v49 (ADR-086): a regular expression literal creates a fresh RegExp with the intrinsic constructor;
+  // no program code runs, and an invalid pattern is an early SyntaxError, so it never throws at run time.
+  if (compiler.isRegularExpressionLiteral(expr)) return true;
   if (compiler.isObjectLiteralExpression(expr)) return expr.properties.every(property => pureProperty(property, reads, pure));
   if (compiler.isArrayLiteralExpression(expr)) return expr.elements.every(element => compiler.isOmittedExpression(element) || !compiler.isSpreadElement(element) && pure(element, reads));
   if (compiler.isConditionalExpression(expr)) return pure(expr.condition, reads) && pure(expr.whenTrue, reads) && pure(expr.whenFalse, reads);
