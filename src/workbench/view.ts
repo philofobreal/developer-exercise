@@ -120,6 +120,9 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll}:WorkbenchO
  }
 
  // ── Shells ──
+ /** ADR-092: the heading's route and its language chip (language and row count of the exercise in hand). */
+ const breadcrumb=(trail:string[]):string=>`<nav class="breadcrumb" aria-label="Útvonal"><ol>${trail.map((item,i)=>`<li${i===trail.length-1?' aria-current="page"':''}>${esc(item)}</li>`).join('')}</ol></nav>`;
+ const languageChip=(language:string,rows?:number):string=>`<span class="language-chip ${language==='typescript'?'ts':'js'}"><span class="status-dot"></span><b>${language==='typescript'?'TS':'JS'}</b>${languageName(language)}${rows!==undefined?` · ${rows} sor`:''}</span>`;
  /** The validation the current view runs (AGENTS.md: Local Demo, Preview Validation and the trusted server stay named). */
  const validationLabel=():string=>validationMode==='local-demo'?'Local Demo / Preview Validation':state.mode==='author'?'Preview Validation':'Trusted Server Validation';
  function header():string {
@@ -134,10 +137,11 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll}:WorkbenchO
  }
  function authorShell():string {
   const step=stepOf(state.view),steps=flowSteps(state),stale=staleReason(state),e=ex(),a=at();
-  const stepper=`<nav class="stepper" aria-label="A feladatkészítés lépései"><ol>${steps.map(s=>`<li><button type="button" data-step="${s.step}" class="step ${s.current?'current':''} ${s.locked?'locked':''} ${s.stale?'stale':''}" ${s.current?'aria-current="step"':''} ${s.locked?`disabled aria-disabled="true" title="${esc(s.locked)}"`:''}><span class="step-number">${s.number}</span><span class="step-text"><b>${s.label}</b><small>${s.locked?'Zárolt':s.stale?'Elavult':s.hint}</small></span></button></li>`).join('<li class="step-arrow" aria-hidden="true">'+icon('arrow')+'</li>')}</ol></nav>`;
+  const here=steps.findIndex(s=>s.current),pad=(n:number):string=>String(n).padStart(2,'0');
+  const stepper=`<nav class="stepper" aria-label="A feladatkészítés lépései"><ol>${steps.map((s,i)=>{const done=i<here&&!s.locked&&!s.stale;return `<li><button type="button" data-step="${s.step}" class="step ${s.current?'current':''} ${done?'done':''} ${s.locked?'locked':''} ${s.stale?'stale':''}" ${s.current?'aria-current="step"':''} ${s.locked?`disabled aria-disabled="true" title="${esc(s.locked)}"`:''}><span class="step-number" aria-hidden="true">${done?icon('check'):pad(s.number)}</span><span class="step-text"><b><span class="step-index">${pad(s.number)} · </span>${s.label}</b><small>${s.locked?'Zárolt':s.stale?'Elavult':done?'Kész · '+s.hint:s.hint}</small></span></button></li>`;}).join('')}</ol></nav>`;
   const banner=stale&&step!=='source'?`<div class="draft-notice stale-notice" data-stale-notice role="note"><p>${esc(stale)}</p><div>${authorDraftPending(state)?tool('data-author-apply','Modell újrakészítése','reset')+tool('data-author-revert','Forrásváltozás elvetése','back'):tool('data-open-json','JSON megnyitása','settings')}</div></div>`:'';
   const body=step==='source'?sourceStep():step==='rules'?rulesStep():e&&a?`<section class="step-panel" aria-labelledby="step-title"><div class="section-heading"><div><span class="eyebrow">3. LÉPÉS</span><h2 id="step-title">Próba</h2><p>Rendezd úgy a sorokat, ahogy egy tanuló tenné, és ellenőrizd, mely sorrendeket fogadják el a szabályok. A Tanulói nézet pontosan azt mutatja, amit a tanuló lát.</p></div>${progress(e,a)}</div>${tryPanel(e,a)}<div class="step-nav">${tool('data-goto="rules"','Vissza a szabályokhoz','back')}</div>${storage()}</section>`:'';
-  return `<div class="shell author-shell">${authorSide(step,e)}<main id="workbench-main" class="author-flow" tabindex="-1"><div class="task-heading"><div><div class="meta"><span class="language-pill ${state.author.language==='typescript'?'ts':'js'}">${languageName(state.author.language)}</span><span>Feladat készítése</span>${e?`<span>${e.lines.length} sor</span>`:''}</div><h1>${esc(state.author.title)}</h1><p class="description">${esc(state.author.description)}</p></div></div>${notice(!!authorPreviewId(state))}${stepper}${banner}${body}${help(state.author.language)}</main></div>`;
+  return `<div class="shell author-shell">${authorSide(step,e)}<main id="workbench-main" class="author-flow" tabindex="-1"><div class="task-heading"><div><div class="heading-route">${breadcrumb(['Studio','Feladatkészítés',steps[here]?.label??'Forrás'])}${languageChip(state.author.language,e?.lines.length)}</div><h1>${esc(state.author.title)}</h1><p class="description">${esc(state.author.description)}</p></div></div>${notice(!!authorPreviewId(state))}${stepper}${banner}${body}${help(state.author.language)}</main></div>`;
  }
  /** The author's side panel: the project being made, from the model in hand, and a tip for the step. */
  function authorSide(step:string,e:ExerciseSummary|undefined):string {
@@ -156,12 +160,12 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll}:WorkbenchO
  function practiceShell():string {
   const e=ex(),a=at(),trusted=state.exercises.filter(x=>!state.previews.has(x.id));
   const library=`<aside class="library" aria-label="Gyakorlófeladatok"><div class="library-heading"><span class="eyebrow">GYAKORLÁS</span><h2>Gyakorlófeladatok</h2><p>Válassz feladatot, és rendezd sorba a kódját.</p></div><nav aria-label="Feladatok">${createFieldRenderer(trusted,esc,e?.id??'')}</nav>${storage()}</aside>`;
-  const main=e&&a?`<main id="workbench-main" tabindex="-1"><div class="task-heading"><div><div class="meta"><span class="language-pill ${e.language==='typescript'?'ts':'js'}">${languageName(e.language)}</span><span>Gyakorlófeladat</span><span>${e.lines.length} sor</span></div><h1>${esc(e.title)}</h1><p class="description">${esc(e.description)}</p>${tool('data-edit-example','Saját feladat ebből a példából','plus','class="link-action"')}</div>${progress(e,a)}</div>${notice(false)}${tryPanel(e,a)}${help(e.language)}</main>`:'<main id="workbench-main"><p class="loading">Nincs gyakorlófeladat.</p></main>';
+  const main=e&&a?`<main id="workbench-main" tabindex="-1"><div class="task-heading"><div><div class="heading-route">${breadcrumb(['Studio','Gyakorlás','Gyakorlófeladat'])}${languageChip(e.language,e.lines.length)}</div><h1>${esc(e.title)}</h1><p class="description">${esc(e.description)}</p>${tool('data-edit-example','Saját feladat ebből a példából','plus','class="link-action"')}</div>${progress(e,a)}</div>${notice(false)}${tryPanel(e,a)}${help(e.language)}</main>`:'<main id="workbench-main"><p class="loading">Nincs gyakorlófeladat.</p></main>';
   return `<div class="shell">${library}${main}</div>`;
  }
  function learnerShell():string {
   const e=ex(),a=at();if(!e||!a)return '';
-  return `<div class="shell learner-shell"><main id="workbench-main" tabindex="-1"><div class="task-heading"><div><div class="meta"><span class="language-pill ${e.language==='typescript'?'ts':'js'}">${languageName(e.language)}</span><span>${e.lines.length} sor</span></div><h1>${esc(e.title)}</h1><p class="description">${esc(e.description)}</p></div>${progress(e,a)}</div>${notice(true)}${tryPanel(e,a)}${help(e.language)}</main></div>`;
+  return `<div class="shell learner-shell"><main id="workbench-main" tabindex="-1"><div class="task-heading"><div><div class="heading-route">${languageChip(e.language,e.lines.length)}</div><h1>${esc(e.title)}</h1><p class="description">${esc(e.description)}</p></div>${progress(e,a)}</div>${notice(true)}${tryPanel(e,a)}${help(e.language)}</main></div>`;
  }
  function render():void {
   const v=state.view,learner=!!state.learnerPreview,key=continuityKey(state);

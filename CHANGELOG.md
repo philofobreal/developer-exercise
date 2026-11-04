@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased – 2026-11-04 obsidian dizájn, 3. szakasz (ADR-092)
+
+- **Feladatfejléc:** útvonalsor („Studio / Feladatkészítés / Próba”), nagyobb cím és nyelvjelvény („TS TypeScript · 34 sor”).
+- **Lépéssor:** a három lépés egy sávban, „01 · Forrás” címkékkel. A kész lépés pipát kap, az aktív kitöltött számot és fénylő aláhúzást. Mobilon is elfér.
+
 ## Unreleased – 2026-11-04 obsidian dizájn, 1–2. szakasz (ADR-091)
 
 - **Új megjelenés:** ciánkék kiemelés, mélyebb sötét háttér, monospace nagybetűs címkék, fénylő aktív lépés és módfül. Minden szín egy közös palettából jön.
