@@ -1,5 +1,5 @@
 {
- "class javascript scoped-effect-analysis-v41 returns": {
+ "class javascript scoped-effect-analysis-v42 returns": {
   "programs": 3,
   "orders": 160,
   "gap": 0,
@@ -7,7 +7,7 @@
   "gapRate": 0,
   "equivalentRejectionRate": 0
  },
- "class typescript scoped-effect-analysis-v41 returns": {
+ "class typescript scoped-effect-analysis-v42 returns": {
   "programs": 3,
   "orders": 231,
   "gap": 4,
@@ -15,7 +15,7 @@
   "gapRate": 0.0444,
   "equivalentRejectionRate": 0.0444
  },
- "flow javascript scoped-effect-analysis-v41 returns": {
+ "flow javascript scoped-effect-analysis-v42 returns": {
   "programs": 3,
   "orders": 251,
   "gap": 0,
@@ -23,7 +23,7 @@
   "gapRate": 0,
   "equivalentRejectionRate": 0.0476
  },
- "flow typescript scoped-effect-analysis-v41 returns": {
+ "flow typescript scoped-effect-analysis-v42 returns": {
   "programs": 3,
   "orders": 247,
   "gap": 0,
@@ -31,7 +31,7 @@
   "gapRate": 0,
   "equivalentRejectionRate": 0.0256
  },
- "function javascript scoped-effect-analysis-v41 returns": {
+ "function javascript scoped-effect-analysis-v42 returns": {
   "programs": 3,
   "orders": 206,
   "gap": 0,
@@ -39,7 +39,7 @@
   "gapRate": 0,
   "equivalentRejectionRate": 0
  },
- "inherit javascript scoped-effect-analysis-v41 returns": {
+ "inherit javascript scoped-effect-analysis-v42 returns": {
   "programs": 3,
   "orders": 185,
   "gap": 23,
@@ -47,7 +47,7 @@
   "gapRate": 0.4423,
   "equivalentRejectionRate": 0.4423
  },
- "inherit typescript scoped-effect-analysis-v41 returns": {
+ "inherit typescript scoped-effect-analysis-v42 returns": {
   "programs": 3,
   "orders": 191,
   "gap": 7,
@@ -55,7 +55,7 @@
   "gapRate": 0.1228,
   "equivalentRejectionRate": 0.1228
  },
- "object javascript scoped-effect-analysis-v41 returns": {
+ "object javascript scoped-effect-analysis-v42 returns": {
   "programs": 2,
   "orders": 165,
   "gap": 0,
@@ -63,7 +63,7 @@
   "gapRate": 0,
   "equivalentRejectionRate": 0
  },
- "object javascript scoped-effect-analysis-v41 throws": {
+ "object javascript scoped-effect-analysis-v42 throws": {
   "programs": 1,
   "orders": 85,
   "gap": 0,
@@ -71,7 +71,7 @@
   "gapRate": 0,
   "equivalentRejectionRate": 0.1622
  },
- "object typescript scoped-effect-analysis-v41 returns": {
+ "object typescript scoped-effect-analysis-v42 returns": {
   "programs": 2,
   "orders": 165,
   "gap": 0,
@@ -79,7 +79,7 @@
   "gapRate": 0,
   "equivalentRejectionRate": 0
  },
- "object typescript scoped-effect-analysis-v41 throws": {
+ "object typescript scoped-effect-analysis-v42 throws": {
   "programs": 1,
   "orders": 83,
   "gap": 0,
@@ -87,7 +87,7 @@
   "gapRate": 0,
   "equivalentRejectionRate": 0.0333
  },
- "param javascript scoped-effect-analysis-v41 returns": {
+ "param javascript scoped-effect-analysis-v42 returns": {
   "programs": 3,
   "orders": 213,
   "gap": 0,
@@ -95,7 +95,7 @@
   "gapRate": 0,
   "equivalentRejectionRate": 0
  },
- "param typescript scoped-effect-analysis-v41 returns": {
+ "param typescript scoped-effect-analysis-v42 returns": {
   "programs": 3,
   "orders": 213,
   "gap": 0,
@@ -103,7 +103,7 @@
   "gapRate": 0,
   "equivalentRejectionRate": 0
  },
- "script javascript scoped-effect-analysis-v41 returns": {
+ "script javascript scoped-effect-analysis-v42 returns": {
   "programs": 3,
   "orders": 212,
   "gap": 2,
@@ -111,7 +111,7 @@
   "gapRate": 0.0244,
   "equivalentRejectionRate": 0.0244
  },
- "script typescript scoped-effect-analysis-v41 returns": {
+ "script typescript scoped-effect-analysis-v42 returns": {
   "programs": 3,
   "orders": 221,
   "gap": 0,

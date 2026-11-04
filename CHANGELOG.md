@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased – 2026-11-04 a példányt el nem érő mezőkezdőérték (ADR-076, v42)
+
+- **Kevesebb fölösleges szabály:** egy osztálymező, amelynek a kezdőértéke kódot futtat, de nem éri el a félig felépített objektumot (például `f1 = record('f1') ?? 7`), most már szabadon cserélhető az egyszerű, literál értékű mezőkkel. A többi kódot futtató taghoz képest a sorrendje kötött marad.
+- **Biztonsági feltételek:** a szabály nem érvényes, ha az objektum addig kiszökhetett. Ilyen helyzet:
+  - az ős konstruktora vagy mezője használja a `this`-t;
+  - egy korábbi saját mező kiadja a `this`-t;
+  - a kezdőérték `this`-t használó függvényt ad át;
+  - régi mezőmódban egy ős mezőjének értékadása settert futtat;
+  - a TypeScript paramétertulajdonsága settert futtat.
+
+  Mind az öt esetre van próba.
+- **Mérés:** a teljes kampányban az öröklési programok rése JavaScriptben 133 → 108, TypeScriptben 77 → 52. „Csak szabványos” mezőmódban nyelvenként 13 és 15 maradt. 0 hibás elfogadás, a környezetváltozatokkal és mindkét mezőmódban is.
+
 ## Unreleased – 2026-11-04 szerzői beállítás: csak szabványos osztálymezők (ADR-075, v41)
 
 - **Új szerzői beállítás a Forrás lépésben: „Osztálymezők létrehozása”.** Alapértelmezés: „mindkét mód”, ilyenkor a szabályok változatlanok. A „csak szabványos” mód kimondja, hogy a feladat mezőit a JavaScript szabványa szerint definiálják (natív osztálymezők, TypeScript `useDefineForClassFields: true`). Ilyenkor az ősosztály azonos nevű settere nem köti a mezők sorrendjét. A régebbi célra fordított kódra ez a mód nem ígér semmit, és a magyarázat ezt kimondja.
