@@ -350,7 +350,9 @@ export function typeMemberOrdering(file, compiler, options = {}) {
             const members = node.members.map(member => {
                 const key = name(member), row = first(member), end = last(member);
                 const modifiers = compiler.canHaveModifiers(member) ? compiler.getModifiers(member) : undefined;
-                const erased = compiler.isPropertySignature(member) || compiler.isPropertyDeclaration(member) && !member.initializer && !!modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.DeclareKeyword);
+                // v50 (ADR-087): a method signature of an interface or type literal is erased too; a unique name
+                // (`distinct` below) leaves out overloads, whose order overload resolution reads.
+                const erased = compiler.isPropertySignature(member) || compiler.isMethodSignature(member) || compiler.isPropertyDeclaration(member) && !member.initializer && !!modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.DeclareKeyword);
                 const simpleModifiers = modifiers?.every(modifier => [compiler.SyntaxKind.DeclareKeyword, compiler.SyntaxKind.ReadonlyKeyword, compiler.SyntaxKind.PublicKeyword, compiler.SyntaxKind.ProtectedKeyword, compiler.SyntaxKind.PrivateKeyword].includes(modifier.kind)) ?? true;
                 const decorated = compiler.canHaveDecorators(member) && !!compiler.getDecorators(member)?.length;
                 const fullStart = member.getFullStart(), fullRow = file.getLineAndCharacterOfPosition(fullStart).line;
@@ -556,6 +558,6 @@ export function typeMemberOrdering(file, compiler, options = {}) {
     }
     visit(file);
     // Several constraints on one row are a conjunction.
-    return { entries: mergeOrderingEntries(entries), spans, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor, a declare mezők, a privát (#) és a tömbindex nevű metódusok bárhol állhatnak. A többi metódus és accessor is szabad; csak ha a program listázza a nem felsorolható kulcsokat (getOwnPropertyNames, Reflect.ownKeys), tartják meg a kulcssorrendjüket. Az azonos nevű getter és setter egy tulajdonság. A példány- és a static mezők egymáshoz képest szabadok; csoportjukon belül sorrendben maradnak, kivéve a kódot nem futtató mezőket, ha a program nem listázza a kulcsokat (Object.keys, JSON.stringify, for…in, spread, console). A számított nevű metódus a mezőkhöz képest szabad. Az azonos nevű metódusok csak egymáshoz képest kötöttek. Az overloadok, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : '' };
+    return { entries: mergeOrderingEntries(entries), spans, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típustagok (adatmezők és metódusszignatúrák) felcserélhetők. A constructor, a declare mezők, a privát (#) és a tömbindex nevű metódusok bárhol állhatnak. A többi metódus és accessor is szabad; csak ha a program listázza a nem felsorolható kulcsokat (getOwnPropertyNames, Reflect.ownKeys), tartják meg a kulcssorrendjüket. Az azonos nevű getter és setter egy tulajdonság. A példány- és a static mezők egymáshoz képest szabadok; csoportjukon belül sorrendben maradnak, kivéve a kódot nem futtató mezőket, ha a program nem listázza a kulcsokat (Object.keys, JSON.stringify, for…in, spread, console). A számított nevű metódus a mezőkhöz képest szabad. Az azonos nevű metódusok csak egymáshoz képest kötöttek. Az overloadok, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : '' };
 }
 //# sourceMappingURL=type-member-ordering.js.map

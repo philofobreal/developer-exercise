@@ -111,6 +111,9 @@ for(const [name,source,yes,no] of [
  ['multiline member','interface X {\n a:\n string;\n b: number;\n c: number;\n}',[[4,5]],[[2,4]]],
  ['shared row','interface X {\n a: number; b: number;\n c: number; d: number;\n}',[],[[2,3]]],
  ['numeric key barrier','interface X {\n 0: number;\n a: number;\n b: number;\n}',[[3,4]],[[2,3]]],
+ // ADR-087 (v50): a uniquely named method signature is erased like a property signature; overloads keep their order.
+ ['unique method signatures are free','interface X {\n a(): void;\n b(value: number): number;\n c: string;\n}',[[2,3],[3,4]],[]],
+ ['overloaded method signatures stay ordered','interface X {\n a(value: string): void;\n a(value: number): void;\n b: string;\n}',[],[[2,3]]],
  ['computed method barrier','interface X {\n [Symbol.iterator](): Iterator<number>;\n a: number;\n b: number;\n}',[[3,4]],[[2,3]]],
  ['same decoded name','interface X {\n a: number;\n "a": number;\n b: number;\n}',[],[[2,4],[3,4]]],
  ['static declare stays conservative','class X {\n declare static a: number;\n declare static b: number;\n}',[],[[2,3]]],
