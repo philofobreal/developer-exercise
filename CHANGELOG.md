@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-04 billentyűsúgó az eszköztárban, mobil rendező (ADR-094)
+
+- **Tömörebb rendező:** a „Billentyűzettel is” súgó a Rendező/Megoldáskód fülek mellé került. A külön útmutató sáv elmaradt, mert a forráslista alja és a Tipp kártya ugyanezt mondja. A rendező laptopképernyőn még feljebb kezdődik.
+- **Javítás:** a forráslista sorvégi gombja mögött már nem látszik ki a sor vége.
+- **Mobil:** az ellenőrző gomb rendezés közben a képernyő alján marad, a kettős listacím eltűnt, a panelgombok egy sorban vannak.
+
 ## Unreleased – 2026-11-04 obsidian dizájn, 4. szakasz (ADR-093)
 
 - **A rendező feljebb került:** a Próba lépés fejléce tömörebb („Próbarendező”, egysoros leírás, kompakt haladássáv). A szabályok hosszabb magyarázata egy „Jelmagyarázat” blokkba csukható. Laptopképernyőn egy rövid feladat minden sora a képernyőn belül marad.
