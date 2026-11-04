@@ -66,6 +66,8 @@ A felhasználó jóváhagyta az ajánlást ([ADR-057](adr/057-example-migration-
 
 ### Újramérés v50 (2026-11-04) – döntésre vár (NY-09, NY-10)
 
+**Eldöntve és alkalmazva:** [ADR-089](adr/089-verified-examples-and-default.md). Igazolt szabály a `class-accounts-ts`-ben (revízió 3), újragenerálás az `algo-sort-search-js`-nél (revízió 2), forráscsere a `profiles-js`-nél (revízió 2); az alapértelmezés `verified-only`.
+
 Mérés a mai generátorral (`scoped-effect-analysis-v50`), `any` és `valid` szerződéssel. Mindkettővel ugyanaz az eredmény.
 
 **`class-accounts-ts`:**

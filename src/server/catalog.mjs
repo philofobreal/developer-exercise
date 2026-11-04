@@ -9,21 +9,26 @@ import path from 'node:path';
 import {generateCodeLineExercise,AuthoringError} from '../author/generator.mjs';
 import {getLanguageAdapter} from '../author/languages.mjs';
 import {auditReference} from '../author/audit.mjs';
-import {compileCodeLineExercise,validateSubmission,diagnoseSubmission,channelFeedback,codeLineDiagnosticReasons,publicationRefusal} from '../../dist/index.js';
+import {compileCodeLineExercise,validateSubmission,diagnoseSubmission,channelFeedback,codeLineDiagnosticReasons,publicationRefusal,DEFAULT_PUBLICATION_POLICY} from '../../dist/index.js';
 import {authorRuleSheet,editAuthorModel,refreshAuthorModel,verifyAuthorModel} from '../../dist/author/engine.js';
 import {createReferenceAuditor} from '../../dist/author/reference-audit.js';
 export class ServiceError extends Error{constructor(code,message){super(message);this.statusCode=code;}}
-/** The publication policy named by `CODELINE_PUBLICATION` (ADR-027, ADR-035). The server, the model
- * check and the Pages build read it here alike; a misspelt value fails instead of serving more. */
+/** The publication policy named by `CODELINE_PUBLICATION` (ADR-027, ADR-035); unset, the core's default
+ * (`verified-only`, ADR-089). The server, the model check and the Pages build read it here alike; a
+ * misspelt value fails instead of serving more. */
 export function publicationPolicy(value){
-  if(value===undefined||value==='')return 'publishable';
+  if(value===undefined||value==='')return DEFAULT_PUBLICATION_POLICY;
   if(value==='publishable'||value==='verified-only')return value;
   throw Error(`Unknown CODELINE_PUBLICATION: ${value} (publishable | verified-only)`);
+}
+/** ADR-089: the warning a composition root logs when the legacy policy is configured; null otherwise. */
+export function publicationNotice(policy){
+  return policy==='publishable'?'Örökölt publikálási mód (CODELINE_PUBLICATION=publishable): nem igazolt modellek is kiszolgálhatók.':null;
 }
 export class ExerciseCatalog{
   constructor(records){this.trusted=records;this.drafts=new Map();this.ts=null;this.skipped=[];}
   /** `publication` (ADR-027): which qualified models are served; a refused one is listed in `skipped`, its file untouched. */
-  static async open(examplesDir,{publication='publishable'}={}){
+  static async open(examplesDir,{publication=DEFAULT_PUBLICATION_POLICY}={}){
     const records=new Map(),catalog=new ExerciseCatalog(records);
     for(const filename of (await readdir(examplesDir)).filter(x=>x.endsWith('.json')).sort()){
       const model=JSON.parse(await readFile(path.join(examplesDir,filename),'utf8'));

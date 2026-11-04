@@ -227,12 +227,12 @@ const library={
    {name:'const names a for ciklusba',order:o=>moveBefore(o,26,28),status:'rejected',equivalent:false},
    {name:'interface-tag az osztálytörzsbe',order:o=>moveBefore(o,5,8),status:'rejected',equivalent:false},
    {name:'korai return a feltétel után',order:o=>swap(o,13,14),status:'rejected',equivalent:false}]},
- 'class-accounts-ts':{probe:"(() => { const account = new CreditAccount('Ana', 50); account.deposit(100); const results = [account.withdraw(120), account.withdraw(40), account.withdraw(5)]; account.deposit(7); return [results, account.statement(), Object.keys(account).sort(), account instanceof Account]; })()",extensions:20160,
+ 'class-accounts-ts':{probe:"(() => { const account = new CreditAccount('Ana', 50); account.deposit(100); const results = [account.withdraw(120), account.withdraw(40), account.withdraw(5)]; account.deposit(7); return [results, account.statement(), Object.keys(account).sort(), account instanceof Account]; })()",extensions:10080,
   scope:[
    {name:'leszármazott osztály az ős elé',order:o=>moveBefore(o,range(22,29),1),status:'rejected',equivalent:false},
-   {name:'literál-kezdőértékű mezők cseréje: a tárolt szerzői modell köti, futásidőben azonos (ADR-029)',order:o=>swap(o,2,3),status:'rejected',equivalent:true},
+   {name:'literál-kezdőértékű mezők cseréje: szabad (ADR-029), revízió 3',order:o=>swap(o,2,3),status:'accepted',equivalent:true},
    {name:'absztrakt metódus előre',order:o=>moveBefore(o,20,5),status:'accepted',equivalent:true},
-   {name:'egyenleg és napló frissítésének cseréje',order:o=>swap(o,13,14),status:'accepted',equivalent:true},
+   {name:'egyenleg és napló frissítésének cseréje: a próba számaival azonos, de egy nem szám összeg mindkét sorban kódot futtat, ezért kötött (NY-10, ADR-089)',order:o=>swap(o,13,14),status:'rejected',equivalent:true},
    {name:'super hívás a konstruktoron kívül',order:o=>moveBefore(o,24,26),status:'rejected',equivalent:false},
    {name:'levonás a fedezetellenőrzés elé',order:o=>moveBefore(o,13,10),status:'rejected',equivalent:false}]},
 };
@@ -258,7 +258,7 @@ for(const [id,spec] of Object.entries(library))test('bal oldali feladatkönyvtá
  auditReference(model,ts);const compiled=compile(model),equivalent=oracle(model,spec.probe),reference=model.lines.map(line=>line.id);
  const extensions=linearExtensions(model);assert.equal(extensions.length,spec.extensions);
  // Every extension is graded. Its runtime run is exhaustive up to 1 000 extensions and a fixed
- // stride sample above (the v11 class examples have 5 760 and 20 160, all once verified
+ // stride sample above (the class examples have 5 760 and 10 080 (class-accounts-ts revision 3), all once verified
  // equivalent exhaustively); ORACLE_EXHAUSTIVE=1 runs them all again.
  const stride=process.env.ORACLE_EXHAUSTIVE||extensions.length<=1000?1:Math.ceil(extensions.length/1000);
  extensions.forEach((order,index)=>{const lines=codes(model,order);assert.equal(grade(compiled,lines).status,'accepted',JSON.stringify(order));if(index%stride===0)assert.ok(equivalent(lines),'UNSOUND reference model:\n'+lines.join('\n'));});

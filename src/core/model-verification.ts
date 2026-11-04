@@ -186,12 +186,14 @@ function* gateProbes(model: CodeLineExercise, neighbours: number | undefined): G
   if (n > 1) yield* fresh('első és utolsó sor cseréje', [reference.at(-1)!, ...reference.slice(1, -1), reference[0]!]);
 }
 
-/** What a trusted catalog serves (ADR-027, ADR-035). `publishable` (default): every model whose
- * reference has no language error and, with its adjacent swaps, is decided within the production
- * budget, whatever its qualification. `verified-only`: additionally no `unverified` model. A refused
- * model is skipped, never rewritten. */
+/** What a trusted catalog serves (ADR-027, ADR-035). `publishable`: every model whose reference has
+ * no language error and, with its adjacent swaps, is decided within the production budget, whatever
+ * its qualification. `verified-only` (default since ADR-089): additionally no `unverified` model. A
+ * refused model is skipped, never rewritten. */
 export type PublicationPolicy = 'publishable' | 'verified-only';
-export function publicationRefusal(verification: ModelVerification, policy: PublicationPolicy = 'publishable'): string | null {
+/** ADR-089 (NY-09): the policy a catalog applies when none is configured. */
+export const DEFAULT_PUBLICATION_POLICY: PublicationPolicy = 'verified-only';
+export function publicationRefusal(verification: ModelVerification, policy: PublicationPolicy = DEFAULT_PUBLICATION_POLICY): string | null {
   if (verification.checks.audit === 'errors') return 'A referencia nyelvi hibát tartalmaz.';
   if (!verification.publishable) return 'A referencia vagy egy kapupróba (szomszédos csere, nehéz próba) nem dönthető el a keretben.';
   if (policy === 'verified-only' && verification.status === 'unverified') return 'A modell nem igazolt; explicit frissítés (refresh) után publikálható.';

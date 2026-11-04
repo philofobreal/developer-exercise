@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased – 2026-11-04 minden példa igazolt, az alapértelmezés `verified-only` (ADR-089)
+
+- **Igazolt példák:**
+  - **`class-accounts-ts` (revízió 3):** a metódustörzs két állapotfrissítése (`this.balance …` és `this.history.push(…)`) már nem cserélhető. Egy nem szám összeg mindkét sorban kódot futtathat, és ekkor a csere más egyenleget ad. A leírás ezt mondja ki. A két mező viszont most szabadon mozoghat.
+  - **`algo-sort-search-js` (revízió 2):** a forrásból újragenerálva; a tanuló számára semmi nem változik.
+  - **`profiles-js` (revízió 2):** új forrás, három független deklarációval. A két sorrendprofil (előre és fordítva) szerzői szűkítés; a régi példa futáskor valóban sorrendfüggő hívásokon mutatta be.
+  - A régi revíziókra mentett félkész elrendezéseket a felület nem tölti vissza.
+- **Szigorúbb alapbeállítás:** a szerver és a Pages-demó alapból csak igazolt (vagy szerzői döntéssel módosított) feladatot szolgál ki. A régi mód csak `CODELINE_PUBLICATION=publishable` beállítással érhető el, és ilyenkor figyelmeztetést naplóz.
+
 ## Unreleased – 2026-11-04 böngészőtesztek régebbi telepített Chromiummal (NY-16)
 
 - **Futtatható böngészőtesztek friss konténerben:** ha a rögzített Playwright saját Chromium-revíziója nincs telepítve, a böngészőtesztek a böngészőkönyvtár legújabb Chromiumát indítják, és ezt a kimenetben jelzik. Eddig ilyenkor el sem indultak. Más indítási hiba továbbra is hiba.

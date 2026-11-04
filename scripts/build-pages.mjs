@@ -3,7 +3,7 @@ import {cp,copyFile,mkdir,rm,writeFile,readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {createRequire} from 'node:module';
 import {publishExamples} from './publish-examples.mjs';
-import {publicationPolicy} from '../src/server/catalog.mjs';
+import {publicationPolicy,publicationNotice} from '../src/server/catalog.mjs';
 const require=createRequire(import.meta.url);
 const root=process.cwd(),out=path.join(root,'_site');
 await rm(out,{recursive:true,force:true});
@@ -21,6 +21,7 @@ for(const [file,modules] of [['generator.mjs',['code-line-projection.js']],['lan
 }
 // Only models the trusted catalog would serve, under the same policy (ADR-035).
 const publication=publicationPolicy(process.env.CODELINE_PUBLICATION);
+if(publicationNotice(publication))console.warn(publicationNotice(publication));
 const {served,skipped}=await publishExamples(path.join(root,'examples'),path.join(out,'examples'),{publication});
 for(const {file,status,reason} of skipped)console.warn(`Kihagyott feladat (${publication}): ${file} [${status}] – ${reason}`);
 await writeFile(path.join(out,'.nojekyll'),'');

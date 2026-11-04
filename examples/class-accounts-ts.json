@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "id": "class-accounts-ts",
-  "revision": 2,
+  "revision": 3,
   "title": "Számlák – absztrakt osztály és öröklés",
-  "description": "Absztrakt ősosztály, védett mezők, paraméterproperty, super-hívás és felüldefiniált metódus. A metódusok egymás közti sorrendje és a független állapotfrissítések felcserélhetők; a mezőinicializálás sorrendje és a leszármazott osztály az ős után kötött.",
+  "description": "Absztrakt ősosztály, védett mezők, paraméterproperty, super-hívás és felüldefiniált metódus. Az ősosztály tagjai, a két mezővel együtt, bármilyen sorrendben állhatnak. A metódustörzsek sorai kötöttek: a this.balance frissítése és a this.history.push(…) sem cserélhető, mert egy nem szám összeg mindkettőben kódot futtathat. A leszármazott osztály az ős után áll.",
   "language": "typescript",
   "lines": [
     {
@@ -30,7 +30,7 @@
       "id": 3,
       "code": "private readonly history: string[] = [];",
       "dependencies": [
-        2
+        1
       ],
       "fixed": false,
       "functionBlock": 0,
@@ -62,7 +62,9 @@
     {
       "id": 6,
       "code": "this.balance += amount;",
-      "dependencies": [],
+      "dependencies": [
+        5
+      ],
       "fixed": false,
       "functionBlock": 1,
       "scopeId": "scope-2",
@@ -71,7 +73,9 @@
     {
       "id": 7,
       "code": "this.history.push('+' + amount);",
-      "dependencies": [],
+      "dependencies": [
+        6
+      ],
       "fixed": false,
       "functionBlock": 1,
       "scopeId": "scope-2",
@@ -81,7 +85,6 @@
       "id": 8,
       "code": "}",
       "dependencies": [
-        6,
         7
       ],
       "fixed": false,
@@ -148,7 +151,7 @@
       "id": 14,
       "code": "this.history.push('-' + amount);",
       "dependencies": [
-        12
+        13
       ],
       "fixed": false,
       "functionBlock": 2,
@@ -159,7 +162,6 @@
       "id": 15,
       "code": "return true;",
       "dependencies": [
-        13,
         14
       ],
       "fixed": false,
@@ -226,9 +228,6 @@
       "id": 21,
       "code": "}",
       "dependencies": [
-        8,
-        16,
-        19,
         20
       ],
       "fixed": false,
@@ -240,6 +239,7 @@
       "id": 22,
       "code": "class CreditAccount extends Account {",
       "dependencies": [
+        1,
         21
       ],
       "fixed": false,
@@ -250,7 +250,9 @@
     {
       "id": 23,
       "code": "constructor(owner: string, private readonly credit: number) {",
-      "dependencies": [],
+      "dependencies": [
+        22
+      ],
       "fixed": false,
       "functionBlock": 4,
       "scopeId": "scope-6",
@@ -281,7 +283,9 @@
     {
       "id": 26,
       "code": "protected limit(): number {",
-      "dependencies": [],
+      "dependencies": [
+        22
+      ],
       "fixed": false,
       "functionBlock": 5,
       "scopeId": "scope-6",
@@ -313,7 +317,6 @@
       "id": 29,
       "code": "}",
       "dependencies": [
-        25,
         28
       ],
       "fixed": false,
@@ -384,5 +387,302 @@
       "closeLineId": 28,
       "functionBlock": 5
     }
-  ]
+  ],
+  "authoring": {
+    "strategy": "ast-hierarchy",
+    "reason": "",
+    "omittedBlocks": 0,
+    "semanticEquivalenceProven": false,
+    "dependencyPolicy": "scoped-effect-analysis-v50",
+    "provenance": [
+      {
+        "before": 1,
+        "after": 2,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 1,
+        "after": 3,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 1,
+        "after": 4,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 1,
+        "after": 5,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 5,
+        "after": 6,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 6,
+        "after": 7,
+        "category": "effect",
+        "code": "ExpressionStatement"
+      },
+      {
+        "before": 7,
+        "after": 8,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 1,
+        "after": 9,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 9,
+        "after": 10,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 10,
+        "after": 11,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 11,
+        "after": 12,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 12,
+        "after": 13,
+        "category": "effect",
+        "code": "branch-contains-barrier"
+      },
+      {
+        "before": 12,
+        "after": 13,
+        "category": "effect",
+        "code": "ExpressionStatement"
+      },
+      {
+        "before": 13,
+        "after": 14,
+        "category": "effect",
+        "code": "ExpressionStatement"
+      },
+      {
+        "before": 14,
+        "after": 15,
+        "category": "effect",
+        "code": "ExpressionStatement"
+      },
+      {
+        "before": 14,
+        "after": 15,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 15,
+        "after": 16,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 1,
+        "after": 17,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 17,
+        "after": 18,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 18,
+        "after": 19,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 1,
+        "after": 20,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 20,
+        "after": 21,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 1,
+        "after": 22,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 21,
+        "after": 22,
+        "category": "data",
+        "code": "read-after-write"
+      },
+      {
+        "before": 22,
+        "after": 23,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 23,
+        "after": 24,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 24,
+        "after": 25,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 22,
+        "after": 26,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 26,
+        "after": 27,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 27,
+        "after": 28,
+        "category": "structure",
+        "code": "block-close"
+      },
+      {
+        "before": 28,
+        "after": 29,
+        "category": "structure",
+        "code": "block-close"
+      }
+    ],
+    "evidence": {
+      "sourceDigest": "35bf6a9c0106c39d",
+      "analyzer": "scoped-effect-analysis-v50",
+      "environment": {
+        "typescript": "5.8.3",
+        "importEmit": "verbatim",
+        "sourceKind": "script",
+        "classFields": "either"
+      },
+      "projectionLoss": {
+        "pairs": 0,
+        "examples": []
+      }
+    },
+    "note": "A külön nevű, egysoros interface-/típustagok felcserélhetők. A constructor, a declare mezők, a privát (#) és a tömbindex nevű metódusok bárhol állhatnak. A többi metódus és accessor is szabad; csak ha a program listázza a nem felsorolható kulcsokat (getOwnPropertyNames, Reflect.ownKeys), tartják meg a kulcssorrendjüket. Az azonos nevű getter és setter egy tulajdonság. A példány- és a static mezők egymáshoz képest szabadok; csoportjukon belül sorrendben maradnak, kivéve a kódot nem futtató mezőket, ha a program nem listázza a kulcsokat (Object.keys, JSON.stringify, for…in, spread, console). A számított nevű metódus a mezőkhöz képest szabad. Az azonos nevű metódusok csak egymáshoz képest kötöttek. Az overloadok, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.",
+    "dependencyHints": [
+      {
+        "name": "balance",
+        "declarationLine": 2,
+        "usageLine": 6
+      },
+      {
+        "name": "amount",
+        "declarationLine": 5,
+        "usageLine": 6
+      },
+      {
+        "name": "history",
+        "declarationLine": 3,
+        "usageLine": 7
+      },
+      {
+        "name": "amount",
+        "declarationLine": 5,
+        "usageLine": 7
+      },
+      {
+        "name": "amount",
+        "declarationLine": 9,
+        "usageLine": 10
+      },
+      {
+        "name": "balance",
+        "declarationLine": 2,
+        "usageLine": 10
+      },
+      {
+        "name": "limit",
+        "declarationLine": 20,
+        "usageLine": 10
+      },
+      {
+        "name": "balance",
+        "declarationLine": 2,
+        "usageLine": 13
+      },
+      {
+        "name": "amount",
+        "declarationLine": 9,
+        "usageLine": 13
+      },
+      {
+        "name": "history",
+        "declarationLine": 3,
+        "usageLine": 14
+      },
+      {
+        "name": "amount",
+        "declarationLine": 9,
+        "usageLine": 14
+      },
+      {
+        "name": "owner",
+        "declarationLine": 4,
+        "usageLine": 18
+      },
+      {
+        "name": "balance",
+        "declarationLine": 2,
+        "usageLine": 18
+      },
+      {
+        "name": "history",
+        "declarationLine": 3,
+        "usageLine": 18
+      },
+      {
+        "name": "Account",
+        "declarationLine": 1,
+        "usageLine": 22
+      },
+      {
+        "name": "owner",
+        "declarationLine": 23,
+        "usageLine": 24
+      },
+      {
+        "name": "credit",
+        "declarationLine": 23,
+        "usageLine": 27
+      }
+    ]
+  }
 }

@@ -23,8 +23,6 @@
 | NY-06 | **Tiszta beépített globálisok** (`Math.max`) külön kódcsaládja | generátor | **0 mért rés** (2026-11-04: sem a korpuszban, sem a kampányban) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) | csak ha egy mérés esetet mutat |
 | NY-07 | **Orákulum:** a modulok és a `[[Set]]` osztálymező-mód második (kibocsátott) olvasata | mérés | az A1 feltevés szűkítése, nem résszám | [ADR-063](adr/063-oracle-typescript-emit-reading.md) | |
 | NY-08 | **Érték-perturbáció korlátja:** egy literál egyszerre, legfeljebb 96 változat | mérés | a rés felső becslés marad | [ADR-067](adr/067-value-perturbation-in-measurement.md) | csak ha egy rés gyanúsan szándékhű |
-| NY-09 | **Alapértelmezés `verified-only`** (1. fázis 4. lépés) | döntés | 3 példa „Nem igazolt”; v50-újramérés: az `algo-sort-search-js` újragenerálva igazolt lenne, a `profiles-js` forráscserét kíván, a `class-accounts-ts` az NY-10-től függ | [ADR-057](adr/057-example-migration-and-publication-default.md), [eltéréslista, v50](peldak-migracioja.md#újramérés-v50-2026-11-04--döntésre-vár-ny-09-ny-10) | a felhasználó döntése |
-| NY-10 | **`class-accounts-ts` migrációja:** a frissítés a tanár 480 sorrendjéből 360-at elutasítana (v50-en is). Az ok a metódustörzs `this`-műveleteinek általános gátja, nem az öröklés; a csere csak számbemenetre azonos | döntés | 360 sorrend, 2 tanári sorpár | [ADR-057](adr/057-example-migration-and-publication-default.md), [eltéréslista, v50](peldak-migracioja.md#újramérés-v50-2026-11-04--döntésre-vár-ny-09-ny-10) | a felhasználó döntése; az ADR-057 várakozási feltétele nem teljesülhet |
 | NY-11 | **G fázis:** az AI-governance teljessé tétele | tervezés | „részleges” jelölés | [megbízhatósági terv, G fázis](megbizhatosagi-audit-terv.md#g-fázis--az-ai-governance-teljessé-tétele-tervezés-átfogó) | leltár és terv |
 | NY-13 | **`primitive`/`pure`/`readOnly`:** három egymásra épülő osztályozó | tervezés | nincs | [ADR-050](adr/050-input-contract.md) | nem sürgős |
 
@@ -42,6 +40,7 @@
 
 | Tétel | Lezárta |
 | --- | --- |
+| NY-09 és NY-10: minden példa igazolt (`class-accounts-ts` igazolt szabállyal, `algo-sort-search-js` újragenerálva, `profiles-js` forráscserével), az alapértelmezés `verified-only` | [ADR-089](adr/089-verified-examples-and-default.md) |
 | NY-16: a böngészőtesztek a telepített legújabb Chromiummal indulnak, ha a Playwright saját revíziója hiányzik (a 1.64.1-es csomag 1248-at vár, a konténerben 1243 van) | [browser_support.py](../tests/browser_support.py), [README](../README.md) |
 | NY-14: a futással nem megfigyelhető okkódot a regiszter jelöli (`unobservable`), az osztályozó onnan olvas | [ADR-088](adr/088-unobservable-reason-codes.md) |
 | NY-01: a ciklus első köre külön (`flow`: 1 → 0 rés nyelvenként) | [ADR-084](adr/084-loop-first-iteration.md) |

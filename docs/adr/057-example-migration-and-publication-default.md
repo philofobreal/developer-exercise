@@ -1,6 +1,6 @@
 # ADR-057 – A régi példák migrációja és a publikálási alapértelmezés
 
-Állapot: **elfogadva** (2026-11-03). Pedagógiai és publikálási döntés, a felhasználó jóváhagyásával („az ajánlásaid mentén csináld meg”). Lezárja a [migrációs eltéréslista](../peldak-migracioja.md) döntési pontjait. Szabályverzió nem változik (`scoped-effect-analysis-v29`).
+Állapot: **elfogadva** (2026-11-03); a 2–4. pontját az [ADR-089](089-verified-examples-and-default.md) felülírta (2026-11-04). Pedagógiai és publikálási döntés, a felhasználó jóváhagyásával („az ajánlásaid mentén csináld meg”). Lezárja a [migrációs eltéréslista](../peldak-migracioja.md) döntési pontjait. Szabályverzió nem változik (`scoped-effect-analysis-v29`).
 
 ## Kontextus
 
