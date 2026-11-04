@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-04 az ős settere csak az általa elért mezőket köti (ADR-077, v43)
+
+- **Kevesebb fölösleges szabály:** ha egy mező neve egy ősosztály setterével egyezik, a régi mezőmódban a mező létrehozása lefuttatja a settert. Eddig az ilyen mező minden egyszerű mező sorrendjét kötötte. Most csak azokét köti, amelyeket a setter olvas vagy ír; két olvasás egymáshoz képest szabad.
+- **Biztonsági feltételek:** a setter a példányt csak `this.név` alakban használhatja. Ha metódust hív rajta, `this`-t használó függvényt ad tovább, vagy ős gettert olvas, a régi, óvatos szabály marad. A TypeScript `(this as any).név` alakja ugyanannak számít. Egy `['k5']` alakú, szöveges nevű accessor sem teszi többé ismeretlenné az ősláncot.
+- **Mérés:** a teljes kampányban a rés 208 → 110, az elfogadott sorrend +140, 0 hibás elfogadás 366 024 sorrendből. Az öröklési programok rése régi célra fordítással is: JavaScript 80 → 16, TypeScript 52 → 18.
+
 ## Unreleased – 2026-11-04 a példányt el nem érő mezőkezdőérték (ADR-076, v42)
 
 - **Kevesebb fölösleges szabály:** egy osztálymező, amelynek a kezdőértéke kódot futtat, de nem éri el a félig felépített objektumot (például `f1 = record('f1') ?? 7`), most már szabadon cserélhető az egyszerű, literál értékű mezőkkel. A többi kódot futtató taghoz képest a sorrendje kötött marad.
