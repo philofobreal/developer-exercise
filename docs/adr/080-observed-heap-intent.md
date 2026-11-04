@@ -48,7 +48,21 @@ Ha a sorrend semmilyen objektumállapotot nem változtat, például egy tiszta d
 
 ## Mérés
 
-*A teljes bejárás után kitöltve.*
+**Elfedési próba:** a kampány mind a 7 fajtája, 12 mag, 2 nyelv. Minden rés és minden `heap` szándékú elutasítás besorolását összevetettük:
+
+| Fajta | `heap` szándék | Rés marad |
+| --- | --- | --- |
+| `object` JS / TS | 11 / 11 (mind `object-*-7`, az NY-19) | 0 / 0 |
+| `script` JS | 0 | 5 |
+| `inherit` JS / TS | 0 / 0 | 28 / 2 |
+| `flow` JS / TS | 0 / 0 | 1 / 1 |
+| `function`, `class`, `param` | 0 | 0 |
+
+A szabály tehát pontosan az NY-19 mintáját sorolja át, mást nem.
+
+**Két mérési hiba, amelyet az elfedési próba talált, és amelyet a végleges változat kijavított:**
+1. **Szétterítés a segédsorban:** az első segédsor szétterítést (`...`) használt. Az orákulum ezt kulcsfelsorolásnak vette, ezért a változatban a mezők sorrendje is számított, és az `inherit` JS 28 rése tévesen szándék lett. A végleges segédsor nem terít szét.
+2. **A statikus elemzés:** az orákulum statikus hatássorrend-elemzése (P2) a `__keep(…)` hívásokat ismeretlen hívásnak vette, és elvesztette a saját objektummodelljét. Ezért a `flow-*-7` rését is szándéknak sorolta. A végleges változatot az orákulum csak futás alapján ítéli meg (`runtimeOnly`). Az eredeti forrást a teljes orákulum már egyenértékűnek találta, a változat csak a heap végállapotát kérdezi.
 
 ## Bizonyíték
 
