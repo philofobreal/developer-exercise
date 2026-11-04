@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased – 2026-11-04 accessor mező az azonos kulcsú láncban (ADR-083, v47); a ciklus első köre (ADR-084, v48); objektumheap-modul (ADR-085); reguláris kifejezés literálja (ADR-086, v49); metódusszignatúra (ADR-087, v50)
+
+- **Kevesebb fölösleges szabály az öröklési programokban (v47):** egy `accessor` mező ugyanazon a néven álló getter–setter pár mellett az azonos kulcsú definíciók láncának tagja. A TypeScript `inherit` csoport rése 2 → 0.
+- **Kevesebb fölösleges szabály ciklusokban (v48):** ha egy `for…of` egy saját tömbliterálon megy végig, és a törzs egy ismert kezdőértékű számlálót olvas, az első kört a generátor külön értelmezi. Az `if (seen > 0)` alakú őrfeltétel így kihagyja az első elemet. A `flow` fajta rése nyelvenként 1 → 0.
+- **Kevesebb fölösleges szabály (v49):** a reguláris kifejezés literálja (`/a+b/g`) tiszta kezdőérték: nem futtat programkódot, és nem dob. A deklarációja átléphet egy `delete`-en. A korpusz rése 10 → 6.
+- **Kevesebb fölösleges szabály TypeScriptben (v50):** egy interfész egyedi nevű metódusszignatúrája (`name(): string`) törlődik, ezért bárhol állhat, mint az adatmező-szignatúra. Az azonos nevű szignatúrák (overload) sorrendje kötött marad. A korpusz rése 6 → 5.
+- **Belső átszervezés (ADR-085):** az objektumok absztrakt heapje saját modul (`ObjectHeap`). A generált modellek bájtra azonosak.
+- **Mérés:** a teljes kampányban, a rosszindulatú környezettel együtt:
+  - 366 124 sorrend, ebből 16 039 elfogadott (+5), 0 hibás elfogadás;
+  - a rés 32 → 28; a maradék 28 csak a régi (`[[Set]]`) mezőmódban fut máshogy, és `classFields: 'define'` mellett 0.
+
 ## Unreleased – 2026-11-04 szkriptkötés a deklarációja óta (ADR-082, v46); rosszindulatú orákulumkörnyezet (ADR-081); heap-szándék a mérésben (ADR-080)
 
 - **Kevesebb fölösleges szabály szkriptekben (v46):** egy szkriptszintű változó, amelyet a program nem ír újra, a deklarációja óta megtartja az értékét, ha azóta nem futott kód. Egy `+`, `-` vagy összehasonlítás eredménye mindig primitív. A `const c6 = l3 + 1` így nem kötődik egy olyan globális íráshoz, amelyet nem olvas.

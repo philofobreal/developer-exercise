@@ -36,7 +36,10 @@ for (const entry of boxes) {      // boxes = [a, b]
 2. **Ismert kezdőérték** (`FootprintHost.entry`): egy lista szintű lokális értéke a ciklus elején ismert, ha:
    - egyetlen deklarációs utasítása ugyanabban a listában, a ciklus előtt áll, és literál a kezdőértéke;
    - a deklaráción kívül csak a ciklus írja, beágyazott függvényen és osztályon kívül.
-3. **A többi változatlan.** Az ismert őrfeltétel (ADR-032) az első körben választ ágat. A biztos írás (ADR-072) a többi körre a maradék tagokat veszi „minden tag”-nak, és csak ha a tömb minden eleme egy saját objektum.
+3. **Összetett értékadás.** Az első kör a kezdőértékű lokálist a keret környezetébe veszi. Ott egy összetett értékadás (`seen += 2`) ugyanúgy primitív marad, mint a `++`/`--`, ha a régi érték és a jobb oldal primitív. Egy objektum operandus a `valueOf`-ját futtatná, ezért az ismeretlen marad.
+   - A teljes ellenőrzés a véglegesítés előtt ezt a hiányt fogta meg: az ADR-048 `primitive-locals` tanúja (`seen += 2`) e nélkül rés lett volna.
+   - A javítás után a 1 368 generált modell (katalógus és kampány) bájtra azonos, ezért a lenti kampány rá is érvényes.
+4. **A többi változatlan.** Az ismert őrfeltétel (ADR-032) az első körben választ ágat. A biztos írás (ADR-072) a többi körre a maradék tagokat veszi „minden tag”-nak, és csak ha a tömb minden eleme egy saját objektum.
 
 ## Helyességi érv
 
@@ -53,7 +56,15 @@ for (const entry of boxes) {      // boxes = [a, b]
 
 ## Mérés
 
-*A kampány lefutása után kitöltve.*
+**Kampány, 12 mag, v47 → v48.** A futás a v50 kódján ment, ezért az [ADR-086](086-regular-expression-literal.md) és az [ADR-087](087-erased-method-signatures.md) változását is tartalmazza.
+- **`strict` és `hostile` környezet, mind a 7 fajta:**
+  - a `flow` rése nyelvenként 1 → 0, az elfogadott sorrend nyelvenként +1 (JS 1 881 → 1 882, TS 2 292 → 2 293);
+  - a többi csoport sorra azonos a v47-tel;
+  - összesen 366 124 sorrend, 16 039 elfogadott, 28 rés, 0 hibás elfogadás.
+- **A maradék 28 rés** mind az `inherit` JS fajtáé (`class-evaluation-order`), és a v44 óta változatlan. Ezek nem valódi rések. A program a régi (`[[Set]]`) mezőmódban máshogy fut, mert ott a mezőt az ős settere kapja. Ezt a módot csak az `es2015` környezet futtatja ([ADR-062](062-oracle-environments-and-for-in.md)), és a `strict`+`hostile` mérés nem tartalmazza.
+  - Külön mérve: `strict` és `strict,sloppy` mellett 28 rés, `strict,es2015` mellett 0.
+  - `classFields: 'define'` beállítással ugyanez a csoport 0 rést ad és 572 elfogadott sorrendet ([ADR-075](075-standard-class-fields-setting.md)).
+- **Környezetváltozatokkal** (`strict`, `es2015`, `sloppy`; `inherit` és `class`, mindkét mezőmódban): 0 hibás elfogadás. A `classFields: 'define'` mód 4 rése az [ADR-083](083-accessor-field-in-key-chain.md) árnyékolt ősé.
 
 ## Bizonyíték
 
@@ -64,6 +75,7 @@ for (const entry of boxes) {      // boxes = [a, b]
   - egy nyílfüggvény írja a számlálót;
   - a tömbbe a létrehozása után `push` ír;
   - a literál az első elemet később megismétli;
+- **összetett értékadás:** a `seen += 1` számlál, mint a `seen = seen + 1`, a csere elfogadott; a `seen += entry` (objektum operandus) indokoltan nem;
 - mindegyiken 0 hibás elfogadás.
 
 ## Tervezési review (ADR-037)

@@ -504,8 +504,16 @@ export function objectFootprints(list, file, compiler, checker, host) {
                         prim(expression(target, frame));
                     return;
                 }
-                if (!frame.env.has(target.text) || expr.operatorToken.kind !== S.EqualsToken)
+                if (!frame.env.has(target.text))
                     unknown();
+                // ADR-084: a compound assignment (`seen += 2`) of a primitive local keeps a primitive, as ++/-- do;
+                // an object operand would run its valueOf.
+                if (expr.operatorToken.kind !== S.EqualsToken) {
+                    prim(frame.env.get(target.text));
+                    prim(expression(expr.right, frame));
+                    frame.env.set(target.text, union(frame.env.get(target.text), PRIM));
+                    return;
+                }
                 frame.env.set(target.text, union(frame.env.get(target.text), expression(expr.right, frame)));
                 return;
             }

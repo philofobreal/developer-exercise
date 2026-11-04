@@ -18,7 +18,6 @@
 
 | ID | Tétel | Típus | Mért hatás (legutóbbi kampány) | Forrás | Következő lépés |
 | --- | --- | --- | --- | --- | --- |
-| NY-01 | **A `flow` maradéka: az első kört kihagyó ciklus.** `for (const entry of boxes) { if (seen > 0) { … } seen = seen + 1; }` az első elemen nem fut, a modell mégis minden elemre érvényesnek veszi. Az egyszer futó ciklus ([ADR-070](adr/070-loop-body-at-most-once.md)), a pozíciós cellák ([ADR-071](adr/071-statement-positioned-heap-cells.md)) és a biztos felülírás ([ADR-072](adr/072-certain-overwrites.md)) után ez maradt | generátor | `flow`: 1 rés nyelvenként (v38) | [ADR-046](adr/046-loops-over-own-objects.md), [ADR-070](adr/070-loop-body-at-most-once.md), [ADR-072](adr/072-certain-overwrites.md) | ciklusgörgetés kellene (az ADR-070 elvetette); csak ha több tanú lesz |
 | NY-03 | **Hatásösszegzés** a felső szintű függvényekre (`var v = f()`) | generátor | **0 mért rés** (a korábban ide sorolt 31 rés más okú volt, [ADR-069](adr/069-deep-hostile-input-and-own-class-names.md)) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) | csak ha egy mérés esetet mutat |
 | NY-05 | **2d maradéka:** saját objektumot kapó ismeretlen függvény (a referencia megtartása) | generátor | **0 mért rés** (2026-11-04: a korpusz `Object.entries(totals)` tanúja már nem rés, a kampányban sincs ilyen) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md), [ADR-059](adr/059-read-only-builtins.md) | csak ha egy mérés esetet mutat |
 | NY-06 | **Tiszta beépített globálisok** (`Math.max`) külön kódcsaládja | generátor | **0 mért rés** (2026-11-04: sem a korpuszban, sem a kampányban) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) | csak ha egy mérés esetet mutat |
@@ -29,7 +28,6 @@
 | NY-11 | **G fázis:** az AI-governance teljessé tétele | tervezés | „részleges” jelölés | [megbízhatósági terv, G fázis](megbizhatosagi-audit-terv.md#g-fázis--az-ai-governance-teljessé-tétele-tervezés-átfogó) | leltár és terv |
 | NY-13 | **`primitive`/`pure`/`readOnly`:** három egymásra épülő osztályozó | tervezés | nincs | [ADR-050](adr/050-input-contract.md) | nem sürgős |
 | NY-14 | **`POLICY_INTENT`:** kézi lista az osztályozóban | tervezés | nincs | [ADR-068](adr/068-binding-context-member-phases-early-exit.md) | a jegyzékbe, ha lesz második ilyen okkód |
-| NY-22 | **Az `inherit` fajta maradéka** (öröklés ősaccessorokkal, ADR-074). Az (a) okot az [ADR-076](adr/076-detached-field-initialisers.md) (v42), a (b) okot az [ADR-077](adr/077-base-setter-footprints.md) (v43), a (c) okból négyet az [ADR-078](adr/078-member-definitions-and-accessor-reads.md) (v44) lezárta. Maradt egy tanú (`random-inherit-typescript-7`): `accessor f0` mező és getter–setter pár ugyanazon a néven az ősben; az `accessor` mező definíciója és tárolótöltése két külön időpontban fut | generátor | TS 2 rés (`classFields: 'define'` mellett 6); JS 0 (környezetváltozatokkal) | [ADR-078](adr/078-member-definitions-and-accessor-reads.md) | csak ha a minta a korpuszban is előfordul |
 | NY-16 | **A böngészőtesztek környezete:** a Python Playwright 1248-as Chromiumot vár, 1243-as van telepítve | környezet | friss konténerben nem indul | — | a környezet beállítása; addig `PLAYWRIGHT_BROWSERS_PATH` alias |
 
 ## Elfogadott korlátok (nem rések, nem javítandók)
@@ -38,12 +36,16 @@
 | --- | --- | --- |
 | Egy accessor olvasása mezőinicializálóban (`f = this.p`, ahol `p` getter) kötött | a getter megfigyelheti a korábbi mezőt; a saját adatmezőt másoló mező szabad ([ADR-073](adr/073-base-chain-fields-and-defaults.md)) | [ADR-068](adr/068-binding-context-member-phases-early-exit.md) |
 | A halott kód és a korai kilépés sorrendje kötött | pedagógiai döntés (A-politika) | [ADR-043](adr/043-dead-code-intent-policy.md), [ADR-019](adr/019-pure-effect-commutation.md) |
+| `classFields: 'define'` mellett az ős elfedett `accessor` mezője és getter–setter párja (`random-inherit-typescript-7`, 4 rés) | a leszármazott saját mezője minden példányon elfedi a prototípust, és az ősosztályt a program nem példányosítja; a feloldáshoz programszintű elérhetőségi elemzés kellene egy ritka mintáért | [ADR-083](adr/083-accessor-field-in-key-chain.md) |
+| Az `inherit` JS 28 elutasított sorrendje, amely csak a régi (`[[Set]]`) mezőmódban fut máshogy | az alapbeállítás („bármelyik mezőmód”) mindkét módban helyes; `classFields: 'define'` mellett 0 rés | [ADR-075](adr/075-standard-class-fields-setting.md), [ADR-084](adr/084-loop-first-iteration.md) |
 | Univerzális szemantikai ekvivalencia | eldönthetetlen | [formális szerződés](formal-ordering-contract.md) |
 
 ## Lezárva
 
 | Tétel | Lezárta |
 | --- | --- |
+| NY-01: a ciklus első köre külön (`flow`: 1 → 0 rés nyelvenként) | [ADR-084](adr/084-loop-first-iteration.md) |
+| NY-22: az `inherit` fajta maradéka; az `accessor` mező az azonos kulcsú láncban (TS 2 → 0 rés); a `define` mód árnyékolt ősét az elfogadott korlátok sorolják | [ADR-083](adr/083-accessor-field-in-key-chain.md) |
 | NY-26: az egyedi nevű interfész-metódusszignatúra törlődik (`refl-ts-erased-and-overloads`, 1 rés, 1 projekciós veszteség) | [ADR-087](adr/087-erased-method-signatures.md) |
 | NY-25: a reguláris kifejezés literálja tiszta kezdőérték (`cov-optional-delete-regex`, 4 rés) | [ADR-086](adr/086-regular-expression-literal.md) |
 | NY-17: a szkriptszintű `var` koerciós olvasása; a szerződés a külső kódot rosszindulatú környezettel méri, a pontatlan rész javítva | [ADR-081](adr/081-hostile-environment.md), [ADR-082](adr/082-script-bindings-since-declaration.md) |

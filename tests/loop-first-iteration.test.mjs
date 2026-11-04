@@ -2,7 +2,8 @@
  * its own: it binds the first element, and the list-level locals the body reads at the literal they hold
  * when the loop starts (declared with it in the list, written only by the loop). A guard such as
  * `if (seen > 0)` then skips that iteration, and the loop does not write the first element. Each
- * negative case breaks one condition, and the oracle shows that the order then matters. */
+ * negative case breaks one condition, and the oracle shows that the order then matters. A compound
+ * assignment of a primitive (`seen += 1`) counts like `seen = seen + 1`. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -12,7 +13,7 @@ import {createClassifier} from './support/order-classification.mjs';
 
 const box=['class Box {','  constructor() {','    this.log = [];','  }','  attach(log) {','    this.log = log;','  }','  note(text) {','    this.log.push(text);','  }','}'];
 /** `before` rows come between `const boxes = …` and the loop. */
-const program=(id,{boxes='[a, b]',before=[],after=[]}={})=>({id,origin:'adr-084',language:'javascript',probe:'run()',source:[...box,'function run() {','  const a = new Box();','  const b = new Box();','  const shared = [];',`  const boxes = ${boxes};`,...after,'  a.attach(shared);','  let seen = 0;',...before,'  for (const entry of boxes) {','    if (seen > 0) {',"      entry.note('again');",'    }','    seen = seen + 1;','  }','  return JSON.stringify([a.log, b.log, shared]);','}']});
+const program=(id,{boxes='[a, b]',before=[],after=[],step='seen = seen + 1;'}={})=>({id,origin:'adr-084',language:'javascript',probe:'run()',source:[...box,'function run() {','  const a = new Box();','  const b = new Box();','  const shared = [];',`  const boxes = ${boxes};`,...after,'  a.attach(shared);','  let seen = 0;',...before,'  for (const entry of boxes) {','    if (seen > 0) {',"      entry.note('again');",'    }',`    ${step}`,'  }','  return JSON.stringify([a.log, b.log, shared]);','}']});
 /** The verdict for moving `a.attach(shared);` behind the loop, just before the `return`. */
 function verdict(fixture){
  const model=generate(fixture),order=model.lines.map(line=>line.id),at=text=>order.findIndex(id=>model.lines[id-1].code.trim()===text);
@@ -54,5 +55,17 @@ test('the array is written after its creation: the iterations are not the litera
 test('the first element comes again later in the literal: that iteration writes it, the order is kept',()=>{
  const fixture=program('adr084-repeated',{boxes:'[a, b, a]'});
  assert.equal(verdict(fixture),'justified');
+ clean(fixture);
+});
+
+test('a compound assignment of a primitive counts like a plain one: attach moves behind the loop',()=>{
+ const fixture=program('adr084-compound',{step:'seen += 1;'});
+ assert.equal(verdict(fixture),'accepted');
+ clean(fixture);
+});
+
+test('a compound assignment with an object operand may run its valueOf: the loop is unknown, the order is kept',()=>{
+ const fixture=program('adr084-compound-object',{step:'seen += entry;'});
+ assert.notEqual(verdict(fixture),'accepted');
  clean(fixture);
 });
