@@ -27,7 +27,6 @@
 | NY-09 | **Alapértelmezés `verified-only`** (1. fázis 4. lépés) | döntés | 3 példa „Nem igazolt” | [ADR-057](adr/057-example-migration-and-publication-default.md) | a felhasználó döntése: példafrissítés, kivétel a kiszolgálásból vagy marad |
 | NY-10 | **`class-accounts-ts` migrációja:** a frissítés a tanár 480 sorrendjéből 360-at elutasítana | döntés | 360 sorrend | [ADR-057](adr/057-example-migration-and-publication-default.md) | a felhasználó döntése |
 | NY-11 | **G fázis:** az AI-governance teljessé tétele | tervezés | „részleges” jelölés | [megbízhatósági terv, G fázis](megbizhatosagi-audit-terv.md#g-fázis--az-ai-governance-teljessé-tétele-tervezés-átfogó) | leltár és terv |
-| NY-12 | **`object-footprints.ts`:** a heap és az értelmező egyetlen closure | tervezés | nincs | [ADR-065](adr/065-design-debt-removal-and-module-split.md) | nem sürgős |
 | NY-13 | **`primitive`/`pure`/`readOnly`:** három egymásra épülő osztályozó | tervezés | nincs | [ADR-050](adr/050-input-contract.md) | nem sürgős |
 | NY-14 | **`POLICY_INTENT`:** kézi lista az osztályozóban | tervezés | nincs | [ADR-068](adr/068-binding-context-member-phases-early-exit.md) | a jegyzékbe, ha lesz második ilyen okkód |
 | NY-15 | **Az ellenőrzési kapu** a blokkszámból következtet az azonos szerkezetre | tervezés | nincs | [ADR-066](adr/066-unit-blocks.md) | saját összevetés, ha a frissítés más finomítást kap |
@@ -47,6 +46,7 @@
 
 | Tétel | Lezárta |
 | --- | --- |
+| NY-12: az objektumheap saját modul (`ObjectHeap`), az értelmező a műveletein át hívja | [ADR-085](adr/085-object-heap-module.md) |
 | NY-19: eldobott objektumba írás sorrendje (a mérés `heap` szándékként sorolja) | [ADR-080](adr/080-observed-heap-intent.md) |
 | NY-24: szkriptkötés a deklarációja óta; a `script` JS rései (a szigorú szerződés rosszindulatú környezettel mérve) | [ADR-082](adr/082-script-bindings-since-declaration.md), [ADR-081](adr/081-hostile-environment.md) |
 | NY-04: TS overload-csoport (a v3 egységmodell mért haszna); a v3 bekötése a szerzői láncba mért haszon nélkül tervezési lehetőség marad | [ADR-079](adr/079-overload-header-blocks.md) |
