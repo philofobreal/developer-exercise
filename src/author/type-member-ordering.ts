@@ -34,7 +34,7 @@ type Phase = 'key' | 'static' | 'instance';
  * with each other when the program does not enumerate keys. */
 /** `sameKey` (ADR-068): a duplicate definition's key and object; such definitions keep their mutual order. */
 /** `copies` (ADR-073): the last row of the earlier own data field a loose copy field (`f = this.g`) reads. */
-interface Unit {first: number; last: number; pure: boolean; free?: boolean; reflect?: 'prototype' | 'static'; phases?: Phase[]; pair?: string; plain?: boolean; loose?: boolean; sameKey?: string; copies?: number;}
+interface Unit {first: number; last: number; pure: boolean; free?: boolean; reflect?: 'prototype' | 'static'; phases?: Phase[]; pair?: string; plain?: boolean; loose?: boolean; detached?: boolean; sameKey?: string; copies?: number;}
 /** `spans` lists every ordered member/comment unit (0-based physical rows) so the
  * generator can keep same-scope siblings out of a multi-row unit's interior. */
 export interface TypeMemberOrdering {entries: OrderingEntry[]; spans: {first: number; last: number}[]; note: string;}
@@ -107,6 +107,59 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
   }
   return inherited;
  };
+ /** v42 (ADR-076): code that cannot name the instance under construction: no `this`, no `super`
+  * other than the call, no `eval`/`arguments` (a nested function's own `this` counts too). */
+ const thisFree = (code: ts.Node | undefined): boolean => {
+  let free = true;
+  const scan = (node: ts.Node): void => {
+   if (!free) return;
+   if (node.kind === compiler.SyntaxKind.ThisKeyword || node.kind === compiler.SyntaxKind.SuperKeyword && !(compiler.isCallExpression(node.parent) && node.parent.expression === node) || compiler.isIdentifier(node) && (node.text === 'eval' || node.text === 'arguments')) {free = false; return;}
+   compiler.forEachChild(node, scan);
+  };
+  if (code) scan(code);
+  return free;
+ };
+ const decorated = (node: ts.Node): boolean => compiler.canHaveDecorators(node) && !!compiler.getDecorators(node)?.length;
+ /** v42 (ADR-076): no code that runs before the own instance fields of `node` can let the instance
+  * escape: every class of its chain is declared once in this file without decorators; the base
+  * constructors and instance field initialisers cannot name the instance; no assignment there or of a
+  * parameter property can run a setter of the chain (a field only in the [[Set]] mode, a parameter
+  * property in both: TypeScript assigns it). */
+ const quietConstruction = (node: ts.ClassLikeDeclaration): boolean => {
+  const chain: ts.ClassLikeDeclaration[] = [];
+  for (let current: ts.ClassLikeDeclaration | undefined = node; current;) {
+   if (chain.includes(current) || decorated(current)) return false;
+   chain.push(current);
+   const heritage: ts.Expression | undefined = current.heritageClauses?.find(clause => clause.token === compiler.SyntaxKind.ExtendsKeyword)?.types[0]?.expression;
+   if (!heritage) break;
+   if (!compiler.isIdentifier(heritage)) return false;
+   const found: ts.Node[] = declarations.get(heritage.text) ?? [], base: ts.Node | undefined = found[0];
+   if (found.length !== 1 || !base || !compiler.isClassDeclaration(base)) return false;
+   current = base;
+  }
+  const accessors = new Set<string>();
+  for (const owner of chain) for (const member of owner.members) {
+   if (decorated(member)) return false;
+   const accessor = compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member) || compiler.isPropertyDeclaration(member) && !!compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.AccessorKeyword);
+   if (!accessor) continue;
+   const key = member.name && compiler.isComputedPropertyName(member.name) ? undefined : name(member);
+   if (key === undefined) return false;
+   accessors.add(key);
+  }
+  const assigns = options.classFields !== 'define';
+  for (const owner of chain) for (const member of owner.members) {
+   if (compiler.isConstructorDeclaration(member)) {
+    for (const parameter of member.parameters) if (compiler.getModifiers(parameter)?.some(modifier => [compiler.SyntaxKind.PublicKeyword, compiler.SyntaxKind.PrivateKeyword, compiler.SyntaxKind.ProtectedKeyword, compiler.SyntaxKind.ReadonlyKeyword].includes(modifier.kind)) && (!compiler.isIdentifier(parameter.name) || accessors.has(parameter.name.text))) return false;
+    // The own constructor runs after the own fields; a base one before them.
+    if (owner !== node && !thisFree(member)) return false;
+   } else if (owner !== node && compiler.isPropertyDeclaration(member) && !compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.StaticKeyword || modifier.kind === compiler.SyntaxKind.DeclareKeyword)) {
+    if (!thisFree(member.initializer)) return false;
+    const auto = !!compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.AccessorKeyword);
+    if (assigns && !auto && !compiler.isPrivateIdentifier(member.name)) {const key = compiler.isComputedPropertyName(member.name) ? undefined : name(member); if (key === undefined || key === '__proto__' || accessors.has(key)) return false;}
+   }
+  }
+  return true;
+ };
  function visit(node: ts.Node): void {
   if (compiler.isInterfaceDeclaration(node) || compiler.isTypeLiteralNode(node) || compiler.isClassLike(node)) {
    const isClass = compiler.isClassLike(node);
@@ -145,6 +198,7 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
    // ADR-075: in the `define` mode a field is defined on the instance and runs no inherited setter.
    const inherited = isClass && options.classFields !== 'define' ? baseAccessors(node as ts.ClassLikeDeclaration) : new Set<string>();
    const assignable = (key: string, member: ts.ClassElement | ts.TypeElement): boolean => key !== '__proto__' && (compiler.isPrivateIdentifier(member.name!) || !!inherited && !inherited.has(key));
+   const quiet = isClass && !reshapes && !options.enumeratedKeys && quietConstruction(node as ts.ClassLikeDeclaration);
    const members: Unit[] = node.members.map(member => {
     const key = name(member), row = first(member), end = last(member);
     const modifiers = compiler.canHaveModifiers(member) ? compiler.getModifiers(member) : undefined;
@@ -183,7 +237,10 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
     // runs no code either: `g` is then an own data property (defined, or assigned without a setter on
     // the chain), so the read runs no getter. It follows `g`, but no other loose field.
     const copied = !loose && !options.enumeratedKeys && !reshapes && phases?.length === 1 && phases[0] !== 'key' && key !== undefined && counts.get(key) === 1 && compiler.isPropertyDeclaration(member) && !autoAccessor && assignable(key, member) && member.initializer ? copySource(member, node.members) : undefined;
-    return {first: row, last: end, pure, plain, free: definition || isClass && pure, ...(definition && duplicate ? {sameKey: key + (isStatic(member) ? ' static' : ' prototype')} : {}), ...(reflected ? {reflect: isStatic(member) ? 'static' as const : 'prototype' as const} : {}), ...(phases ? {phases} : {}), ...(definition && paired ? {pair: key} : {}), ...(loose || copied ? {loose: true} : {}), ...(copied ? {copies: last(copied)} : {})};
+    // v42 (ADR-076): an instance field whose initialiser cannot name the instance, in a construction
+    // that cannot leak it before: its code cannot observe the loose fields, only other code.
+    const detached = quiet && !loose && !copied && phases?.length === 1 && phases[0] === 'instance' && key !== undefined && counts.get(key) === 1 && compiler.isPropertyDeclaration(member) && !autoAccessor && !!member.initializer && !modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.DeclareKeyword || modifier.kind === compiler.SyntaxKind.AbstractKeyword) && assignable(key, member) && thisFree(member.initializer);
+    return {first: row, last: end, pure, plain, free: definition || isClass && pure, ...(definition && duplicate ? {sameKey: key + (isStatic(member) ? ' static' : ' prototype')} : {}), ...(reflected ? {reflect: isStatic(member) ? 'static' as const : 'prototype' as const} : {}), ...(phases ? {phases} : {}), ...(definition && paired ? {pair: key} : {}), ...(loose || copied ? {loose: true} : {}), ...(copied ? {copies: last(copied)} : {}), ...(detached ? {detached: true} : {})};
    });
    // An overload signature must directly precede the next signature or the
    // implementation (TS2389/TS2391): the whole group is one unit. Its signatures are
@@ -234,19 +291,25 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
      // ADR-012: a runtime unit follows every earlier unit it shares a phase with, and every
      // phase-less unit. The latest unit of each phase and the latest phase-less unit imply the rest.
      const latest = new Map<Phase | 'none', Unit>();
+     // v42 (ADR-076): the latest unit of each phase that is not detached; loose fields follow only these.
+     const barrier = new Map<Phase | 'none', Unit>();
      // ADR-029: loose fields of each phase since the latest other unit of that phase; they follow it, but not each other.
      const loose = new Map<Phase, Unit[]>([['instance', []], ['static', []]]);
      // A shared phase is an evaluation order; a phase-less unit on either side is conservative.
      for (const unit of units) {
       const reasons: OrderingReason[] = [];
-      for (const [key, other] of latest) if (!unit.phases || key === 'none' || unit.phases.includes(key)) reasons.push({before: other.last, code: unit.phases && key !== 'none' ? 'class-evaluation-order' : 'unclassified-member'});
+      // A detached field counts only while no unit before it may have let the instance escape.
+      const detached = !!unit.detached && !barrier.has('instance') && !barrier.has('none');
+      for (const [key, other] of unit.loose ? barrier : latest) if (!unit.phases || key === 'none' || unit.phases.includes(key)) reasons.push({before: other.last, code: unit.phases && key !== 'none' ? 'class-evaluation-order' : 'unclassified-member'});
       // Any other unit that runs in a phase (or may) follows every loose field of it: its code could observe them.
-      if (!unit.loose) for (const [phase, fields] of loose) if (!unit.phases || unit.phases.includes(phase)) for (const field of fields) reasons.push({before: field.last, code: unit.phases ? 'class-evaluation-order' : 'unclassified-member'});
+      if (!unit.loose && !detached) for (const [phase, fields] of loose) if (!unit.phases || unit.phases.includes(phase)) for (const field of fields) reasons.push({before: field.last, code: unit.phases ? 'class-evaluation-order' : 'unclassified-member'});
       if (unit.copies !== undefined) reasons.push({before: unit.copies, code: 'class-evaluation-order'});
       entries.push(reasons.length ? {row: unit.first, after: [...new Set(reasons.map(reason => reason.before))], reasons} : {row: unit.first, after: [first(open)], reasons: [{before: first(open), code: 'block-open'}]});
       if (unit.loose) {loose.get(unit.phases![0]!)!.push(unit); continue;}
-      for (const [phase] of loose) if (!unit.phases || unit.phases.includes(phase)) loose.set(phase, []);
       for (const key of unit.phases ?? ['none' as const]) latest.set(key, unit);
+      if (detached) continue;
+      for (const [phase] of loose) if (!unit.phases || unit.phases.includes(phase)) loose.set(phase, []);
+      for (const key of unit.phases ?? ['none' as const]) barrier.set(key, unit);
      }
     } else if (free.length) units.forEach((unit, i) => {if (!wired.has(unit.first)) order(unit.first, [i ? units[i - 1]!.last : first(open)], i ? 'type-member-barrier' : 'block-open');});
     // Reflectable key order: consecutive key-creating members on the same object stay ordered.
