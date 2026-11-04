@@ -124,7 +124,7 @@ export function createClassifier(fixture,model,{maxStates=200_000,policy='reflec
   heap=null;
   const rows=fixture.asynchronous?null:observedHeap(source,fixture.language);
   if(!rows)return heap;
-  try{heap={rows,judge:createOracle({...fixture,id:fixture.id+'~heap',source:[...rows,...HEAP_HELPERS],probe:observedProbe(fixture.probe),...(fixture.probes?{probes:fixture.probes.map(observedProbe)}:{})},{policy})};}catch{}
+  try{heap={rows,judge:createOracle({...fixture,id:fixture.id+'~heap',source:[...rows,...HEAP_HELPERS],probe:observedProbe(fixture.probe),...(fixture.probes?{probes:fixture.probes.map(observedProbe)}:{})},{policy,runtimeOnly:true})};}catch{}
   return heap;
  };
  const heapDependent=order=>{const variant=heapJudge();return !!variant&&variant.judge([...order.map(id=>variant.rows[row.get(id)]),...HEAP_HELPERS]).ok===false;};

@@ -7,7 +7,9 @@
  * fixed, generated programs run, never a learner submission. */
 import ts from 'typescript';
 
-export const HEAP_HELPERS=['function __keep(o) { (__keep.all ??= []).push(o); return o; }',"function __seen(v) { record('__kept', ...(__keep.all ?? [])); return v; }"];
+// No spread or key listing here: the oracle would read it as the program listing keys (ADR-029),
+// and key order would then count in the variant only.
+export const HEAP_HELPERS=['function __keep(o) { (__keep.all ??= []).push(o); return o; }',"function __seen(v) { record('__kept', __keep.all ?? []); return v; }"];
 
 const assignment=kind=>kind>=ts.SyntaxKind.FirstAssignment&&kind<=ts.SyntaxKind.LastAssignment;
 /** Whether a literal is (part of) a destructuring target, which wrapping would break. */

@@ -862,7 +862,10 @@ function executedRows(code,fixture){
  * policy 'call-only' is the pre-ADR-010 P0–P3 policy, kept for comparison.
  * `judge.referenceValue` is the probe's value on the reference (the first class-field mode
  * for TypeScript), so a fixture can say whether its own probe caught an exception. */
-export function createOracle(fixture,{policy='reflective',reach:assumed=null}={}){
+/** `runtimeOnly` (ADR-080): judge a variant only by its runs, after the syntax and scope checks.
+ * For a measurement variant whose original the full oracle already found equivalent: its added
+ * calls would otherwise change the static effect analysis, not the question. */
+export function createOracle(fixture,{policy='reflective',reach:assumed=null,runtimeOnly=false}={}){
  if(!['reflective','call-only'].includes(policy))throw Error('unknown oracle policy '+policy);
  const source=Array.isArray(fixture.source)?fixture.source.join('\n'):fixture.source;
  // ADR-055: with key order ignored no key list keeps its creation order (P4 compares sets).
@@ -895,7 +898,7 @@ export function createOracle(fixture,{policy='reflective',reach:assumed=null}={}
  if(environments.length>1)baseline=executeAll(source,runs,reference.reflection,reference.nested);
  const reach=baseline.reach;
  const exceeds=seen=>!!seen&&(seen.reflects&&observed&&!ordered||seen.enumerates&&observed&&!enumerated||seen.hooks&&inputs==='valid');
- let escalated=null;const escalate=()=>escalated??=createOracle(fixture,{policy,reach:{reflects:true,enumerates:true,hooks:true}});
+ let escalated=null;const escalate=()=>escalated??=createOracle(fixture,{policy,runtimeOnly,reach:{reflects:true,enumerates:true,hooks:true}});
  const reflective=policy==='reflective',cache=new Map();
  const judge=lines=>{
   const code=lines.join('\n');
@@ -903,9 +906,9 @@ export function createOracle(fixture,{policy='reflective',reach:assumed=null}={}
   let verdict;const candidate=analyse(code,fixture.language,ordered,enumerated,inputs);
   if(!candidate)verdict={ok:false,reason:'syntax'};
   else if(candidate.shape!==reference.shape)verdict={ok:false,reason:'scope'};
-  else if(candidate.effects!==reference.effects)verdict={ok:false,reason:'effect-order'};
-  else if(candidate.emitted!==reference.emitted)verdict={ok:false,reason:'emitted-order'};
-  else if(reflective&&candidate.reflection.order!==reference.reflection.order)verdict={ok:false,reason:'reflection'};
+  else if(!runtimeOnly&&candidate.effects!==reference.effects)verdict={ok:false,reason:'effect-order'};
+  else if(!runtimeOnly&&candidate.emitted!==reference.emitted)verdict={ok:false,reason:'emitted-order'};
+  else if(!runtimeOnly&&reflective&&candidate.reflection.order!==reference.reflection.order)verdict={ok:false,reason:'reflection'};
   else{
    const observed=executeAll(code,runs,reference.reflection,candidate.nested);
    verdict=exceeds(observed.reach)?escalate()(lines):observed.call.includes('timeout')?{ok:null,reason:'timeout'}:observed.call!==baseline.call?{ok:false,reason:'runtime'}:reflective&&observed.reflection!==baseline.reflection?{ok:false,reason:'reflection'}:{ok:true,reason:'equivalent'};
