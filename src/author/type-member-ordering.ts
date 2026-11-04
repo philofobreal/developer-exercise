@@ -238,7 +238,11 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
    // the fields; the later of two same-key definitions on one object replaces the earlier one.
    const definitionOnly = (member: ts.ClassElement | ts.TypeElement): boolean => (compiler.isMethodDeclaration(member) || compiler.isGetAccessorDeclaration(member) || compiler.isSetAccessorDeclaration(member)) && !!member.body && plainNamed(member)
     && !(compiler.canHaveDecorators(member) && compiler.getDecorators(member)?.length) && ((compiler.canHaveModifiers(member) ? compiler.getModifiers(member) : undefined) ?? []).every(modifier => definitionModifiers.has(modifier.kind)) && definitionRows(member);
-   const duplicates = new Set(isClass ? [...counts].filter(([key, count]) => count > 1 && !pairs.has(key) && node.members.every(member => name(member) !== key || definitionOnly(member))).map(([key]) => key) : []);
+   // v47 (ADR-083): an `accessor` field defines its get/set pair at class definition among the methods,
+   // in member order, replacing what an earlier definition of its key left; its initialiser runs later,
+   // with the fields. In a same-key chain it counts by its definition; its field part stays ordered.
+   const autoField = (member: ts.ClassElement | ts.TypeElement): boolean => compiler.isPropertyDeclaration(member) && plainNamed(member) && !(compiler.canHaveDecorators(member) && compiler.getDecorators(member)?.length) && !!compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.AccessorKeyword) && !compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.AbstractKeyword || modifier.kind === compiler.SyntaxKind.DeclareKeyword);
+   const duplicates = new Set(isClass ? [...counts].filter(([key, count]) => count > 1 && !pairs.has(key) && node.members.every(member => name(member) !== key || definitionOnly(member) || autoField(member))).map(([key]) => key) : []);
    /** ADR-073: the earlier field `this.g` names, when `member`'s initialiser is just that read and `g`
     * is a uniquely named plain field of the same placement that no base can define. */
    const copySource = (member: ts.PropertyDeclaration, all: readonly (ts.ClassElement | ts.TypeElement)[]): ts.PropertyDeclaration | undefined => {
@@ -301,7 +305,9 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
    const members: Unit[] = node.members.map(member => {
     const key = name(member), row = first(member), end = last(member);
     const modifiers = compiler.canHaveModifiers(member) ? compiler.getModifiers(member) : undefined;
-    const erased = compiler.isPropertySignature(member) || compiler.isPropertyDeclaration(member) && !member.initializer && !!modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.DeclareKeyword);
+    // v50 (ADR-087): a method signature of an interface or type literal is erased too; a unique name
+    // (`distinct` below) leaves out overloads, whose order overload resolution reads.
+    const erased = compiler.isPropertySignature(member) || compiler.isMethodSignature(member) || compiler.isPropertyDeclaration(member) && !member.initializer && !!modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.DeclareKeyword);
     const simpleModifiers = modifiers?.every(modifier => [compiler.SyntaxKind.DeclareKeyword, compiler.SyntaxKind.ReadonlyKeyword, compiler.SyntaxKind.PublicKeyword, compiler.SyntaxKind.ProtectedKeyword, compiler.SyntaxKind.PrivateKeyword].includes(modifier.kind)) ?? true;
     const decorated = compiler.canHaveDecorators(member) && !!compiler.getDecorators(member)?.length;
     const fullStart = member.getFullStart(), fullRow = file.getLineAndCharacterOfPosition(fullStart).line;
@@ -348,7 +354,7 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
     // v44 (ADR-078): when the program lists keys, a public field that runs no code is not loose; it
     // stays ordered with every other public field (its key), but not with the private loose fields.
     const detached = !!footprint && (!assignable(key!, member) || !!(member as ts.PropertyDeclaration).initializer || !!options.enumeratedKeys);
-    return {first: row, last: end, pure, plain, free: definition || isClass && pure, ...(definition && duplicate ? {sameKey: key + (isStatic(member) ? ' static' : ' prototype'), ...(compiler.isGetAccessorDeclaration(member) ? {half: 'get' as const} : compiler.isSetAccessorDeclaration(member) ? {half: 'set' as const} : {})} : {}), ...(reflected ? {reflect: isStatic(member) ? 'static' as const : 'prototype' as const} : {}), ...(phases ? {phases} : {}), ...(definition && paired ? {pair: key} : {}), ...(loose || copied ? {loose: true} : {}), ...(copied ? {copies: last(copied)} : {}), ...(loose || copied ? {touches: {reads: copied ? [name(copied)!] : [], writes: [key!]}} : {}), ...(detached ? {detached: true, ...(footprint ? {footprint} : {})} : {})};
+    return {first: row, last: end, pure, plain, free: definition || isClass && pure, ...((definition || autoAccessor) && duplicate ? {sameKey: key + (isStatic(member) ? ' static' : ' prototype'), ...(compiler.isGetAccessorDeclaration(member) ? {half: 'get' as const} : compiler.isSetAccessorDeclaration(member) ? {half: 'set' as const} : {})} : {}), ...(reflected ? {reflect: isStatic(member) ? 'static' as const : 'prototype' as const} : {}), ...(phases ? {phases} : {}), ...(definition && paired ? {pair: key} : {}), ...(loose || copied ? {loose: true} : {}), ...(copied ? {copies: last(copied)} : {}), ...(loose || copied ? {touches: {reads: copied ? [name(copied)!] : [], writes: [key!]}} : {}), ...(detached ? {detached: true, ...(footprint ? {footprint} : {})} : {})};
    });
    // An overload signature must directly precede the next signature or the
    // implementation (TS2389/TS2391): the whole group is one unit. Its signatures are
@@ -386,7 +392,7 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
     // v44 (ADR-078): a getter and a setter next to each other in a same-key chain merge into one
     // accessor property in either order; the next definition follows both.
     const defined = new Map<string, {last: Unit[]; before: Unit[]}>();
-    for (const member of free) if (member.sameKey) {
+    for (const member of grouped) if (member.sameKey) {
      const chain = defined.get(member.sameKey) ?? {last: [], before: []};
      const joins = !!member.half && chain.last.length === 1 && !!chain.last[0]!.half && chain.last[0]!.half !== member.half;
      const predecessors = joins ? chain.before : chain.last;
@@ -455,5 +461,5 @@ export function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, opti
  }
  visit(file);
  // Several constraints on one row are a conjunction.
- return {entries: mergeOrderingEntries(entries), spans, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típusadatmezők felcserélhetők. A constructor, a declare mezők, a privát (#) és a tömbindex nevű metódusok bárhol állhatnak. A többi metódus és accessor is szabad; csak ha a program listázza a nem felsorolható kulcsokat (getOwnPropertyNames, Reflect.ownKeys), tartják meg a kulcssorrendjüket. Az azonos nevű getter és setter egy tulajdonság. A példány- és a static mezők egymáshoz képest szabadok; csoportjukon belül sorrendben maradnak, kivéve a kódot nem futtató mezőket, ha a program nem listázza a kulcsokat (Object.keys, JSON.stringify, for…in, spread, console). A számított nevű metódus a mezőkhöz képest szabad. Az azonos nevű metódusok csak egymáshoz képest kötöttek. Az overloadok, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : ''};
+ return {entries: mergeOrderingEntries(entries), spans, note: hasClass || hasTypes ? 'A külön nevű, egysoros interface-/típustagok felcserélhetők. A constructor, a declare mezők, a privát (#) és a tömbindex nevű metódusok bárhol állhatnak. A többi metódus és accessor is szabad; csak ha a program listázza a nem felsorolható kulcsokat (getOwnPropertyNames, Reflect.ownKeys), tartják meg a kulcssorrendjüket. Az azonos nevű getter és setter egy tulajdonság. A példány- és a static mezők egymáshoz képest szabadok; csoportjukon belül sorrendben maradnak, kivéve a kódot nem futtató mezőket, ha a program nem listázza a kulcsokat (Object.keys, JSON.stringify, for…in, spread, console). A számított nevű metódus a mezőkhöz képest szabad. Az azonos nevű metódusok csak egymáshoz képest kötöttek. Az overloadok, kommentek és összetett sorok konzervatívak. Ez szintaktikai audit és korlátozott sorrendelemzés, nem teljes TypeScript típusellenőrzés.' : ''};
 }

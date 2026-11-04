@@ -57,8 +57,8 @@ test('conservative fallbacks and projection loss lower the status to conservativ
  // v45 (ADR-079): an overload group's function block opens at its first signature, so nothing is sealed.
  const overloads=corpus.get('wp6-overload-groups');
  assert.equal((await verify(generate(overloads.source,overloads.language))).checks.projectionLoss,0);
- // A loss that remains: interface members the projection keeps in order.
- const fixture=corpus.get('refl-ts-erased-and-overloads');
+ // A loss that remains: a `});` call stays sealed (ADR-066), so a sibling the analysis frees cannot cross it.
+ const fixture=corpus.get('wp6-sealed-continued-callback');
  const lossy=await verify(generate(fixture.source,fixture.language));
  assert.equal(lossy.checks.projectionLoss,1);
  assert.equal(lossy.status,'conservative');

@@ -71,7 +71,9 @@ test('class members: definitions, evaluation phases, reflected key order and era
  const listing=generate(['class A {','  x = 1;','  y = 2;','  static s = 3;','  m() { return Reflect.ownKeys(A.prototype); }','  n() {}','}']);
  assert.deepEqual(reasons(listing,5,6),['policy/reflected-key-order'],'the program lists the prototype keys');
  const shape=generate(['interface I {','  a: number;','  b: string;','  m(): void;','}'],'typescript');
- assert.deepEqual(reasons(shape,3,4),['conservative/type-member-barrier']);
+ assert.deepEqual(reasons(shape,3,4),[],'v50 (ADR-087): a uniquely named method signature is erased like a property signature');
+ const overloads=generate(['interface I {','  a: number;','  b: string;','  m(): void;','  m(x: number): void;','}'],'typescript');
+ assert.deepEqual(reasons(overloads,3,4),['conservative/type-member-barrier'],'overloaded signatures stay ordered');
 });
 
 test('CopyFieldUtilityService: the edges of the acceptance rows carry their real reasons',async()=>{

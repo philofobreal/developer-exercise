@@ -337,8 +337,8 @@
  },
  "refl-ts-erased-and-overloads": {
   "neighbours": 1864,
-  "accepted": 48,
-  "completenessGaps": 1,
+  "accepted": 49,
+  "completenessGaps": 0,
   "intentRejections": 1,
   "justifiedRejections": 1814
  },
@@ -435,8 +435,8 @@
  },
  "cov-optional-delete-regex": {
   "neighbours": 92,
-  "accepted": 0,
-  "completenessGaps": 4,
+  "accepted": 4,
+  "completenessGaps": 0,
   "intentRejections": 0,
   "justifiedRejections": 88
  },

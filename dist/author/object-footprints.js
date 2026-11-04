@@ -1,16 +1,10 @@
 import { assignedNames, atMostOnce, loopEnds } from './loop-termination.js';
+import { OTHER, PRIM, STR, WHOLE, at, literal, objectOf, objects, union } from './footprint-values.js';
+import { ObjectHeap } from './object-heap.js';
 /** Thrown inside the interpretation when a statement leaves the analysable subset. */
 class Unknown extends Error {
 }
 const unknown = () => { throw new Unknown(); };
-const PRIM = { prim: true, text: false, objs: new Set(), other: false };
-const STR = { prim: true, text: true, objs: new Set(), other: false };
-const OTHER = { prim: false, text: false, objs: new Set(), other: true };
-const same = (values) => values.every(v => v.known && Object.is(v.known.lit, values[0].known.lit)) ? values[0].known : undefined;
-const union = (...values) => { const known = values.length ? same(values) : undefined; return { prim: values.some(v => v.prim), text: values.some(v => v.prim) && values.every(v => !v.prim || v.text), objs: new Set(values.flatMap(v => [...v.objs])), other: values.some(v => v.other), ...known ? { known } : {} }; };
-/** ADR-032: a value known to be exactly this primitive. */
-const literal = (lit) => ({ prim: true, text: typeof lit === 'string', objs: new Set(), other: false, known: { lit } });
-const objects = (...ids) => ({ prim: false, text: false, objs: new Set(ids), other: false });
 const ARRAY_READS = new Set(['map', 'filter', 'forEach', 'some', 'every', 'find', 'join', 'includes', 'indexOf', 'slice']);
 const ARRAY_WRITES = new Set(['push', 'unshift', 'pop', 'shift']);
 /** ADR-028: String.prototype methods that cannot throw or run code on a string receiver, by the
@@ -23,9 +17,6 @@ const STRING_METHODS = new Map([
 ]);
 /** ADR-028: reads and writes are recorded per object field; `*` stands for the whole object
  * (its creation, an array, or a write that may add a key and so change the key order). */
-const WHOLE = '*';
-const at = (object, field) => object + '::' + field;
-const objectOf = (key) => key.slice(0, key.lastIndexOf('::'));
 const ERRORS = new Set(['Error', 'TypeError', 'RangeError']);
 /** Source text that lets a program change what property access or calls do. */
 const REFLECTIVE = /\.prototype\b|__proto__|defineProperty|setPrototypeOf|\bReflect\b|\bProxy\b|Object\.assign|\bdelete\b|\bSymbol\.iterator\b/;
@@ -183,61 +174,11 @@ export function objectFootprints(list, file, compiler, checker, host) {
     const kinds = new Map([...owned.values()].map(entry => [entry.id, entry.kind]));
     if (self)
         kinds.set(self, { kind: 'class', info: selfInfo });
-    const fields = new Map(), elements = new Map();
-    let position = -1;
-    // v38 (ADR-072): the field cells each list statement certainly overwrites whenever it completes
-    // normally (`mustAt`, narrowed only, across the rounds), and the members of an own array literal
-    // whose elements are single own objects (`members`). A reader sees no value written before the
-    // last statement ahead of it that certainly overwrote the cell: every writer of a cell is ordered
-    // with each other writer and with each reader of it, so that statement ran last but the later ones.
-    const mustAt = new Map(), members = new Map();
-    let lastMust = new Set();
-    const narrow = (index, cells) => {
-        const before = mustAt.get(index), after = before ? new Set([...before].filter(key => cells.has(key))) : new Set(cells);
-        if (before && after.size !== before.size)
-            changed = true;
-        mustAt.set(index, after);
-    };
-    // v36 (ADR-070): the first element of an own array literal, and the arrays an unshift, pop or
-    // shift may have given another first element (no other array write is in the subset).
-    const firsts = new Map(), reshaped = new Set();
-    let changed = false;
-    const grow = (cell, value) => {
-        const before = cell.get(position), after = before ? union(before, value) : value;
-        if (!before || after.prim !== before.prim || after.text !== before.text || after.other !== before.other || after.objs.size !== before.objs.size || !!after.known !== !!before.known)
-            changed = true;
-        cell.set(position, after);
-    };
-    /** The values the statement at `position` may read from a cell; undefined when nothing written so far. */
-    const upTo = (cell, from = -Infinity) => {
-        const visible = [...cell ?? []].filter(([at]) => at >= from && at <= position).map(([, value]) => value);
-        return visible.length ? union(...visible) : undefined;
-    };
-    /** Every value a cell ever holds (what an escaping object hands to unknown code). */
-    const ever = (cell) => [...cell.values()];
-    const field = (object, name) => {
-        const key = at(object, name);
-        let from = -Infinity;
-        for (const [writer, cells] of mustAt)
-            if (writer < position && writer > from && cells.has(key))
-                from = writer;
-        return upTo(fields.get(object)?.get(name), from);
-    };
-    const items = (object) => upTo(elements.get(object)) ?? PRIM;
-    const addField = (object, name, value) => {
-        const map = fields.get(object) ?? new Map(), cell = map.get(name) ?? new Map();
-        grow(cell, value);
-        map.set(name, cell);
-        fields.set(object, map);
-    };
-    const addElements = (object, value) => {
-        const cell = elements.get(object) ?? new Map();
-        grow(cell, value);
-        elements.set(object, cell);
-    };
+    // The positioned cells, the certain overwrites and the array-literal facts (ADR-070/071/072/084).
+    const heap = new ObjectHeap();
     const fresh = (owner, node, kind) => { const id = owner + '|' + node.pos; if (!kinds.has(id)) {
         kinds.set(id, kind);
-        changed = true;
+        heap.touch();
     } return id; };
     const step = (frame) => { if (++frame.budget.steps > 20_000)
         unknown(); };
@@ -301,7 +242,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
         frame.fp.writes.add(at(id, WHOLE));
         const own = { ...frame, self: id, env: new Map() };
         for (const [name, initializer] of info.fields) {
-            addField(id, name, initializer ? expression(initializer, own) : PRIM);
+            heap.addField(id, name, initializer ? expression(initializer, own) : PRIM);
             if (frame.certain)
                 frame.must?.add(at(id, name));
         }
@@ -310,7 +251,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
         // The parameter properties hold the bound arguments, defaults included (ADR-073).
         const bound = bind(info.ctor, args, { ...frame, self: id, env: new Map(), every: undefined, top: undefined }), values = info.ctor.parameters.map(parameter => compiler.isIdentifier(parameter.name) ? bound.get(parameter.name.text) : PRIM);
         info.ctor.parameters.forEach((parameter, index) => { if (info.parameterFields.includes(parameter.name.text)) {
-            addField(id, parameter.name.text, values[index]);
+            heap.addField(id, parameter.name.text, values[index]);
             if (frame.certain)
                 frame.must?.add(at(id, parameter.name.text));
         } });
@@ -414,19 +355,21 @@ export function objectFootprints(list, file, compiler, checker, host) {
                     unknown();
                 for (const id of iterated.objs)
                     frame.fp.reads.add(at(id, WHOLE));
+                const entryEnv = new Map(frame.env);
                 // Locals the body assigns lose a known value: a later iteration may see another one.
                 for (const name of assignedNames(statement.statement, compiler))
                     if (frame.env.has(name))
                         frame.env.set(name, union(frame.env.get(name), PRIM));
                 // v36 (ADR-070): a body that runs at most once sees only the first element of one own array literal.
                 const single = iterated.objs.size === 1 ? [...iterated.objs][0] : undefined;
-                const element = single !== undefined && firsts.has(single) && !reshaped.has(single) && atMostOnce(statement, compiler) ? firsts.get(single) : union(...[...iterated.objs].map(items));
+                const first = single !== undefined ? heap.first(single) : undefined;
+                const element = first && atMostOnce(statement, compiler) ? first : union(...[...iterated.objs].map(id => heap.items(id)));
                 if (compiler.isIdentifier(binding))
                     frame.env.set(binding.text, element);
                 // ADR-059: `const [a, b]` over own arrays of own arrays (the pairs of Object.entries): every
                 // name may be any element of an inner array, which the destructuring reads.
                 else if (compiler.isArrayBindingPattern(binding) && !element.prim && !element.other && element.objs.size && [...element.objs].every(id => kinds.get(id)?.kind === 'array')) {
-                    const inner = union(...[...element.objs].map(id => { frame.fp.reads.add(at(id, WHOLE)); return items(id); }));
+                    const inner = union(...[...element.objs].map(id => { frame.fp.reads.add(at(id, WHOLE)); return heap.items(id); }));
                     for (const item of binding.elements) {
                         if (compiler.isOmittedExpression(item))
                             continue;
@@ -438,12 +381,54 @@ export function objectFootprints(list, file, compiler, checker, host) {
                 else
                     unknown();
                 const body = { reads: new Set(), writes: new Set(), mayThrow: false, external: false, mayHang: false };
+                // v48 (ADR-084): the first iteration of a loop over one own array literal that no statement but
+                // its creation wrote (and no unshift, pop or shift reshaped), with no jump in the body, binds the
+                // first element and the list-level locals the body reads at their known entry values; the other
+                // iterations bind the other elements, with those locals unknown as before.
+                let rest;
+                const list = single !== undefined ? heap.inOrder(single) : undefined;
+                if (list?.length && frame.self === null && host.entry && compiler.isIdentifier(binding) && !jumps(statement.statement)) {
+                    const seeds = new Map(), names = new Map();
+                    const collect = (node) => {
+                        if (compiler.isIdentifier(node)) {
+                            const symbol = checker.getSymbolAtLocation(node);
+                            if (names.has(node.text) && names.get(node.text) !== symbol)
+                                names.set(node.text, undefined);
+                            else if (!names.has(node.text))
+                                names.set(node.text, symbol);
+                            const known = !entryEnv.has(node.text) ? host.entry(node, statement) : undefined;
+                            if (known)
+                                seeds.set(node.text, literal(known.lit));
+                        }
+                        compiler.forEachChild(node, collect);
+                    };
+                    collect(statement.statement);
+                    for (const name of [...seeds.keys()])
+                        if (!names.get(name))
+                            seeds.delete(name);
+                    if (seeds.size) {
+                        const first = new Map(entryEnv);
+                        for (const [name, value] of seeds)
+                            first.set(name, value);
+                        first.set(binding.text, list[0]);
+                        returned = union(returned, block([statement.statement], { ...frame, env: first, fp: body, exits: (frame.exits ?? 0) + 1, loops: (frame.loops ?? 0) + 1, every: undefined }));
+                        for (const [name] of entryEnv)
+                            if (frame.env.has(name))
+                                frame.env.set(name, union(frame.env.get(name), first.get(name)));
+                        rest = list.slice(1);
+                    }
+                }
+                if (rest && compiler.isIdentifier(binding))
+                    frame.env.set(binding.text, rest.length ? union(...rest) : PRIM);
                 // v38 (ADR-072): a loop that no jump cuts short visits every member of one own array literal (no
                 // unshift, pop or shift removed one); its body's certain code runs on each of them.
-                const visited = frame.certain && single !== undefined && !reshaped.has(single) && compiler.isIdentifier(binding) && !jumps(statement.statement) ? members.get(single) : undefined;
+                const remaining = rest ? new Set(rest.flatMap(value => [...value.objs])) : undefined;
+                const literalMembers = single !== undefined ? heap.members(single) : undefined;
+                const visited = frame.certain && literalMembers && !heap.reshaped(single) && compiler.isIdentifier(binding) && !jumps(statement.statement) ? remaining ?? literalMembers : undefined;
                 const variable = visited ? checker.getSymbolAtLocation(binding) : undefined;
                 const each = visited && variable ? { variable, members: visited } : undefined;
-                returned = union(returned, block([statement.statement], { ...frame, fp: body, exits: (frame.exits ?? 0) + 1, loops: (frame.loops ?? 0) + 1, certain: !!each, every: each }));
+                if (!rest || rest.length)
+                    returned = union(returned, block([statement.statement], { ...frame, fp: body, exits: (frame.exits ?? 0) + 1, loops: (frame.loops ?? 0) + 1, certain: !!each, every: each }));
                 // Writing the iterated array may extend the iteration: not shown to end.
                 if ([...iterated.objs].some(id => body.writes.has(at(id, WHOLE))))
                     unknown();
@@ -519,8 +504,16 @@ export function objectFootprints(list, file, compiler, checker, host) {
                         prim(expression(target, frame));
                     return;
                 }
-                if (!frame.env.has(target.text) || expr.operatorToken.kind !== S.EqualsToken)
+                if (!frame.env.has(target.text))
                     unknown();
+                // ADR-084: a compound assignment (`seen += 2`) of a primitive local keeps a primitive, as ++/-- do;
+                // an object operand would run its valueOf.
+                if (expr.operatorToken.kind !== S.EqualsToken) {
+                    prim(frame.env.get(target.text));
+                    prim(expression(expr.right, frame));
+                    frame.env.set(target.text, union(frame.env.get(target.text), PRIM));
+                    return;
+                }
                 frame.env.set(target.text, union(frame.env.get(target.text), expression(expr.right, frame)));
                 return;
             }
@@ -583,7 +576,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
             // ADR-045: or one every finished construction created, once this object's construction is over.
             const existing = !host.enumeratedKeys || kind.kind === 'class' && (kind.info.fields.get(name) !== undefined || kind.info.parameterFields.includes(name) || kind.info.created.has(name) && !frame.constructing?.has(object));
             frame.fp.writes.add(at(object, existing ? name : WHOLE));
-            addField(object, name, value);
+            heap.addField(object, name, value);
             if (sure.has(object))
                 frame.must.add(at(object, name));
         }
@@ -616,7 +609,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
                 if (kind.info.methods.has(name) || kind.info.setters.has(name))
                     unknown();
             }
-            const value = field(object, name);
+            const value = heap.field(object, name);
             // A property nobody has defined yet may come from Object.prototype: not modelled.
             if (!value)
                 unknown();
@@ -655,26 +648,24 @@ export function objectFootprints(list, file, compiler, checker, host) {
             if (ARRAY_WRITES.has(name)) {
                 frame.fp.writes.add(at(object, WHOLE));
                 frame.fp.reads.add(at(object, WHOLE));
-                if (name !== 'push' && !reshaped.has(object)) {
-                    reshaped.add(object);
-                    changed = true;
-                }
+                if (name !== 'push')
+                    heap.reshape(object);
                 const pushed = args.map(argument => expression(argument, frame));
                 if (name === 'push' || name === 'unshift') {
-                    pushed.forEach(value => addElements(object, value));
+                    pushed.forEach(value => heap.addElements(object, value));
                     values.push(PRIM);
                 }
                 else {
                     if (pushed.length)
                         unknown();
-                    values.push(union(PRIM, items(object)));
+                    values.push(union(PRIM, heap.items(object)));
                 }
                 continue;
             }
             if (!ARRAY_READS.has(name))
                 unknown();
             frame.fp.reads.add(at(object, WHOLE));
-            const held = items(object);
+            const held = heap.items(object);
             if (name === 'join') {
                 args.forEach(argument => prim(expression(argument, frame)));
                 prim(held);
@@ -812,10 +803,9 @@ export function objectFootprints(list, file, compiler, checker, host) {
             for (const element of expr.elements) {
                 if (compiler.isSpreadElement(element) || compiler.isOmittedExpression(element))
                     unknown();
-                addElements(id, expression(element, frame));
+                heap.addElements(id, expression(element, frame));
             }
-            if (!elements.get(id)?.has(position))
-                addElements(id, PRIM);
+            heap.created(id);
             return objects(id);
         }
         if (compiler.isObjectLiteralExpression(expr)) {
@@ -826,7 +816,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
                 const name = nameOf(property.name);
                 if (name === undefined || name === '__proto__')
                     unknown();
-                addField(id, name, expression(property.initializer, frame));
+                heap.addField(id, name, expression(property.initializer, frame));
             }
             return objects(id);
         }
@@ -852,7 +842,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
         const argument = expression(expr.arguments[0], frame);
         if (argument.prim || argument.other || !argument.objs.size)
             unknown();
-        const valuesOf = (id) => kinds.get(id).kind === 'array' ? items(id) : union(PRIM, ...[...fields.get(id)?.keys() ?? []].flatMap(name => field(id, name) ?? []));
+        const valuesOf = (id) => kinds.get(id).kind === 'array' ? heap.items(id) : union(PRIM, ...heap.fieldValues(id));
         if (name === 'stringify') {
             const seen = new Set(), queue = [...argument.objs];
             while (queue.length) {
@@ -861,7 +851,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
                     continue;
                 seen.add(id);
                 const kind = kinds.get(id);
-                if (fields.get(id)?.has('toJSON') || kind.kind === 'class' && (kind.info.methods.has('toJSON') || kind.info.getters.has('toJSON')))
+                if (heap.hasField(id, 'toJSON') || kind.kind === 'class' && (kind.info.methods.has('toJSON') || kind.info.getters.has('toJSON')))
                     unknown();
                 frame.fp.reads.add(at(id, WHOLE));
                 const inner = valuesOf(id);
@@ -875,17 +865,17 @@ export function objectFootprints(list, file, compiler, checker, host) {
         const result = fresh(frame.self ?? 'S', expr, { kind: 'array' }), pair = result + '#pair';
         if (name === 'entries' && !kinds.has(pair)) {
             kinds.set(pair, { kind: 'array' });
-            changed = true;
+            heap.touch();
         }
         for (const id of argument.objs) {
             frame.fp.reads.add(at(id, WHOLE));
             if (name === 'keys')
-                addElements(result, STR);
+                heap.addElements(result, STR);
             else if (name === 'values')
-                addElements(result, valuesOf(id));
+                heap.addElements(result, valuesOf(id));
             else {
-                addElements(pair, union(STR, valuesOf(id)));
-                addElements(result, objects(pair));
+                heap.addElements(pair, union(STR, valuesOf(id)));
+                heap.addElements(result, objects(pair));
             }
         }
         return objects(result);
@@ -899,9 +889,9 @@ export function objectFootprints(list, file, compiler, checker, host) {
         return !(checker.getSymbolAtLocation(callee)?.declarations ?? []).some(declaration => declaration.getSourceFile() === file && !has(declaration, S.DeclareKeyword));
     }
     /** One list-level statement: a construction, or an operation on own objects. */
-    function statementFootprint(statement, budget) {
+    function statementFootprint(statement, budget, must) {
         // ADR-031/045: the statements of a constructor body run while `this` is being constructed.
-        const frame = { self: null, env: new Map(), fp: { reads: new Set(), writes: new Set(), mayThrow: false, external: false, mayHang: false }, stack: new Set(), budget, must: lastMust = new Set(), certain: true, ...self ? { constructing: new Set([self]) } : {} };
+        const frame = { self: null, env: new Map(), fp: { reads: new Set(), writes: new Set(), mayThrow: false, external: false, mayHang: false }, stack: new Set(), budget, must, certain: true, ...self ? { constructing: new Set([self]) } : {} };
         if (compiler.isVariableStatement(statement)) {
             const declaration = statement.declarationList.declarations[0], symbol = checker.getSymbolAtLocation(declaration.name), own = symbol && owned.get(symbol);
             if (!own || own.statement !== statement)
@@ -911,23 +901,11 @@ export function objectFootprints(list, file, compiler, checker, host) {
                 construct(own.id, own.kind.info, init.arguments?.map(argument => expression(argument, frame)) ?? [], frame);
             else if (compiler.isArrayLiteralExpression(init)) {
                 frame.fp.writes.add(at(own.id, WHOLE));
-                const literalMembers = new Set();
-                let single = members.get(own.id) !== null;
-                init.elements.forEach((element, index) => {
+                heap.literal(own.id, init.elements.map(element => {
                     if (compiler.isSpreadElement(element) || compiler.isOmittedExpression(element))
                         unknown();
-                    const value = expression(element, frame);
-                    addElements(own.id, value);
-                    if (!index)
-                        firsts.set(own.id, union(firsts.get(own.id) ?? value, value));
-                    if (value.prim || value.other || value.objs.size !== 1)
-                        single = false;
-                    else
-                        literalMembers.add([...value.objs][0]);
-                });
-                members.set(own.id, single ? literalMembers : null);
-                if (!elements.get(own.id)?.has(position))
-                    addElements(own.id, PRIM);
+                    return expression(element, frame);
+                }));
             }
             else {
                 frame.fp.writes.add(at(own.id, WHOLE));
@@ -937,7 +915,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
                     const name = nameOf(property.name);
                     if (name === undefined || name === '__proto__')
                         unknown();
-                    addField(own.id, name, expression(property.initializer, frame));
+                    heap.addField(own.id, name, expression(property.initializer, frame));
                 }
             }
             return frame.fp;
@@ -1003,9 +981,9 @@ export function objectFootprints(list, file, compiler, checker, host) {
         try {
             const frame = { self, env: new Map(), fp: { reads: new Set(), writes: new Set(), mayThrow: false, external: false, mayHang: false }, stack: new Set(), budget };
             for (const [name, initializer] of selfInfo.fields)
-                addField(self, name, initializer ? expression(initializer, frame) : PRIM);
+                heap.addField(self, name, initializer ? expression(initializer, frame) : PRIM);
             for (const name of selfInfo.parameterFields)
-                addField(self, name, OTHER);
+                heap.addField(self, name, OTHER);
         }
         catch (error) {
             if (!(error instanceof Unknown))
@@ -1015,15 +993,15 @@ export function objectFootprints(list, file, compiler, checker, host) {
     }
     // Fixpoint: heap facts and footprints, escapes propagating through stored references.
     for (let round = 0; round < 12; round++) {
-        changed = false;
+        heap.startRound();
         result.clear();
         for (const [index, statement] of list.entries()) {
             if (compiler.isReturnStatement(statement))
                 continue;
-            position = index;
+            const must = heap.enter(index);
             try {
-                const fp = statementFootprint(statement, budget);
-                narrow(index, lastMust);
+                const fp = statementFootprint(statement, budget, must);
+                heap.leave(true);
                 if ([...fp.reads, ...fp.writes].map(objectOf).some(id => escaped.has(id.split('|')[0]) || escaped.has(id)))
                     continue;
                 result.set(statement, fp);
@@ -1031,7 +1009,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
             catch (error) {
                 if (!(error instanceof Unknown))
                     throw error;
-                narrow(index, NONE);
+                heap.leave(false);
                 if (budget.steps > 20_000) {
                     result.clear();
                     return result;
@@ -1043,23 +1021,22 @@ export function objectFootprints(list, file, compiler, checker, host) {
             if (statements.some(statement => !result.has(statement) && !compiler.isReturnStatement(statement)))
                 if (!escaped.has(owned.get(symbol).id)) {
                     escaped.add(owned.get(symbol).id);
-                    changed = true;
+                    heap.touch();
                 }
         // Any statement naming `this` without a footprint, a return included, may hand it to unknown code.
         if (self && !escaped.has(self) && [...selfStatements].some(statement => !result.has(statement))) {
             escaped.add(self);
-            changed = true;
+            heap.touch();
         }
         for (const id of [...escaped]) {
-            const held = [...[...fields.get(id)?.values() ?? []].flatMap(ever), ...elements.has(id) ? ever(elements.get(id)) : []];
-            for (const value of held)
+            for (const value of heap.held(id))
                 for (const object of value.objs)
                     if (!escaped.has(object)) {
                         escaped.add(object);
-                        changed = true;
+                        heap.touch();
                     }
         }
-        if (!changed)
+        if (!heap.changed)
             return result;
     }
     result.clear();

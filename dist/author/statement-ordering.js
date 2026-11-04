@@ -205,6 +205,26 @@ export function statementOrdering(file, compiler, options = {}) {
         }
         return null;
     }
+    /** v48 (ADR-084): the literal a list-level local holds whenever the list statement `loop` starts: a
+     * single-declaration statement of the same list before `loop` with a literal initialiser, and every
+     * other write of the binding inside `loop`, outside nested functions. Data dependencies keep the
+     * declaration before `loop`, and no other statement writes it, so every accepted order agrees. */
+    const entry = (identifier, loop) => {
+        const symbol = checker.getSymbolAtLocation(identifier), declaration = unique(symbol);
+        if (!symbol || !declaration || !compiler.isVariableDeclaration(declaration) || !compiler.isIdentifier(declaration.name) || !declaration.initializer || !compiler.isVariableDeclarationList(declaration.parent) || declaration.parent.declarations.length !== 1)
+            return undefined;
+        const statement = declaration.parent.parent;
+        if (!compiler.isVariableStatement(statement) || statement.parent !== loop.parent || statement.end > loop.getStart(file) || modifiers(statement).length)
+            return undefined;
+        const init = unwrap(declaration.initializer);
+        const lit = compiler.isNumericLiteral(init) ? Number(init.text) : compiler.isPrefixUnaryExpression(init) && init.operator === S.MinusToken && compiler.isNumericLiteral(init.operand) ? -Number(init.operand.text) : compiler.isStringLiteral(init) || compiler.isNoSubstitutionTemplateLiteral(init) ? init.text : init.kind === S.TrueKeyword ? true : init.kind === S.FalseKeyword ? false : init.kind === S.NullKeyword ? null : undefined;
+        if (lit === undefined)
+            return undefined;
+        const nested = (node) => { for (let at = node.parent; at && at !== loop; at = at.parent)
+            if (compiler.isFunctionLike(at) || compiler.isClassLike(at))
+                return true; return false; };
+        return (uses.get(symbol) ?? []).every(use => !use.write || declarationName(use.node) || within(loop, use.node) && !nested(use.node)) ? { lit } : undefined;
+    };
     const primitiveCache = new Map();
     /** Effect-free, non-throwing expression whose value is a primitive (safe operand for coercing operators). */
     function primitive(raw, reads, visiting = new Set()) {
@@ -282,6 +302,10 @@ export function statementOrdering(file, compiler, options = {}) {
         }
         // Creating a closure evaluates nothing inside it; its reads happen at call time, after a call barrier.
         if (compiler.isArrowFunction(expr) || compiler.isFunctionExpression(expr))
+            return true;
+        // v49 (ADR-086): a regular expression literal creates a fresh RegExp with the intrinsic constructor;
+        // no program code runs, and an invalid pattern is an early SyntaxError, so it never throws at run time.
+        if (compiler.isRegularExpressionLiteral(expr))
             return true;
         if (compiler.isObjectLiteralExpression(expr))
             return expr.properties.every(property => pureProperty(property, reads, pure));
@@ -780,7 +804,7 @@ export function statementOrdering(file, compiler, options = {}) {
                 summaries.push(summary(statement, node));
             // ADR-025: in a function-context list, statements on the list's own objects get footprints.
             if (compiler.isBlock(node) && context(node) !== file) {
-                const footprints = objectFootprints(node.statements, file, compiler, checker, { primitive: expr => primitive(expr, new Set()), assignable, enumeratedKeys: options.enumeratedKeys ?? true });
+                const footprints = objectFootprints(node.statements, file, compiler, checker, { primitive: expr => primitive(expr, new Set()), assignable, enumeratedKeys: options.enumeratedKeys ?? true, entry });
                 summaries.forEach((unit, i) => {
                     const statement = node.statements[i], footprint = footprints.get(statement);
                     // ADR-028: an if/else owns its first and last rows; its branch rows follow their own block.
