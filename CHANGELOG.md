@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased – 2026-11-04 az `attempt` és a `persistence` modul TypeScriptben (ADR-097)
+
+- **Belső, a viselkedés nem változott:** a tanulói elrendezést (beszúrás, nem csere, rögzített helyek) és a munkamenet mentését, betöltését kezelő két modul szigorú TypeScriptre került. Egy különbségi teszt 16 804 esetben igazolta, hogy a régi és az új modul ugyanazt adja.
+- **Új őrteszt:** a felület kézzel írt, régi JavaScript-moduljainak listája rögzített, és csak csökkenhet (most 4 modul).
+
 ## Unreleased – 2026-11-04 automatikus akadálymentességi átvizsgálás (ADR-096)
 
 - **Új ellenőrzés:** minden változtatás előtt az axe-core átvizsgálja a fő nézeteket asztali gépen és telefonon (a WCAG 2.x A/AA gépileg ellenőrizhető szabályai).
