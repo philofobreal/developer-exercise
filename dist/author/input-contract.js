@@ -7,6 +7,7 @@ const STATIC_FUNCTIONS = {
     Object: ['keys', 'values', 'entries'],
     Array: ['isArray', 'from']
 };
+const CALLBACK_METHODS = new Set(['map', 'filter', 'some', 'every', 'find', 'findIndex', 'findLast', 'findLastIndex', 'flatMap', 'reduce', 'reduceRight']);
 const BUILTIN_METHODS = new Set(['join', 'slice', 'indexOf', 'lastIndexOf', 'includes', 'at', 'concat', 'flat', 'charAt', 'charCodeAt', 'codePointAt', 'startsWith', 'endsWith', 'trim', 'trimStart', 'trimEnd', 'toUpperCase', 'toLowerCase', 'padStart', 'padEnd', 'repeat', 'split', 'substring', 'toFixed', 'has', 'get']);
 /** Source text that lets a program change what property access, iteration or conversion does. */
 const HOOKS = /\bProxy\b|\bReflect\b|defineProperty|defineProperties|setPrototypeOf|__proto__|__define[GS]etter__|\.prototype\b|\bSymbol\.|\beval\b|\bFunction\b|\bwith\s*\(/;
@@ -45,6 +46,7 @@ export function inputFacts(file, compiler, inputs = 'any') {
         // Array.from calls a second argument back and iterates a generator.
         builtinStatic: (owner, name, count) => !!STATIC_FUNCTIONS[owner]?.includes(name) && !(owner === 'Array' && (generators || name === 'from' && count !== 1)),
         builtinMethod: name => BUILTIN_METHODS.has(name) && !defined.has(name),
+        callbackMethod: (name, count) => CALLBACK_METHODS.has(name) && !defined.has(name) && (name.startsWith('reduce') ? count === 2 : count === 1),
         builtinConstructor: (name, count) => (name === 'Set' || name === 'Map') && count <= 1 && (count === 0 || !generators)
     };
 }

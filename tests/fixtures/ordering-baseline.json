@@ -503,6 +503,34 @@
   "intentRejections": 0,
   "justifiedRejections": 45
  },
+ "stats-js": {
+  "neighbours": 174,
+  "accepted": 3,
+  "completenessGaps": 8,
+  "intentRejections": 0,
+  "justifiedRejections": 163
+ },
+ "stats-js-valid": {
+  "neighbours": 174,
+  "accepted": 15,
+  "completenessGaps": 0,
+  "intentRejections": 0,
+  "justifiedRejections": 159
+ },
+ "stats-reduce-js": {
+  "neighbours": 70,
+  "accepted": 0,
+  "completenessGaps": 2,
+  "intentRejections": 0,
+  "justifiedRejections": 68
+ },
+ "stats-reduce-js-valid": {
+  "neighbours": 70,
+  "accepted": 16,
+  "completenessGaps": 0,
+  "intentRejections": 0,
+  "justifiedRejections": 54
+ },
  "word-count-js": {
   "neighbours": 115,
   "accepted": 1,
@@ -512,10 +540,10 @@
  },
  "word-count-js-valid": {
   "neighbours": 115,
-  "accepted": 1,
+  "accepted": 2,
   "completenessGaps": 0,
   "intentRejections": 0,
-  "justifiedRejections": 114
+  "justifiedRejections": 113
  },
  "stack-ts": {
   "neighbours": 575,

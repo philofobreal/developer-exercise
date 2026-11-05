@@ -20,7 +20,7 @@ test('publication rule: budget-undecided models never, unverified ones only unde
 });
 // Every shipped example is refreshed (docs/peldak-migracioja.md, ADR-057, ADR-089). algo-bfs-js keeps its
 // two fixed lines and profiles-js its two profiles, author decisions: author-modified.
-const refreshed={'algo-bfs-js':'author-modified','algo-sort-search-js':'analysis-verified','class-accounts-ts':'analysis-verified','class-inventory-ts':'analysis-verified','fib-memo-js':'analysis-verified','profiles-js':'author-modified','stack-ts':'analysis-verified','word-count-js':'analysis-verified'};
+const refreshed={'algo-bfs-js':'author-modified','algo-sort-search-js':'analysis-verified','class-accounts-ts':'analysis-verified','class-inventory-ts':'analysis-verified','fib-memo-js':'analysis-verified','profiles-js':'author-modified','stack-ts':'analysis-verified','stats-js':'analysis-verified','stats-reduce-js':'analysis-verified','word-count-js':'analysis-verified'};
 const legacyDir=path.join('tests','fixtures','legacy-examples');
 test('catalog: the default (verified-only) serves every shipped example and names its qualification',async t=>{
  const dir=await mkdtemp(path.join(tmpdir(),'codeline-publication-'));t.after(()=>rm(dir,{recursive:true,force:true}));

@@ -32,6 +32,8 @@ Az első változat (`reduce`, `Math.min(...values)`, `Math.max(...values)`) egye
 
 **Az ok a generátorban van:** a `valid` szerződés mellett is kódot futtatónak veszi a paraméterből származó értékeken végzett műveleteket és a tiszta beépített hívásokat. Ez a [jegyzék](../nyitott-tetelek.md) NY-06 tételének első tanúja; a tétel ezzel újranyílt.
 
+**Folytatás (2026-11-04, [ADR-099](099-valid-plain-operations.md), v51):** az elemzés javítása után a statisztikafeladat két változatban felkerült (`stats-js`, `stats-reduce-js`), 0 réssel. A `word-count-js` szabályai lazultak, revíziója 2.
+
 ## Bizonyíték
 
 - **Korpusz** ([ordering-corpus.mjs](../../tests/fixtures/ordering-corpus.mjs)): a három példa saját próbával, alap- és `valid` szerződéssel is, tehát 6 új korpuszfixture. Mindegyikben 0 hibás elfogadás, 0 rés, 0 eldöntetlen eset; az alapvonal csak ezzel a 6 új sorral bővült.

@@ -123,7 +123,7 @@
     "reason": "",
     "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
-    "dependencyPolicy": "scoped-effect-analysis-v50",
+    "dependencyPolicy": "scoped-effect-analysis-v51",
     "provenance": [
       {
         "before": 1,
@@ -188,7 +188,7 @@
     ],
     "evidence": {
       "sourceDigest": "f86dad116b234060",
-      "analyzer": "scoped-effect-analysis-v50",
+      "analyzer": "scoped-effect-analysis-v51",
       "environment": {
         "typescript": "5.8.3",
         "sourceKind": "script",

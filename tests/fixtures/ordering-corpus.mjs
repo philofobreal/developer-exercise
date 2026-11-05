@@ -5,6 +5,8 @@ import {readFile} from 'node:fs/promises';
 import {taskPrograms} from './task-programs.mjs';
 
 const library={
+ 'stats-js':'(() => [summarize([4, 8, 15, 16, 23, 42]), summarize([7]), summarize([-3, 0, 3])])()',
+ 'stats-reduce-js':'(() => [summarize([4, 8, 15, 16, 23, 42]), summarize([7]), summarize([-3, 0, 3])])()',
  'word-count-js':"(() => [topWords('a b a c b a', 2), topWords('Egy ketto egy HAROM ketto egy', 3), topWords('', 1)])()",
  'stack-ts':"(() => { const stack = new Stack(); const empty = stack.isEmpty(); stack.push(1); stack.push(2); const top = stack.peek(); const popped = [stack.pop(), stack.pop(), stack.pop()]; return [empty, top, popped, stack.size, stack.isEmpty()]; })()",
  'fib-memo-js':'(() => [fibonacci(0), fibonacci(1), fibonacci(10), fibonacci(40)])()',

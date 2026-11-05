@@ -117,6 +117,9 @@ function jsClassify(statement,chain,world=null){
 const contractHooks=/\bProxy\b|\bReflect\b|defineProperty|defineProperties|setPrototypeOf|__proto__|__define[GS]etter__|\.prototype\b|\bSymbol\.|\beval\b|\bFunction\b|\bwith\s*\(/;
 const builtinFunctions=new Set(['Number','String','Boolean','parseInt','parseFloat','isNaN','isFinite']);
 const builtinStatics={Math:['abs','ceil','floor','round','trunc','sign','sqrt','cbrt','pow','max','min','hypot','log','log2','log10','exp'],Number:['isInteger','isFinite','isNaN','isSafeInteger','parseInt','parseFloat'],Object:['keys','values','entries'],Array:['isArray','from']};
+/* v51 (ADR-099): array methods that call a callback on each element and write nothing; reduce only with an initial value. */
+const callbackMethods=new Set(['map','filter','some','every','find','findIndex','findLast','findLastIndex','flatMap','reduce','reduceRight']);
+const callbackCount=(name,count)=>name.startsWith('reduce')?count===2:count===1;
 const builtinMethods=new Set(['join','slice','indexOf','lastIndexOf','includes','at','concat','flat','charAt','charCodeAt','codePointAt','startsWith','endsWith','trim','trimStart','trimEnd','toUpperCase','toLowerCase','padStart','padEnd','repeat','split','substring','toFixed','has','get']);
 /** The program facts the contract depends on, or null when it does not apply. */
 function readWorld(code,language,inputs){
@@ -156,12 +159,19 @@ function jsRead(node,world){
  const global=callee=>callee.type==='Identifier'&&!world.declared.has(callee.name);
  if(node.type==='MemberExpression'&&node.object.type!=='Super'&&(node.computed?!world.accessors.size:!world.accessors.has(node.property.name)))return node.computed?[node.object,node.property]:[node.object];
  if(node.type==='SpreadElement'&&!world.generators&&!world.accessors.size)return [node.argument];
- if(node.type==='CallExpression'&&!node.optional&&node.arguments.every(argument=>argument.type!=='SpreadElement')){
-  const callee=node.callee;
-  if(global(callee)&&builtinFunctions.has(callee.name))return node.arguments;
+ // v51 (ADR-099): a for...of over valid plain data runs the built-in iterator; its body is judged as it is.
+ if(node.type==='ForOfStatement'&&!node.await&&!world.generators&&!world.accessors.size&&node.left.type==='VariableDeclaration'&&node.left.kind!=='var'&&node.left.declarations.length===1&&node.left.declarations[0].id.type==='Identifier'&&!node.left.declarations[0].init)return [node.right,node.body];
+ if(node.type==='CallExpression'&&!node.optional){
+  const callee=node.callee,spread=node.arguments.some(argument=>argument.type==='SpreadElement');
+  // v51 (ADR-099): a built-in function's arguments may spread valid plain data.
+  if(global(callee)&&builtinFunctions.has(callee.name))return spread&&world.generators?null:node.arguments;
   if(callee.type!=='MemberExpression'||callee.computed||callee.optional)return null;
   const name=callee.property.name;
-  if(global(callee.object)&&builtinStatics[callee.object.name]?.includes(name))return callee.object.name==='Array'&&(name==='from'&&node.arguments.length!==1||world.generators)?null:node.arguments;
+  if(global(callee.object)&&builtinStatics[callee.object.name]?.includes(name))return callee.object.name==='Array'&&(name==='from'&&node.arguments.length!==1||world.generators)||spread&&world.generators?null:node.arguments;
+  if(spread)return null;
+  // v51 (ADR-099): a callback method with a concise arrow: the arrow's body is visited as part of the call.
+  const callback=node.arguments[0];
+  if(callbackMethods.has(name)&&!world.defined.has(name)&&callbackCount(name,node.arguments.length)&&callback?.type==='ArrowFunctionExpression'&&!callback.async&&callback.expression&&callback.params.every(param=>param.type==='Identifier'))return [callee.object,callback.body,...node.arguments.slice(1)];
   return builtinMethods.has(name)&&!world.defined.has(name)?[callee.object,...node.arguments]:null;
  }
  if(node.type==='NewExpression'&&global(node.callee)&&['Set','Map'].includes(node.callee.name)&&node.arguments.length<=1&&!world.generators&&node.arguments.every(argument=>argument.type!=='SpreadElement'))return node.arguments;
@@ -173,12 +183,17 @@ function tsRead(node,world){
  if(ts.isPropertyAccessExpression(node)&&node.expression.kind!==ts.SyntaxKind.SuperKeyword&&!world.accessors.has(node.name.text))return [node.expression];
  if(ts.isElementAccessExpression(node)&&node.expression.kind!==ts.SyntaxKind.SuperKeyword&&!world.accessors.size)return [node.expression,node.argumentExpression];
  if((ts.isSpreadElement(node)||ts.isSpreadAssignment(node))&&!world.generators&&!world.accessors.size)return [node.expression];
- if(ts.isCallExpression(node)&&!node.questionDotToken&&node.arguments.every(argument=>!ts.isSpreadElement(argument))){
-  const callee=node.expression;
-  if(global(callee)&&builtinFunctions.has(callee.text))return [...node.arguments];
+ // v51 (ADR-099): the counterpart of jsRead's for...of.
+ if(ts.isForOfStatement(node)&&!node.awaitModifier&&!world.generators&&!world.accessors.size&&ts.isVariableDeclarationList(node.initializer)&&(node.initializer.flags&ts.NodeFlags.BlockScoped)!==0&&node.initializer.declarations.length===1&&ts.isIdentifier(node.initializer.declarations[0].name)&&!node.initializer.declarations[0].initializer)return [node.expression,node.statement];
+ if(ts.isCallExpression(node)&&!node.questionDotToken){
+  const callee=node.expression,spread=node.arguments.some(argument=>ts.isSpreadElement(argument));
+  if(global(callee)&&builtinFunctions.has(callee.text))return spread&&world.generators?null:[...node.arguments];
   if(!ts.isPropertyAccessExpression(callee)||callee.questionDotToken)return null;
   const name=callee.name.text;
-  if(global(callee.expression)&&builtinStatics[callee.expression.text]?.includes(name))return callee.expression.text==='Array'&&(name==='from'&&node.arguments.length!==1||world.generators)?null:[...node.arguments];
+  if(global(callee.expression)&&builtinStatics[callee.expression.text]?.includes(name))return callee.expression.text==='Array'&&(name==='from'&&node.arguments.length!==1||world.generators)||spread&&world.generators?null:[...node.arguments];
+  if(spread)return null;
+  const callback=node.arguments[0];
+  if(callbackMethods.has(name)&&!world.defined.has(name)&&callbackCount(name,node.arguments.length)&&callback&&ts.isArrowFunction(callback)&&!callback.modifiers?.length&&!ts.isBlock(callback.body)&&callback.parameters.every(param=>ts.isIdentifier(param.name)&&!param.initializer&&!param.dotDotDotToken))return [callee.expression,callback.body,...node.arguments.slice(1)];
   return builtinMethods.has(name)&&!world.defined.has(name)?[callee.expression,...node.arguments]:null;
  }
  if(ts.isNewExpression(node)&&global(node.expression)&&['Set','Map'].includes(node.expression.text)&&(node.arguments??[]).length<=1&&!world.generators&&(node.arguments??[]).every(argument=>!ts.isSpreadElement(argument)))return [...(node.arguments??[])];

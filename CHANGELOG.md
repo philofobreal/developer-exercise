@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased – 2026-11-04 tiszta műveletek a `valid` szerződés alatt (ADR-099, v51); két új statisztikapélda
+
+- **Kevesebb fölösleges szabály kezdő kódban,** ha a bemenet érvényes egyszerű adat. Ilyenkor már nem köti a sorrendet:
+  - a `Math.min(...values)`;
+  - a `values.reduce((sum, value) => sum + value, 0)` és a hasonló, csak olvasó visszahívású tömbmetódusok;
+  - a `-Infinity`;
+  - egy gyűjtőváltozó csak olvasó értékadása;
+  - egy csak olvasó és lokális változókat író `for…of` ciklus.
+- **Új gyakorlófeladatok:** „Statisztika egy tömbből” ciklussal és beépített függvényekkel. A gyűjtőváltozók, a ciklusmag sorai és a független deklarációk sorrendje szabad.
+- **A Szógyakoriság feladat** (revízió 2) mostantól elfogadja a `Map` létrehozásának és a szöveg felbontásának cseréjét.
+- **Mérés:**
+  - a `valid` szerződésű kampányban 0 hibás elfogadás;
+  - a régi szabály által elfogadott sorrendek közül az új egyet sem utasít el (28 796 sorrend).
+
 ## Unreleased – 2026-11-04 három új igazolt példafeladat (ADR-098)
 
 - **Új gyakorlófeladatok:**
