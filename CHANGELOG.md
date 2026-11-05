@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased – 2026-11-05 olvasások és saját tömb a `valid` szerződés alatt (ADR-102, v52)
+
+- **Kevesebb fölösleges szabály,** ha a bemenet érvényes egyszerű adat. Egy saját tömbre írás (`out.push(c0)`) már nem köti a sorrendjét azokhoz a sorokhoz, amelyek csak a bemenetet olvassák (`const c3 = Object.keys(data).length`, egy összegző `for…of`).
+- **Biztonsági feltétel:** ha a tömböt más név is eléri (álnév, burkoló tömb, a bemenetbe tárolt hivatkozás, feltételes érték, visszahívás), a sorrend kötött marad.
+- **Mérés:**
+  - a `valid` szerződésű kampányban 0 hibás elfogadás mind a 7 fajtában;
+  - a `param` fajta rése 26 → 7 nyelvenként;
+  - a v51 által elfogadott sorrendek közül a v52 egyet sem utasít el.
+- **Az alapszerződés és a 16 példa szabályai nem változtak.**
+
 ## Unreleased – 2026-11-05 szintválasztó a feladatkészítésben (ADR-101)
 
 - **Saját feladat szintje:** a Forrás lépésben kiválasztható a feladat szintje (Kezdő, Közepes, Haladó). A letöltött JSON-modell tartalmazza, így a példák közé tett feladat a megfelelő csoportba kerül. Példából indított feladat a példa szintjét kapja.

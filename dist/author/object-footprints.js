@@ -718,6 +718,8 @@ export function objectFootprints(list, file, compiler, checker, host) {
                     return objects(own.id);
                 if (symbol && parameters.has(symbol))
                     return OTHER;
+                if (symbol && host.plainData?.(expr))
+                    return OTHER;
                 if (host.primitive(expr))
                     return PRIM;
             }

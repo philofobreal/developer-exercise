@@ -42,8 +42,11 @@ export interface Footprint {
 /** `entry` (ADR-084): the literal a list-level local holds whenever the list statement `loop` starts,
  * when every accepted order gives it the same one (a literal declaration in the list before `loop`,
  * and no write but in `loop`, outside nested functions); undefined otherwise. */
+/** `plainData` (v52, ADR-102): a binding that, under the `valid` input contract, holds outside plain data or a fresh value no
+ * statement of the list owns, never one of the list's own objects; it reads like a parameter. */
 export interface FootprintHost {
     primitive(expr: ts.Expression): boolean;
+    plainData?(identifier: ts.Identifier): boolean;
     assignable?(identifier: ts.Identifier): boolean;
     enumeratedKeys?: boolean;
     entry?(identifier: ts.Identifier, loop: ts.Statement): {

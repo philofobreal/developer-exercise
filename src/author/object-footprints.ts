@@ -40,7 +40,9 @@ export interface Footprint {reads: Set<string>; writes: Set<string>; mayThrow: b
 /** `entry` (ADR-084): the literal a list-level local holds whenever the list statement `loop` starts,
  * when every accepted order gives it the same one (a literal declaration in the list before `loop`,
  * and no write but in `loop`, outside nested functions); undefined otherwise. */
-export interface FootprintHost {primitive(expr: ts.Expression): boolean; assignable?(identifier: ts.Identifier): boolean; enumeratedKeys?: boolean; entry?(identifier: ts.Identifier, loop: ts.Statement): {lit: string | number | boolean | null} | undefined;}
+/** `plainData` (v52, ADR-102): a binding that, under the `valid` input contract, holds outside plain data or a fresh value no
+ * statement of the list owns, never one of the list's own objects; it reads like a parameter. */
+export interface FootprintHost {primitive(expr: ts.Expression): boolean; plainData?(identifier: ts.Identifier): boolean; assignable?(identifier: ts.Identifier): boolean; enumeratedKeys?: boolean; entry?(identifier: ts.Identifier, loop: ts.Statement): {lit: string | number | boolean | null} | undefined;}
 
 interface ClassInfo {
  fields: Map<string, ts.Expression | undefined>; methods: Map<string, ts.MethodDeclaration>;
@@ -550,6 +552,7 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
     const symbol = checker.getSymbolAtLocation(expr), own = symbol && owned.get(symbol);
     if (own) return objects(own.id);
     if (symbol && parameters.has(symbol)) return OTHER;
+    if (symbol && host.plainData?.(expr)) return OTHER;
     if (host.primitive(expr)) return PRIM;
    }
    if (expr.text === 'undefined' && !checker.getSymbolAtLocation(expr)?.declarations?.some(declaration => declaration.getSourceFile() === file)) return literal(undefined);

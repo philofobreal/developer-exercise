@@ -449,6 +449,64 @@ export function statementOrdering(file, compiler, options = {}) {
             primitiveCache.clear();
         }
     }
+    /** v52 (ADR-102): under the `valid` contract, a binding that holds outside plain data or a fresh value no
+     * list statement owns: an unwritten identifier parameter, or a const whose initializer only reads and names
+     * only such bindings, undeclared built-ins and its own callbacks' parameters (never `this`). It cannot hold
+     * one of the list's own objects: reaching one needs naming its binding. */
+    const plainCache = new Map();
+    const ownShape = (expr) => compiler.isNewExpression(expr) || compiler.isArrayLiteralExpression(expr) || compiler.isObjectLiteralExpression(expr);
+    const plainBinding = (symbol, visiting) => {
+        const cached = plainCache.get(symbol);
+        if (cached !== undefined)
+            return cached;
+        if (visiting.has(symbol))
+            return false;
+        visiting.add(symbol);
+        const declaration = unique(symbol);
+        let plain = false;
+        if (declaration && compiler.isParameter(declaration) && compiler.isIdentifier(declaration.name) && !declaration.dotDotDotToken && !written.has(symbol))
+            plain = true;
+        // A `new` or array/object literal initializer makes an own object (object-footprints), never plain data.
+        else if (declaration && compiler.isVariableDeclaration(declaration) && compiler.isIdentifier(declaration.name) && declaration.initializer && compiler.isVariableDeclarationList(declaration.parent) && (declaration.parent.flags & compiler.NodeFlags.BlockScoped) === compiler.NodeFlags.Const && !ownShape(unwrap(declaration.initializer)) && readOnly(declaration.initializer, new Set())) {
+            const initializer = declaration.initializer;
+            let named = true;
+            const visit = (node) => {
+                if (!named)
+                    return;
+                if (node.kind === S.ThisKeyword) {
+                    named = false;
+                    return;
+                }
+                if (compiler.isPropertyAccessExpression(node)) {
+                    visit(node.expression);
+                    return;
+                }
+                if (compiler.isIdentifier(node)) {
+                    const used = checker.getSymbolAtLocation(node), declared = unique(used);
+                    if (!used) {
+                        named = builtin(node);
+                        return;
+                    }
+                    // A parameter of a callback inside the initializer is bound to an element of the read data.
+                    if (declared && compiler.isParameter(declared) && within(initializer, declared))
+                        return;
+                    named = plainBinding(used, visiting);
+                    return;
+                }
+                compiler.forEachChild(node, visit);
+            };
+            visit(initializer);
+            plain = named;
+        }
+        plainCache.set(symbol, plain);
+        return plain;
+    };
+    const plainData = (identifier) => {
+        if (!facts.applies)
+            return false;
+        const symbol = checker.getSymbolAtLocation(identifier);
+        return !!symbol && plainBinding(symbol, new Set());
+    };
     /** ADR-048: an identifier a list-level footprint may assign: a primitive local of the same function. */
     const assignable = (identifier) => {
         const symbol = checker.getSymbolAtLocation(identifier), declaration = unique(symbol);
@@ -739,7 +797,15 @@ export function statementOrdering(file, compiler, options = {}) {
         if (a.footprint && b.footprint)
             return footprintConflicts(a.footprint, b.footprint);
         const [object, other] = a.footprint ? [a.footprint, b] : b.footprint ? [b.footprint, a] : [];
-        if (!object || other.kind !== 'local-write')
+        if (!object)
+            return null;
+        // v52 (ADR-102): a read unit (the `valid` contract) without a footprint names none of the list's
+        // unescaped own objects (naming one without a footprint escapes it, aliases and stored references
+        // included), so it cannot reach the objects a footprint touches. It commutes unless the footprint may
+        // throw, or runs outside code that may write the plain data the read unit reads.
+        if (other.kind === 'read')
+            return object.mayThrow ? ['may-throw'] : object.external ? ['external-call-order'] : [];
+        if (other.kind !== 'local-write')
             return null;
         if (object.mayThrow)
             return ['may-throw'];
@@ -843,7 +909,7 @@ export function statementOrdering(file, compiler, options = {}) {
                 summaries.push(summary(statement, node));
             // ADR-025: in a function-context list, statements on the list's own objects get footprints.
             if (compiler.isBlock(node) && context(node) !== file) {
-                const footprints = objectFootprints(node.statements, file, compiler, checker, { primitive: expr => primitive(expr, new Set()), assignable, enumeratedKeys: options.enumeratedKeys ?? true, entry });
+                const footprints = objectFootprints(node.statements, file, compiler, checker, { primitive: expr => primitive(expr, new Set()), plainData, assignable, enumeratedKeys: options.enumeratedKeys ?? true, entry });
                 summaries.forEach((unit, i) => {
                     const statement = node.statements[i], footprint = footprints.get(statement);
                     // ADR-028: an if/else owns its first and last rows; its branch rows follow their own block.

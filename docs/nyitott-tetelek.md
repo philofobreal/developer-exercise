@@ -40,6 +40,7 @@
 
 | Tétel | Lezárta |
 | --- | --- |
+| A `param` rés a `valid` szerződés alatt: a saját tömbre írás (`out.push(c0)`) és az olvasási egységek sorrendje (v52); a 7-es mag 19 → 0 rés | [ADR-102](adr/102-valid-reads-commute-with-own-objects.md) |
 | NY-06: tiszta műveletek és beépített hívások a `valid` szerződés alatt (v51); a `stats-js` tanú rése 6 → 0, a két statisztikapélda felvéve | [ADR-099](adr/099-valid-plain-operations.md) |
 | NY-11: az AI-governance teljes (tulajdonos, kikényszerítés és bizonyíték minden elemhez); a jegyzék sora elavult volt. 2026-11-04: a kockázati osztályok kiegészítve az akadálymentességi átvizsgálással és a régi modulok őrtesztjével | [ADR-049](adr/049-ai-governance-completion.md), [ADR-096](adr/096-automated-accessibility-scan.md), [ADR-097](adr/097-attempt-and-persistence-migration.md) |
 | NY-09 és NY-10: minden példa igazolt (`class-accounts-ts` igazolt szabállyal, `algo-sort-search-js` újragenerálva, `profiles-js` forráscserével), az alapértelmezés `verified-only` | [ADR-089](adr/089-verified-examples-and-default.md) |
