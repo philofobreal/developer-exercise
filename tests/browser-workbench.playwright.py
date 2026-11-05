@@ -274,6 +274,13 @@ def tap_to_place(browser):
         assert page.evaluate('document.documentElement.scrollWidth')<=390
     finally:mobile.close()
 
+# ADR-101: the author chooses the level in the source step; the built model carries it.
+def author_level(page):
+    page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click()
+    page.locator('[data-author="level"]').select_option('intermediate');page.locator('#author-editor').fill(rules_source);page.locator('[data-author-apply]').click();current(page,'rules')
+    rules_json(page);assert json.loads(page.locator('#model-editor').input_value()).get('level')=='intermediate'
+    page.locator('[data-step="source"]').click();expect(page.locator('[data-author="level"]')).to_have_value('intermediate')
+
 def try_rules(page):
     """ADR-022: the try sorter shows and edits rules while arranging; learners and practice never see them."""
     build(page,rules_source);to_try(page);expect(page.locator('[data-try-rules]')).to_be_visible()
@@ -534,6 +541,7 @@ try:
                 reset(page,url);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-author.png')),full_page=True)
                 practice(page);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-practice.png')),full_page=True)
             reset(page,BASE);case('node one horizontal scroll per code list, row controls pinned',lambda:single_horizontal_scroll(page))
+            reset(page,BASE);case('node author chooses the exercise level',lambda:author_level(page))
             case('node tap to pick, tap to place on a touch screen',lambda:tap_to_place(browser))
             reset(page,BASE);case('node duplicate-check prevention and async feedback',lambda:busy(page))
             reset(page,BASE);case('node admission preserves newer reference edits',lambda:stale_author_admission(page))

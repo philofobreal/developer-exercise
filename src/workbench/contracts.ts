@@ -19,7 +19,7 @@ export type InputContract='any'|'valid';
 export type KeyOrder='observed'|'ignored';
 /** ADR-075: whether the analysis covers both class-field modes or only the standard [[Define]]. */
 export type ClassFields='either'|'define';
-export interface AuthorDraft {title:string;description:string;language:string;source:string;message:string;importEmit?:ImportEmit;inputs?:InputContract;keyOrder?:KeyOrder;classFields?:ClassFields;}
+export interface AuthorDraft {title:string;description:string;level?:ExerciseLevel|'';language:string;source:string;message:string;importEmit?:ImportEmit;inputs?:InputContract;keyOrder?:KeyOrder;classFields?:ClassFields;}
 /** What the API reported with the active author draft: presentation data, never a rule source (ADR-021). */
 export interface AuthorInsight {rules?:AuthorRuleSheet;verification?:ModelVerification;audit?:ReferenceAudit;refresh?:RefreshReport;effect?:EditEffect;}
 export type RemoveRule=Extract<RuleEdit,{kind:'remove-rule'}>;

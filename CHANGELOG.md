@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased – 2026-11-05 szintválasztó a feladatkészítésben (ADR-101)
+
+- **Saját feladat szintje:** a Forrás lépésben kiválasztható a feladat szintje (Kezdő, Közepes, Haladó). A letöltött JSON-modell tartalmazza, így a példák közé tett feladat a megfelelő csoportba kerül. Példából indított feladat a példa szintjét kapja.
+
 ## Unreleased – 2026-11-05 szint szerint csoportosított feladatlista (ADR-101)
 
 - **Kezdő, Közepes, Haladó:** a gyakorló feladatlista szint szerint csoportosít. A Gyakorlás az első kezdő feladattal nyílik meg.

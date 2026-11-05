@@ -6,6 +6,8 @@ import {readFile} from 'node:fs/promises';
 import {compileCodeLineExercise} from '../dist/index.js';
 import {ExerciseCatalog} from '../src/server/catalog.mjs';
 import {createFieldRenderer,practiceOrder} from '../public/app/fields.js';
+import ts from 'typescript';
+import {generateCodeLineExercise} from '../src/author/generator.mjs';
 
 // The approved classification (2026-11-05): 6 beginner, 7 intermediate, 3 advanced.
 const LEVELS={beginner:['celsius-js','even-odd-js','grade-ts','greeting-js','rectangle-js','vowels-js'],intermediate:['class-inventory-ts','fib-memo-js','profiles-js','stack-ts','stats-js','stats-reduce-js','word-count-js'],advanced:['algo-bfs-js','algo-sort-search-js','class-accounts-ts']};
@@ -33,4 +35,11 @@ test('the practice list groups by level in order, catalog order within a group, 
 test('the practice order puts the first beginner exercise first, so practice opens on it',()=>{
  const item=(id,level)=>({id,...(level?{level}:{})});
  assert.deepEqual(practiceOrder([item('adv','advanced'),item('none'),item('beg1','beginner'),item('mid','intermediate'),item('beg2','beginner')]).map(x=>x.id),['beg1','beg2','mid','adv','none']);
+});
+
+test('the generator carries the author\'s level as given, drops an empty one and refuses an unknown one',()=>{
+ const make=level=>generateCodeLineExercise({source:'const a = 1;\nconst b = 2;',...(level===undefined?{}:{level})},ts);
+ assert.equal(make('advanced').level,'advanced');
+ assert.equal('level' in make(''),false);assert.equal('level' in make(undefined),false);
+ assert.throws(()=>make('expert'),/Ismeretlen szint/);
 });

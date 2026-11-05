@@ -1,9 +1,9 @@
-const same = (a, b) => a.source === b.source && a.language === b.language && a.title === b.title && a.description === b.description && (a.importEmit ?? 'verbatim') === (b.importEmit ?? 'verbatim') && (a.inputs ?? 'any') === (b.inputs ?? 'any') && (a.keyOrder ?? 'observed') === (b.keyOrder ?? 'observed') && (a.classFields ?? 'either') === (b.classFields ?? 'either');
+const same = (a, b) => a.source === b.source && a.language === b.language && a.title === b.title && a.description === b.description && (a.level || '') === (b.level || '') && (a.importEmit ?? 'verbatim') === (b.importEmit ?? 'verbatim') && (a.inputs ?? 'any') === (b.inputs ?? 'any') && (a.keyOrder ?? 'observed') === (b.keyOrder ?? 'observed') && (a.classFields ?? 'either') === (b.classFields ?? 'either');
 /** The generation request for the reference; the import emit is a TypeScript-only assumption (ADR-013),
  * the input contract (ADR-050), the key order (ADR-055) and the class-field mode (ADR-075) are choices of either language. */
 export function authorRequest(author) {
-    const { title, description, language, source, importEmit, inputs, keyOrder, classFields } = author;
-    return { title, description, language, source, ...(language === 'typescript' && importEmit ? { importEmit } : {}), ...(inputs === 'valid' ? { inputs } : {}), ...(keyOrder === 'ignored' ? { keyOrder } : {}), ...(classFields === 'define' ? { classFields } : {}) };
+    const { title, description, level, language, source, importEmit, inputs, keyOrder, classFields } = author;
+    return { title, description, ...(level ? { level } : {}), language, source, ...(language === 'typescript' && importEmit ? { importEmit } : {}), ...(inputs === 'valid' ? { inputs } : {}), ...(keyOrder === 'ignored' ? { keyOrder } : {}), ...(classFields === 'define' ? { classFields } : {}) };
 }
 /** The reference differs from the one the applied model was built from (or none was built yet). */
 export function authorDraftPending(state) {
@@ -40,7 +40,7 @@ export function captureAuthorAdmission(state) {
 /** An example is a starting point: its reference becomes the unapplied draft. */
 export function startFromExample(state, exercise) {
     nextRequest(state);
-    state.author = { title: exercise.title, description: exercise.description, language: exercise.language, source: exercise.lines.map(line => line.code).join('\n'), message: `A(z) „${exercise.title}” példa referenciája betöltve. A modell a Modell készítése gombbal készül el belőle.` };
+    state.author = { title: exercise.title, description: exercise.description, ...(exercise.level ? { level: exercise.level } : {}), language: exercise.language, source: exercise.lines.map(line => line.code).join('\n'), message: `A(z) „${exercise.title}” példa referenciája betöltve. A modell a Modell készítése gombbal készül el belőle.` };
 }
 /** Discards unapplied reference edits: the draft returns to what the applied model was built from. */
 export function revertAuthorDraft(state) {
@@ -54,7 +54,7 @@ export function revertAuthorDraft(state) {
 export function admitAuthorModel(state, model, source, { keepPending = false } = {}) {
     nextRequest(state);
     const pending = keepPending && authorDraftPending(state) ? state.author : undefined, environment = model.authoring?.evidence?.environment, importEmit = environment?.importEmit, inputs = environment?.inputs, keyOrder = environment?.keyOrder, classFields = environment?.classFields;
-    const author = { title: model.title, description: model.description, language: model.language, source: source ?? model.lines.map(l => l.code).join('\n'), message: '', ...(importEmit ? { importEmit } : {}), ...(inputs === 'valid' ? { inputs } : {}), ...(keyOrder === 'ignored' ? { keyOrder } : {}), ...(classFields === 'define' ? { classFields } : {}) };
+    const author = { title: model.title, description: model.description, ...(model.level ? { level: model.level } : {}), language: model.language, source: source ?? model.lines.map(l => l.code).join('\n'), message: '', ...(importEmit ? { importEmit } : {}), ...(inputs === 'valid' ? { inputs } : {}), ...(keyOrder === 'ignored' ? { keyOrder } : {}), ...(classFields === 'define' ? { classFields } : {}) };
     state.author = pending ?? author;
     state.authorBaseline = { ...author };
 }

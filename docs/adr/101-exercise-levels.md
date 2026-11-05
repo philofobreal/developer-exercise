@@ -44,5 +44,8 @@ A teljes böngészőkészlet (húzás minden példán, akadálymentességi átvi
 
   A szerver és a Pages-adapter csak továbbadja; nem rendez.
 - **Interfész:** egy választható modellmező, egy választható összefoglaló-mező és egy exportált függvény.
-- **Ami marad:** a szerzői felületen ma nincs szintválasztó, mert a saját feladat a „Saját előnézet” csoportban jelenik meg. Egy szintválasztó a Forrás lépésben külön kérésre vehető fel.
+- **Szerzői szintválasztó (2026-11-05, kiegészítés):** a Forrás lépés „Szint” választója. A generátor a szintet a címhez hasonlóan változatlanul továbbadja ([generator.mjs](../../src/author/generator.mjs)): az üreset elhagyja, az ismeretlent elutasítja.
+  - Egy példából indított feladat átveszi a példa szintjét, egy importált modell a sajátját.
+  - A szint megváltoztatása, mint a címé, újraépítést kér.
+  - **Bizonyíték:** generátorteszt a szintről, és böngészőteszt arra, hogy a kiválasztott szint a JSON-modellben megjelenik.
 - **Design twice:** *a szint külön katalógusfájlban (`examples/levels.json`):* elvetve. Egy tanár saját feladata is hordozhat szintet, és egy második fájl szétválna a modelltől.
