@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
   "id": "word-count-js",
-  "revision": 1,
+  "revision": 2,
   "language": "javascript",
   "title": "Szógyakoriság Map-pel",
-  "description": "Szavak megszámlálása Map-pel, majd rendezés gyakoriság szerint. A szöveg felbontása, a számlálás a ciklusban és a rendezés egymásra épül, ezért egyetlen helyes sorrend van. A bemenet egyszerű szöveg és egy szám.",
+  "description": "Szavak megszámlálása Map-pel, majd rendezés gyakoriság szerint. A Map létrehozása és a szöveg felbontása felcserélhető; a számlálás a ciklusban és a rendezés ezekre épül. A bemenet egyszerű szöveg és egy szám.",
   "lines": [
     {
       "id": 1,
@@ -33,7 +33,7 @@
       "sourceLine": 3,
       "code": "const words = text.toLowerCase().split(' ').filter((word) => word.length > 0);",
       "dependencies": [
-        2
+        1
       ],
       "fixed": false,
       "functionBlock": 1,
@@ -45,6 +45,7 @@
       "sourceLine": 4,
       "code": "for (const word of words) {",
       "dependencies": [
+        2,
         3
       ],
       "fixed": false,
@@ -150,7 +151,7 @@
     "reason": "",
     "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
-    "dependencyPolicy": "scoped-effect-analysis-v50",
+    "dependencyPolicy": "scoped-effect-analysis-v51",
     "provenance": [
       {
         "before": 1,
@@ -159,22 +160,40 @@
         "code": "block-open"
       },
       {
-        "before": 2,
+        "before": 1,
         "after": 3,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 2,
+        "after": 4,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 2,
+        "after": 4,
         "category": "effect",
-        "code": "effectful-or-unknown-initializer"
+        "code": "ForOfStatement"
       },
       {
         "before": 3,
         "after": 4,
-        "category": "effect",
-        "code": "effectful-or-unknown-initializer"
+        "category": "data",
+        "code": "binding-input"
       },
       {
         "before": 3,
         "after": 4,
         "category": "effect",
         "code": "ForOfStatement"
+      },
+      {
+        "before": 3,
+        "after": 4,
+        "category": "data",
+        "code": "read-after-write"
       },
       {
         "before": 2,
@@ -233,7 +252,7 @@
     ],
     "evidence": {
       "sourceDigest": "92c1e9f9723d3130",
-      "analyzer": "scoped-effect-analysis-v50",
+      "analyzer": "scoped-effect-analysis-v51",
       "environment": {
         "typescript": "5.8.3",
         "sourceKind": "script",

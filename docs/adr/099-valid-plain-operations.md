@@ -47,7 +47,18 @@ A `valid` szerződés szerint a bemenet érvényes egyszerű adat, és a kód ra
 
 ## Mérés
 
-*A kampány lefutása után kitöltve.*
+- **Pillanatkép:** a 1 392 generált modellből 62 változott, mind `valid` szerződéssel generálva. Az alapszerződésnél egy sem, ezért az alapszerződésű kampány (v50: 0 hibás elfogadás) érvényes marad.
+- **Kampány a `valid` szerződésen** (12 mag, mind a 7 fajta, `strict`, `es2015` és `sloppy` környezet): 0 hibás elfogadás minden csoportban.
+  - **A `param` fajta** (a `valid` szerződés saját programjai): 365 → 491 elfogadott sorrend nyelvenként.
+  - **A rés** 13-ról 26-ra nőtt, mind `ExpressionStatement` okkóddal. Ez a mért halmaz változása, nem visszalépés:
+    - az új szabadságok miatt más szomszédos sorrendek kerültek a mintába (4 266 → 4 319);
+    - a többletet egy program (7-es mag) adja, ahol a most mozgatható ciklus mellett egy saját tömbre írás (`out.push`) az ADR-050 óta minden olvasási egységhez képest sorrendben marad.
+  - **A többi fajta** a `valid` szerződésen is változatlanul 0 hibás elfogadással fut.
+- **Monotonitás:** 49 programon (a `param` fajta 24 `valid` programja és a korpusz `valid` fixture-jei) 28 796 sorrend. 135 sorrendet csak a v51 fogad el, a v50 által elfogadottak közül a v51 egyet sem utasít el. A szabály tehát szigorúan bővít.
+- **Korpusz:** 120 fixture, 0 hibás elfogadás. Az alapvonal négy új fixture-rel bővült; a meglévők közül csak a `word-count-js-valid` változott (1 → 2 elfogadott, 0 rés).
+- **Példák:**
+  - a `stats-js` (ciklusos) és a `stats-reduce-js` (beépítettes) példa felkerült (ADR-098 folytatása), a `valid` szerződéssel 15, illetve 16 elfogadott sorrenddel, 0 réssel;
+  - a `word-count-js` szabályai lazultak (a `Map` létrehozása és a szöveg felbontása felcserélhető), ezért revízió 2 és javított leírás.
 
 ## Bizonyíték
 

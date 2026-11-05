@@ -1,0 +1,275 @@
+{
+  "schemaVersion": 2,
+  "id": "stats-reduce-js",
+  "revision": 1,
+  "language": "javascript",
+  "title": "Statisztika reduce-szal",
+  "description": "Darabszám, átlag és terjedelem beépített függvényekkel (reduce, Math.min, Math.max). A négy független deklaráció bármilyen sorrendben állhat; az átlag a darabszám és az összeg után, a visszatérés a végén áll. A bemenet nem üres számtömb.",
+  "lines": [
+    {
+      "id": 1,
+      "sourceLine": 1,
+      "code": "function summarize(values) {",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "sourceLine": 2,
+      "code": "const count = values.length;",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "sourceLine": 3,
+      "code": "const total = values.reduce((sum, value) => sum + value, 0);",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 4,
+      "sourceLine": 4,
+      "code": "const smallest = Math.min(...values);",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 5,
+      "sourceLine": 5,
+      "code": "const largest = Math.max(...values);",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 6,
+      "sourceLine": 6,
+      "code": "const mean = total / count;",
+      "dependencies": [
+        2,
+        3
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 7,
+      "sourceLine": 7,
+      "code": "return { count, mean, range: largest - smallest };",
+      "dependencies": [
+        2,
+        4,
+        5,
+        6
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 8,
+      "sourceLine": 8,
+      "code": "}",
+      "dependencies": [
+        7
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "scope-1",
+      "kind": "function",
+      "parentScopeId": null,
+      "openLineId": 1,
+      "closeLineId": 8,
+      "functionBlock": 1
+    }
+  ],
+  "edges": [],
+  "profiles": [],
+  "authoring": {
+    "strategy": "ast-hierarchy",
+    "reason": "",
+    "omittedBlocks": 0,
+    "semanticEquivalenceProven": false,
+    "dependencyPolicy": "scoped-effect-analysis-v51",
+    "provenance": [
+      {
+        "before": 1,
+        "after": 2,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 1,
+        "after": 3,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 1,
+        "after": 4,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 1,
+        "after": 5,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 2,
+        "after": 6,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 2,
+        "after": 6,
+        "category": "data",
+        "code": "read-after-write"
+      },
+      {
+        "before": 3,
+        "after": 6,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 3,
+        "after": 6,
+        "category": "data",
+        "code": "read-after-write"
+      },
+      {
+        "before": 2,
+        "after": 7,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 2,
+        "after": 7,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 4,
+        "after": 7,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 5,
+        "after": 7,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 6,
+        "after": 7,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 6,
+        "after": 7,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 7,
+        "after": 8,
+        "category": "structure",
+        "code": "block-close"
+      }
+    ],
+    "evidence": {
+      "sourceDigest": "c26310421e0c71ae",
+      "analyzer": "scoped-effect-analysis-v51",
+      "environment": {
+        "typescript": "5.8.3",
+        "sourceKind": "script",
+        "classFields": "either",
+        "inputs": "valid"
+      },
+      "projectionLoss": {
+        "pairs": 0,
+        "examples": []
+      }
+    },
+    "dependencyHints": [
+      {
+        "name": "values",
+        "declarationLine": 1,
+        "usageLine": 2
+      },
+      {
+        "name": "values",
+        "declarationLine": 1,
+        "usageLine": 3
+      },
+      {
+        "name": "values",
+        "declarationLine": 1,
+        "usageLine": 4
+      },
+      {
+        "name": "values",
+        "declarationLine": 1,
+        "usageLine": 5
+      },
+      {
+        "name": "total",
+        "declarationLine": 3,
+        "usageLine": 6
+      },
+      {
+        "name": "count",
+        "declarationLine": 2,
+        "usageLine": 6
+      },
+      {
+        "name": "largest",
+        "declarationLine": 5,
+        "usageLine": 7
+      },
+      {
+        "name": "smallest",
+        "declarationLine": 4,
+        "usageLine": 7
+      }
+    ]
+  }
+}

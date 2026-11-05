@@ -1,0 +1,209 @@
+{
+  "schemaVersion": 2,
+  "id": "rectangle-js",
+  "revision": 1,
+  "language": "javascript",
+  "title": "Téglalap adatai",
+  "description": "Terület, kerület, és hogy négyzet-e. A három számítás egymástól független, bármilyen sorrendben állhat; a visszatérés a végén áll. A bemenet két szám.",
+  "lines": [
+    {
+      "id": 1,
+      "sourceLine": 1,
+      "code": "function describe(width, height) {",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "sourceLine": 2,
+      "code": "const area = width * height;",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "sourceLine": 3,
+      "code": "const perimeter = 2 * (width + height);",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 4,
+      "sourceLine": 4,
+      "code": "const isSquare = width === height;",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 5,
+      "sourceLine": 5,
+      "code": "return { area, perimeter, isSquare };",
+      "dependencies": [
+        2,
+        3,
+        4
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 6,
+      "sourceLine": 6,
+      "code": "}",
+      "dependencies": [
+        5
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "scope-1",
+      "kind": "function",
+      "parentScopeId": null,
+      "openLineId": 1,
+      "closeLineId": 6,
+      "functionBlock": 1
+    }
+  ],
+  "edges": [],
+  "profiles": [],
+  "authoring": {
+    "strategy": "ast-hierarchy",
+    "reason": "",
+    "omittedBlocks": 0,
+    "semanticEquivalenceProven": false,
+    "dependencyPolicy": "scoped-effect-analysis-v51",
+    "provenance": [
+      {
+        "before": 1,
+        "after": 2,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 1,
+        "after": 3,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 1,
+        "after": 4,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 2,
+        "after": 5,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 2,
+        "after": 5,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 3,
+        "after": 5,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 3,
+        "after": 5,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 4,
+        "after": 5,
+        "category": "data",
+        "code": "binding-input"
+      },
+      {
+        "before": 4,
+        "after": 5,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 5,
+        "after": 6,
+        "category": "structure",
+        "code": "block-close"
+      }
+    ],
+    "evidence": {
+      "sourceDigest": "3ef692482e494e79",
+      "analyzer": "scoped-effect-analysis-v51",
+      "environment": {
+        "typescript": "5.8.3",
+        "sourceKind": "script",
+        "classFields": "either",
+        "inputs": "valid"
+      },
+      "projectionLoss": {
+        "pairs": 0,
+        "examples": []
+      }
+    },
+    "dependencyHints": [
+      {
+        "name": "width",
+        "declarationLine": 1,
+        "usageLine": 2
+      },
+      {
+        "name": "height",
+        "declarationLine": 1,
+        "usageLine": 2
+      },
+      {
+        "name": "width",
+        "declarationLine": 1,
+        "usageLine": 3
+      },
+      {
+        "name": "height",
+        "declarationLine": 1,
+        "usageLine": 3
+      },
+      {
+        "name": "width",
+        "declarationLine": 1,
+        "usageLine": 4
+      },
+      {
+        "name": "height",
+        "declarationLine": 1,
+        "usageLine": 4
+      }
+    ]
+  }
+}
