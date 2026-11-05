@@ -5,6 +5,7 @@
   "language": "typescript",
   "title": "Osztályzat pontszámból",
   "description": "Osztályzat pontszámból, korai visszatérésekkel. A feltételek sorrendje számít: a legmagasabb határt kell először vizsgálni, ezért egyetlen helyes sorrend van. A bemenet szám.",
+  "level": "beginner",
   "lines": [
     {
       "id": 1,

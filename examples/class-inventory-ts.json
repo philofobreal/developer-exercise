@@ -4,6 +4,7 @@
   "revision": 2,
   "title": "Raktárkészlet – interface és generikus osztály",
   "description": "Interface, generikus megszorítás, privát Map, paraméterproperty és három metódus beágyazott ciklusokkal. Az interface-mezők és a metódusok sorrendje szabad, a típus (interface) az osztály után is állhat; a ciklusmagok és az értékadások sorrendje kötött.",
+  "level": "intermediate",
   "language": "typescript",
   "lines": [
     {

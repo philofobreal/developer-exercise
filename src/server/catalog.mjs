@@ -48,7 +48,7 @@ export class ExerciseCatalog{
     if(!records.size)throw Error(`No publishable JSON exercises in examples/ (policy: ${publication})`);
     return catalog;
   }
-  list(){return [...this.trusted.values()].map(({model:d,verification})=>({id:d.id,revision:d.revision,language:d.language,title:d.title,description:d.description,...(verification?{verification:verification.status}:{}),
+  list(){return [...this.trusted.values()].map(({model:d,verification})=>({id:d.id,revision:d.revision,language:d.language,title:d.title,description:d.description,...(d.level?{level:d.level}:{}),...(verification?{verification:verification.status}:{}),
     lines:d.lines.map(l=>({id:l.id,code:l.code,fixed:l.fixed,normalization:l.normalization??'indent',functionBlock:l.functionBlock}))}));}
   async parser(){return this.ts??=(await import('typescript')).default;}
   /** Language audit beyond syntax (ADR-016): the installed compiler's standard library, read by base name only. */

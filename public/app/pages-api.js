@@ -36,7 +36,7 @@ export async function getExercises(){
     records.set(model.id,{model,compiled:assertSafeModel(model)});
   }
   return [...records.values()].map(({model:d})=>({
-    id:d.id,revision:d.revision,language:d.language,title:d.title,description:d.description,
+    id:d.id,revision:d.revision,language:d.language,title:d.title,description:d.description,...(d.level?{level:d.level}:{}),
     lines:d.lines.map(l=>({id:l.id,code:l.code,fixed:l.fixed,normalization:l.normalization??'indent',functionBlock:l.functionBlock}))
   }));
 }

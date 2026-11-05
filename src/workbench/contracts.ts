@@ -5,7 +5,9 @@ import type {ReferenceAudit} from '../../dist/author/reference-audit.js';
 export type ViewName='sort'|'edit'|'author'|'model';
 export type LineId=number|string;
 export interface ExerciseLine {id:number;code:string;fixed?:boolean;normalization?:Normalization;sourceLine?:number;functionBlock?:number;}
-export interface ExerciseSummary {id:string;revision:number;language:string;title:string;description:string;lines:ExerciseLine[];previewOnly?:boolean;}
+/** ADR-101: difficulty for the practice list. */
+export type ExerciseLevel='beginner'|'intermediate'|'advanced';
+export interface ExerciseSummary {id:string;revision:number;language:string;title:string;description:string;level?:ExerciseLevel;lines:ExerciseLine[];previewOnly?:boolean;}
 /** `feedback` (ADR-026): what the API discloses to the author and to the learner view; `slots`: the
  * sorter slot of each submitted line, so diagnostic positions mark the rows that were graded. */
 export type Report=Pick<ValidationResult,'status'|'message'>&Partial<ValidationResult>&{feedback?:{author?:Feedback;learner:Feedback};slots?:number[]};

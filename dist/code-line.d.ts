@@ -93,6 +93,8 @@ export interface RuleRelaxation {
         note?: string;
     };
 }
+/** ADR-101: the difficulty levels of the practice list. */
+export type ExerciseLevel = 'beginner' | 'intermediate' | 'advanced';
 export interface CodeLineExercise {
     schemaVersion: 2;
     id: string;
@@ -100,6 +102,8 @@ export interface CodeLineExercise {
     language: 'javascript' | 'typescript';
     title: string;
     description: string;
+    /** ADR-101: difficulty for the practice list, an author decision; absent means unclassified. */
+    level?: ExerciseLevel;
     lines: StructuredCodeLine[];
     blocks: CodeBlock[];
     /** Shared mandatory partial ordering, outside per-line dependencies. */

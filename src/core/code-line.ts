@@ -54,6 +54,8 @@ export interface RuleNote { before: number; after: number; note: string; }
  * `sourceDigest` (ADR-044): the source the author confirmed it on (`sourceTextDigest`); a
  * refresh of a changed source restores the constraint and asks for a new confirmation. */
 export interface RuleRelaxation { before: number; after: number; editability: 'conservative' | 'proven' | 'legacy'; note?: string; sourceDigest?: string; removed?: { origins: ('dependency' | 'edge')[]; reasons: { category: ConstraintCategory; code: string }[]; note?: string }; }
+/** ADR-101: the difficulty levels of the practice list. */
+export type ExerciseLevel = 'beginner' | 'intermediate' | 'advanced';
 export interface CodeLineExercise {
   schemaVersion: 2;
   id: string;
@@ -61,6 +63,8 @@ export interface CodeLineExercise {
   language: 'javascript' | 'typescript';
   title: string;
   description: string;
+  /** ADR-101: difficulty for the practice list, an author decision; absent means unclassified. */
+  level?: ExerciseLevel;
   lines: StructuredCodeLine[];
   blocks: CodeBlock[];
   /** Shared mandatory partial ordering, outside per-line dependencies. */

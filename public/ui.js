@@ -9,6 +9,7 @@ import {installPreview} from './app/author-session.js';
 import {parseImport,exportSession,restoreAttempt,downloadJSON,saveLocal,loadLocal} from './app/persistence.js';
 import {createAttempt,createAttemptController} from './app/attempt.js';
 import {createWorkbenchView} from './app/view.js';
+import {practiceOrder} from './app/fields.js';
 import {createInsertionDrag} from './app/drag-insert.js';
 import {createScrollMemory,updateGutters,copyToClipboard,escapeHtml} from './app/ui-utilities.js';
 import {formatSource,getExercises,compileDraft,editRules,previewDraft,evaluate,loadTypeScriptFixture} from './app/api.js';
@@ -225,5 +226,5 @@ root.addEventListener('change',async ev=>{
  finally{input.value='';}
 });
 
-async function init(){try{state.exercises=await getExercises();for(const e of state.exercises)state.attempts.set(e.id,createAttempt(e));if(!state.exercises.length)throw Error('Üres feladatlista.');state.practiceActive=state.exercises[0].id;render();}catch(err){root.innerHTML=`<div class="loading">${escapeHtml(err.message)}</div>`;}}
+async function init(){try{state.exercises=practiceOrder(await getExercises());for(const e of state.exercises)state.attempts.set(e.id,createAttempt(e));if(!state.exercises.length)throw Error('Üres feladatlista.');state.practiceActive=state.exercises[0].id;render();}catch(err){root.innerHTML=`<div class="loading">${escapeHtml(err.message)}</div>`;}}
 init();

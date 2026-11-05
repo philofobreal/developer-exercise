@@ -5,6 +5,7 @@
   "language": "javascript",
   "title": "Páros és páratlan számok",
   "description": "Páros és páratlan számok megszámlálása ciklussal és elágazással. A két számláló deklarációja felcserélhető; a ciklus utánuk, az elágazás ágai a helyükön maradnak. A bemenet egész számok tömbje.",
+  "level": "beginner",
   "lines": [
     {
       "id": 1,

@@ -5,6 +5,7 @@
   "language": "javascript",
   "title": "Statisztika reduce-szal",
   "description": "Darabszám, átlag és terjedelem beépített függvényekkel (reduce, Math.min, Math.max). A négy független deklaráció bármilyen sorrendben állhat; az átlag a darabszám és az összeg után, a visszatérés a végén áll. A bemenet nem üres számtömb.",
+  "level": "intermediate",
   "lines": [
     {
       "id": 1,

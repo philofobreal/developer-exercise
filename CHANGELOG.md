@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-05 szint szerint csoportosított feladatlista (ADR-101)
+
+- **Kezdő, Közepes, Haladó:** a gyakorló feladatlista szint szerint csoportosít. A Gyakorlás az első kezdő feladattal nyílik meg.
+- **Új modellmező:** a feladat választható `level` mezője (`beginner`, `intermediate`, `advanced`). A régi feladatok érvényesek maradnak, és az „Egyéb feladatok” csoportba kerülnek.
+- **A 16 példa besorolva:** 6 kezdő, 7 közepes, 3 haladó.
+
 ## Unreleased – 2026-11-05 hat kezdő szintű gyakorlófeladat (ADR-100)
 
 - **Új, kezdőknek szóló feladatok:** Celsius átváltása, Téglalap adatai, Üdvözlés névből, Páros és páratlan számok, Magánhangzók számlálása (JavaScript), valamint Osztályzat pontszámból (TypeScript).

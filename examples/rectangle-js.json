@@ -5,6 +5,7 @@
   "language": "javascript",
   "title": "Téglalap adatai",
   "description": "Terület, kerület, és hogy négyzet-e. A három számítás egymástól független, bármilyen sorrendben állhat; a visszatérés a végén áll. A bemenet két szám.",
+  "level": "beginner",
   "lines": [
     {
       "id": 1,
