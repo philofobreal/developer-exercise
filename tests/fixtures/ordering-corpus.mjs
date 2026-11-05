@@ -5,6 +5,12 @@ import {readFile} from 'node:fs/promises';
 import {taskPrograms} from './task-programs.mjs';
 
 const library={
+ 'celsius-js':"(() => [toFahrenheit(0), toFahrenheit(100), toFahrenheit(-40), toFahrenheit(36.6)])()",
+ 'rectangle-js':"(() => [describe(3, 4), describe(5, 5), describe(0.5, 2)])()",
+ 'greeting-js':"(() => [greet('Ada', 'Lovelace'), greet('Alan', 'Turing')])()",
+ 'even-odd-js':"(() => [countParity([1, 2, 3, 4, 5]), countParity([2, 4]), countParity([7])])()",
+ 'vowels-js':"(() => [countVowels('Programozas'), countVowels('xyz'), countVowels('AEIOU aeiou')])()",
+ 'grade-ts':"(() => [grade(95), grade(80), grade(65), grade(50), grade(10)])()",
  'stats-js':'(() => [summarize([4, 8, 15, 16, 23, 42]), summarize([7]), summarize([-3, 0, 3])])()',
  'stats-reduce-js':'(() => [summarize([4, 8, 15, 16, 23, 42]), summarize([7]), summarize([-3, 0, 3])])()',
  'word-count-js':"(() => [topWords('a b a c b a', 2), topWords('Egy ketto egy HAROM ketto egy', 3), topWords('', 1)])()",

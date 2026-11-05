@@ -503,6 +503,90 @@
   "intentRejections": 0,
   "justifiedRejections": 45
  },
+ "celsius-js": {
+  "neighbours": 22,
+  "accepted": 1,
+  "completenessGaps": 0,
+  "intentRejections": 0,
+  "justifiedRejections": 21
+ },
+ "celsius-js-valid": {
+  "neighbours": 22,
+  "accepted": 1,
+  "completenessGaps": 0,
+  "intentRejections": 0,
+  "justifiedRejections": 21
+ },
+ "rectangle-js": {
+  "neighbours": 35,
+  "accepted": 2,
+  "completenessGaps": 3,
+  "intentRejections": 0,
+  "justifiedRejections": 30
+ },
+ "rectangle-js-valid": {
+  "neighbours": 35,
+  "accepted": 5,
+  "completenessGaps": 0,
+  "intentRejections": 0,
+  "justifiedRejections": 30
+ },
+ "greeting-js": {
+  "neighbours": 35,
+  "accepted": 0,
+  "completenessGaps": 1,
+  "intentRejections": 0,
+  "justifiedRejections": 34
+ },
+ "greeting-js-valid": {
+  "neighbours": 35,
+  "accepted": 2,
+  "completenessGaps": 0,
+  "intentRejections": 0,
+  "justifiedRejections": 33
+ },
+ "even-odd-js": {
+  "neighbours": 159,
+  "accepted": 2,
+  "completenessGaps": 0,
+  "intentRejections": 0,
+  "justifiedRejections": 157
+ },
+ "even-odd-js-valid": {
+  "neighbours": 159,
+  "accepted": 2,
+  "completenessGaps": 0,
+  "intentRejections": 0,
+  "justifiedRejections": 157
+ },
+ "vowels-js": {
+  "neighbours": 129,
+  "accepted": 6,
+  "completenessGaps": 0,
+  "intentRejections": 0,
+  "justifiedRejections": 123
+ },
+ "vowels-js-valid": {
+  "neighbours": 129,
+  "accepted": 6,
+  "completenessGaps": 0,
+  "intentRejections": 0,
+  "justifiedRejections": 123
+ },
+ "grade-ts": {
+  "neighbours": 258,
+  "accepted": 1,
+  "completenessGaps": 0,
+  "intentRejections": 0,
+  "justifiedRejections": 257
+ },
+ "grade-ts-valid": {
+  "neighbours": 258,
+  "accepted": 1,
+  "completenessGaps": 0,
+  "intentRejections": 0,
+  "justifiedRejections": 257
+ },
  "stats-js": {
   "neighbours": 174,
   "accepted": 3,

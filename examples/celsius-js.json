@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 2,
+  "id": "celsius-js",
+  "revision": 1,
+  "language": "javascript",
+  "title": "Celsius átváltása Fahrenheitre",
+  "description": "Átváltás két állandóval. A két állandó deklarációja felcserélhető; a visszatérés a végén áll. A bemenet szám.",
+  "lines": [
+    {
+      "id": 1,
+      "sourceLine": 1,
+      "code": "function toFahrenheit(celsius) {",
+      "dependencies": [],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    },
+    {
+      "id": 2,
+      "sourceLine": 2,
+      "code": "const factor = 9 / 5;",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 3,
+      "sourceLine": 3,
+      "code": "const offset = 32;",
+      "dependencies": [
+        1
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 4,
+      "sourceLine": 4,
+      "code": "return celsius * factor + offset;",
+      "dependencies": [
+        2,
+        3
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": "scope-1",
+      "normalization": "indent"
+    },
+    {
+      "id": 5,
+      "sourceLine": 5,
+      "code": "}",
+      "dependencies": [
+        4
+      ],
+      "fixed": false,
+      "functionBlock": 1,
+      "scopeId": null,
+      "normalization": "indent"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "scope-1",
+      "kind": "function",
+      "parentScopeId": null,
+      "openLineId": 1,
+      "closeLineId": 5,
+      "functionBlock": 1
+    }
+  ],
+  "edges": [],
+  "profiles": [],
+  "authoring": {
+    "strategy": "ast-hierarchy",
+    "reason": "",
+    "omittedBlocks": 0,
+    "semanticEquivalenceProven": false,
+    "dependencyPolicy": "scoped-effect-analysis-v51",
+    "provenance": [
+      {
+        "before": 1,
+        "after": 2,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 1,
+        "after": 3,
+        "category": "structure",
+        "code": "block-open"
+      },
+      {
+        "before": 2,
+        "after": 4,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 3,
+        "after": 4,
+        "category": "effect",
+        "code": "ReturnStatement"
+      },
+      {
+        "before": 4,
+        "after": 5,
+        "category": "structure",
+        "code": "block-close"
+      }
+    ],
+    "evidence": {
+      "sourceDigest": "266757796c6d04c6",
+      "analyzer": "scoped-effect-analysis-v51",
+      "environment": {
+        "typescript": "5.8.3",
+        "sourceKind": "script",
+        "classFields": "either",
+        "inputs": "valid"
+      },
+      "projectionLoss": {
+        "pairs": 0,
+        "examples": []
+      }
+    },
+    "dependencyHints": [
+      {
+        "name": "celsius",
+        "declarationLine": 1,
+        "usageLine": 4
+      },
+      {
+        "name": "factor",
+        "declarationLine": 2,
+        "usageLine": 4
+      },
+      {
+        "name": "offset",
+        "declarationLine": 3,
+        "usageLine": 4
+      }
+    ]
+  }
+}

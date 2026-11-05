@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-05 hat kezdő szintű gyakorlófeladat (ADR-100)
+
+- **Új, kezdőknek szóló feladatok:** Celsius átváltása, Téglalap adatai, Üdvözlés névből, Páros és páratlan számok, Magánhangzók számlálása (JavaScript), valamint Osztályzat pontszámból (TypeScript).
+- **Mindegyik igazolt,** és nem utasít el olyan sorrendet, amely futáskor azonos lenne. A leírás megmondja, mely sorok cserélhetők fel.
+- **Összesen 16 gyakorlófeladat.**
+
 ## Unreleased – 2026-11-04 tiszta műveletek a `valid` szerződés alatt (ADR-099, v51); két új statisztikapélda
 
 - **Kevesebb fölösleges szabály kezdő kódban,** ha a bemenet érvényes egyszerű adat. Ilyenkor már nem köti a sorrendet:
