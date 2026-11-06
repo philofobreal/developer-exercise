@@ -15,6 +15,12 @@ export interface Attempt extends AttemptSnapshot {custom:Map<string,string>;}
 type Slot=LineId|null;
 
 export const normalize=(s:string,mode='indent'):string=>mode==='indent'?s.replace(/^[ \t]*/,''):s;
+/** ADR-103: a typed row matches a reference row by the row's normalization. An `indent` row also
+ * tolerates trailing whitespace and no-break-space or byte-order-mark indentation, which editors and
+ * pasted web text add: outside an `exact` row (a row inside a multi-line literal) they carry no meaning.
+ * A matched row is submitted with the reference's own text, so grading is unchanged. */
+const loose=(s:string):string=>s.replace(/^[ \t\u00a0\ufeff]+/,'').replace(/[ \t\u00a0]+$/,'');
+const sameRow=(typed:string,ref:ExerciseLine):boolean=>ref.normalization==='exact'?typed===ref.code:loose(typed)===loose(ref.code);
 export const createAttempt=(e:Pick<ExerciseSummary,'lines'>):Attempt=>({
   pool:e.lines.filter(l=>!l.fixed).map(l=>l.id),
   answer:e.lines.map(l=>l.fixed?l.id:null),
@@ -101,18 +107,18 @@ export function createAttemptController(getExercise:()=>Pick<ExerciseSummary,'li
   const applyText=(source:string):{ok:true}|{ok:false;message:string}=>{
     const e=getExercise(),a=getAttempt(),input=source.replace(/\r\n?/g,'\n').split('\n');
     if(input.length>e.lines.length)return {ok:false,message:'Túl sok fizikai sor.'};
-    if(e.lines.some((l,i)=>l.fixed&&(typeof input[i]!=='string'||normalize(input[i]!,l.normalization)!==normalize(l.code,l.normalization))))return {ok:false,message:'Rögzített sor nem módosítható vagy helyezhető át.'};
+    if(e.lines.some((l,i)=>l.fixed&&(typeof input[i]!=='string'||!sameRow(input[i]!,l))))return {ok:false,message:'Rögzített sor nem módosítható vagy helyezhető át.'};
     const lineOf=(id:LineId):ExerciseLine=>e.lines.find(l=>l.id===id)!;
     const available:LineId[]=e.lines.map(l=>l.id),answer:Slot[]=Array<Slot>(e.lines.length).fill(null),custom=new Map<string,string>();
     for(let i=0;i<input.length;i++){
       const ref=e.lines[i]!;
-      if(ref.fixed&&normalize(input[i]!,ref.normalization)===normalize(ref.code,ref.normalization)){
+      if(ref.fixed&&sameRow(input[i]!,ref)){
         answer[i]=ref.id;available.splice(available.indexOf(ref.id),1);
       }
     }
     for(let i=0;i<input.length;i++){
       const line=input[i]!;if(answer[i]!==null||(!line.trim()&&!available.some(id=>{const ref=lineOf(id);return ref.normalization==='exact'&&ref.code===line;})))continue;
-      const j=available.findIndex(id=>{const ref=lineOf(id);return normalize(line,ref.normalization)===normalize(ref.code,ref.normalization);});
+      const j=available.findIndex(id=>sameRow(line,lineOf(id)));
       if(j>=0)answer[i]=available.splice(j,1)[0]!;
       else{const id=`edited_${i}`;custom.set(id,line);answer[i]=id;}
     }

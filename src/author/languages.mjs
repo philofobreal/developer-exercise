@@ -7,7 +7,10 @@ import {AuthoringError} from './errors.mjs';
 import {bindingChecker,declarationGroups} from './dependency-analysis.mjs';
 import {jsTsEnvironment,jsTsOrderingRelations,jsTsStructure} from '../../dist/author/js-ts-ordering.js';
 import {formatTypedSource} from './ts-format.mjs';
+import {MAX_NESTING,nestingExcess} from '../../dist/author/source-nesting.js';
 const registry=new Map();
+/** ADR-103: a source within the nesting budget can still exhaust a recursive pass (a 10 000-term expression). */
+export const TOO_COMPLEX='A forrás egy kifejezése túl hosszú vagy túl összetett az elemzéshez; bontsd kisebb részekre.';
 export function registerLanguageAdapter(id,adapter){
  if(typeof id!=='string'||!id||registry.has(id))throw new TypeError('Duplicate/invalid language adapter');
  for(const method of ['parse','format','tokenize','structure','whitespace'])if(typeof adapter?.[method]!=='function')throw new TypeError('Missing adapter method: '+method);
@@ -28,11 +31,16 @@ function whitespace(file,ts){
 for(const language of ['javascript','typescript'])registerLanguageAdapter(language,{
  parse(source,ts){
   if(typeof source!=='string'||source.length>50_000)throw new AuthoringError('Legfeljebb 50 KB forráskód támogatott.');
+  // ADR-103: the recursive parsers and the checker must never see a nesting their stack or time budget cannot take.
+  const excess=nestingExcess(source,ts);
+  if(excess)throw new AuthoringError(`Túl mély egymásba ágyazás a(z) ${excess.line}. sorban: legfeljebb ${MAX_NESTING} szint (zárójel, blokk, sablonkifejezés) támogatott.`);
   if(language==='javascript'){
    try{parseJavaScript(source,{ecmaVersion:'latest',sourceType:'script',allowHashBang:true});}
-   catch(scriptError){try{parseJavaScript(source,{ecmaVersion:'latest',sourceType:'module',allowHashBang:true});}catch{throw new AuthoringError(`Szintaktikai hiba ${scriptError.loc?.line??1}. sor: ${scriptError.message}`);}}
+   catch(scriptError){if(/Not enough stack space/.test(scriptError.message))throw new AuthoringError(TOO_COMPLEX);try{parseJavaScript(source,{ecmaVersion:'latest',sourceType:'module',allowHashBang:true});}catch{throw new AuthoringError(`Szintaktikai hiba ${scriptError.loc?.line??1}. sor: ${scriptError.message}`);}}
   }
-  const file=ts.createSourceFile('reference.'+(language==='typescript'?'ts':'js'),source,ts.ScriptTarget.Latest,true,language==='typescript'?ts.ScriptKind.TS:ts.ScriptKind.JS);
+  let file;
+  try{file=ts.createSourceFile('reference.'+(language==='typescript'?'ts':'js'),source,ts.ScriptTarget.Latest,true,language==='typescript'?ts.ScriptKind.TS:ts.ScriptKind.JS);}
+  catch(error){if(error instanceof RangeError)throw new AuthoringError(TOO_COMPLEX);throw error;}
   if(file.parseDiagnostics.length){const d=file.parseDiagnostics[0],p=file.getLineAndCharacterOfPosition(d.start??0);throw new AuthoringError(`Szintaktikai hiba ${p.line+1}. sor: ${ts.flattenDiagnosticMessageText(d.messageText,' ')}`);}
   return file;
  },

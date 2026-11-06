@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-11-06 három befogadási hiba javítva (ADR-103)
+
+- **Túl mély vagy túl hosszú forrás:** a szerzői forrás legfeljebb 64 szint mélyen ágyazható egymásba (zárójel, blokk, sablonkifejezés). A túl mély vagy túl hosszú kódra érthető hibaüzenet jön, a hiba sorszámával; korábban TypeScriptnél a feldolgozás elszállt, és a szerver félrevezető „nem elérhető TypeScript parser” üzenetet adott.
+- **BOM:** a fájl elején álló láthatatlan bájtsorrend-jel már nem kerül bele az első kódsorba.
+- **Kódnézet:** egy sor végén álló szóköz vagy a webről másolt kód nem törő szóközös behúzása már nem teszi a sort „nem engedélyezett”-té. A többsoros szövegliterálok belső sorai továbbra is pontosan összevetve.
+- **A szabályok és a meglévő feladatok nem változtak.**
+
 ## Unreleased – 2026-11-05 olvasások és saját tömb a `valid` szerződés alatt (ADR-102, v52)
 
 - **Kevesebb fölösleges szabály,** ha a bemenet érvényes egyszerű adat. Egy saját tömbre írás (`out.push(c0)`) már nem köti a sorrendjét azokhoz a sorokhoz, amelyek csak a bemenetet olvassák (`const c3 = Object.keys(data).length`, egy összegző `for…of`).

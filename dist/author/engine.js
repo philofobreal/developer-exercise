@@ -29,7 +29,8 @@ export class LanguageEngine {
         const plugin = this.plugin(language);
         if (!input || typeof input.source !== 'string' || input.source.length > 50_000)
             throw new AdapterContractError('Legfeljebb 50 KB szerzői forrás támogatott.');
-        const source = input.source.replace(/\r\n?/g, '\n');
+        // ADR-103: a leading byte order mark is an encoding artefact, not source text.
+        const source = input.source.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
         if (!source.trim() || /[\u2028\u2029]/.test(source))
             throw new AdapterContractError('Üres forrás vagy nem támogatott sorhatár.');
         const ir = structuredClone(await plugin.analyze({ ...input, source }));

@@ -2,7 +2,7 @@
  * adapter parse and analyse it, and hands structure and ordering relations to the
  * typed, language-independent CodeLine v2 projection. */
 import {AuthoringError} from './errors.mjs';
-import {getLanguageAdapter} from './languages.mjs';
+import {getLanguageAdapter,TOO_COMPLEX} from './languages.mjs';
 import {projectCodeLine,projectedRows} from '../../dist/author/code-line-projection.js';
 export {AuthoringError} from './errors.mjs';
 /** The generation-rule version (formal contract, policy versions); provenance is bound to it (ADR-015). */
@@ -16,12 +16,18 @@ const POLICY=DEPENDENCY_POLICY;
  * `classFields` (ADR-075): 'either' (default) holds in both class-field modes; 'define' is the author's
  * statement that fields are created as standard JavaScript defines them ([[Define]]), as native class
  * fields and TypeScript with useDefineForClassFields do. */
-export function generateCodeLineExercise({source,language='javascript',title='Saját feladat',description='Rendezd sorba a programkódot.',level,importEmit='verbatim',inputs='any',keyOrder='observed',classFields='either'},ts){
+/** ADR-103: a recursive analysis pass that runs out of stack is a refused source, never an internal error. */
+export function generateCodeLineExercise(input,ts){
+ try{return generate(input,ts);}
+ catch(error){if(error instanceof RangeError)throw new AuthoringError(TOO_COMPLEX);throw error;}
+}
+function generate({source,language='javascript',title='Saját feladat',description='Rendezd sorba a programkódot.',level,importEmit='verbatim',inputs='any',keyOrder='observed',classFields='either'},ts){
  // ADR-101: the difficulty is the author's metadata, carried as given; absent or empty means unclassified.
  if(level!==undefined&&level!==''&&!['beginner','intermediate','advanced'].includes(level))throw new AuthoringError('Ismeretlen szint.');
  const adapter=getLanguageAdapter(language);
  if(typeof source!=='string'||source.length>50_000)throw new AuthoringError('Túl hosszú vagy hiányzó forráskód (maximum 50 KB).');
- const normalized=source.replace(/\r\n?/g,'\n').trimEnd();
+ // ADR-103: a byte order mark is an encoding artefact, not part of the first row.
+ const normalized=source.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n').trimEnd();
  if(!['verbatim','elide-unused'].includes(importEmit))throw new AuthoringError('Ismeretlen import-emit beállítás.');
  if(!['any','valid'].includes(inputs))throw new AuthoringError('Ismeretlen bemeneti szerződés.');
  if(!['observed','ignored'].includes(keyOrder))throw new AuthoringError('Ismeretlen kulcssorrend-beállítás.');
