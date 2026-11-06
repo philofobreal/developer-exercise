@@ -35,7 +35,7 @@ await copyFile(tsSource,path.join(out,'vendor','typescript.js'));
 await copyFile(path.join(path.dirname(path.dirname(tsSource)),'LICENSE.txt'),path.join(out,'vendor','LICENSE-typescript.txt'));
 let index=await readFile(path.join(out,'index.html'),'utf8');
 index=index.replaceAll('href="/','href="./').replaceAll('src="/','src="./');
-index=index.replace('<title>ngDynamic – CodeLine v7 – TypeScript editor</title>','<title>ngDynamic CodeLine v7 – GitHub Pages demo</title>');
+index=index.replace('<title>CodeLineSorter</title>','<title>CodeLineSorter – GitHub Pages demo</title>');
 index=index.replace('<script type="module" src="./ui.js"></script>',
   '<script src="./vendor/typescript.js"></script>\n<script type="module" src="./ui.js"></script>');
 await writeFile(path.join(out,'index.html'),index);

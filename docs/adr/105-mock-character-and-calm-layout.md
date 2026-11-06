@@ -64,7 +64,16 @@ Kockázati osztály: megjelenítés. Ez az átalakítás F2 (témaváltó) és F
      - a lista függőleges, a korábbi vízszintes, levágott sáv helyett.
    - **Fejléc telefonon:** két sor. Fent a márka és három ikongomb, alatta a két módfül.
    - **A Local Demo** (Pages) továbbra is külön sorban mondja ki, hogy nem hitelesített (AGENTS.md).
-6. **Menük:** `details.menu` elemek. Külső kattintásra, Escape-re és belső műveletre bezáródnak (`installMenus`); újrarajzoláskor csukva térnek vissza.
+6. **Kényszerített sötétítés ellen** (javítás, 2026-11-06):
+   - **A hiba:** a böngésző automatikus sötétítése (Chrome és Android „weboldalak sötétítése”, Samsung Internet) minden világos oldalt saját algoritmussal besötétít. Emiatt a „Világos” választás után a felület sötét maradt, torz árnyalatokkal: kifordított márkajel, lilás kiemelés. A kiszámolt CSS-színek ezt nem mutatták, csak a kirajzolt képpont.
+   - **A javítás:** a világos téma `color-scheme: only light` értéket kap. Ez a CSS Color Adjust szabványos jelzése, hogy az oldal maga kezeli a témáit, és a böngésző ne írja felül. A sötét témát a böngésző eddig sem sötétítette.
+   - **Dark Reader bővítmény:** a `<meta name="darkreader-lock">` kizárja a felületet a bővítményből.
+   - **Bizonyíték:** a `tests/browser-workbench.playwright.py` „forced dark” esete kényszerített sötétítésű Chromiumban, sötét rendszerbeállítás mellett a kirajzolt képpontot méri. A Rendszer (17, 17, 19), a Világos (255, 255, 255), a Sötét (17, 17, 19). A régi stíluslappal a Világos (18, 18, 18) lett, és a teszt elbukott.
+7. **Név** (a felhasználó kérése, 2026-11-06):
+   - a termék neve **CodeLineSorter** a fejlécben (a „Sorter” a kiemelő kékjével), a böngészőfülön és a Pages-demó címében;
+   - a „CodeLine” továbbra is a modell és a JSON-formátum neve (CodeLine JSON, sémák, AGENTS.md szerződései), ezért ott nem változik;
+   - 360 px alatt a márkajel elmarad, 400 px alatt a fejléc gombjai 34 px-esek, így a fejléc 320 px-en is két sor.
+7. **Menük:** `details.menu` elemek. Külső kattintásra, Escape-re és belső műveletre bezáródnak (`installMenus`); újrarajzoláskor csukva térnek vissza.
 
 ## Mérés
 

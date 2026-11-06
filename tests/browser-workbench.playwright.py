@@ -4,7 +4,7 @@ explicit staleness; every transition below checks which model the next view star
 import json,os,re,socket,subprocess,threading,time,urllib.request
 from http.server import SimpleHTTPRequestHandler
 from playwright.sync_api import sync_playwright,expect
-from browser_support import ROOT,ARTIFACTS,launch,StaticServer,open_menu,analysis_options
+from browser_support import ROOT,ARTIFACTS,launch,StaticServer,open_menu,analysis_options,pixel
 # The generator's current rule version, read from its single definition (ADR-039).
 CURRENT_POLICY=re.search(r"export const DEPENDENCY_POLICY='([^']+)'",(ROOT/'src/author/generator.mjs').read_text(encoding='utf8')).group(1)
 with socket.socket() as sock:sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
@@ -50,6 +50,17 @@ def theme_choice(page):
     page.reload();expect(page.locator('[data-theme-cycle]')).to_have_text('Sötét');assert page.evaluate('window.__themeAtParse')=='dark'
     page.locator('[data-theme-cycle]').click();expect(page.locator('[data-theme-cycle]')).to_have_text('Rendszer')
     assert page.evaluate("localStorage.getItem('ngdynamic.theme.v1')") is None and page.evaluate('document.documentElement.dataset.theme') is None
+def forced_dark(p):
+    """A browser that darkens every light page (Chrome auto-dark, Android "darken websites") must not
+    repaint the chosen light theme into odd dark shades: the light theme declares `only light`."""
+    forced=launch(p,['--blink-settings=forceDarkModeEnabled=true,forceDarkModeInversionAlgorithm=4'])
+    try:
+        page=forced.new_context(viewport={'width':1280,'height':800},color_scheme='dark').new_page();reset(page,BASE)
+        toggle=page.locator('[data-theme-cycle]');box=page.locator('.task-heading').bounding_box();x,y=box['x']+box['width']-4,box['y']+4
+        assert pixel(page,x,y)==(17,17,19),pixel(page,x,y)
+        toggle.click();expect(toggle).to_have_text('Világos');assert pixel(page,x,y)==(255,255,255),pixel(page,x,y)
+        toggle.click();expect(toggle).to_have_text('Sötét');assert pixel(page,x,y)==(17,17,19),pixel(page,x,y)
+    finally:forced.close()
 def menus(page):
     """ADR-105: a header or step menu opens on its summary and closes on Escape, an outside click or an action inside."""
     menu=page.locator('details.session-menu');menu.locator('summary').click();expect(menu).to_have_attribute('open','')
@@ -566,6 +577,7 @@ try:
             case('node tap to pick, tap to place on a touch screen',lambda:tap_to_place(browser))
             reset(page,BASE);case('node theme choice: system, light, dark, remembered before first paint',lambda:theme_choice(page))
             reset(page,BASE);case('node header and step menus open and close',lambda:menus(page))
+            case('node forced dark browser keeps the chosen light theme white',lambda:forced_dark(p))
             reset(page,BASE);case('node duplicate-check prevention and async feedback',lambda:busy(page))
             reset(page,BASE);case('node admission preserves newer reference edits',lambda:stale_author_admission(page))
             reset(page,BASE);case('node sample loading preserves newer reference edits',lambda:stale_source_sample(page))

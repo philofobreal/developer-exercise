@@ -15,12 +15,13 @@ def installed_chromium():
         for name in ['chrome-linux64/chrome','chrome-linux/chrome','chrome-mac/Chromium.app/Contents/MacOS/Chromium','chrome-win/chrome.exe']:
             if revision.isdigit() and (directory/name).is_file():found.append((int(revision),directory/name))
     return str(max(found)[1]) if found else None
-def launch(p):
+def launch(p,args=()):
     executable=os.environ.get('CHROMIUM')
     if not executable and os.name=='nt':
         for candidate in [r'C:\Program Files\Google\Chrome\Application\chrome.exe',r'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe']:
             if Path(candidate).is_file():executable=candidate;break
     options={'headless':True}
+    if args:options['args']=list(args)
     if executable:options['executable_path']=executable
     try:
         return p.chromium.launch(**options)
@@ -49,3 +50,16 @@ def analysis_options(page):
     box=page.locator('details.analysis-options')
     if box.get_attribute('open') is None:box.locator('summary').click()
     return box
+
+
+def pixel(page,x,y):
+    """The painted RGB at (x, y): what the reader sees, after any forced darkening of the browser
+    (computed styles do not show it). Decodes the 1×1 PNG screenshot with zlib alone."""
+    import struct,zlib
+    data=page.screenshot(clip={'x':x,'y':y,'width':1,'height':1},scale='css');pos=8;idat=b'';width=0;color=0
+    while pos<len(data):
+        length,kind=struct.unpack('>I4s',data[pos:pos+8]);chunk=data[pos+8:pos+8+length];pos+=12+length
+        if kind==b'IHDR':width=struct.unpack('>I',chunk[:4])[0];color=chunk[9]
+        elif kind==b'IDAT':idat+=chunk
+    # One pixel in one row: every PNG filter (none, sub, up, average, paeth) leaves the bytes as they are.
+    row=zlib.decompress(idat);assert width==1,'a 1×1 screenshot';return tuple(row[1:4]) if color in (2,6) else (row[1],)*3

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased – 2026-11-06 a világos téma automatikus sötétítés mellett is világos (ADR-105)
+
+- **Új név:** CodeLineSorter (fejléc, böngészőfül, Pages-demó). A CodeLine JSON formátum neve nem változik.
+- **Javítva:** ha a böngésző automatikusan sötétíti a weboldalakat (Chrome/Android „weboldalak sötétítése”, Samsung Internet), a „Világos” választás eddig sötét, torz árnyalatú felületet adott. A világos téma most jelzi, hogy maga kezeli a színeit, ezért valóban fehér marad. A Dark Reader bővítmény sem írja felül.
+
 ## Unreleased – 2026-11-06 a mock karaktere, témaváltó, nyugodtabb felület (ADR-105)
 
 - **Témaváltó a fejlécben:** Rendszer → Világos → Sötét. A választást a böngésző megjegyzi, és betöltéskor nem villan át a másik téma.
