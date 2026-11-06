@@ -1,6 +1,6 @@
 # ADR-104 – Spectral dizájnrendszer: két téma, egy tokenrendszer, helyi betűk
 
-Állapot: **elfogadva** (2026-11-06). A felhasználó egy HTML-mockot („CodeLine / Spectral White”) adott át. A kérése: a következetlenségeit találjuk meg és javítsuk, a javított dizájn szerint alakítsuk át a felületet, és legyen sötét mód. A felhasználó korábbi irányelve: a látványterv ne határozza meg a funkciókat. Kockázati osztály: megjelenítés. Ez az átalakítás első szakasza (F1); a témaváltó (F2), az információs architektúra (F3), a Fókusz mód és a kódnézetek (F4), valamint a böngészős hibajavítás (F5) külön szakasz.
+Állapot: **elfogadva** (2026-11-06), a 2., 3. és 5. pontot, valamint a ferde gombok és a sötét paletta sorát az [ADR-105](105-mock-character-and-calm-layout.md) felülírja. A felhasználó egy HTML-mockot („CodeLine / Spectral White”) adott át. A kérése: a következetlenségeit találjuk meg és javítsuk, a javított dizájn szerint alakítsuk át a felületet, és legyen sötét mód. A felhasználó korábbi irányelve: a látványterv ne határozza meg a funkciókat. Kockázati osztály: megjelenítés. Ez az átalakítás első szakasza (F1); a témaváltó (F2), az információs architektúra (F3), a Fókusz mód és a kódnézetek (F4), valamint a böngészős hibajavítás (F5) külön szakasz.
 
 ## A mock elemzése
 

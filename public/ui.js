@@ -5,6 +5,7 @@ import {connection,installRuleBoard,linkWith} from './app/rule-board.js';
 import {blockedReason,enterMode,enterView,landAfterAdmission} from './app/flow.js';
 /** App orchestration and event wiring; modes, steps and staleness live in the typed flow (ADR-022). */
 import {readClipboard} from './app/clipboard.js';
+import {cycleTheme} from './app/theme.js';
 import {installPreview} from './app/author-session.js';
 import {parseImport,exportSession,restoreAttempt,downloadJSON,saveLocal,loadLocal} from './app/persistence.js';
 import {createAttempt,createAttemptController} from './app/attempt.js';
@@ -70,6 +71,7 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  if(b.hasAttribute('data-import-session')){root.querySelector('[data-session-file]').click();return;}
  if(b.hasAttribute('data-save-local')){try{saveLocal(snapshot());commit('Munkamenet helyben elmentve.');}catch(err){commit(err.message);}return;}
  if(b.hasAttribute('data-load-local')){try{const session=loadLocal();if(!session)throw Error('Nincs helyi mentés.');await importSession(session);}catch(err){notify(err.message);}return;}
+ if(b.hasAttribute('data-theme-cycle')){cycleTheme();render();root.querySelector('[data-theme-cycle]')?.focus({preventScroll:true});return;}
  if(b.hasAttribute('data-fullscreen')){
    try{if(document.fullscreenElement===root)await document.exitFullscreen();else if(root.requestFullscreen)await root.requestFullscreen();else root.classList.toggle('ng-fullscreen');}
    catch{root.classList.toggle('ng-fullscreen');}

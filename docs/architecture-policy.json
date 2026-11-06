@@ -35,6 +35,8 @@
     "src/workbench/rule-board.ts": "public/app/rule-board.js",
     "src/workbench/rule-panel.ts": "public/app/rule-panel.js",
     "src/workbench/ui-utilities.ts": "public/app/ui-utilities.js",
-    "src/workbench/view.ts": "public/app/view.js"
+    "src/workbench/view.ts": "public/app/view.js",
+    "src/workbench/theme.ts": "public/app/theme.js",
+    "src/workbench/theme-boot.ts": "public/app/theme-boot.js"
   }
 }

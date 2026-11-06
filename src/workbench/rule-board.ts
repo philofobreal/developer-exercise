@@ -53,7 +53,7 @@ export function renderRuleBoard(state:WorkbenchState,highlight:(code:string)=>st
  return `<section class="rule-board" aria-labelledby="rule-board-title"><div class="board-heading"><h3 id="rule-board-title">A referencia sorai és szabályai</h3>${toggle(state)}</div>${legend}${connecting(state)}<p class="board-status" role="status" aria-live="polite" data-board-status>${esc(state.boardStatus??'')}</p><div class="board-frame"><svg class="board-arcs" data-board-arcs aria-hidden="true" focusable="false"></svg><ol class="board-list" data-board-list aria-label="A referencia sorai">${rows}</ol></div></section>`;
 }
 /** The Try step's rule bar: the same legend and drawing switch as the board. */
-export const renderTryRules=(state:WorkbenchState):string=>rulesAvailable(state)?`<div class="try-rules" data-try-rules><div class="board-heading"><span class="eyebrow">SZERZŐI SZABÁLYOK A RENDEZŐBEN</span>${toggle(state)}</div>${legend}${connecting(state)}</div>`:'';
+export const renderTryRules=(state:WorkbenchState):string=>rulesAvailable(state)?`<div class="try-rules" data-try-rules><div class="board-heading"><span class="eyebrow">Szerzői szabályok a rendezőben</span>${toggle(state)}</div>${legend}${connecting(state)}</div>`:'';
 /** Row controls for a sorter row of the author's preview; nothing for learners or practice. */
 export const tryRowRuleControls=(state:WorkbenchState,id:unknown):string=>typeof id==='number'&&rulesAvailable(state)?ruleButton(state,id)+connectButton(state,id):'';
 

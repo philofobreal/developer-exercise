@@ -2,7 +2,7 @@
 import json, os, socket, subprocess, threading, time, urllib.request
 from http.server import SimpleHTTPRequestHandler
 from playwright.sync_api import sync_playwright, expect
-from browser_support import ROOT, ARTIFACTS, launch, StaticServer
+from browser_support import ROOT, ARTIFACTS, launch, StaticServer, open_menu
 
 with socket.socket() as sock:
     sock.bind(('127.0.0.1',0)); port=sock.getsockname()[1]
@@ -79,6 +79,7 @@ try:
                     page.screenshot(path=str(ARTIFACTS/f'typescript-{mode}-screenshot-explained.png'),full_page=True)
                     page.locator('[data-preview-toggle]').click();expect(page.locator('[data-ordering-policy]')).to_have_count(0)
                     page.locator('[data-preview-toggle]').click();page.locator('[data-step="source"]').click()
+                    open_menu(page,'open')
                     with page.expect_popup() as popup: page.locator('[data-typescript-catalog]').click()
                     catalog=popup.value;expect(catalog.locator('tbody tr')).to_have_count(24)
                     with catalog.expect_download() as download: catalog.locator('a[download]').nth(1).click()

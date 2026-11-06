@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased – 2026-11-06 a mock karaktere, témaváltó, nyugodtabb felület (ADR-105)
+
+- **Témaváltó a fejlécben:** Rendszer → Világos → Sötét. A választást a böngésző megjegyzi, és betöltéskor nem villan át a másik téma.
+- **A mock karaktere:**
+  - ferde módfülek, lecsípett sarkú fő gombok és aktív lépés;
+  - a kék (`#0649f8`) és a sárga (`#ffd900`) ugyanott és ugyanannyira hangsúlyos, mint a mockban: sárga az Ellenőrzés gomb és a nyelvjelvény, kék a kijelölés és a továbblépés.
+- **Grafit sötét téma:** közel színtelen semleges skála, a kék csak kiemelés.
+- **Egyszerűbb felület:**
+  - egy navigáció (a lépéssor), az útvonalsor, a projekt- és a tippkártya, a hamis fájlfülek és az alsó állapotsor megszűnt;
+  - a munkamenet-műveletek a fejléc egy menüjében vannak;
+  - a forrás megnyitása egy „Megnyitás” menü, az elemzési beállítások lenyitható panelben vannak;
+  - a haladás a Megoldás panel fejlécében látszik;
+  - egy közös Súgó van.
+- **Telefonon:** a feladatlista összecsukott választó, a fejléc két sor, és a próba eszközsora egy sor.
+
 ## Unreleased – 2026-11-06 új dizájnrendszer: világos és sötét téma (ADR-104)
 
 - **Világos és sötét téma:** a felület a rendszer beállítását követi. Világosban fehér „papír” felület, sötétben a korábbi sötét paletta; mindkettőben ugyanaz a kék kiemelőszín.

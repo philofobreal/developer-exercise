@@ -3,7 +3,7 @@ import functools, json, os, socket, subprocess, threading, time, urllib.request
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
-from browser_support import ROOT, ARTIFACTS, launch, StaticServer
+from browser_support import ROOT, ARTIFACTS, launch, StaticServer, open_menu
 
 with socket.socket() as sock:
     sock.bind(('127.0.0.1',0)); port=sock.getsockname()[1]
@@ -221,12 +221,12 @@ try:
             with page.expect_download() as download:page.locator('[data-export-model]').click()
             exported=json.loads(Path(download.value.path()).read_text(encoding='utf-8'));assert exported['lines']==m['lines']
             page.locator('[data-step="source"]').click();page.locator('[data-model-file]').set_input_files({'name':'model.json','mimeType':'application/json','buffer':json.dumps(exported).encode()});expect(page.locator('[data-step="rules"]')).to_have_attribute('aria-current','step');to_try(page);page.locator('[data-all]').click()
-            with page.expect_download() as download:page.locator('[data-export-session]').click()
+            with page.expect_download() as download:open_menu(page,'session');page.locator('[data-export-session]').click()
             session=json.loads(Path(download.value.path()).read_text(encoding='utf-8'));assert session['kind']=='ngdynamic-session'
             page.locator('[data-reset]').click();page.locator('[data-session-file]').set_input_files({'name':'session.json','mimeType':'application/json','buffer':json.dumps(session).encode()});expect(page.locator('.solution-zone .code-row').last.locator('code')).to_have_text('}')
             expect(page.locator('.solution-zone .code-text code')).to_have_text(before)
             assert values(page)==before  # Preserve exact whitespace after waiting for async admission.
-            page.locator('[data-save-local]').click();page.reload();expect(page.locator('[data-step="source"]')).to_have_attribute('aria-current','step');page.locator('[data-load-local]').click();expect(page.locator('.solution-zone .code-row').last.locator('code')).to_have_text('}')
+            open_menu(page,'session');page.locator('[data-save-local]').click();page.reload();expect(page.locator('[data-step="source"]')).to_have_attribute('aria-current','step');open_menu(page,'session');page.locator('[data-load-local]').click();expect(page.locator('.solution-zone .code-row').last.locator('code')).to_have_text('}')
             # Both the initial exercise and imported preview end in "}"; await the full async restore.
             expect(page.locator('.solution-zone .code-text code')).to_have_text(before)
             assert values(page)==before
@@ -234,7 +234,7 @@ try:
         # Admitting the 436-row service runs the full publication gate (every adjacent swap and the
         # hard probes, ADR-036): about 0.75 s in Node, longer in a loaded browser, so the board waits longer.
         def full_ts():
-            page.locator('[data-step="source"]').click();page.locator('[data-author-sample]').click();expect(page.locator('#author-editor')).to_have_value(__import__('re').compile('CopyFieldUtilityService'))
+            page.locator('[data-step="source"]').click();open_menu(page,'open');page.locator('[data-author-sample]').click();expect(page.locator('#author-editor')).to_have_value(__import__('re').compile('CopyFieldUtilityService'))
             page.locator('[data-author-format]').click();expect(page.locator('.author-status')).to_contain_text('Formázva');page.locator('[data-author-apply]').click();expect(page.locator('[data-board-line]')).to_have_count(436,timeout=20_000);to_try(page);expect(page.locator('.solution-zone .code-row')).to_have_count(436)
             page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
             m=model(page);assert len(m['blocks'])>20;assert len([x for x in m['lines'] if x['functionBlock']])>200

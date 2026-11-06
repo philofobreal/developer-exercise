@@ -4,7 +4,7 @@ explicit staleness; every transition below checks which model the next view star
 import json,os,re,socket,subprocess,threading,time,urllib.request
 from http.server import SimpleHTTPRequestHandler
 from playwright.sync_api import sync_playwright,expect
-from browser_support import ROOT,ARTIFACTS,launch,StaticServer
+from browser_support import ROOT,ARTIFACTS,launch,StaticServer,open_menu,analysis_options
 # The generator's current rule version, read from its single definition (ADR-039).
 CURRENT_POLICY=re.search(r"export const DEPENDENCY_POLICY='([^']+)'",(ROOT/'src/author/generator.mjs').read_text(encoding='utf8')).group(1)
 with socket.socket() as sock:sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
@@ -35,7 +35,28 @@ def json_model(page,value):
     page.locator('#model-editor').fill(json.dumps(value));expect(page.locator('[data-model-status]')).to_contain_text('Nem alkalmazott JSON');page.locator('[data-model-apply]').click();current(page,'rules')
 def to_try(page):page.locator('[data-step="try"]').click();current(page,'try');expect(page.locator('.solution-zone')).to_be_visible()
 def rules_json(page):page.locator('[data-step="rules"]').click();page.locator('[data-rules-view="json"]').click();expect(page.locator('#model-editor')).to_be_visible()
-def practice(page):page.locator('[data-mode="practice"]').click();expect(page.locator('[data-task]').first).to_be_visible()
+def practice(page):
+    page.locator('[data-mode="practice"]').click();expect(page.locator('[data-check]')).to_be_visible()
+    # ADR-105: on a narrow screen the task list is a folded picker above the task.
+    if page.locator('details.task-picker').get_attribute('open') is None:page.locator('details.task-picker summary').click()
+    expect(page.locator('[data-task]').first).to_be_visible()
+def theme_choice(page):
+    """ADR-105: system → light → dark → system; the choice survives a reload and is on the root before the app script runs."""
+    toggle=page.locator('[data-theme-cycle]');expect(toggle).to_have_text('Rendszer');assert page.evaluate('document.documentElement.dataset.theme') is None
+    toggle.click();expect(toggle).to_have_text('Világos');expect(toggle).to_be_focused();assert page.evaluate('document.documentElement.dataset.theme')=='light'
+    assert page.evaluate("getComputedStyle(document.querySelector('#app')).backgroundColor")=='rgb(255, 255, 255)'
+    toggle.click();expect(toggle).to_have_text('Sötét');assert page.evaluate('getComputedStyle(document.documentElement).colorScheme')=='dark'
+    page.add_init_script("document.addEventListener('readystatechange',()=>{if(document.readyState==='interactive')window.__themeAtParse=document.documentElement.dataset.theme||null;},{once:true})")
+    page.reload();expect(page.locator('[data-theme-cycle]')).to_have_text('Sötét');assert page.evaluate('window.__themeAtParse')=='dark'
+    page.locator('[data-theme-cycle]').click();expect(page.locator('[data-theme-cycle]')).to_have_text('Rendszer')
+    assert page.evaluate("localStorage.getItem('ngdynamic.theme.v1')") is None and page.evaluate('document.documentElement.dataset.theme') is None
+def menus(page):
+    """ADR-105: a header or step menu opens on its summary and closes on Escape, an outside click or an action inside."""
+    menu=page.locator('details.session-menu');menu.locator('summary').click();expect(menu).to_have_attribute('open','')
+    page.keyboard.press('Escape');expect(menu).not_to_have_attribute('open','');expect(menu.locator('summary')).to_be_focused()
+    menu.locator('summary').click();page.locator('h1').click();expect(menu).not_to_have_attribute('open','')
+    opener=page.locator('details.open-menu');opener.locator('summary').click();expect(page.locator('[data-start-example]')).to_be_visible()
+    page.locator('details.analysis-options summary').click();expect(opener).not_to_have_attribute('open','');expect(page.locator('[data-author="inputs"]')).to_be_visible()
 
 def steps_locked_until_model(page):
     for step in ['rules','try']:expect(page.locator(f'[data-step="{step}"]')).to_be_disabled()
@@ -49,7 +70,7 @@ def model_first(page):
     json_model(page,model);to_try(page);expect(page.locator('.solution-zone .code-row')).to_have_count(7)
     page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
 def source_file(page):
-    with page.expect_file_chooser() as chooser:page.locator('[data-import-source]').click()
+    with page.expect_file_chooser() as chooser:open_menu(page,'open');page.locator('[data-import-source]').click()
     chooser.value.set_files({'name':'typed.ts','mimeType':'text/plain','buffer':source.encode()})
     expect(page.locator('#author-editor')).to_have_value(source);expect(page.locator('[data-author="language"]')).to_have_value('typescript');expect(page.locator('.author-status')).to_contain_text('még nincs alkalmazva')
     for step in ['rules','try']:expect(page.locator(f'[data-step="{step}"]')).to_be_disabled()
@@ -110,7 +131,7 @@ def reference_continuity(page):
     practice(page);expect(page.locator('h1')).to_have_text(examples[second]['title']);expect(page.locator('[data-arrangement-progress]')).to_have_attribute('value',str(len(examples[second]['lines'])))
     # An example loaded as a starting point makes the applied model stale until rebuilt or discarded.
     page.locator('[data-mode="author"]').click();current(page,'try');page.locator('[data-step="source"]').click()
-    page.locator('[data-start-example]').select_option(second);page.locator('[data-start-load]').click();expect(page.locator('#author-editor')).to_have_value('\n'.join(l['code'] for l in examples[second]['lines']))
+    open_menu(page,'open');page.locator('[data-start-example]').select_option(second);page.locator('[data-start-load]').click();expect(page.locator('#author-editor')).to_have_value('\n'.join(l['code'] for l in examples[second]['lines']))
     expect(page.locator('[data-author-status]')).to_contain_text('Nem alkalmazott referencia');expect(page.locator('[data-step="source"] .dirty-dot')).to_have_count(1)
     page.locator('[data-step="rules"]').click();expect(page.locator('[data-stale-notice]')).to_contain_text('referenciaforrás');expect(page.locator('[data-step="try"]')).to_contain_text('Elavult')
     page.locator('[data-stale-notice] [data-author-revert]').click();expect(page.locator('[data-stale-notice]')).to_have_count(0)
@@ -215,7 +236,7 @@ def rule_connect(page):
     page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Hibás')
 def pending_reference_survives_rule_edit(page):
     build(page,'function f() {\n  const a = 1;\n  return a;\n}')
-    page.locator('[data-step="source"]').click();page.locator('[data-author="language"]').select_option('typescript');expect(page.locator('[data-author="importEmit"]')).to_have_value('verbatim')
+    page.locator('[data-step="source"]').click();page.locator('[data-author="language"]').select_option('typescript');analysis_options(page);expect(page.locator('[data-author="importEmit"]')).to_have_value('verbatim')
     unapplied='function f() {\n  const unapplied = 1;\n}'
     page.locator('#author-editor').fill(unapplied);page.locator('[data-step="rules"]').click();expect(page.locator('[data-stale-notice]')).to_be_visible()
     page.locator('.board-row').first.locator('[data-rule-line]').click();page.locator('[data-rule-edit="fixed"]').click()
@@ -229,11 +250,11 @@ def pending_reference_survives_rule_edit(page):
 def input_contract(page):
     """ADR-050: the author picks the input contract; the model records it and frees the input reads."""
     page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click()
-    expect(page.locator('[data-author="inputs"]')).to_have_value('any');page.locator('[data-author="inputs"]').select_option('valid')
+    analysis_options(page);expect(page.locator('[data-author="inputs"]')).to_have_value('any');page.locator('[data-author="inputs"]').select_option('valid')
     page.locator('#author-editor').fill('function measure(grid) {\n  const rows = grid.length;\n  const cols = grid[0].length;\n  return rows * cols;\n}');page.locator('[data-author-apply]').click();current(page,'rules')
     rules_json(page);generated=json.loads(page.locator('#model-editor').input_value())
     assert generated['authoring']['evidence']['environment']['inputs']=='valid';assert 2 not in generated['lines'][2]['dependencies']
-    page.locator('[data-step="source"]').click();expect(page.locator('[data-author="inputs"]')).to_have_value('valid');expect(page.locator('[data-author-status]')).to_contain_text('ebből a forrásból')
+    page.locator('[data-step="source"]').click();analysis_options(page);expect(page.locator('[data-author="inputs"]')).to_have_value('valid');expect(page.locator('[data-author-status]')).to_contain_text('ebből a forrásból')
 
 # ADR-090: rows never scroll on their own; a list scrolls sideways as one, and its row controls stay
 # inside the list's visible area at both ends of that scroll.
@@ -317,7 +338,7 @@ def rule_cause_lifts(page):
     the button opens that rule, a confirmed policy override accepts the order; the learner sees none of it."""
     source='\n'.join(['class Box {','  constructor() {','    this.a = 1;','    this.b = 2;','  }','}','function evaluate() {',"  const list = Object['ke' + 'ys'];",'  return list(new Box());','}'])
     page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill(source)
-    page.locator('[data-author="inputs"]').select_option('valid');page.locator('[data-author-apply]').click();current(page,'rules')
+    analysis_options(page);page.locator('[data-author="inputs"]').select_option('valid');page.locator('[data-author-apply]').click();current(page,'rules')
     expect(page.locator('[data-ordering-policy]').first).not_to_contain_text('nem alkalmazható')
     to_try(page);page.locator('[data-all]').click();page.locator('[data-down="2"]').click();page.locator('[data-check]').click()
     expect(page.locator('.report')).to_contain_text('Hibás');cause=page.locator('.report [data-rule-cause="3-4"]')
@@ -337,7 +358,7 @@ def key_order_and_rule_kinds(page):
     source='\n'.join(['class Box {','  constructor() {','    this.a = 1;','    this.b = 2;','  }','}','function evaluate() {',"  const list = Object['ke' + 'ys'];",'  return list(new Box());','}'])
     def make(key_order):
         page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill(source)
-        page.locator('[data-author="keyOrder"]').select_option(key_order);page.locator('[data-author-apply]').click();current(page,'rules')
+        analysis_options(page);page.locator('[data-author="keyOrder"]').select_option(key_order);page.locator('[data-author-apply]').click();current(page,'rules')
     def swapped_verdict():
         to_try(page)
         if page.locator('[data-all]').count():page.locator('[data-all]').click()
@@ -358,7 +379,7 @@ def class_fields_setting(page):
     source='\n'.join(['class B {','  set f5(value) {',"    record('set', this.g);",'  }','}','class A extends B {','  f5 = 6;','  g = 7;','}','function evaluate() {','  const a = new A();','  return [a.g, a.f5];','}'])
     def make(class_fields):
         page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill(source)
-        page.locator('[data-author="classFields"]').select_option(class_fields);page.locator('[data-author-apply]').click();current(page,'rules')
+        analysis_options(page);page.locator('[data-author="classFields"]').select_option(class_fields);page.locator('[data-author-apply]').click();current(page,'rules')
     def swapped_verdict():
         to_try(page)
         if page.locator('[data-all]').count():page.locator('[data-all]').click()
@@ -369,7 +390,7 @@ def class_fields_setting(page):
     expect(swapped_verdict()).to_contain_text('Hibás')
     make('define');expect(page.locator('[data-analysis-settings]')).to_contain_text('csak szabványos');expect(page.locator('[data-step-verification]')).to_have_text('Elemzéssel igazolt')
     expect(swapped_verdict()).to_contain_text('Elfogadva')
-    page.locator('[data-step="source"]').click();expect(page.locator('[data-author="classFields"]')).to_have_value('define')
+    page.locator('[data-step="source"]').click();analysis_options(page);expect(page.locator('[data-author="classFields"]')).to_have_value('define')
 def rule_edit_keeps_scroll(page):
     """A rule edit yields a new draft id, but it is the same project: the sorter keeps its scroll like after a drag."""
     source='\n'.join(['function f() {',*[f'  const v{i} = {i};' for i in range(38)],'  g(v0, v37);','}'])
@@ -488,7 +509,7 @@ def stale_source_sample(page):
     def intercept(route):pending.append(route)
     page.route('**/samples/copy-field-utility.service.ts',intercept)
     try:
-        page.locator('[data-author-sample]').click();expect(page.locator('[data-author-sample]')).to_be_disabled()
+        open_menu(page,'open');page.locator('[data-author-sample]').click();expect(page.locator('[data-author-sample]')).to_be_disabled()
         newer='const keepThisDraft = 2;';page.locator('#author-editor').fill(newer)
         route=pending.pop();route.fulfill(body='const obsoleteSample: number = 1;')
         expect(page.locator('[data-author-sample]')).to_be_enabled();expect(page.locator('#author-editor')).to_have_value(newer)
@@ -543,6 +564,8 @@ try:
             reset(page,BASE);case('node one horizontal scroll per code list, row controls pinned',lambda:single_horizontal_scroll(page))
             reset(page,BASE);case('node author chooses the exercise level',lambda:author_level(page))
             case('node tap to pick, tap to place on a touch screen',lambda:tap_to_place(browser))
+            reset(page,BASE);case('node theme choice: system, light, dark, remembered before first paint',lambda:theme_choice(page))
+            reset(page,BASE);case('node header and step menus open and close',lambda:menus(page))
             reset(page,BASE);case('node duplicate-check prevention and async feedback',lambda:busy(page))
             reset(page,BASE);case('node admission preserves newer reference edits',lambda:stale_author_admission(page))
             reset(page,BASE);case('node sample loading preserves newer reference edits',lambda:stale_source_sample(page))

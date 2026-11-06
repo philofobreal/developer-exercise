@@ -1,4 +1,4 @@
-"""Automated accessibility scan (ADR-096): axe-core over the main views, on desktop and on a touch phone.
+"""Automated accessibility scan (ADR-096, ADR-105): axe-core over the main views, on desktop and on a touch phone, in the light and the dark theme.
 It checks what a machine can (WCAG 2.x A/AA rules axe implements: contrast, names, roles, ARIA, landmarks);
 it is no WCAG certification. A11Y_COLLECT=1 lists every finding of every view instead of stopping at the first. The contexts bypass the app's CSP only to inject axe; the served CSP is unchanged. Every view must report no violation; a waiver needs a rule id and a reason here."""
 import json,os,socket,subprocess,sys,time,urllib.request
@@ -33,7 +33,10 @@ def author_flow(page,prefix):
     page.locator('[data-check]').click();expect(page.locator('.report')).not_to_have_class('report idle');scan(page,prefix+'-author-try-checked')
     page.locator('[data-preview-toggle]').click();expect(page.locator('.learner-preview, #app.learner-preview')).to_have_count(1);scan(page,prefix+'-learner-preview')
     page.locator('[data-preview-toggle]').click()
-    page.locator('[data-mode="practice"]').click();expect(page.locator('[data-task]').first).to_be_visible();scan(page,prefix+'-practice')
+    page.locator('[data-mode="practice"]').click();expect(page.locator('[data-check]')).to_be_visible();scan(page,prefix+'-practice')
+    picker=page.locator('details.task-picker')
+    if picker.get_attribute('open') is None:picker.locator('summary').click();expect(page.locator('[data-task]').first).to_be_visible();scan(page,prefix+'-practice-picker')
+    page.locator('details.session-menu summary').click();expect(page.locator('[data-save-local]')).to_be_visible();scan(page,prefix+'-session-menu');page.keyboard.press('Escape')
     page.locator('[data-view="edit"]').click();expect(page.locator('#code-editor')).to_be_visible();scan(page,prefix+'-practice-code')
 try:
     for _ in range(100):
@@ -42,8 +45,10 @@ try:
     with sync_playwright() as p:
         browser=launch(p)
         try:
-            desktop=browser.new_context(viewport={'width':1440,'height':900},bypass_csp=True);author_flow(desktop.new_page(),'desktop');desktop.close()
-            phone=browser.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True,bypass_csp=True);author_flow(phone.new_page(),'phone');phone.close()
+            # ADR-105: both themes, every view; the theme follows the system unless the reader chose one.
+            for scheme in ['light','dark']:
+                desktop=browser.new_context(viewport={'width':1440,'height':900},color_scheme=scheme,bypass_csp=True);author_flow(desktop.new_page(),scheme+'-desktop');desktop.close()
+                phone=browser.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True,color_scheme=scheme,bypass_csp=True);author_flow(phone.new_page(),scheme+'-phone');phone.close()
             print('PASS a11y total: 0 violations on every scanned view',flush=True)
         finally:browser.close()
 finally:

@@ -25,6 +25,17 @@ export function adjacentMoveBoundary(position, direction, length, isFixed) {
             return target + (direction === 1 ? 1 : 0);
     return position;
 }
+/** Header and step menus (ADR-105) are disclosure widgets: a click outside, Escape, or an action inside closes them. */
+export function installMenus(root) {
+    const close = (except) => { for (const menu of root.querySelectorAll('details.menu[open]'))
+        if (menu !== except)
+            menu.open = false; };
+    document.addEventListener('click', event => { const target = event.target instanceof Element ? event.target : null, menu = target?.closest('details.menu') ?? null; close(menu); if (menu instanceof HTMLDetailsElement && target?.closest('.menu-panel button'))
+        menu.open = false; });
+    root.addEventListener('keydown', event => { if (event.key !== 'Escape')
+        return; const menu = event.target instanceof Element ? event.target.closest('details.menu[open]') : null; if (!menu)
+        return; menu.open = false; menu.querySelector('summary')?.focus(); });
+}
 export function installWorkbenchKeyboard(root) {
     root.addEventListener('keydown', event => {
         const target = event.target instanceof Element ? event.target : null, tab = target?.closest('[role="tab"]');

@@ -35,3 +35,17 @@ class StaticServer(ThreadingHTTPServer):
     ES-module requests on Windows (net::ERR_CONNECTION_REFUSED); a real static host does not."""
     request_queue_size=128
     daemon_threads=True
+
+
+def open_menu(page,name):
+    """ADR-105: session and source actions live in a header or step menu (details.<name>-menu); open it before an action."""
+    menu=page.locator(f'details.{name}-menu')
+    if menu.get_attribute('open') is None:menu.locator('summary').click()
+    return menu
+
+
+def analysis_options(page):
+    """ADR-105: the author's analysis settings fold away in the source step; unfold them before choosing one."""
+    box=page.locator('details.analysis-options')
+    if box.get_attribute('open') is None:box.locator('summary').click()
+    return box
