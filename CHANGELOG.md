@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased – 2026-11-06 új dizájnrendszer: világos és sötét téma (ADR-104)
+
+- **Világos és sötét téma:** a felület a rendszer beállítását követi. Világosban fehér „papír” felület, sötétben a korábbi sötét paletta; mindkettőben ugyanaz a kék kiemelőszín.
+- **Egyértelmű színjelentés:** a kék kiemel, a piros csak hibát jelez, a sárga csak figyelmeztet, a cián a „megelőzi” szabályt jelöli.
+- **Új betűk, helyben kiszolgálva:** Inter a felületen, JetBrains Mono a kódban (OFL). A kód pontosan úgy jelenik meg, ahogy írva van: a `>=` és az `=>` nem olvad egybe jellé.
+- **Olvashatóbb feliratok:** nincs 11 pontnál kisebb szöveg.
+- **Szögletesebb, tisztább elemek** kis lekerekítéssel.
+- A témaváltó gomb, a zsúfoltság csökkentése, a Fókusz mód és a kódnézetek a következő lépések.
+
 ## Unreleased – 2026-11-06 három befogadási hiba javítva (ADR-103)
 
 - **Túl mély vagy túl hosszú forrás:** a szerzői forrás legfeljebb 64 szint mélyen ágyazható egymásba (zárójel, blokk, sablonkifejezés). A túl mély vagy túl hosszú kódra érthető hibaüzenet jön, a hiba sorszámával; korábban TypeScriptnél a feldolgozás elszállt, és a szerver félrevezető „nem elérhető TypeScript parser” üzenetet adott.

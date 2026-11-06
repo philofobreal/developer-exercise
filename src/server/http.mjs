@@ -5,7 +5,7 @@ import path from 'node:path';
 import {ServiceError} from './catalog.mjs';
 import {AuthoringError} from '../author/generator.mjs';
 import {authorRefusal} from '../../dist/server/author-gate.js';
-const mime={'.txt':'text/plain; charset=utf-8','.ts':'text/plain; charset=utf-8','.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.map':'application/json; charset=utf-8'};
+const mime={'.woff2':'font/woff2','.txt':'text/plain; charset=utf-8','.ts':'text/plain; charset=utf-8','.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.map':'application/json; charset=utf-8'};
 const headers={
   'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer',
   'Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"

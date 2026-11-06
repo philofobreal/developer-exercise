@@ -20,3 +20,13 @@ const typescript=path.dirname(require.resolve('typescript/package.json'));
 await copyFile(path.join(typescript,'LICENSE.txt'),'public/vendor/LICENSE-typescript.txt');
 await copyFile(path.join(typescript,'ThirdPartyNoticeText.txt'),'public/vendor/NOTICE-typescript.txt');
 await copyFile(path.join(path.dirname(require.resolve('ajv/package.json')),'LICENSE'),'src/core/LICENSE-ajv.txt');
+
+// ADR-104: the interface fonts are served from the site itself (the CSP allows no font origin but 'self').
+// Variable woff2 files, latin and latin-ext subsets only (Hungarian ő and ű are latin-ext); OFL-1.1.
+import {copyFile as copyBinary} from 'node:fs/promises';
+await mkdir('public/vendor/fonts',{recursive:true});
+for(const [pkg,file] of [['@fontsource-variable/inter','inter'],['@fontsource-variable/jetbrains-mono','jetbrains-mono']]){
+ const dir=path.dirname(require.resolve(pkg+'/package.json'));
+ for(const subset of ['latin','latin-ext'])await copyBinary(path.join(dir,'files',`${file}-${subset}-wght-normal.woff2`),`public/vendor/fonts/${file}-${subset}-wght-normal.woff2`);
+ await copyFile(path.join(dir,'LICENSE'),`public/vendor/fonts/LICENSE-${file}.txt`);
+}

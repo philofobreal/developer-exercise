@@ -4,4 +4,4 @@ A repository saját kódjához nem találtunk gyökérszintű licencnyilatkozato
 
 A kiadás előtt a tulajdonosnak kell meghatároznia a saját kód terjesztési feltételeit és jóváhagynia a megfelelő gyökérszintű licencszöveget. Ez dokumentált, fennmaradó tulajdonosi döntés; nem akadályozza a helyi technikai ellenőrzést.
 
-A Prism, JS Beautify, Acorn, Ajv és TypeScript licenceit külön megőrizzük; részletek: [harmadik fél licencei](docs/vendor.md).
+A Prism, JS Beautify, Acorn, Ajv, TypeScript, valamint az Inter és a JetBrains Mono betűtípus (OFL-1.1) licenceit külön megőrizzük; részletek: [harmadik fél licencei](docs/vendor.md).

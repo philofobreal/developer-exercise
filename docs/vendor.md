@@ -5,6 +5,8 @@
 | PrismJS | A korábbi projektből átvett 1.25.0 assetek | MIT; `public/vendor/LICENSE-prism.txt` és az eredeti forrásfejlécek |
 | JS Beautify | 1.13.13 | MIT; `public/vendor/LICENSE-js-beautify.txt`; a build a pontos npm-csomagból másolja a helyi böngésző-runtime-ot |
 | TypeScript | 5.8.3 | **Apache-2.0**; `public/vendor/LICENSE-typescript.txt`; a Pages-build a compiler eredeti licencét is másolja |
+| Inter (`@fontsource-variable/inter`) | 5.3.0 | **OFL-1.1**; felületi betűtípus, változtatható súlyú woff2, latin és latin-ext részhalmaz; a build a pontos npm-csomagból másolja: `public/vendor/fonts/`, licenc: `public/vendor/fonts/LICENSE-inter.txt` ([ADR-104](adr/104-spectral-design-system.md)) |
+| JetBrains Mono (`@fontsource-variable/jetbrains-mono`) | 5.3.0 | **OFL-1.1**; kódbetűtípus, ugyanígy; licenc: `public/vendor/fonts/LICENSE-jetbrains-mono.txt`; a programozói ligatúrák kikapcsolva, hogy a kód úgy jelenjen meg, ahogy írva van |
 | Acorn | 8.19.0 | MIT; `src/author/vendor/LICENSE-acorn.txt` és `public/vendor/LICENSE-acorn.txt` |
 | Ajv | 8.20.0 | MIT; build/test függőség; standalone ellenőrzőt generál, saját licencét a generált forráshoz mellékeljük |
 | @types/node | 22.20.5 | MIT; kizárólag fejlesztési típusdefiníció a governance buildhez, `node_modules/@types/node/LICENSE`; nem böngészős runtime |
