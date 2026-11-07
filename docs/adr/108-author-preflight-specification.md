@@ -179,6 +179,41 @@ Következtetés:
 - **Nem vizsgált** (csend, nem bizonyíték): mezőszintű objektumállapot (`o.a.b`), metódus- és konstruktorhívás, `switch`-ágak, `try`, osztályinicializálás sorrendje.
 - **Bizonyíték:** `tests/runtime-safety.test.mjs`.
 
+**E6 – második kapu, Szabályok → Próba** ([rules-gate.ts](../../src/author/preflight/rules-gate.ts), [fingerprint.ts](../../src/author/preflight/fingerprint.ts)):
+- **Pillanatkép:** minden draft eltárolja az első kapu pillanatképét: a forrás ujjlenyomatát, a hatályos policyt és az első kapu döntését. A szabályszerkesztés ezt átviszi az új draftra (ugyanaz a forrás és policy), a Próba-belépést viszont nem (C28).
+- **Átmenet** (`POST /api/author/transition`; a Pages-en `authorTransition`): a kliens a *jelenlegi* forrását és beállításait küldi.
+  - **Blokkol:**
+    - ha nincs pillanatkép;
+    - ha a forrás vagy a policy ujjlenyomata eltér, mert akkor a bizonyíték elavult, és a modellt újra kell készíteni (C26, C36);
+    - ha az első kapu nem engedte tovább;
+    - ha a modell elutasítja a saját referenciasorrendjét.
+  - **Nem eldönthető:**
+    - ha a referencia elfogadása nem dőlt el;
+    - ha a modell `unverified`, például egy felülírt bizonyított szabály miatt (C29);
+    - ha az első kapu is ilyen volt (Pages).
+
+    Ez `warn` mellett figyelmeztetéssel enged, `block` mellett megállít.
+  - **Igazolás:** a sikeres átmenet a forrás, a policy és a modell ujjlenyomatát, az elemzőverziót (szabályverzió és TypeScript) és a minősítést rögzíti.
+- **Backend-döntés:** az előnézeti értékelést (a Próba lépés tényleges művelete) a szerver és a Pages is megtagadja (409) attól a drafttól, amely nem ment át a második kapun. Közvetlen API-hívással sem kerülhető meg.
+- **Az előnézet maga is kapu:** ha az előnézeti kérés a szerző jelenlegi forrását és beállításait is hozza, és a draft még nem ment át, a szerver (és a Pages) ugyanazzal a döntéssel engedi át vagy utasítja el (422). Bizonyíték nélkül marad a 409.
+  - **Miért:** a szabályszerkesztés új draftot ad, ezért külön átmenettel minden szerkesztés három kérés lett volna (szerkesztés, átmenet, előnézet). A böngészős tesztsor gyors szerkesztései így túllépték a szerver percenkénti 120 POST-os korlátját (429).
+  - **Most:** a szerkesztés utáni újraértékelés és az ellenőrzés egy kéréssel jár, mint E6 előtt. A korlátot nem emeltem.
+- **Felület:**
+  - **A lépésváltás és az import „landolása”:** egy út, az `admitToTry`, amely draftonként és forrásonként egyszer kérdez.
+    - A Próbára lépés (Rendező és Megoldáskód nézet) elutasításkor a Szabályok lépésre visz. Ott látszik az ok és az elavultsági sáv a „Modell újrakészítése” és a „Forrásváltozás elvetése” gombbal.
+    - A munkamenet-import is a Szabályok lépésre érkezik, ha a kapu elutasítja.
+  - **Az ellenőrzés és a szerkesztés utáni újraértékelés:** a bizonyítékot vivő előnézeti kéréssel megy. Elutasításkor az értékelés „Nem eldönthető”, és a kapu üzenetét mutatja.
+- **A szerződés változása:** a nyers API-t hívó régi tesztek most a kapun át kérnek előnézetet (`tests/support/try-gate.mjs`: a draft válaszában kapott policyval és a referencia forrásával, ahogy egy szabályos kliens).
+- **Bizonyíték:**
+  - `tests/rules-gate.test.mjs`:
+    - döntési tábla;
+    - nincs előnézet a kapu előtt, a szabályszerkesztés újra zár;
+    - az elavult forrást és policyt elutasítja;
+    - a felülírt szabálynál `warn` mellett figyelmeztet, `block` mellett megáll.
+  - `tests/pages-api.test.mjs`: a Pages-en ugyanez.
+  - `browser-workbench`, „second gate”: módosított forrás mellett a Próba zárva marad.
+
+
 **Bizonyíték:**
 - `tests/author-policy.test.mjs`:
   - az összes kombináció tulajdonságtesztje: a konzervatív preset mindig a szigorú szerződést adja, és az ujjlenyomat csak a hatályos policytól függ;

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {admit} from './support/try-gate.mjs';
 import {readFile} from 'node:fs/promises';
 import {ExerciseCatalog} from '../src/server/catalog.mjs';
 import {createApplication} from '../src/server/http.mjs';
@@ -38,7 +39,7 @@ test('F1 disclosure (ADR-026): a trusted evaluation explains only up to position
  assert.doesNotMatch(JSON.stringify(trusted),/"before"|"after"|"categories"|"origins"/,'the trusted graph never travels');
  // The author preview of the same model explains the conflict, naming the rule.
  const draft=await catalog.createDraft({model:structuredClone(model)});
- const preview=catalog.preview({draftId:draft.draftId,lines:swapped});
+ await admit(catalog,draft);const preview=catalog.preview({draftId:draft.draftId,lines:swapped});
  assert.ok(preview.feedback.author.diagnostics.some(d=>d.rule&&d.certainty==='proven'),JSON.stringify(preview.feedback.author.diagnostics.map(d=>d.code)));
  assert.equal(preview.feedback.author.level,'provenance');assert.equal(preview.feedback.learner.level,'positions');
  // ADR-027: an author who opts in raises the learner to the rules level: the violated pair, never why, never the rest of the graph.

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {gateBody} from './support/try-gate.mjs';
 import {spawn} from 'node:child_process';
 import {createServer} from 'node:net';
 import fs from 'node:fs';
@@ -17,6 +18,9 @@ test('HTTP: TS Beautify → Alkalmazás → Rendezés → Ellenőrzés; invalid 
  const compiled=await response(url+'/api/author/compile',{source:fmt.body.code,language:'typescript',title:'Mellékelt TypeScript'});
  assert.equal(compiled.status,200,JSON.stringify(compiled.body).slice(0,300));
  assert.equal(compiled.body.model.lines.length,436);
+ // ADR-108 (E6): previews need the second gate; before it, the server refuses them.
+ assert.equal((await response(url+'/api/author/preview',{draftId:compiled.body.draftId,lines:[]})).status,409);
+ const opened=await response(url+'/api/author/transition',gateBody({draftId:compiled.body.draftId,...compiled.body},fmt.body.code));assert.equal(opened.status,200,JSON.stringify(opened.body).slice(0,300));
  const preview=await response(url+'/api/author/preview',{draftId:compiled.body.draftId,lines:compiled.body.model.lines.map(x=>x.code)});
  assert.equal(preview.body.status,'accepted',JSON.stringify(preview.body));
  const changed=compiled.body.model.lines.map(x=>x.code);changed[0]='import { Invalid } from "elsewhere";';

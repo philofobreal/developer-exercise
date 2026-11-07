@@ -6,15 +6,16 @@ import {randomUUID} from 'node:crypto';
 import {readdir,readFile} from 'node:fs/promises';
 import {readFileSync} from 'node:fs';
 import path from 'node:path';
-import {generateCodeLineExercise,AuthoringError} from '../author/generator.mjs';
+import {generateCodeLineExercise,AuthoringError,DEPENDENCY_POLICY} from '../author/generator.mjs';
 import {getLanguageAdapter} from '../author/languages.mjs';
 import {auditReference} from '../author/audit.mjs';
 import {compileCodeLineExercise,validateSubmission,diagnoseSubmission,channelFeedback,codeLineDiagnosticReasons,publicationRefusal,DEFAULT_PUBLICATION_POLICY} from '../../dist/index.js';
 import {authorRuleSheet,editAuthorModel,refreshAuthorModel,verifyAuthorModel} from '../../dist/author/engine.js';
 import {createReferenceAuditor} from '../../dist/author/reference-audit.js';
-import {auditMode,generatorOptions,policyRefusal,resolveAuthorPolicy} from '../../dist/author/preflight/config-resolver.js';
+import {auditMode,generatorOptions,policyRefusal,recordedContract,resolveAuthorPolicy} from '../../dist/author/preflight/config-resolver.js';
 import {sourceGate} from '../../dist/author/preflight/source-gate.js';
 import {runtimeSafety} from '../../dist/author/preflight/runtime-safety.js';
+import {rulesGate,snapshotOf} from '../../dist/author/preflight/rules-gate.js';
 export class ServiceError extends Error{constructor(code,message,details){super(message);this.statusCode=code;if(details)this.details=details;}}
 /** The publication policy named by `CODELINE_PUBLICATION` (ADR-027, ADR-035); unset, the core's default
  * (`verified-only`, ADR-089). The server, the model check and the Pages build read it here alike; a
@@ -77,7 +78,9 @@ export class ExerciseCatalog{
     auditReference(model,await this.parser());
     // ADR-108 (E5a): the first gate, after the generator's parse and nesting budget (ADR-103) and the syntax
     // admission (ADR-016), before the draft is stored. It audits the author's source (editor line numbers), or the rows of an imported model.
-    policy??=resolveAuthorPolicy({language:model.language,...(body?.policy!==undefined?{policy:body.policy}:{})});
+    // An imported model states its own source contract (plan §2.3): its recorded environment is the
+    // requested policy, an assumption and never a proof (C27).
+    policy??=resolveAuthorPolicy({language:model.language,...recordedContract(model),...(body?.policy!==undefined?{policy:body.policy}:{})});
     {const refusal=policyRefusal(policy);if(refusal)throw new ServiceError(422,refusal,{policy});}
     const reviewed=typeof body?.source==='string'&&!body?.model?body.source.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n'):model.lines.map(l=>l.code).join('\n');
     const gate=sourceGate((await this.auditor()).audit(reviewed,model.language,auditMode(policy)),policy,runtimeSafety(await this.parser(),reviewed,model.language==='typescript'?'typescript':'javascript',{objectState:policy.effective.objectState}));
@@ -87,7 +90,7 @@ export class ExerciseCatalog{
     const parser=await this.parser(),audit=(await this.auditor()).audit(model.lines.map(l=>l.code).join('\n'),model.language,auditMode(policy));
     // Model Verification Gate (ADR-017): re-derived here, never taken from the request.
     const verification=await verifyAuthorModel(model,{generate:input=>generateCodeLineExercise(input,parser)},{audit:audit.semantics});
-    this.drafts.set(draftId,{created:Date.now(),model,compiled:result.compiled,audit,verification});
+    this.drafts.set(draftId,{created:Date.now(),model,compiled:result.compiled,audit,verification,snapshot:snapshotOf(reviewed,policy,gate)});
     return {draftId,model,previewOnly:true,mode:'preview-validation',audit,verification,rules:authorRuleSheet(model),...(refresh?{refresh}:{}),policy,gate};
   }
   /** Typed rule edits on an admitted draft (ADR-018, ADR-021). The server edits its own copy,
@@ -102,12 +105,35 @@ export class ExerciseCatalog{
     const draftId=randomUUID(),model={...result.model,id:`author-${draftId}`},compiled=compileCodeLineExercise(model);
     if('status' in compiled)throw new ServiceError(422,compiled.message);
     // The edited draft replaces its predecessor, so editing never exhausts the preview limit.
-    this.drafts.delete(body.draftId);this.drafts.set(draftId,{created:Date.now(),model,compiled:compiled.compiled,audit:item.audit,verification});
-    return {ok:true,draftId,model,previewOnly:true,mode:'preview-validation',audit:item.audit,verification,effect:result.effect,rules:authorRuleSheet(model)};
+    // ADR-108 (E6): the edit keeps the first gate's snapshot (same source and policy), not the Try admission (C28).
+    this.drafts.delete(body.draftId);this.drafts.set(draftId,{created:Date.now(),model,compiled:compiled.compiled,audit:item.audit,verification,snapshot:item.snapshot});
+    return {ok:true,draftId,model,previewOnly:true,mode:'preview-validation',audit:item.audit,verification,effect:result.effect,rules:authorRuleSheet(model),...(item.snapshot?{policy:item.snapshot.policy}:{})};
+  }
+  /** ADR-108 (E6): the second gate, Rules → Try. The author's current source and policy must be the ones
+   * the draft's first-gate snapshot was made from; the model must accept its reference; unknown follows
+   * the policy. A passing draft may be evaluated by preview; nothing else opens it. */
+  async transition(body){
+    this.prune();if(typeof body?.draftId!=='string')throw new ServiceError(400,'Invalid transition');
+    const item=this.drafts.get(body.draftId);if(!item)throw new ServiceError(404,'Preview not found or expired');
+    await this.parser();
+    return {ok:true,draftId:body.draftId,gate:this.admit(item,body)};
+  }
+  /** The second gate on a stored draft: admits it for preview or refuses with 422. A draft with a
+   *  snapshot was made with the parser loaded, so the proof's compiler version is known here. */
+  admit(item,body){
+    const policy=resolveAuthorPolicy({...body,language:item.model.language});{const refusal=policyRefusal(policy);if(refusal)throw new ServiceError(422,refusal,{policy});}
+    const gate=rulesGate({snapshot:item.snapshot,current:{source:body.source,policy},model:item.model,verification:item.verification,analyzer:`${DEPENDENCY_POLICY}+typescript-${this.ts?.version??'not-loaded'}`});
+    if(!gate.admitted)throw new ServiceError(422,gate.message,{gate});
+    item.tryProof=gate.proof;
+    return gate;
   }
   preview(body){
     this.prune();if(typeof body?.draftId!=='string'||!Array.isArray(body?.lines)||body.lines.length>500)throw new ServiceError(400,'Invalid draft submission');
     const item=this.drafts.get(body.draftId);if(!item)throw new ServiceError(404,'Preview not found or expired');
+    // A preview that carries the author's current source (and policy) passes the second gate itself,
+    // so re-evaluating after a rule edit is one request; without that evidence it needs the transition.
+    if(!item.tryProof&&typeof body.source==='string')this.admit(item,body);
+    if(!item.tryProof)throw new ServiceError(409,'A Próba lépés még nincs megnyitva ehhez a modellhez: előbb a második kapun (Szabályok → Próba) kell átmenni.');
     // F1 (ADR-026): the verdict, plus feedback for the author and for the learner view of the draft.
     const report=diagnoseSubmission(item.compiled,{exerciseId:item.model.id,revision:item.model.revision,lines:body.lines},{maxStates:30_000,reasons:item.reasons??=codeLineDiagnosticReasons(item.model)});
     return {...report.verdict,feedback:channelFeedback(report,'author-preview',item.model.learnerFeedback)};

@@ -3,6 +3,8 @@ async function jsonRequest(url,body){const response=await fetch(url,{method:'POS
 export const validationMode='trusted-server';
 export const getExercises=async()=>{const r=await fetch('/api/exercises');if(!r.ok)throw new Error(`HTTP ${r.status}`);return (await r.json()).exercises;};
 export const compileDraft=body=>jsonRequest('/api/author/compile',body);
+/** ADR-108 (E6): the second gate, Rules → Try; previews of a draft need it. */
+export const authorTransition=body=>jsonRequest('/api/author/transition',body);
 export const previewDraft=body=>jsonRequest('/api/author/preview',body);
 /** Typed rule edits on the active draft (ADR-021); a refused edit answers `{ok:false,…}`. */
 export const editRules=body=>jsonRequest('/api/author/rules',body);

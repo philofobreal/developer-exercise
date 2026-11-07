@@ -1,5 +1,6 @@
 /** Fixed author fixtures only; learner evaluation never transpiles or runs code. */
 import test from 'node:test';
+import {admit} from './support/try-gate.mjs';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {Script,createContext} from 'node:vm';
@@ -90,7 +91,7 @@ test('old serial import stays unchanged; explicit refresh unlocks only erased me
  const model=JSON.parse(await readFile(new URL('01-user-account.legacy.json',directory),'utf8'));
  const before=structuredClone(model),catalog=await ExerciseCatalog.open(fileURLToPath(new URL('../examples/',import.meta.url)));
  const first=await catalog.createDraft({model});assert.deepEqual(first.model.lines,model.lines);
- const swapped=codes(model,swap(model.lines.map(line=>line.id),2,3));assert.equal(catalog.preview({draftId:first.draftId,lines:swapped}).status,'rejected');
+ const swapped=codes(model,swap(model.lines.map(line=>line.id),2,3));await admit(catalog,first);assert.equal(catalog.preview({draftId:first.draftId,lines:swapped}).status,'rejected');
  const next=await refreshLegacyDependencies(model,{generate:input=>generateCodeLineExercise(input,ts),audit:model=>auditReference(model,ts)});
  assert.deepEqual(model,before);assert.equal(grade(compile(next),swapped).status,'accepted');
  assert.deepEqual(next.blocks,model.blocks);assert.equal(next.title,model.title);assert.ok(next.lines.every(line=>line.fixed===false));

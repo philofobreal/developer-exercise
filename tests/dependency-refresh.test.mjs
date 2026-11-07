@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {admit} from './support/try-gate.mjs';
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import ts from 'typescript';
@@ -67,9 +68,9 @@ test('Node author catalog imports exactly; refresh is explicit, old preview rema
  const first=await catalog.createDraft({model:original});
  assert.deepEqual(first.model.lines.map(line=>line.dependencies),original.lines.map(line=>line.dependencies));
  const lines=imageOrder.map(id=>original.lines.find(line=>line.id===id).code);
- assert.equal(catalog.preview({draftId:first.draftId,lines}).status,'rejected');
+ await admit(catalog,first);assert.equal(catalog.preview({draftId:first.draftId,lines}).status,'rejected');
  const second=await catalog.createDraft({model:first.model,refreshDependencies:true});
- assert.equal(catalog.preview({draftId:second.draftId,lines}).status,'accepted');
+ await admit(catalog,second);assert.equal(catalog.preview({draftId:second.draftId,lines}).status,'accepted');
  assert.equal(catalog.preview({draftId:first.draftId,lines}).status,'rejected');
  await assert.rejects(catalog.createDraft({model:original,refreshDependencies:'yes'}));
 });

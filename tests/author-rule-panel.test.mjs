@@ -2,6 +2,7 @@
  * draft copy and the core (ADR-018), are re-qualified by the gate (ADR-017), never overwrite
  * a draft on refusal, and the panel exists only for the author's own draft. */
 import test from 'node:test';
+import {admit} from './support/try-gate.mjs';
 import assert from 'node:assert/strict';
 import ts from 'typescript';
 import {ExerciseCatalog,ServiceError} from '../src/server/catalog.mjs';
@@ -40,7 +41,7 @@ test('server: an edit replaces the draft, is re-qualified and keeps the referenc
  const rule=added.rules.constraints.find(c=>c.before===2&&c.after===3);
  assert.deepEqual([rule.editability,rule.note],['pedagogical','<img src=x onerror=alert(1)>']);
  // The preview grades the edited revision; the replaced draft is gone, so editing never fills the limit.
- assert.equal(catalog.preview({draftId:added.draftId,lines:added.model.lines.map(line=>line.code)}).status,'accepted');
+ await admit(catalog,added,source);assert.equal(catalog.preview({draftId:added.draftId,lines:added.model.lines.map(line=>line.code)}).status,'accepted');
  assert.throws(()=>catalog.preview({draftId:first.draftId,lines:[]}),error=>error instanceof ServiceError&&error.statusCode===404);
  assert.equal(catalog.drafts.size,1);
 });

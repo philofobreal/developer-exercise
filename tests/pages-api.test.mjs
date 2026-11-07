@@ -5,6 +5,7 @@ import {createRequire} from 'node:module';
 import {execFileSync} from 'node:child_process';
 import {join} from 'node:path';
 import {pathToFileURL,fileURLToPath} from 'node:url';
+import {admit,gateBody} from './support/try-gate.mjs';
 
 // Test the exact browser-ported modules from the generated GitHub Pages artifact.
 test('Pages demo: exercises → local validation → author → edited model → validation',async()=>{
@@ -35,13 +36,18 @@ test('Pages demo: exercises → local validation → author → edited model →
    assert.ok(first.audit.assumptions.includes('no-standard-library'));
    assert.equal(first.verification.publishable,true);
    assert.equal(first.verification.checks.rederivation,'match','the static demo re-derives the rules locally (ADR-017)');
+   // ADR-108 (E6): previews need the second gate; the demo refuses them before it.
+   await assert.rejects(api.previewDraft({draftId:first.draftId,lines:[]}),/második kapun/);
+   const gate=(await api.authorTransition(gateBody(first,js))).gate;
+   assert.equal(gate.verdict,'inconclusive','the demo has no standard library: the first gate was inconclusive, so is the second');
    assert.equal((await api.previewDraft({draftId:first.draftId,lines:first.model.lines.map(x=>x.code)})).status,'accepted');
+   await assert.rejects(api.authorTransition(gateBody(first,js+'\n// edited')),/forrás a modell készítése óta változott/);
    const changed=structuredClone(first.model);
    changed.lines[2].dependencies=[];
    changed.lines[3].dependencies=[2,3];
    const second=await api.compileDraft({model:changed});
    assert.equal(second.model.lines[2].dependencies.length,0);
-   assert.equal((await api.previewDraft({draftId:second.draftId,lines:second.model.lines.map(x=>x.code)})).status,'accepted');
+   await admit(api,second);assert.equal((await api.previewDraft({draftId:second.draftId,lines:second.model.lines.map(x=>x.code)})).status,'accepted');
    const tsFmt=await api.formatSource('function typed(x:number):number{return x+1}', 'typescript');
    assert.match(tsFmt.code,/function typed\(/);
    assert.match(tsFmt.code,/number/);
@@ -56,7 +62,7 @@ test('Pages failed import at full capacity preserves the last valid preview',asy
   for(let i=0;i<25;i++){const draft=await api.compileDraft({source:`const v${i} = ${i};`,language:'javascript'});if(i===0)first=draft;}
   const invalid=structuredClone(first.model);invalid.lines[0].code='const a = ;';
   await assert.rejects(api.compileDraft({model:invalid}),/Szintaktikai/);
-  assert.equal((await api.previewDraft({draftId:first.draftId,lines:first.model.lines.map(x=>x.code)})).status,'accepted');
+  await admit(api,first,'const v0 = 0;');assert.equal((await api.previewDraft({draftId:first.draftId,lines:first.model.lines.map(x=>x.code)})).status,'accepted');
  }finally{globalThis.ts=saved;}
 });
 
@@ -68,9 +74,9 @@ test('Pages imports serial legacy rules exactly; dependency refresh requires exp
   const lines=[1,3,5,2,4,6,7].map(id=>model.lines.find(line=>line.id===id).code);
   const first=await api.compileDraft({model});
   assert.deepEqual(first.model.lines.map(line=>line.dependencies),model.lines.map(line=>line.dependencies));
-  assert.equal((await api.previewDraft({draftId:first.draftId,lines})).status,'rejected');
+  await admit(api,first);assert.equal((await api.previewDraft({draftId:first.draftId,lines})).status,'rejected');
   const second=await api.compileDraft({model:first.model,refreshDependencies:true});
-  assert.equal((await api.previewDraft({draftId:second.draftId,lines})).status,'accepted');
+  await admit(api,second);assert.equal((await api.previewDraft({draftId:second.draftId,lines})).status,'accepted');
   assert.equal((await api.previewDraft({draftId:first.draftId,lines})).status,'rejected');
   await assert.rejects(api.compileDraft({model,refreshDependencies:'yes'}));
  }finally{globalThis.ts=saved;}
@@ -86,7 +92,7 @@ test('Pages rule edits (ADR-021): the demo edits its own draft copy, re-qualifie
   assert.deepEqual([refused.ok,refused.acknowledge],[false,'policy-override']);
   const fixed=await api.editRules({draftId:first.draftId,edits:[{kind:'set-fixed',line:3,fixed:true}]});
   assert.deepEqual([fixed.ok,fixed.mode,fixed.verification.status,fixed.model.lines[2].fixed],[true,'local-demo','author-modified',true]);
-  assert.equal((await api.previewDraft({draftId:fixed.draftId,lines:fixed.model.lines.map(x=>x.code)})).status,'accepted');
+  await admit(api,fixed,'function f() {\n  const a = 1;\n  const b = 2;\n  const c = a + 3;\n  g(b, c);\n}');assert.equal((await api.previewDraft({draftId:fixed.draftId,lines:fixed.model.lines.map(x=>x.code)})).status,'accepted');
   await assert.rejects(api.previewDraft({draftId:first.draftId,lines:[]}),/lejárt/,'the edited draft replaced its predecessor');
  }finally{globalThis.ts=saved;}
 });

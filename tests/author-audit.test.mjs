@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {admit} from './support/try-gate.mjs';
 import ts from 'typescript';
 import {readFile} from 'node:fs/promises';
 import {ExerciseCatalog} from '../src/server/catalog.mjs';
@@ -21,7 +22,7 @@ for(const source of [
 test('author syntax audit rejects edited invalid source atomically',async()=>{
  const catalog=new ExerciseCatalog(new Map()),first=await catalog.createDraft({source:'const a = 1;'}),model=structuredClone(first.model);
  model.lines[0].code='const a = ;';await assert.rejects(catalog.createDraft({model}),/Szintaktikai/);
- assert.equal(catalog.drafts.size,1);assert.equal(catalog.preview({draftId:first.draftId,lines:['const a = 1;']}).status,'accepted');
+ assert.equal(catalog.drafts.size,1);await admit(catalog,first,'const a = 1;');assert.equal(catalog.preview({draftId:first.draftId,lines:['const a = 1;']}).status,'accepted');
 });
 test('multiline templates preserve blank payload rows and require exact normalization',()=>{
  const model=make('function f() {\n const s = `a\n\n  } b`;\n return s;\n}');

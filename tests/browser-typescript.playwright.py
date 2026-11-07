@@ -34,6 +34,9 @@ try:
                         const read=async path=>{const r=await fetch(new URL(path,location.href));if(!r.ok)throw Error('Missing '+path);return r;};
                         const suite=await (await read('./samples/typescript/suite.json')).json();
                         let posts=0,checks=0;
+                        // ADR-108 (E6): a preview carries the second gate's evidence, as the workbench sends it: the
+                        // reference source (an imported model's rows) and the policy the draft reports.
+                        const evidence=(d,src)=>{const r=d.policy?.requested??{},top=['inputs','keyOrder','classFields','importEmit'];const nested=Object.fromEntries(Object.entries(r).filter(([k])=>!top.includes(k)));return {...Object.fromEntries(Object.entries(r).filter(([k])=>top.includes(k))),source:src??d.model.lines.map(l=>l.code).join('\\n'),...(Object.keys(nested).length?{policy:nested}:{})};};
                         for(const item of suite){
                             const prefix='./samples/typescript/'+item.id;
                             const source=await (await read(prefix+'.ts')).text(),expected=await (await read(prefix+'.model.json')).json();
@@ -49,7 +52,7 @@ try:
                             const check=async (pair,accepted)=>{
                                 const order=draft.model.lines.map(l=>l.id).map(id=>pair?(id===pair[0]?pair[1]:id===pair[1]?pair[0]:id):id);
                                 const lines=order.map(id=>draft.model.lines.find(l=>l.id===id).code);
-                                const report=await api.previewDraft({draftId:draft.draftId,lines});posts++;checks++;
+                                const report=await api.previewDraft({...evidence(draft,item.authored?undefined:source),draftId:draft.draftId,lines});posts++;checks++;
                                 if(report.status!==(accepted?'accepted':'rejected'))throw Error(JSON.stringify({id:item.id,pair,report}));
                             };
                             await check(null,true);
@@ -59,7 +62,7 @@ try:
                         const authored=await (await read('./samples/typescript/01-user-account.values-only.model.json')).json();
                         const draft=await api.compileDraft({model:authored});posts++;
                         const lines=[1,2,3,4,5,7,6,8,10,9,11,12,13].map(id=>authored.lines.find(line=>line.id===id).code);
-                        const report=await api.previewDraft({draftId:draft.draftId,lines});posts++;checks++;
+                        const report=await api.previewDraft({...evidence(draft),draftId:draft.draftId,lines});posts++;checks++;
                         if(report.status!=='accepted')throw Error('Explicit values-only contract must accept the screenshot');
                         if(posts>112)throw Error('Matrix would consume the real server rate budget: '+posts);
                         return {models:suite.length,authoredVariants:1,checks,posts};

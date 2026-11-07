@@ -12,6 +12,7 @@
  * `observed`, `either`, `verbatim`): a request or a model without them means what it always meant.
  * New drafts start elsewhere (`NEW_DRAFT_SETTINGS`, ADR-106) and send their values explicitly.
  */
+import { fnv1a64 } from './fingerprint.js';
 export const POLICY_SCHEMA = 'author-policy-v1';
 const OPTIONS = {
     inputs: { values: ['any', 'valid'], fallback: 'any', label: 'Bemenetek' },
@@ -35,15 +36,6 @@ const CONSERVATIVE = [
     { path: 'importEmit', value: 'verbatim', rule: 'C04', reason: 'A konzervatív sorrend minden importot megtartottnak vesz; a buildkörnyezet így sem bizonyított.' }
 ];
 const text = (value) => typeof value === 'string' ? value : undefined;
-/** FNV-1a, 64 bit, over the canonical policy text: an identifier, not a credential. */
-function fnv1a64(input) {
-    let hash = 0xcbf29ce484222325n;
-    for (let i = 0; i < input.length; i++) {
-        hash ^= BigInt(input.charCodeAt(i));
-        hash = (hash * 0x100000001b3n) & 0xffffffffffffffffn;
-    }
-    return hash.toString(16).padStart(16, '0');
-}
 /** Resolves a compile request (`inputs`, `keyOrder`, `classFields`, `importEmit` at the top level,
  * `policy: {portability, unknownPolicy}`) into the effective author policy. Never throws. */
 export function resolveAuthorPolicy(request) {
@@ -91,6 +83,11 @@ export function resolveAuthorPolicy(request) {
     const resolved = effective;
     const canonical = JSON.stringify({ schema: POLICY_SCHEMA, language, effective: Object.fromEntries([...TOP_LEVEL, ...NESTED].filter(path => !OPTIONS[path].languages || OPTIONS[path].languages.includes(language)).map(path => [path, resolved[path]])) });
     return { schema: POLICY_SCHEMA, language, requested, effective: resolved, locks, inactive, conflicts, fingerprint: 'p1-' + fnv1a64(canonical) };
+}
+/** The source contract an imported model recorded (`authoring.evidence.environment`), as request fields. */
+export function recordedContract(model) {
+    const environment = model.authoring?.evidence?.environment ?? {};
+    return Object.fromEntries(TOP_LEVEL.filter(path => typeof environment[path] === 'string').map(path => [path, environment[path]]));
 }
 /** The blocking conflicts as one author-facing message, or '' when the policy is admissible. */
 export const policyRefusal = (resolution) => resolution.conflicts.filter(conflict => conflict.blocking).map(conflict => conflict.message).join(' ');

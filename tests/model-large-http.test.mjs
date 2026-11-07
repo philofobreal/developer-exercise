@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {gateBody} from './support/try-gate.mjs';
 import {createServer} from 'node:net';
 import {spawn} from 'node:child_process';
 import {readFileSync} from 'node:fs';
@@ -22,6 +23,7 @@ test('HTTP accepts edited >64 KiB data models generated from the full 436-line T
  const edited=await post(base,'/api/author/compile',{model});
  assert.equal(edited.status,200,JSON.stringify(edited.body).slice(0,300));
  assert.equal(edited.body.model.lines.length,436);
+ assert.equal((await post(base,'/api/author/transition',gateBody(edited.body))).status,200);
  const tested=await post(base,'/api/author/preview',{draftId:edited.body.draftId,lines:model.lines.map(l=>l.code)});
  assert.equal(tested.status,200);assert.equal(tested.body.status,'accepted');
 });

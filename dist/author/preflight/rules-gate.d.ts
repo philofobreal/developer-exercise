@@ -1,0 +1,63 @@
+/** Second author gate, Rules → Try (ADR-108, E6). Author-only; the learner path never passes it.
+ *
+ * A draft carries the snapshot of its first gate: the reviewed source, the effective policy and the
+ * first gate's decision. Entering the Try step (and so every preview evaluation, which the server
+ * refuses for a draft that has not passed here) needs:
+ *  - a snapshot at all (a draft admitted through the first gate);
+ *  - the author's current source and policy to be the ones the snapshot was made from (C26, C36);
+ *    otherwise the evidence is stale and the model must be made again;
+ *  - the model to accept its own reference order (verification `reference: accepted`); a rejected
+ *    reference blocks, an undecided one is unknown;
+ *  - the model's verification: `unverified` (for example a relaxed proven rule, C29) is unknown, never
+ *    passed; a first gate that was itself inconclusive stays so.
+ * Unknown follows the policy's `unknownPolicy` (warn lets through, block stops). A rule edit makes a new
+ * draft, so the gate is passed again (C28). The proof names what was checked by fingerprints.
+ */
+import type { PolicyResolution } from './config-resolver.js';
+import type { SourceGate } from './source-gate.js';
+export interface SourceSnapshot {
+    sourceFingerprint: string;
+    policy: PolicyResolution;
+    gate: SourceGate;
+}
+export interface RulesProof {
+    sourceFingerprint: string;
+    policyFingerprint: string;
+    modelFingerprint: string;
+    analyzer: string;
+    verification: string;
+}
+export interface RulesGate {
+    gate: 'rules-to-try';
+    verdict: 'passed' | 'blocked' | 'inconclusive';
+    admitted: boolean;
+    message: string;
+    reasons: string[];
+    proof?: RulesProof;
+}
+export declare const snapshotOf: (source: string, policy: PolicyResolution, gate: SourceGate) => SourceSnapshot;
+export interface RulesGateInput {
+    snapshot: SourceSnapshot | undefined;
+    /** The author's current source and the policy resolved from the current request. */
+    current: {
+        source: unknown;
+        policy: PolicyResolution;
+    };
+    model: {
+        lines: unknown;
+        blocks?: unknown;
+        edges?: unknown;
+        profiles?: unknown;
+        dependencyMode?: unknown;
+    };
+    verification: {
+        status: string;
+        checks: {
+            reference: string;
+        };
+        findings?: readonly string[];
+    } | undefined;
+    /** The analysis versions the proof depends on (rule version, compiler version). */
+    analyzer: string;
+}
+export declare function rulesGate(input: RulesGateInput): RulesGate;

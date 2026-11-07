@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased – 2026-11-07 szerzői preflight: második kapu, Szabályok → Próba (ADR-108, E6)
+
+- **A Próba csak ellenőrzött modellel nyílik meg:**
+  - ha a forrást vagy az elemzési beállításokat a modell készítése óta módosítottad, a Próba lépés zárva marad, amíg újra el nem készíted a modellt;
+  - ha a modell elutasítja a saját referenciasorrendjét, a Próba nem nyílik meg;
+  - egy felülírt bizonyított szabály után figyelmeztetéssel nyílik meg („tilt” beállítás mellett nem).
+- **A szerver dönt:** az előnézeti ellenőrzést csak a kapun átment modellre futtatja, közvetlen API-hívásra sem. Szabályszerkesztés után a kapu újra lefut, ugyanabban a kérésben, amely újraértékeli a rendezést.
+- **Elavult forrás:** ha a forrás módosítása után a Próbára lépsz, a Szabályok lépésre kerülsz. Itt újra elkészítheted a modellt, vagy elvetheted a változtatást.
+
 ## Unreleased – 2026-11-07 szerzői preflight: ágak, ciklusok és biztos null/undefined hiba (ADR-108, E4)
 
 - **Pontosabb ágkezelés:** az inicializálás előtti hozzáférést az elemzés akkor is látja, ha az egy `if/else` mindkét ágán vagy egy biztosan egyszer lefutó ciklusban (`do…while`, `while (true)`) történik.

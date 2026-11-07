@@ -1,17 +1,3 @@
-/** Author policy resolution (ADR-108, E1). Author-only; the learner path never reads it.
- *
- * One pure function turns what the author (or an API caller) asked for into the policy the analysis
- * actually runs with: `requested` is kept as given, `effective` is what the generator and the gates
- * use, `locks` say which requested value a preset overrode and why, `inactive` which option does not
- * apply to the language, and `conflicts` which value is refused (a blocking conflict stops admission).
- * Only options with an implemented analysis exist here (ADR-108, deviation 2); a later analyzer adds
- * its own option. The fingerprint identifies the effective policy for the proofs of later gates; it is
- * no credential, and a server trusts only the snapshot it stored itself.
- *
- * The four source-contract options keep their stable names and their historical fallback (`any`,
- * `observed`, `either`, `verbatim`): a request or a model without them means what it always meant.
- * New drafts start elsewhere (`NEW_DRAFT_SETTINGS`, ADR-106) and send their values explicitly.
- */
 export declare const POLICY_SCHEMA = "author-policy-v1";
 export type PolicyLanguage = 'javascript' | 'typescript';
 export interface AuthorPolicy {
@@ -65,6 +51,14 @@ export interface PolicyResolution {
 /** Resolves a compile request (`inputs`, `keyOrder`, `classFields`, `importEmit` at the top level,
  * `policy: {portability, unknownPolicy}`) into the effective author policy. Never throws. */
 export declare function resolveAuthorPolicy(request: Readonly<Record<string, unknown>>): PolicyResolution;
+/** The source contract an imported model recorded (`authoring.evidence.environment`), as request fields. */
+export declare function recordedContract(model: {
+    authoring?: {
+        evidence?: {
+            environment?: Readonly<Record<string, unknown>>;
+        };
+    };
+}): Partial<Record<'inputs' | 'keyOrder' | 'classFields' | 'importEmit', string>>;
 /** The blocking conflicts as one author-facing message, or '' when the policy is admissible. */
 export declare const policyRefusal: (resolution: PolicyResolution) => string;
 /** The language audit's mode for the effective policy (E2); an option of the other language is left out. */

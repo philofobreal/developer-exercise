@@ -2,7 +2,7 @@ import {markEditorDraft,markEditorApplied,reloadEditorFromArrangement,captureEdi
 import {refreshAuthorStatus,captureAuthorRequest,authorRequest,startFromExample,revertAuthorDraft,admitAuthorModel,NEW_DRAFT_SETTINGS} from './app/author-workspace.js';
 import {readRuleEdit,readRuleKindEdits,recordRuleRefusal,ruleEditBlocked,settleRuleKind,settleRuleSelection} from './app/rule-panel.js';
 import {connection,installRuleBoard,linkWith} from './app/rule-board.js';
-import {blockedReason,enterMode,enterView,landAfterAdmission} from './app/flow.js';
+import {authorPreviewId,blockedReason,enterMode,enterView,landAfterAdmission} from './app/flow.js';
 /** App orchestration and event wiring; modes, steps and staleness live in the typed flow (ADR-022). */
 import {readClipboard} from './app/clipboard.js';
 import {cycleTheme} from './app/theme.js';
@@ -15,7 +15,7 @@ import {createWorkbenchView} from './app/view.js';
 import {practiceOrder} from './app/fields.js';
 import {createInsertionDrag} from './app/drag-insert.js';
 import {createScrollMemory,updateGutters,copyToClipboard,escapeHtml} from './app/ui-utilities.js';
-import {formatSource,getExercises,compileDraft,editRules,previewDraft,evaluate,loadTypeScriptFixture} from './app/api.js';
+import {formatSource,getExercises,compileDraft,editRules,previewDraft,authorTransition,evaluate,loadTypeScriptFixture} from './app/api.js';
 const root=document.querySelector('#app');
 const state={exercises:[],active:null,attempts:new Map(),previews:new Map(),drag:null,mode:'author',view:'author',practiceActive:null,author:{...NEW_DRAFT_SETTINGS,title:'Saját kódrendezős feladat',description:'Rendezd sorba a kódsorokat.',language:'javascript',source:`function calculate() {\n     const a = 10;\n     const b = 20;\n     return a + b;\n}`,message:''},modelDraft:'',modelMessage:''};
 const ex=()=>state.exercises.find(x=>x.id===state.active);
@@ -34,7 +34,23 @@ function moveAnswerToBoundary(index,boundary){if(attempt.moveInAnswer(index,boun
 const firstFreeBoundary=()=>{const i=at().answer.findIndex(x=>x===null);return i<0?at().answer.length:i;};
 function remove(index){if(attempt.back(index))commit();}
 function applyEditor(){const result=attempt.applyText(root.querySelector('#code-editor').value);if(!result.ok)return commit(result.message);markEditorApplied(at());state.view='sort';commit();}
-function go(next){const a=at();if(!enterView(state,a,a?formattedAnswer():[],next)){notify(blockedReason(state,next)||'Ez a lépés most nem érhető el.');return;}render();}
+/** ADR-108 (E6): the second gate. The Try step of the author's draft opens only after the server (or the
+ * demo) has checked it against the author's current source and policy; once per draft and source. */
+const admitted=new Set();
+async function admitToTry(){
+ const id=authorPreviewId(state),draftId=id&&state.previews.get(id);if(!draftId)return {ok:false,message:blockedReason(state,'sort')};
+ const key=draftId+'\u0000'+state.author.source+'\u0000'+JSON.stringify(authorRequest(state.author));if(admitted.has(key))return {ok:true};
+ try{const answer=await authorTransition({draftId,...authorRequest(state.author)});state.tryGate=answer.gate;admitted.add(key);return {ok:true};}
+ catch(error){return {ok:false,message:error instanceof Error?error.message:'A Próba lépés most nem nyitható meg.'};}
+}
+/** A preview request with the second gate's evidence: the author's current source and analysis settings. */
+const gateEvidence=body=>({...authorRequest(state.author),...body});
+const entersTry=next=>state.mode==='author'&&!state.learnerPreview&&(next==='sort'||next==='edit')&&state.view!=='sort'&&state.view!=='edit';
+async function go(next){
+ // A refused Try lands on Rules, where the stale notice offers rebuilding or discarding the change.
+ if(entersTry(next)){const gate=await admitToTry();if(!gate.ok){state.modelMessage=gate.message;if(state.view==='author')state.author.message=gate.message;if(state.view==='model'){render();return;}next='model';}}
+ const a=at();if(!enterView(state,a,a?formattedAnswer():[],next)){notify(blockedReason(state,next)||'Ez a lépés most nem érhető el.');return;}render();
+}
 const steps={source:'author',rules:'model',try:'sort'};
 /** Commit a newly compiled author model atomically and continue where the flow says (`land`).
  * Compatible attempts survive a dependency-only edit, so the new rules are observable at once. */
@@ -49,8 +65,10 @@ async function authorApply(body,{preserveAttempt=false,sessionImport,current=cap
  const summary='A modell elkészült: '+m.lines.length+' sor, '+m.blocks.length+' blokk. '+(m.authoring?.dependencyHints?.length??0)+' deklaráció/használat jelzés. Az egyszerű const deklarációk kötésalapú függőségeket kapnak; teljes szemantikai bizonyítás nincs.'+(m.authoring?.omittedBlocks?' '+m.authoring.omittedBlocks+' közös sorhatárú blokk csak sorrendvédelemmel reprezentált.':'');
  state.modelMessage=body.source!==undefined?summary:compatible?'A módosított szabályok érvényesek. A kitöltés megmaradt; ellenőrizheted az új függőségekkel.':'A módosított modell érvényes. A kitöltést az új szerkezethez visszaállítottuk.';
  state.author.message=summary;
+ // ADR-108 (E6): landing on Try (a session import) passes the second gate first; refused, it lands on Rules.
+ if(land==='try'){const gate=await admitToTry();if(!gate.ok){land='rules';state.modelMessage=gate.message;}}
  landAfterAdmission(state,land);commit(state.modelMessage);
- if(compatible){const id=state.active,a=at(),generation=a.generation,{lines,slots}=submitted(a);let report;try{report={...await previewDraft({draftId:data.draftId,lines}),slots};}catch{report={status:'indeterminate',message:'Az előnézet értékelése nem érhető el.',exploredStates:0};}if(state.active===id&&at()===a&&a.generation===generation){a.report=report;render();}}
+ if(compatible){const id=state.active,a=at(),generation=a.generation,{lines,slots}=submitted(a);let report;try{report={...await previewDraft(gateEvidence({draftId:data.draftId,lines})),slots};}catch(error){report={status:'indeterminate',message:error instanceof Error&&/^A Próba lépés/.test(error.message)?error.message:'Az előnézet értékelése nem érhető el.',exploredStates:0};}if(state.active===id&&at()===a&&a.generation===generation){a.report=report;render();}}
  return data;
 }
 /** The link between the anchor and another line toggles (ADR-024): a direct link is removed (the
@@ -125,9 +143,9 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
   try{const source=await loadTypeScriptFixture();if(!current())return;state.author.source=source;state.author.language='typescript';state.author.title='CopyFieldUtilityService';state.author.description='Mellékelt TypeScript service, 31 osztálytag';state.author.message='A 31 metódusos TypeScript minta betöltve.';render();}catch(err){if(current()){state.author.message=err.message;render();}}return;
  }
  if(b.dataset.mode){enterMode(state,b.dataset.mode);render();root.querySelector(`[data-mode="${state.mode}"]`)?.focus({preventScroll:true});return;}
- if(b.dataset.step||b.dataset.goto){go(steps[b.dataset.step??b.dataset.goto]);root.querySelector('#step-title')?.focus?.({preventScroll:true});return;}
+ if(b.dataset.step||b.dataset.goto){await go(steps[b.dataset.step??b.dataset.goto]);root.querySelector('#step-title')?.focus?.({preventScroll:true});return;}
  if(b.dataset.rulesView){state.rulesView=b.dataset.rulesView;render();return;}
- if(b.hasAttribute('data-open-json')){state.rulesView='json';go('model');return;}
+ if(b.hasAttribute('data-open-json')){state.rulesView='json';await go('model');return;}
  if(b.dataset.sourceKind){state.sourceKind=b.dataset.sourceKind;render();return;}
  if(b.hasAttribute('data-start-load')){const e=state.exercises.find(x=>x.id===root.querySelector('[data-start-example]')?.value);if(!e){state.author.message='Válassz egy példát a listából.';render();return;}startFromExample(state,e);state.sourceKind='code';render();return;}
  if(b.hasAttribute('data-edit-example')){const e=ex();if(!e)return;startFromExample(state,e);enterMode(state,'author');state.view='author';state.sourceKind='code';render();return;}
@@ -168,7 +186,7 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  if(b.dataset.ruleEdit){const selection=state.ruleSelection,draftId=state.previews.get(state.active);if(!selection||!draftId)return;const blocked=ruleEditBlocked(state),edit=readRuleEdit(b,selection);if(blocked||!edit){selection.message=blocked||'Válaszd ki a szabály másik sorát.';render();return;}
   await authorApply({draftId,edits:[edit]},{preserveAttempt:true,request:editRules});return;}
  if(b.dataset.task){state.practiceActive=state.active=b.dataset.task;state.view='sort';render();return;}
- if(b.dataset.view){go(b.dataset.view);return;}
+ if(b.dataset.view){await go(b.dataset.view);return;}
  if(b.hasAttribute('data-reset')){state.attempts.set(state.active,createAttempt(ex()));render();return;}
  if(b.hasAttribute('data-all')){a.answer=ex().lines.map(x=>x.id);a.pool=[];a.custom=new Map();state.view='sort';commit();return;}
  if(b.hasAttribute('data-move')){movePoolToBoundary(+b.dataset.move,firstFreeBoundary());return;}
@@ -194,8 +212,9 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
    const generation=a.generation;
    delete state.feedbackFocus;
    try{const preview=state.previews.get(state.active),{lines,slots}=submitted(a);
-      const report=preview?await previewDraft({draftId:preview,lines}):await evaluate({exerciseId:ex().id,revision:ex().revision,lines});if(at()===a&&a.generation===generation)a.report={...report,slots};}
-   catch{if(at()===a&&a.generation===generation)a.report={status:'indeterminate',message:'A validációs szerver nem érhető el.',exploredStates:0};}render();return;
+      // ADR-108 (E6): an author preview is evaluated only through the second gate; the request carries its evidence.
+      const report=preview?await previewDraft(gateEvidence({draftId:preview,lines})):await evaluate({exerciseId:ex().id,revision:ex().revision,lines});if(at()===a&&a.generation===generation)a.report={...report,slots};}
+   catch(error){if(at()===a&&a.generation===generation)a.report={status:'indeterminate',message:error instanceof Error&&/^A Próba lépés/.test(error.message)?error.message:'A validációs szerver nem érhető el.',exploredStates:0};}render();return;
  }
 },error=>notify(error instanceof Error?error.message:'A művelet nem sikerült.')));
 root.addEventListener('keydown',ev=>{if(ev.key!=='Escape'||!state.rulePanelOpen||ev.defaultPrevented||!(ev.target instanceof Element)||!ev.target.closest('.rule-inspector,.inspector-toggle')||ev.target.closest('input,textarea,select'))return;ev.preventDefault();state.rulePanelOpen=false;render();root.querySelector('.inspector-toggle')?.focus({preventScroll:true});});

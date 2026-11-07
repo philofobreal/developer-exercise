@@ -1,14 +1,15 @@
 /** GitHub Pages static demo adapter. All evaluation is local and demonstrative.
  * This is NEVER an authoritative server-grade grading endpoint. */
 import {compileCodeLineExercise,validateSubmission,diagnoseSubmission,channelFeedback,codeLineDiagnosticReasons} from '../dist/index.js';
-import {generateCodeLineExercise} from '../author/generator.mjs';
+import {generateCodeLineExercise,DEPENDENCY_POLICY} from '../author/generator.mjs';
 import {getLanguageAdapter} from '../author/languages.mjs';
 import {auditReference} from '../author/audit.mjs';
 import {authorRuleSheet,editAuthorModel,refreshAuthorModel,verifyAuthorModel} from '../dist/author/engine.js';
 import {createReferenceAuditor} from '../dist/author/reference-audit.js';
-import {auditMode,generatorOptions,policyRefusal,resolveAuthorPolicy} from '../dist/author/preflight/config-resolver.js';
+import {auditMode,generatorOptions,policyRefusal,recordedContract,resolveAuthorPolicy} from '../dist/author/preflight/config-resolver.js';
 import {sourceGate} from '../dist/author/preflight/source-gate.js';
 import {runtimeSafety} from '../dist/author/preflight/runtime-safety.js';
+import {rulesGate,snapshotOf} from '../dist/author/preflight/rules-gate.js';
 
 export const validationMode='local-demo';
 const records = new Map();
@@ -62,7 +63,9 @@ export async function compileDraft(body){
   auditReference(model,getTypeScript());
   // ADR-108 (E5a): the same first gate as the server. Without a standard library the audit is not-run, so
   // the gate is inconclusive here: it lets the draft through only under the `warn` policy.
-  policy??=resolveAuthorPolicy({language:model.language,...(body?.policy!==undefined?{policy:body.policy}:{})});
+  // An imported model states its own source contract (plan §2.3): its recorded environment is the
+    // requested policy, an assumption and never a proof (C27).
+    policy??=resolveAuthorPolicy({language:model.language,...recordedContract(model),...(body?.policy!==undefined?{policy:body.policy}:{})});
   {const refusal=policyRefusal(policy);if(refusal)throw Error(refusal);}
   const reviewed=typeof body?.source==='string'&&!body?.model?body.source.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n'):model.lines.map(l=>l.code).join('\n');
   const gate=sourceGate(createReferenceAuditor(getTypeScript()).audit(reviewed,model.language,auditMode(policy)),policy,runtimeSafety(getTypeScript(),reviewed,model.language==='typescript'?'typescript':'javascript',{objectState:policy.effective.objectState}));
@@ -71,7 +74,7 @@ export async function compileDraft(body){
   // No standard library is shipped to the static demo: the language audit reports `not-run` (ADR-016).
   const audit=createReferenceAuditor(getTypeScript()).audit(model.lines.map(l=>l.code).join('\n'),model.language,auditMode(policy));
   const verification=await verifyAuthorModel(model,{generate:input=>generateCodeLineExercise(input,getTypeScript())},{audit:audit.semantics});
-  drafts.set(draftId,{model,compiled,audit});
+  drafts.set(draftId,{model,compiled,audit,verification,snapshot:snapshotOf(reviewed,policy,gate)});
   return {draftId,model,previewOnly:true,mode:'local-demo',audit,verification,rules:authorRuleSheet(model),...(refresh?{refresh}:{}),policy,gate};
 }
 /** Typed rule edits on the demo's own draft copy (ADR-018, ADR-021); a refused edit is `ok: false`. */
@@ -81,12 +84,28 @@ export async function editRules(body){
   const {result,verification}=await editAuthorModel(ref.model,body.edits,{generate:input=>generateCodeLineExercise(input,getTypeScript())},{audit:ref.audit.semantics});
   if(!result.ok)return result;
   const draftId='pages-'+nextDraft++,model={...result.model,id:'author-'+draftId},compiled=assertSafeModel(model);
-  drafts.delete(body.draftId);drafts.set(draftId,{model,compiled,audit:ref.audit});
-  return {ok:true,draftId,model,previewOnly:true,mode:'local-demo',audit:ref.audit,verification,effect:result.effect,rules:authorRuleSheet(model)};
+  drafts.delete(body.draftId);drafts.set(draftId,{model,compiled,audit:ref.audit,verification,snapshot:ref.snapshot});
+  return {ok:true,draftId,model,previewOnly:true,mode:'local-demo',audit:ref.audit,verification,effect:result.effect,rules:authorRuleSheet(model),...(ref.snapshot?{policy:ref.snapshot.policy}:{})};
+}
+/** ADR-108 (E6): the same second gate as the server, on the demo's own draft copy. */
+export async function authorTransition(body){
+  const ref=drafts.get(body?.draftId);
+  if(!ref)throw Error('Érvénytelen vagy lejárt szerzői előnézet.');
+  return {ok:true,draftId:body.draftId,gate:admit(ref,body)};
+}
+function admit(ref,body){
+  const policy=resolveAuthorPolicy({...body,language:ref.model.language});{const refusal=policyRefusal(policy);if(refusal)throw Error(refusal);}
+  const gate=rulesGate({snapshot:ref.snapshot,current:{source:body.source,policy},model:ref.model,verification:ref.verification,analyzer:`${DEPENDENCY_POLICY}+typescript-${getTypeScript().version}`});
+  if(!gate.admitted)throw Error(gate.message);
+  ref.tryProof=gate.proof;
+  return gate;
 }
 export async function previewDraft(body){
   const ref=drafts.get(body?.draftId);
   if(!ref||!Array.isArray(body.lines))throw Error('Érvénytelen vagy lejárt szerzői előnézet.');
+  // As on the server: a preview carrying the current source passes the second gate itself.
+  if(!ref.tryProof&&typeof body.source==='string')admit(ref,body);
+  if(!ref.tryProof)throw Error('A Próba lépés még nincs megnyitva ehhez a modellhez: előbb a második kapun (Szabályok → Próba) kell átmenni.');
   const report=diagnoseSubmission(ref.compiled,{exerciseId:ref.model.id,revision:ref.model.revision,lines:body.lines},{maxStates:30_000,reasons:ref.reasons??=codeLineDiagnosticReasons(ref.model)});
   return {...report.verdict,feedback:channelFeedback(report,'author-preview',ref.model.learnerFeedback)};
 }

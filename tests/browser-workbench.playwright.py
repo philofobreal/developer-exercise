@@ -114,6 +114,15 @@ def source_gate(page):
     expect(page.locator('.author-status')).to_contain_text('nyelvi hibát tartalmaz');expect(page.locator('.author-status')).to_contain_text('4. sor');current(page,'source')
     expect(page.locator('[data-step="rules"]')).to_be_disabled()
     page.locator('#author-editor').fill('function f() {\n  const a: number = 1;\n\n  const b: number = a;\n  return b;\n}');page.locator('[data-author-apply]').click();current(page,'rules')
+def second_gate(page):
+    """ADR-108 (E6): the Try step opens through the second gate; an unapplied source change after the model
+    is stale evidence: the step stays closed, the author lands on Rules with the reason and the stale notice,
+    and rebuilding from there opens it again."""
+    build(page,rules_source);to_try(page);expect(page.locator('.solution-zone')).to_be_visible()
+    page.locator('[data-step="source"]').click();page.locator('#author-editor').fill(rules_source+'\n// változás')
+    page.locator('[data-step="try"]').click();current(page,'rules')
+    expect(page.locator('main')).to_contain_text('a modell készítése óta változott');expect(page.locator('.solution-zone')).to_have_count(0)
+    page.locator('[data-stale-notice] [data-author-apply]').click();expect(page.locator('[data-stale-notice]')).to_have_count(0);current(page,'rules');to_try(page)
 def menus(page):
     """ADR-105: a header or step menu opens on its summary and closes on Escape, an outside click or an action inside."""
     menu=page.locator('details.session-menu');menu.locator('summary').click();expect(menu).to_have_attribute('open','')
@@ -205,7 +214,8 @@ def stale_rebuild_updates_every_step(page):
     """Regenerating from a changed source refreshes rules, JSON and try; nothing keeps the old model."""
     build(page,rules_source);to_try(page);page.locator('[data-all]').click()
     page.locator('[data-step="source"]').click();page.locator('#author-editor').fill(rules_source.replace('  g(b, c);\n','  g(b, c);\n  h(c);\n'))
-    page.locator('[data-step="try"]').click();expect(page.locator('[data-stale-notice]')).to_contain_text('referenciaforrás');expect(page.locator('.solution-zone .code-row')).to_have_count(6)
+    # The second gate (ADR-108, E6) refuses Try for a stale source and lands on Rules with the stale notice.
+    page.locator('[data-step="try"]').click();current(page,'rules');expect(page.locator('[data-stale-notice]')).to_contain_text('referenciaforrás');expect(page.locator('main')).to_contain_text('A Próba lépés nem nyitható meg')
     page.locator('[data-stale-notice] [data-author-apply]').click();expect(page.locator('[data-stale-notice]')).to_have_count(0)
     current(page,'rules');expect(page.locator('[data-board-line]')).to_have_count(7)
     rules_json(page);assert len(json.loads(page.locator('#model-editor').input_value())['lines'])==7
@@ -670,6 +680,7 @@ try:
             reset(page,BASE);case('node two code views, remembered, with their row geometry',lambda:code_views(page))
             reset(page,BASE);case('node pane separator and full-screen focus without scroll',lambda:split_and_full_screen_focus(page))
             reset(page,BASE);case('node first gate: a definite language error stays on the source step',lambda:source_gate(page))
+            reset(page,BASE);case('node second gate: stale source keeps the Try step closed',lambda:second_gate(page))
             reset(page,BASE);case('node duplicate-check prevention and async feedback',lambda:busy(page))
             reset(page,BASE);case('node admission preserves newer reference edits',lambda:stale_author_admission(page))
             reset(page,BASE);case('node sample loading preserves newer reference edits',lambda:stale_source_sample(page))
