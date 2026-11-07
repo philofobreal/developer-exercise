@@ -12,7 +12,7 @@ import {generateCodeLineExercise} from '../src/author/generator.mjs';
 test('an empty request keeps the historical fallback (any, observed, either, verbatim) and warns on unknowns',()=>{
  const r=resolveAuthorPolicy({language:'typescript'});
  assert.equal(r.schema,POLICY_SCHEMA);
- assert.deepEqual(r.effective,{inputs:'any',keyOrder:'observed',classFields:'either',importEmit:'verbatim',portability:'configured',unknownPolicy:'warn'});
+ assert.deepEqual(r.effective,{inputs:'any',keyOrder:'observed',classFields:'either',importEmit:'verbatim',portability:'configured',unknownPolicy:'warn',tsDiagnostics:'baseline',jsCheck:'off'});
  assert.deepEqual(r.requested,{});assert.deepEqual(r.locks,[]);assert.deepEqual(r.conflicts,[]);assert.equal(policyRefusal(r),'');
 });
 
@@ -37,7 +37,7 @@ test('C12: the TypeScript import emit is inactive for JavaScript and never reach
 });
 
 test('C33: an invalid value, an unknown or not yet implemented option and a malformed policy are blocking conflicts',()=>{
- const bad=[[{inputs:'strict'},'inputs'],[{keyOrder:7},'keyOrder'],[{policy:{unknownPolicy:'ignore'}},'unknownPolicy'],[{policy:{unknownPolicy:'require-ack'}},'unknownPolicy'],[{policy:{tsDiagnostics:'strict'}},'policy.tsDiagnostics'],[{policy:{bindingSafety:'off'}},'policy.bindingSafety'],[{policy:[]},'policy']];
+ const bad=[[{inputs:'strict'},'inputs'],[{keyOrder:7},'keyOrder'],[{policy:{unknownPolicy:'ignore'}},'unknownPolicy'],[{policy:{unknownPolicy:'require-ack'}},'unknownPolicy'],[{policy:{tsDiagnostics:'pedantic'}},'tsDiagnostics'],[{policy:{controlFlow:'interprocedural'}},'policy.controlFlow'],[{policy:{bindingSafety:'off'}},'policy.bindingSafety'],[{policy:[]},'policy']];
  for(const [request,path] of bad){const r=resolveAuthorPolicy({language:'javascript',...request});assert.ok(r.conflicts.some(c=>c.blocking&&c.path===path&&c.code==='C33'),JSON.stringify(request));assert.notEqual(policyRefusal(r),'');}
 });
 
@@ -73,9 +73,9 @@ test('HTTP: a refused option is a structured 422 with the resolution; an admitte
  let ok=false;for(let i=0;i<60&&!ok;i++){try{ok=(await fetch(url+'/api/exercises')).ok;}catch{}if(!ok)await new Promise(r=>setTimeout(r,70));}
  assert.ok(ok,'Server did not start');
  const post=body=>fetch(url+'/api/author/compile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
- const refused=await post({source:'const a = 1;',language:'javascript',policy:{jsCheck:'on'}});
+ const refused=await post({source:'const a = 1;',language:'javascript',policy:{bindingSafety:'off'}});
  assert.equal(refused.status,422);const answer=await refused.json();
- assert.match(answer.error,/jsCheck/);assert.equal(answer.policy.conflicts[0].code,'C33');
+ assert.match(answer.error,/bindingSafety/);assert.equal(answer.policy.conflicts[0].code,'C33');
  const admitted=await post({source:'const a = 1;\nconst b = 2;',language:'typescript',inputs:'valid',policy:{portability:'conservative'}});
  assert.equal(admitted.status,200);const draft=await admitted.json();
  assert.equal(draft.policy.effective.inputs,'any');assert.deepEqual(draft.policy.locks.map(lock=>lock.rule),['C01']);

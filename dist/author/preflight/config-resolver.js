@@ -19,11 +19,13 @@ const OPTIONS = {
     classFields: { values: ['either', 'define'], fallback: 'either', label: 'Osztálymezők' },
     importEmit: { values: ['verbatim', 'elide-unused'], fallback: 'verbatim', label: 'Importok kibocsátása', languages: ['typescript'] },
     portability: { values: ['configured', 'conservative'], fallback: 'configured', label: 'Hordozhatóság' },
-    unknownPolicy: { values: ['warn', 'block'], fallback: 'warn', label: 'Nem eldönthető eredmények' }
+    unknownPolicy: { values: ['warn', 'block'], fallback: 'warn', label: 'Nem eldönthető eredmények' },
+    tsDiagnostics: { values: ['baseline', 'strict'], fallback: 'baseline', label: 'TypeScript-diagnosztika', languages: ['typescript'] },
+    jsCheck: { values: ['off', 'on'], fallback: 'off', label: 'JavaScript típusellenőrzés', languages: ['javascript'] }
 };
 /** The source-contract options keep their top-level request names; the newer ones live under `policy`. */
 const TOP_LEVEL = ['inputs', 'keyOrder', 'classFields', 'importEmit'];
-const NESTED = ['portability', 'unknownPolicy'];
+const NESTED = ['portability', 'unknownPolicy', 'tsDiagnostics', 'jsCheck'];
 /** C01–C04: the conservative preset and the strict value of each source-contract option. */
 const CONSERVATIVE = [
     { path: 'inputs', value: 'any', rule: 'C01', reason: 'A konzervatív sorrend nem tételezhet fel érvényes bemenetet: minden bemenetet vizsgál.' },
@@ -91,6 +93,10 @@ export function resolveAuthorPolicy(request) {
 }
 /** The blocking conflicts as one author-facing message, or '' when the policy is admissible. */
 export const policyRefusal = (resolution) => resolution.conflicts.filter(conflict => conflict.blocking).map(conflict => conflict.message).join(' ');
+/** The language audit's mode for the effective policy (E2); an option of the other language is left out. */
+export function auditMode(resolution) {
+    return resolution.language === 'typescript' ? { tsDiagnostics: resolution.effective.tsDiagnostics } : { jsCheck: resolution.effective.jsCheck };
+}
 /** The generator's options for the effective policy; a JavaScript request carries no import emit. */
 export function generatorOptions(resolution) {
     const { inputs, keyOrder, classFields, importEmit } = resolution.effective;

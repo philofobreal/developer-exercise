@@ -12,7 +12,7 @@ import {auditReference} from '../author/audit.mjs';
 import {compileCodeLineExercise,validateSubmission,diagnoseSubmission,channelFeedback,codeLineDiagnosticReasons,publicationRefusal,DEFAULT_PUBLICATION_POLICY} from '../../dist/index.js';
 import {authorRuleSheet,editAuthorModel,refreshAuthorModel,verifyAuthorModel} from '../../dist/author/engine.js';
 import {createReferenceAuditor} from '../../dist/author/reference-audit.js';
-import {generatorOptions,policyRefusal,resolveAuthorPolicy} from '../../dist/author/preflight/config-resolver.js';
+import {auditMode,generatorOptions,policyRefusal,resolveAuthorPolicy} from '../../dist/author/preflight/config-resolver.js';
 import {sourceGate} from '../../dist/author/preflight/source-gate.js';
 export class ServiceError extends Error{constructor(code,message,details){super(message);this.statusCode=code;if(details)this.details=details;}}
 /** The publication policy named by `CODELINE_PUBLICATION` (ADR-027, ADR-035); unset, the core's default
@@ -79,11 +79,11 @@ export class ExerciseCatalog{
     policy??=resolveAuthorPolicy({language:model.language,...(body?.policy!==undefined?{policy:body.policy}:{})});
     {const refusal=policyRefusal(policy);if(refusal)throw new ServiceError(422,refusal,{policy});}
     const reviewed=typeof body?.source==='string'&&!body?.model?body.source.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n'):model.lines.map(l=>l.code).join('\n');
-    const gate=sourceGate((await this.auditor()).audit(reviewed,model.language),policy);
+    const gate=sourceGate((await this.auditor()).audit(reviewed,model.language,auditMode(policy)),policy);
     if(!gate.admitted)throw new ServiceError(422,gate.message,{gate,policy});
     const self=validateSubmission(result.compiled,{exerciseId:model.id,revision:1,lines:model.lines.map(l=>l.code)},{maxStates:200_000});
     if(!self.accepted)throw new ServiceError(422,`A referencia nem érvényes: ${self.message}`);
-    const parser=await this.parser(),audit=(await this.auditor()).audit(model.lines.map(l=>l.code).join('\n'),model.language);
+    const parser=await this.parser(),audit=(await this.auditor()).audit(model.lines.map(l=>l.code).join('\n'),model.language,auditMode(policy));
     // Model Verification Gate (ADR-017): re-derived here, never taken from the request.
     const verification=await verifyAuthorModel(model,{generate:input=>generateCodeLineExercise(input,parser)},{audit:audit.semantics});
     this.drafts.set(draftId,{created:Date.now(),model,compiled:result.compiled,audit,verification});

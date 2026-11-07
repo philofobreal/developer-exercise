@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-07 szerzői preflight: választható szigorúbb nyelvi ellenőrzés (ADR-108, E2)
+
+- **Szigorú TypeScript-ellenőrzés** (`tsDiagnostics: strict`): a szigorú fordítás hibái (például implicit `any`, `null` szöveg helyén) biztos hibák, és megállítják a modellkészítést.
+- **JavaScript típusellenőrzés** (`jsCheck: on`): amit csak a típusellenőrzés talál, az „lehetséges hiba”, mert a JavaScript ettől még lefut. Alapból figyelmeztet, „tilt” beállítás mellett megállít. Az újradeklarálás és a többi nyelvi hiba továbbra is biztos hiba.
+- **Hol érhető el:** egyelőre az API-n keresztül; a felületi kapcsolók az E7 szakaszban jönnek. A Pages-en standard könyvtár nélkül egyik mód sem fut le, és a kapu ezt meg is mondja.
+
 ## Unreleased – 2026-11-07 szerzői preflight: első kapu (ADR-108, E5a)
 
 - **Biztos nyelvi hiba blokkol:** a TypeScript-fordítási hibás referencia (köztük a deklaráció előtti használat) már nem kap modellt. A szerző a Forrás lépésen marad, látja a hibát a szerkesztő sorszámával, és a korábbi modell megmarad.

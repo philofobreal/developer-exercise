@@ -26,6 +26,10 @@ export interface AuthorPolicy {
     /** How the gates treat a `possible` or `unknown` finding; a definite error always blocks (ADR-108).
      * `require-ack` joins with the acknowledgement flow (E6–E7); until then it is refused (ADR-108, deviation 2). */
     unknownPolicy: 'warn' | 'block';
+    /** TypeScript only (E2): `strict` compiles with the `strict` family; its errors are definite compile errors. */
+    tsDiagnostics: 'baseline' | 'strict';
+    /** JavaScript only (E2): `on` adds a `checkJs` type check; what only it finds is a possible error. */
+    jsCheck: 'off' | 'on';
 }
 export type PolicyPath = keyof AuthorPolicy;
 export interface PolicyLock {
@@ -60,6 +64,11 @@ export interface PolicyResolution {
 export declare function resolveAuthorPolicy(request: Readonly<Record<string, unknown>>): PolicyResolution;
 /** The blocking conflicts as one author-facing message, or '' when the policy is admissible. */
 export declare const policyRefusal: (resolution: PolicyResolution) => string;
+/** The language audit's mode for the effective policy (E2); an option of the other language is left out. */
+export declare function auditMode(resolution: PolicyResolution): {
+    tsDiagnostics?: AuthorPolicy['tsDiagnostics'];
+    jsCheck?: AuthorPolicy['jsCheck'];
+};
 /** The generator's options for the effective policy; a JavaScript request carries no import emit. */
 export declare function generatorOptions(resolution: PolicyResolution): {
     inputs: AuthorPolicy['inputs'];

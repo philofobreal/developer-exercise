@@ -6,8 +6,9 @@
  *  - a result the audit could not establish (`unverifiable`: missing project context; `not-run`: no
  *    standard library, as on Pages) is `inconclusive`, never `passed`; the policy's `unknownPolicy`
  *    lets it through with a warning (`warn`) or blocks it (`block`);
+ *  - a possible error (only a JavaScript type check reports it, E2) is `inconclusive` under the same policy;
  *  - only a clean audit is `passed`, meaning: no error found within the audit's supported scope.
- * The audit's own certainty is kept: its non-context diagnostics are definite, its context ones unknown.
+ * The audit's own certainty is kept per diagnostic: definite, possible (type check only) or unknown (context).
  */
 import type { ReferenceAudit } from '../reference-audit.js';
 import type { PolicyResolution } from './config-resolver.js';
@@ -16,7 +17,7 @@ export interface GateDiagnostic {
     line: number;
     code: string;
     message: string;
-    certainty: 'definite' | 'unknown';
+    certainty: 'definite' | 'possible' | 'unknown';
     origin: 'compiler' | 'environment';
 }
 export interface SourceGate {

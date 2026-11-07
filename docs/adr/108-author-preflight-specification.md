@@ -105,6 +105,28 @@ Következtetés:
   - a mintakatalógus szándékos hibaesete (`13-duplicate-names`, TS2300) szerveren elutasítva, a Pages-en `inconclusive`;
   - a JavaScript-újradeklarálást a generátor elemzője már a kapu előtt elutasítja (400).
 
+**E2 – az audit paraméterezése** ([reference-audit.ts](../../src/author/reference-audit.ts), `AuditMode`):
+- **`tsDiagnostics: 'strict'`** (csak TypeScript, a `policy` objektumban):
+  - a `strict` családdal fordít; ez együtt kapcsolja a `strictNullChecks`, `noImplicitAny`, `strictPropertyInitialization` stb. beállítást (C17: nincs külön mezőnkénti kapcsoló);
+  - mivel a szerző kijelentette, hogy a buildje szigorú, a hibái biztos fordítási hibák, és az első kapu blokkol;
+  - a feltevések között `strict` szerepel, nem `non-strict`.
+- **`jsCheck: 'on'`** (csak JavaScript): `checkJs` típusellenőrzés.
+  - A JavaScript a típusellenőrző véleményétől függetlenül lefut, ezért ami *csak* a típusellenőrzésben jelentkezik, az `possible`.
+  - Ami a binding- és nyelvtani menetben is megjelenik (például újradeklarálás), `definite` marad. A két futás eredményét pozíció és kód alapján vetjük össze.
+  - A JS TDZ-jelzése (TS2448) itt `possible`, ahogy a 2. döntés kimondja.
+- **Ellenpélda a `checkJs` korlátjára:** az `o.b = 2` JavaScriptben új tulajdonság deklarációja (expando), ezért ott sincs találat. A felület nem ígérhet ennél többet.
+- **Kapu:** a `possible` találat `inconclusive`; `warn` mellett továbbenged, `block` mellett megállít.
+- **Hatókör:** mindkét beállítás nyelvhez kötött (C14, C15: a másik nyelvnél inaktív, és nem szerepel az ujjlenyomatban). Standard könyvtár nélkül (Pages) mindkét mód `not-run` (C16).
+- **Mérés** (`createDraft` medián, 5 futás, a katalógus leghosszabb mintái):
+
+  | Minta | Alapmód | Bekapcsolt mód |
+  | --- | --- | --- |
+  | `algo-sort-search-js` (29 sor) | 46 ms | 45 ms (`jsCheck: 'on'`) |
+  | `class-inventory-ts` (34 sor) | 35 ms | 33 ms (`tsDiagnostics: 'strict'`) |
+
+  A katalógus mintái mindkét szigorúbb módban átmennek.
+- **Bizonyíték:** `tests/audit-modes.test.mjs`.
+
 **Bizonyíték:**
 - `tests/author-policy.test.mjs`:
   - az összes kombináció tulajdonságtesztje: a konzervatív preset mindig a szigorú szerződést adja, és az ujjlenyomat csak a hatályos policytól függ;

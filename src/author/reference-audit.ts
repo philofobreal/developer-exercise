@@ -9,6 +9,12 @@
  *    (an unresolved module, an undeclared global); the reference may be correct;
  *  - `not-run`: no standard library is available (static Pages demo).
  * The result is reported at every admission, never stored in or trusted from a model.
+ *
+ * ADR-108 (E2): the author may ask for a stricter check. `tsDiagnostics: 'strict'` compiles TypeScript
+ * with the `strict` family (the author's build is strict, so its errors are definite compile errors).
+ * `jsCheck: 'on'` type-checks JavaScript (`checkJs`); JavaScript still runs whatever a type checker
+ * thinks, so a finding that only the type check reports is `possible`, never definite (ADR-108, the
+ * TDZ measurement): only what the binding-and-grammar pass also reports stays definite.
  * The library files come through a port, so the module stays browser-safe; a parsed
  * library is cached per auditor. JavaScript is checked for binding and grammar errors
  * only (no `checkJs`): its untyped code would otherwise yield inference noise.
@@ -17,16 +23,22 @@ import type ts from 'typescript';
 
 /** Returns the text of a standard library file (`lib.es2022.full.d.ts`, …) or undefined. */
 export type LibraryPort = (fileName: string) => string | undefined;
+export interface AuditMode {tsDiagnostics?: 'baseline' | 'strict'; jsCheck?: 'off' | 'on';}
+export type AuditCertainty = 'definite' | 'possible' | 'unknown';
 export interface ReferenceAudit {
+ /** From the definite diagnostics: `errors` when there is one; `unverifiable` when only a missing project
+  * context explains what was found; `ok` otherwise (possible findings of a type check may remain). */
  semantics: 'ok' | 'errors' | 'unverifiable' | 'not-run';
- /** First 20 diagnostics, 1-based physical source lines; `context`: explained by a missing project context. */
- diagnostics: {line: number; code: number; message: string; context: boolean}[];
+ /** First 20 diagnostics, 1-based physical source lines; `context`: explained by a missing project context;
+  * `certainty`: definite (a language or compile error), possible (only a JavaScript type check reports it),
+  * unknown (a missing project context explains it). */
+ diagnostics: {line: number; code: number; message: string; context: boolean; certainty: AuditCertainty}[];
  /** Module specifiers the single-file context cannot resolve (at most 50). */
  unresolved: string[];
  /** The fixed configuration the result depends on. */
  assumptions: string[];
 }
-export interface ReferenceAuditor {audit(source: string, language: 'javascript' | 'typescript'): ReferenceAudit;}
+export interface ReferenceAuditor {audit(source: string, language: 'javascript' | 'typescript', mode?: AuditMode): ReferenceAudit;}
 
 const DEFAULT_LIB = 'lib.es2022.full.d.ts';
 /** Unresolved modules, undeclared names and namespaces, and missing ambient typings. */
@@ -41,8 +53,9 @@ export function createReferenceAuditor(compiler: typeof ts, library?: LibraryPor
   if (!libraries.has(name)) {const text = library(name); libraries.set(name, text === undefined ? undefined : compiler.createSourceFile(name, text, compiler.ScriptTarget.ES2022));}
   return libraries.get(name);
  };
- function audit(source: string, language: 'javascript' | 'typescript'): ReferenceAudit {
-  const assumptions = ['single-file', 'target:es2022', 'module:esnext', 'non-strict', ...(language === 'javascript' ? ['javascript-binding-only'] : [])];
+ function audit(source: string, language: 'javascript' | 'typescript', mode: AuditMode = {}): ReferenceAudit {
+  const strict = language === 'typescript' && mode.tsDiagnostics === 'strict', checkJs = language === 'javascript' && mode.jsCheck === 'on';
+  const assumptions = ['single-file', 'target:es2022', 'module:esnext', strict ? 'strict' : 'non-strict', ...(language === 'javascript' ? [checkJs ? 'javascript-check-js' : 'javascript-binding-only'] : [])];
   if (!library || !libraryFile(DEFAULT_LIB)) return {semantics: 'not-run', diagnostics: [], unresolved: [], assumptions: [...assumptions, 'no-standard-library']};
   const fileName = 'reference.' + (language === 'typescript' ? 'ts' : 'js');
   const file = compiler.createSourceFile(fileName, source, compiler.ScriptTarget.ES2022, true, language === 'typescript' ? compiler.ScriptKind.TS : compiler.ScriptKind.JS);
@@ -51,22 +64,25 @@ export function createReferenceAuditor(compiler: typeof ts, library?: LibraryPor
   const scan = (node: ts.Node): void => {if (compiler.isDecorator(node)) decorated = true; else if (!decorated) compiler.forEachChild(node, scan);};
   scan(file);
   if (decorated) assumptions.push('experimental-decorators');
-  const options: ts.CompilerOptions = {target: compiler.ScriptTarget.ES2022, module: compiler.ModuleKind.ESNext, moduleResolution: compiler.ModuleResolutionKind.Bundler, allowJs: true, noEmit: true, types: [], skipDefaultLibCheck: true, experimentalDecorators: decorated, lib: [DEFAULT_LIB]};
+  const options: ts.CompilerOptions = {target: compiler.ScriptTarget.ES2022, module: compiler.ModuleKind.ESNext, moduleResolution: compiler.ModuleResolutionKind.Bundler, allowJs: true, noEmit: true, types: [], skipDefaultLibCheck: true, experimentalDecorators: decorated, lib: [DEFAULT_LIB], ...(strict ? {strict: true} : {})};
   const host: ts.CompilerHost = {
    getSourceFile: name => name === fileName ? file : libraryFile(name),
    getDefaultLibFileName: () => DEFAULT_LIB, getDefaultLibLocation: () => '', writeFile: () => undefined, getCurrentDirectory: () => '', getDirectories: () => [],
    getCanonicalFileName: name => name, useCaseSensitiveFileNames: () => true, getNewLine: () => '\n',
    fileExists: name => name === fileName || !!libraryFile(name), readFile: () => undefined
   };
-  const program = compiler.createProgram([fileName], options, host);
-  const found = [...program.getSyntacticDiagnostics(file), ...program.getSemanticDiagnostics(file), ...program.getGlobalDiagnostics()];
+  const diagnose = (extra: ts.CompilerOptions): readonly ts.Diagnostic[] => {const program = compiler.createProgram([fileName], {...options, ...extra}, host); return [...program.getSyntacticDiagnostics(file), ...program.getSemanticDiagnostics(file), ...program.getGlobalDiagnostics()];};
+  const found = diagnose(checkJs ? {checkJs: true} : {});
+  // A JavaScript finding is definite only when the binding-and-grammar pass reports it too.
+  const key = (diagnostic: ts.Diagnostic): string => `${diagnostic.start ?? -1}:${diagnostic.code}`;
+  const baseline = checkJs ? new Set(diagnose({}).map(key)) : undefined;
   const unresolved = new Set<string>();
   const diagnostics = found.map(diagnostic => {
    const start = diagnostic.start ?? 0;
    if (UNRESOLVED_MODULE.has(diagnostic.code) && diagnostic.file === file && diagnostic.length) unresolved.add(file.text.slice(start + 1, start + diagnostic.length - 1));
-   return {line: diagnostic.file === file ? file.getLineAndCharacterOfPosition(start).line + 1 : 0, code: diagnostic.code, message: compiler.flattenDiagnosticMessageText(diagnostic.messageText, ' ').slice(0, 300), context: CONTEXT_CODES.has(diagnostic.code)};
+   return {line: diagnostic.file === file ? file.getLineAndCharacterOfPosition(start).line + 1 : 0, code: diagnostic.code, message: compiler.flattenDiagnosticMessageText(diagnostic.messageText, ' ').slice(0, 300), context: CONTEXT_CODES.has(diagnostic.code), certainty: (CONTEXT_CODES.has(diagnostic.code) ? 'unknown' : baseline && !baseline.has(key(diagnostic)) ? 'possible' : 'definite') as AuditCertainty};
   });
-  const semantics = diagnostics.some(diagnostic => !diagnostic.context) ? 'errors' : diagnostics.length ? 'unverifiable' : 'ok';
+  const semantics = diagnostics.some(diagnostic => diagnostic.certainty === 'definite') ? 'errors' : diagnostics.some(diagnostic => diagnostic.certainty === 'unknown') ? 'unverifiable' : 'ok';
   return {semantics, diagnostics: diagnostics.slice(0, 20), unresolved: [...unresolved].slice(0, 50), assumptions: [...assumptions, 'lib:' + DEFAULT_LIB]};
  }
  return {audit};

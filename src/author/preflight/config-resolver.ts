@@ -26,6 +26,10 @@ export interface AuthorPolicy {
  /** How the gates treat a `possible` or `unknown` finding; a definite error always blocks (ADR-108).
   * `require-ack` joins with the acknowledgement flow (E6–E7); until then it is refused (ADR-108, deviation 2). */
  unknownPolicy: 'warn' | 'block';
+ /** TypeScript only (E2): `strict` compiles with the `strict` family; its errors are definite compile errors. */
+ tsDiagnostics: 'baseline' | 'strict';
+ /** JavaScript only (E2): `on` adds a `checkJs` type check; what only it finds is a possible error. */
+ jsCheck: 'off' | 'on';
 }
 export type PolicyPath = keyof AuthorPolicy;
 export interface PolicyLock {path: PolicyPath; requested: string | undefined; effective: string; rule: string; reason: string;}
@@ -49,11 +53,13 @@ const OPTIONS: Readonly<Record<PolicyPath, Option>> = {
  classFields: {values: ['either', 'define'], fallback: 'either', label: 'Osztálymezők'},
  importEmit: {values: ['verbatim', 'elide-unused'], fallback: 'verbatim', label: 'Importok kibocsátása', languages: ['typescript']},
  portability: {values: ['configured', 'conservative'], fallback: 'configured', label: 'Hordozhatóság'},
- unknownPolicy: {values: ['warn', 'block'], fallback: 'warn', label: 'Nem eldönthető eredmények'}
+ unknownPolicy: {values: ['warn', 'block'], fallback: 'warn', label: 'Nem eldönthető eredmények'},
+ tsDiagnostics: {values: ['baseline', 'strict'], fallback: 'baseline', label: 'TypeScript-diagnosztika', languages: ['typescript']},
+ jsCheck: {values: ['off', 'on'], fallback: 'off', label: 'JavaScript típusellenőrzés', languages: ['javascript']}
 };
 /** The source-contract options keep their top-level request names; the newer ones live under `policy`. */
 const TOP_LEVEL: readonly PolicyPath[] = ['inputs', 'keyOrder', 'classFields', 'importEmit'];
-const NESTED: readonly PolicyPath[] = ['portability', 'unknownPolicy'];
+const NESTED: readonly PolicyPath[] = ['portability', 'unknownPolicy', 'tsDiagnostics', 'jsCheck'];
 /** C01–C04: the conservative preset and the strict value of each source-contract option. */
 const CONSERVATIVE: readonly {path: PolicyPath; value: string; rule: string; reason: string}[] = [
  {path: 'inputs', value: 'any', rule: 'C01', reason: 'A konzervatív sorrend nem tételezhet fel érvényes bemenetet: minden bemenetet vizsgál.'},
@@ -109,6 +115,11 @@ export function resolveAuthorPolicy(request: Readonly<Record<string, unknown>>):
 
 /** The blocking conflicts as one author-facing message, or '' when the policy is admissible. */
 export const policyRefusal = (resolution: PolicyResolution): string => resolution.conflicts.filter(conflict => conflict.blocking).map(conflict => conflict.message).join(' ');
+
+/** The language audit's mode for the effective policy (E2); an option of the other language is left out. */
+export function auditMode(resolution: PolicyResolution): {tsDiagnostics?: AuthorPolicy['tsDiagnostics']; jsCheck?: AuthorPolicy['jsCheck']} {
+ return resolution.language === 'typescript' ? {tsDiagnostics: resolution.effective.tsDiagnostics} : {jsCheck: resolution.effective.jsCheck};
+}
 
 /** The generator's options for the effective policy; a JavaScript request carries no import emit. */
 export function generatorOptions(resolution: PolicyResolution): {inputs: AuthorPolicy['inputs']; keyOrder: AuthorPolicy['keyOrder']; classFields: AuthorPolicy['classFields']; importEmit?: AuthorPolicy['importEmit']} {

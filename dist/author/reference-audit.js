@@ -14,8 +14,9 @@ export function createReferenceAuditor(compiler, library) {
         }
         return libraries.get(name);
     };
-    function audit(source, language) {
-        const assumptions = ['single-file', 'target:es2022', 'module:esnext', 'non-strict', ...(language === 'javascript' ? ['javascript-binding-only'] : [])];
+    function audit(source, language, mode = {}) {
+        const strict = language === 'typescript' && mode.tsDiagnostics === 'strict', checkJs = language === 'javascript' && mode.jsCheck === 'on';
+        const assumptions = ['single-file', 'target:es2022', 'module:esnext', strict ? 'strict' : 'non-strict', ...(language === 'javascript' ? [checkJs ? 'javascript-check-js' : 'javascript-binding-only'] : [])];
         if (!library || !libraryFile(DEFAULT_LIB))
             return { semantics: 'not-run', diagnostics: [], unresolved: [], assumptions: [...assumptions, 'no-standard-library'] };
         const fileName = 'reference.' + (language === 'typescript' ? 'ts' : 'js');
@@ -29,23 +30,26 @@ export function createReferenceAuditor(compiler, library) {
         scan(file);
         if (decorated)
             assumptions.push('experimental-decorators');
-        const options = { target: compiler.ScriptTarget.ES2022, module: compiler.ModuleKind.ESNext, moduleResolution: compiler.ModuleResolutionKind.Bundler, allowJs: true, noEmit: true, types: [], skipDefaultLibCheck: true, experimentalDecorators: decorated, lib: [DEFAULT_LIB] };
+        const options = { target: compiler.ScriptTarget.ES2022, module: compiler.ModuleKind.ESNext, moduleResolution: compiler.ModuleResolutionKind.Bundler, allowJs: true, noEmit: true, types: [], skipDefaultLibCheck: true, experimentalDecorators: decorated, lib: [DEFAULT_LIB], ...(strict ? { strict: true } : {}) };
         const host = {
             getSourceFile: name => name === fileName ? file : libraryFile(name),
             getDefaultLibFileName: () => DEFAULT_LIB, getDefaultLibLocation: () => '', writeFile: () => undefined, getCurrentDirectory: () => '', getDirectories: () => [],
             getCanonicalFileName: name => name, useCaseSensitiveFileNames: () => true, getNewLine: () => '\n',
             fileExists: name => name === fileName || !!libraryFile(name), readFile: () => undefined
         };
-        const program = compiler.createProgram([fileName], options, host);
-        const found = [...program.getSyntacticDiagnostics(file), ...program.getSemanticDiagnostics(file), ...program.getGlobalDiagnostics()];
+        const diagnose = (extra) => { const program = compiler.createProgram([fileName], { ...options, ...extra }, host); return [...program.getSyntacticDiagnostics(file), ...program.getSemanticDiagnostics(file), ...program.getGlobalDiagnostics()]; };
+        const found = diagnose(checkJs ? { checkJs: true } : {});
+        // A JavaScript finding is definite only when the binding-and-grammar pass reports it too.
+        const key = (diagnostic) => `${diagnostic.start ?? -1}:${diagnostic.code}`;
+        const baseline = checkJs ? new Set(diagnose({}).map(key)) : undefined;
         const unresolved = new Set();
         const diagnostics = found.map(diagnostic => {
             const start = diagnostic.start ?? 0;
             if (UNRESOLVED_MODULE.has(diagnostic.code) && diagnostic.file === file && diagnostic.length)
                 unresolved.add(file.text.slice(start + 1, start + diagnostic.length - 1));
-            return { line: diagnostic.file === file ? file.getLineAndCharacterOfPosition(start).line + 1 : 0, code: diagnostic.code, message: compiler.flattenDiagnosticMessageText(diagnostic.messageText, ' ').slice(0, 300), context: CONTEXT_CODES.has(diagnostic.code) };
+            return { line: diagnostic.file === file ? file.getLineAndCharacterOfPosition(start).line + 1 : 0, code: diagnostic.code, message: compiler.flattenDiagnosticMessageText(diagnostic.messageText, ' ').slice(0, 300), context: CONTEXT_CODES.has(diagnostic.code), certainty: (CONTEXT_CODES.has(diagnostic.code) ? 'unknown' : baseline && !baseline.has(key(diagnostic)) ? 'possible' : 'definite') };
         });
-        const semantics = diagnostics.some(diagnostic => !diagnostic.context) ? 'errors' : diagnostics.length ? 'unverifiable' : 'ok';
+        const semantics = diagnostics.some(diagnostic => diagnostic.certainty === 'definite') ? 'errors' : diagnostics.some(diagnostic => diagnostic.certainty === 'unknown') ? 'unverifiable' : 'ok';
         return { semantics, diagnostics: diagnostics.slice(0, 20), unresolved: [...unresolved].slice(0, 50), assumptions: [...assumptions, 'lib:' + DEFAULT_LIB] };
     }
     return { audit };

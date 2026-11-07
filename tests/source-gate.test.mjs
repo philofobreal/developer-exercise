@@ -14,7 +14,7 @@ const audit=(semantics,diagnostics=[],unresolved=[])=>({semantics,diagnostics,un
 
 test('the decision: definite blocks under every policy; unknown is inconclusive and follows the policy; only ok passes',()=>{
  for(const p of ['warn','block']){
-  const blocked=sourceGate(audit('errors',[{line:3,code:2322,message:'Type mismatch',context:false},{line:1,code:2307,message:"Cannot find module 'x'",context:true}]),policy(p));
+  const blocked=sourceGate(audit('errors',[{line:3,code:2322,message:'Type mismatch',context:false,certainty:'definite'},{line:1,code:2307,message:"Cannot find module 'x'",context:true,certainty:'unknown'}]),policy(p));
   assert.equal(blocked.verdict,'blocked');assert.equal(blocked.admitted,false);
   assert.deepEqual(blocked.diagnostics.map(d=>d.certainty),['definite','unknown']);assert.match(blocked.message,/3\. sor: Type mismatch \(TS2322\)/);
  }
@@ -54,5 +54,5 @@ test('server: every entry path is gated: an imported model and a dependency refr
  await assert.rejects(catalog.createDraft({model:broken}),error=>error.statusCode===422&&error.details.gate.verdict==='blocked');
  await assert.rejects(catalog.createDraft({model:broken,refreshDependencies:true}),error=>error.statusCode===422);
  const imported=await catalog.createDraft({model});assert.equal(imported.gate.verdict,'passed');
- await assert.rejects(catalog.createDraft({model,policy:{tsDiagnostics:'strict'}}),error=>error.statusCode===422&&error.details.policy.conflicts[0].code==='C33');
+ await assert.rejects(catalog.createDraft({model,policy:{objectState:'local'}}),error=>error.statusCode===422&&error.details.policy.conflicts[0].code==='C33');
 });
