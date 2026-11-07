@@ -10,7 +10,7 @@
  * The start values are this module's decision (ADR-106); the compatibility values are the resolver's fallback,
  * which `tests/preflight-settings.test.mjs` holds equal.
  */
-import type {AuthorDraft,PreflightOptions} from './contracts.js';
+import type {AuthorDraft,PreflightOptions,SettingsOrigin} from './contracts.js';
 import type {PolicyPath,PolicyResolution} from '../../dist/author/preflight/config-resolver.js';
 import type {GateDiagnostic,SourceGate} from '../../dist/author/preflight/source-gate.js';
 import {escapeHtml as esc} from './ui-utilities.js';
@@ -85,6 +85,28 @@ export function settingsRequest(author:AuthorDraft):SettingsRequest {
  const {importEmit,inputs,keyOrder,classFields}=author,policy=preflightRequest(author);
  return {...(author.language==='typescript'&&importEmit==='elide-unused'?{importEmit}:{}),...(inputs==='valid'?{inputs}:{}),...(keyOrder==='ignored'?{keyOrder}:{}),...(classFields==='define'?{classFields}:{}),...(policy?{policy}:{})};
 }
+/** ADR-108 (E8): the settings recorded in a session file, as a request. A file is untrusted: an option or value the
+ * controls do not offer refuses the import (it is never dropped silently); the resolver checks the rest again. */
+export function readSettings(value:unknown):SettingsRequest {
+ const record=(item:unknown):item is Record<string,unknown>=>typeof item==='object'&&item!==null&&!Array.isArray(item);
+ const refuse=(what:string):never=>{throw Error(`Érvénytelen elemzési beállítás a munkamenetben: ${what}.`);};
+ if(!record(value))return refuse('nem objektum');
+ const author:AuthorDraft={title:'',description:'',language:'typescript',source:'',message:''};
+ const take=(path:string,item:unknown):void=>{if(typeof item!=='string'||!setPreflightOption(author,path,item))refuse(`${path}=${String(item)}`);};
+ for(const [path,item] of Object.entries(value)){
+  if(path==='policy'){if(!record(item))refuse('policy');else for(const [nested,option] of Object.entries(item)){if(TOP_LEVEL.has(nested as PolicyPath))refuse(`policy.${nested}`);take(nested,option);}}
+  else if(TOP_LEVEL.has(path as PolicyPath))take(path,item);
+  else refuse(path);
+ }
+ const {importEmit,inputs,keyOrder,classFields,policy}=author;
+ return {...(importEmit?{importEmit}:{}),...(inputs?{inputs}:{}),...(keyOrder?{keyOrder}:{}),...(classFields?{classFields}:{}),...(policy?{policy}:{})};
+}
+/** ADR-108 (E8): what the author should know about settings that were not their own choices in this session. */
+export function renderSettingsOrigin(origin:SettingsOrigin|undefined):string {
+ if(origin==='partial')return '<p class="settings-origin" data-settings-origin="partial" role="note">A betöltött modell nem rögzítette minden elemzési beállítását (régebbi munkamenet vagy JSON-modell). A modell saját környezeti adatait használtuk, a többit az új feladat kezdőértékével ellenőriztük. Az eredeti forrás és a beállítások hitelessége ezért részleges; ha mást szeretnél, állítsd be és készítsd újra a modellt.</p>';
+ if(origin==='recorded')return '<p class="settings-origin" data-settings-origin="recorded" role="note">Az elemzési beállítások a betöltött munkamenetből származnak; a modellt ezekkel újra ellenőriztük.</p>';
+ return '';
+}
 /** Equal for two drafts exactly when a resolution of one is a resolution of the other. */
 export const settingsKey=(author:AuthorDraft):string=>JSON.stringify([author.language,settingsRequest(author)]);
 /** Whether `resolution` answers the author's current request (the resolver echoes what it was asked). */
@@ -121,11 +143,11 @@ function summary(author:AuthorDraft,resolution:PolicyResolution|undefined):strin
 }
 
 /** The folded settings block of the Source step, from the author's request and its last resolution. */
-export function renderPreflightSettings(author:AuthorDraft,resolution:PolicyResolution|undefined):string {
+export function renderPreflightSettings(author:AuthorDraft,resolution:PolicyResolution|undefined,origin?:SettingsOrigin):string {
  const current=answers(resolution,author)?resolution:undefined;
  const conflicts=current?.conflicts.filter(conflict=>conflict.blocking)??[];
  const groups=GROUPS.map(group=>{const settings=group.settings.filter(setting=>applies(setting,author.language));return settings.length?`<fieldset class="preflight-group"><legend>${esc(group.title)}</legend><p class="inline-hint">${esc(group.intro)}</p><div class="options-grid">${settings.map(setting=>control(setting,author,current)).join('')}</div></fieldset>`:'';}).join('');
- return `<details class="analysis-options" data-memory="analysis-options"><summary><b>Elemzési beállítások</b><span data-preflight-summary>${esc(summary(author,current))}</span></summary>${conflicts.length?`<ul class="preflight-conflicts" role="alert">${conflicts.map(conflict=>`<li>${esc(conflict.message)}</li>`).join('')}</ul>`:''}${groups}</details>`;
+ return `<details class="analysis-options" data-memory="analysis-options"><summary><b>Elemzési beállítások</b><span data-preflight-summary>${esc(summary(author,current))}</span></summary>${renderSettingsOrigin(origin)}${conflicts.length?`<ul class="preflight-conflicts" role="alert">${conflicts.map(conflict=>`<li>${esc(conflict.message)}</li>`).join('')}</ul>`:''}${groups}</details>`;
 }
 
 const CERTAINTY:Readonly<Record<GateDiagnostic['certainty'],string>>={definite:'Biztos hiba',possible:'Lehetséges hiba',unknown:'Nem eldönthető'};

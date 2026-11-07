@@ -5,27 +5,42 @@
  * same messages; behaviour unchanged. */
 import {createAttempt,type Attempt} from './attempt.js';
 import type {CodeLineExercise} from '../../dist/index.js';
-import type {ExerciseSummary,LineId} from './contracts.js';
+import type {ExerciseSummary,LineId,SettingsOrigin} from './contracts.js';
+import {readSettings,type SettingsRequest} from './preflight-settings.js';
 
-/** The exported session file, version 1. */
+/** The exported session file. Version 2 (ADR-108, E8) adds the author's analysis settings (`authorSettings`),
+ * which a model does not record in full; version 1 is still read, its settings are then partial. */
 export interface SessionFile {
- kind:'ngdynamic-session';version:1;
+ kind:'ngdynamic-session';version:2;
  exercise:{id:string;revision:number};
  authorModel?:CodeLineExercise;
+ authorSettings?:SettingsRequest;
  attempt:{answer:(LineId|null)[];pool:LineId[];custom:[string,string][]};
 }
+/** A session as the workbench applies it: an author model comes with the settings to request and how far they
+ * are the author's recorded ones. Nothing in it is trusted: the gates run again on the model. */
+export interface ReadSession {session:unknown;author?:{model:unknown;settings:SettingsRequest;origin:SettingsOrigin}}
 type Exercise=Pick<ExerciseSummary,'lines'>;
 
 export function parseImport(text:unknown):unknown {
  if(typeof text!=='string'||text.length>1024*1024)throw Error('Legfeljebb 1 MiB JSON importálható.');
  return JSON.parse(text);
 }
-export function exportSession(exercise:Pick<ExerciseSummary,'id'|'revision'>,attempt:Pick<Attempt,'answer'|'pool'|'custom'>,authorModel?:CodeLineExercise|null):SessionFile {
- return {kind:'ngdynamic-session',version:1,exercise:{id:exercise.id,revision:exercise.revision},...(authorModel?{authorModel:structuredClone(authorModel)}:{}),attempt:{answer:[...attempt.answer],pool:[...attempt.pool],custom:[...attempt.custom]}};
+export function exportSession(exercise:Pick<ExerciseSummary,'id'|'revision'>,attempt:Pick<Attempt,'answer'|'pool'|'custom'>,authorModel?:CodeLineExercise|null,authorSettings?:SettingsRequest):SessionFile {
+ return {kind:'ngdynamic-session',version:2,exercise:{id:exercise.id,revision:exercise.revision},...(authorModel?{authorModel:structuredClone(authorModel),...(authorSettings?{authorSettings:structuredClone(authorSettings)}:{})}:{}),attempt:{answer:[...attempt.answer],pool:[...attempt.pool],custom:[...attempt.custom]}};
 }
 const record=(value:unknown):value is Record<string,unknown>=>typeof value==='object'&&value!==null;
+const VERSIONS=new Set<unknown>([1,2]);
+/** Reads a session file of either version (C34). Version 1 recorded no analysis settings; neither does a version 2
+ * file without them: those settings are `partial` (the model's recorded environment, start values for the rest). */
+export function readSession(value:unknown):ReadSession {
+ if(!record(value)||value.kind!=='ngdynamic-session'||!VERSIONS.has(value.version))throw Error('Ismeretlen munkamenet-verzió.');
+ if(value.authorModel===undefined)return {session:value};
+ const recorded=value.version===2&&value.authorSettings!==undefined;
+ return {session:value,author:{model:value.authorModel,settings:recorded?readSettings(value.authorSettings):{},origin:recorded?'recorded':'partial'}};
+}
 export function restoreAttempt(session:unknown,exercise:Exercise):Attempt {
- if(!record(session)||session.kind!=='ngdynamic-session'||session.version!==1)throw Error('Ismeretlen munkamenet-verzió.');
+ if(!record(session)||session.kind!=='ngdynamic-session'||!VERSIONS.has(session.version))throw Error('Ismeretlen munkamenet-verzió.');
  const a=session.attempt;
  if(!record(a)||!Array.isArray(a.answer)||a.answer.length!==exercise.lines.length||!Array.isArray(a.pool)||!Array.isArray(a.custom)||a.pool.length>500||a.custom.length>500)throw Error('Hibás munkamenetméret.');
  const answer:unknown[]=a.answer,pool:unknown[]=a.pool,pairs:unknown[]=a.custom;

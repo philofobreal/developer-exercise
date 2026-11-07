@@ -280,6 +280,19 @@ Következtetés:
   Az állapotot a [flow.ts](../../src/workbench/flow.ts) számítja (`status`, `tone`), a nézet csak kirajzolja.
 - **Átvétel:** a modell elfogadásakor a draft hatályos policyjának preflight-opciói a szerzőéi lesznek (`admitAuthorModel`, `policy`). Így a második kapu ugyanazzal az ujjlenyomattal találkozik.
 
+**E8 – munkamenet v2 és régi modellek** ([persistence.ts](../../src/workbench/persistence.ts), [preflight-settings.ts](../../src/workbench/preflight-settings.ts)):
+- **A hiány:** a modell csak a környezeti beállításait rögzíti (bemenetek, kulcssorrend, osztálymezők, importkibocsátás). A preflight-opciókat (bizonytalan eredmények, objektumállapot, diagnosztika, hordozhatóság) nem. Az 1-es verziójú munkamenet ezért visszatöltéskor csendben a kezdőértékekre állította őket.
+- **Munkamenet v2:** az `authorSettings` mező az alkalmazott modell beállításait rögzíti (`settingsRequest`), a modell mellett. Egy művelet olvassa: `readSession`.
+  - **Az 1-es verzió továbbra is betölthető (C34).** Beállításai „részlegesek” (`partial`): a modell saját környezeti adatai és a kezdőértékek. Ugyanez igaz egy beállítások nélküli 2-es fájlra.
+  - **A fájl nem megbízható (C27).** Ismeretlen opció vagy a felületen nem kínált érték (például `require-ack`) megtagadja a betöltést, nem hagyjuk el csendben (`readSettings`). A feloldó a többit is újra ellenőrzi.
+  - **A modell mindkét kapun újra átmegy,** a rögzített (vagy kezdő) beállításokkal. A Próbára csak a draft saját döntése szerint érkezik; korábbi ítéletet semmilyen fájl nem hoz magával.
+- **Eredet a felületen** (`settingsOrigin`, a [contracts.ts](../../src/workbench/contracts.ts)-ben):
+  - `recorded`: munkamenetből, rögzített beállításokkal;
+  - `partial`: régebbi munkamenetből vagy JSON-modellfájlból. A Szabályok lépés és a beállításblokk kiírja: „az eredeti forrás és a beállítások hitelessége részleges”.
+  - Forrásból készült modellnél nincs eredetjelzés, mert a beállítások a szerző saját választásai. Szabályszerkesztés és saját JSON-szerkesztés megtartja az eredetet.
+- **Javított E7-hiba:** a szerző saját JSON-szerkesztése (Szabályok → JSON alkalmazása, függőségfrissítés) nem küldte el a preflight-opciókat. Így például a „Tilt” csendben „Figyelmeztet”-re állt vissza. Most a saját JSON-szerkesztés a szerző beállításaival megy.
+- **Mi marad a kliensnél:** hogy a modell útján csak a `policy` részt kell küldeni, a környezetet a modell bizonyítéka adja (`recordedContract`). Ez a két hívó (munkamenet, saját JSON) közös, egysoros szabálya, nem külön modul.
+
 **Bizonyíték:**
 - `tests/author-policy.test.mjs`:
   - az összes kombináció tulajdonságtesztje: a konzervatív preset mindig a szigorú szerződést adja, és az ujjlenyomat csak a hatályos policytól függ;

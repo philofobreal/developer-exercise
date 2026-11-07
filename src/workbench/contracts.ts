@@ -25,6 +25,10 @@ export type ClassFields='either'|'define';
 /** ADR-108 (E7): the preflight options of the request's `policy` object; absent is the resolver's start value. */
 export type PreflightOptions=Partial<Pick<AuthorPolicy,'portability'|'unknownPolicy'|'tsDiagnostics'|'jsCheck'|'objectState'>>;
 export interface AuthorDraft {title:string;description:string;level?:ExerciseLevel|'';language:string;source:string;message:string;importEmit?:ImportEmit;inputs?:InputContract;keyOrder?:KeyOrder;classFields?:ClassFields;policy?:PreflightOptions;}
+/** ADR-108 (E8): where the applied model's analysis settings come from when they are not the author's choices of
+ * this session: `recorded` in a session file, or `partial` (an older session or a model file: the model's recorded
+ * environment, start values for the rest). */
+export type SettingsOrigin='recorded'|'partial';
 /** ADR-108 (E7): the first gate's outcome with the source it was made from, so its findings can say when they are out of date. */
 export interface SourceGateRecord {gate:SourceGate;source:string;}
 /** What the API reported with the active author draft: presentation data, never a rule source (ADR-021). */
@@ -43,7 +47,7 @@ export type RulesView='visual'|'json';
  * `modeViews`: the view each mode returns to. `ruleConnect`: a keyboard connection's first line. */
 export interface WorkbenchState {exercises:ExerciseSummary[];active:string|null;previews:Map<string,string>;view:ViewName;mode:Mode;modeViews?:Partial<Record<Mode,ViewName>>;practiceActive?:string|null;rulesView?:RulesView;sourceKind?:'code'|'json';boardAll?:boolean;ruleConnect?:number;boardStatus?:string;feedbackFocus?:number;learnerPreview?:boolean;author:AuthorDraft;authorBaseline?:AuthorDraft;authorRequestGeneration?:number;authorModel?:CodeLineExercise;authorInsight?:AuthorInsight;ruleSelection?:RuleSelection;rulePanelOpen?:boolean;ruleKind?:RuleKindSelection;modelDraft:string;modelMessage:string;
  /** ADR-108 (E7): the resolver's answer for the author's current request, and the last first-gate outcome. */
- authorPolicy?:PolicyResolution;sourceGate?:SourceGateRecord;}
+ authorPolicy?:PolicyResolution;sourceGate?:SourceGateRecord;settingsOrigin?:SettingsOrigin;}
 export interface AttemptPresentation {text:(id:LineId|null)=>string;fixed:(position:number)=>boolean;formattedAnswer:()=>string[];}
 export interface ScrollMemory {capture:()=>void;restore:(id:string)=>void;}
 export interface WorkbenchOptions {root:HTMLElement;state:WorkbenchState;ex:()=>ExerciseSummary|undefined;at:()=>AttemptSnapshot|undefined;attempt:AttemptPresentation;scroll:ScrollMemory;}

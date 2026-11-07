@@ -1,7 +1,7 @@
 /** The author's one reference project (ADR-022): the source draft, the baseline the applied
  * model was built from, and the guards that keep late responses from replacing newer work.
  * Practice attempts never read or change it. */
-import type {AuthorDraft,ExerciseSummary,WorkbenchState} from './contracts.js';
+import type {AuthorDraft,ExerciseSummary,SettingsOrigin,WorkbenchState} from './contracts.js';
 import type {CodeLineExercise} from '../../dist/index.js';
 import type {PolicyResolution} from '../../dist/author/preflight/config-resolver.js';
 import {NEW_DRAFT_SETTINGS,settingsKey,settingsRequest} from './preflight-settings.js';
@@ -55,8 +55,11 @@ export function revertAuthorDraft(state:WorkbenchState):void {
 }
 /** Call only after installPreview succeeds: the admitted model becomes the reference baseline.
  * `keepPending`: a rule edit changes no line, so an unapplied reference draft stays pending. `policy`: the
- * resolution the draft was admitted under; its preflight options become the author's (ADR-108, E7). */
-export function admitAuthorModel(state:WorkbenchState,model:CodeLineExercise,source?:string,{keepPending=false,policy}:{keepPending?:boolean;policy?:PolicyResolution}={}):void {
+ * resolution the draft was admitted under; its preflight options become the author's (ADR-108, E7).
+ * `settingsOrigin` (E8): a model brought in from a file says where its settings come from; a model made from the
+ * author's source carries the author's own choices (no origin); any other admission keeps the origin it had. */
+export function admitAuthorModel(state:WorkbenchState,model:CodeLineExercise,source?:string,{keepPending=false,policy,settingsOrigin}:{keepPending?:boolean;policy?:PolicyResolution;settingsOrigin?:SettingsOrigin}={}):void {
+ if(settingsOrigin)state.settingsOrigin=settingsOrigin;else if(source!==undefined)delete state.settingsOrigin;
  nextRequest(state);
  const pending=keepPending&&authorDraftPending(state)?state.author:undefined,environment=model.authoring?.evidence?.environment,importEmit=environment?.importEmit,inputs=environment?.inputs,keyOrder=environment?.keyOrder,classFields=environment?.classFields;
  const author:AuthorDraft={title:model.title,description:model.description,...(model.level?{level:model.level}:{}),language:model.language,source:source??model.lines.map(l=>l.code).join('\n'),message:'',...(importEmit?{importEmit}:{}),...(inputs==='valid'?{inputs}:{}),...(keyOrder==='ignored'?{keyOrder}:{}),...(classFields==='define'?{classFields}:{})};

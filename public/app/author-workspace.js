@@ -59,8 +59,14 @@ export function revertAuthorDraft(state) {
 }
 /** Call only after installPreview succeeds: the admitted model becomes the reference baseline.
  * `keepPending`: a rule edit changes no line, so an unapplied reference draft stays pending. `policy`: the
- * resolution the draft was admitted under; its preflight options become the author's (ADR-108, E7). */
-export function admitAuthorModel(state, model, source, { keepPending = false, policy } = {}) {
+ * resolution the draft was admitted under; its preflight options become the author's (ADR-108, E7).
+ * `settingsOrigin` (E8): a model brought in from a file says where its settings come from; a model made from the
+ * author's source carries the author's own choices (no origin); any other admission keeps the origin it had. */
+export function admitAuthorModel(state, model, source, { keepPending = false, policy, settingsOrigin } = {}) {
+    if (settingsOrigin)
+        state.settingsOrigin = settingsOrigin;
+    else if (source !== undefined)
+        delete state.settingsOrigin;
     nextRequest(state);
     const pending = keepPending && authorDraftPending(state) ? state.author : undefined, environment = model.authoring?.evidence?.environment, importEmit = environment?.importEmit, inputs = environment?.inputs, keyOrder = environment?.keyOrder, classFields = environment?.classFields;
     const author = { title: model.title, description: model.description, ...(model.level ? { level: model.level } : {}), language: model.language, source: source ?? model.lines.map(l => l.code).join('\n'), message: '', ...(importEmit ? { importEmit } : {}), ...(inputs === 'valid' ? { inputs } : {}), ...(keyOrder === 'ignored' ? { keyOrder } : {}), ...(classFields === 'define' ? { classFields } : {}) };

@@ -11,7 +11,7 @@ import {cycleTheme} from './app/theme.js';
 import {toggleSurface} from './app/surface.js';
 import {setCodeView} from './app/code-view.js';
 import {installPreview} from './app/author-session.js';
-import {parseImport,exportSession,restoreAttempt,downloadJSON,saveLocal,loadLocal} from './app/persistence.js';
+import {parseImport,exportSession,readSession,restoreAttempt,downloadJSON,saveLocal,loadLocal} from './app/persistence.js';
 import {createAttempt,createAttemptController} from './app/attempt.js';
 import {createWorkbenchView} from './app/view.js';
 import {practiceOrder} from './app/fields.js';
@@ -54,14 +54,14 @@ async function go(next){
 const steps={source:'author',rules:'model',try:'sort'};
 /** Commit a newly compiled author model atomically and continue where the flow says (`land`).
  * Compatible attempts survive a dependency-only edit, so the new rules are observable at once. */
-async function authorApply(body,{preserveAttempt=false,sessionImport,current=captureAuthorRequest(state),request=compileDraft,land='stay'}={}){
+async function authorApply(body,{preserveAttempt=false,sessionImport,settingsOrigin,current=captureAuthorRequest(state),request=compileDraft,land='stay'}={}){
  delete state.boardStatus;
  let data;try{data=await request(body);}catch(error){if(!current())return;if(error?.details?.gate&&typeof body.source==='string')state.sourceGate={gate:error.details.gate,source:body.source};throw error;}
  if(!current())return;
  if(data.ok===false){if(state.ruleSelection)recordRuleRefusal(state.ruleSelection,data,body.edits);render();return data;}
  const restoredAttempt=sessionImport?restoreAttempt(sessionImport,data.model):undefined;
  const {compatible,model:m}=installPreview(state,data,{preserveAttempt,restoredAttempt});
- admitAuthorModel(state,m,body.source,{keepPending:!!body.edits,policy:data.policy});if(data.gate)state.sourceGate={gate:data.gate,source:state.authorBaseline.source};settleRuleSelection(state,!!body.edits);delete state.ruleConnect;
+ admitAuthorModel(state,m,body.source,{keepPending:!!body.edits,policy:data.policy,settingsOrigin});if(data.gate)state.sourceGate={gate:data.gate,source:state.authorBaseline.source};settleRuleSelection(state,!!body.edits);delete state.ruleConnect;
  const summary='A modell elkészült: '+m.lines.length+' sor, '+m.blocks.length+' blokk. '+(m.authoring?.dependencyHints?.length??0)+' deklaráció/használat jelzés. Az egyszerű const deklarációk kötésalapú függőségeket kapnak; teljes szemantikai bizonyítás nincs.'+(m.authoring?.omittedBlocks?' '+m.authoring.omittedBlocks+' közös sorhatárú blokk csak sorrendvédelemmel reprezentált.':'');
  state.modelMessage=body.source!==undefined?summary:compatible?'A módosított szabályok érvényesek. A kitöltés megmaradt; ellenőrizheted az új függőségekkel.':'A módosított modell érvényes. A kitöltést az új szerkezethez visszaállítottuk.';
  state.author.message=summary;
@@ -207,8 +207,8 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
    catch(err){if(current()){state.author.message=err.message;render();}}return;
  }
  if(b.hasAttribute('data-author-apply')){const editor=root.querySelector('#author-editor');if(editor)state.author.source=editor.value;b.disabled=true;try{await authorApply(authorRequest(state.author),{land:'rules'});}catch(err){state.author.message=err.message;if(state.view!=='author')state.modelMessage=err.message;render();}return;}
- if(b.hasAttribute('data-model-apply')){state.modelDraft=root.querySelector('#model-editor').value;b.disabled=true;try{await authorApply({model:JSON.parse(state.modelDraft)},{preserveAttempt:true,land:state.view==='author'?'rules':'stay'});}catch(err){state.modelMessage=err.message;render();}return;}
- if(b.hasAttribute('data-model-refresh')){state.modelDraft=root.querySelector('#model-editor').value;try{await authorApply({model:JSON.parse(state.modelDraft),refreshDependencies:true},{preserveAttempt:true});}catch(err){state.modelMessage=err.message;render();}return;}
+ if(b.hasAttribute('data-model-apply')){state.modelDraft=root.querySelector('#model-editor').value;b.disabled=true;try{await authorApply({model:JSON.parse(state.modelDraft),...ownSettings()},{preserveAttempt:true,land:state.view==='author'?'rules':'stay'});}catch(err){state.modelMessage=err.message;render();}return;}
+ if(b.hasAttribute('data-model-refresh')){state.modelDraft=root.querySelector('#model-editor').value;try{await authorApply({model:JSON.parse(state.modelDraft),refreshDependencies:true,...ownSettings()},{preserveAttempt:true});}catch(err){state.modelMessage=err.message;render();}return;}
  if(b.hasAttribute('data-check')){if(state.view!=='sort'){a.feedback='Előbb alkalmazd a szerkesztő változtatásait.';render();return;}
    const generation=a.generation;
    delete state.feedbackFocus;
@@ -233,11 +233,16 @@ createInsertionDrag({root,
 });
 installRuleBoard(root,(from,to)=>{toggleLink(from,to).catch(err=>notify(err instanceof Error?err.message:'A kapcsolat módosítása nem sikerült.'));},()=>{delete state.ruleConnect;render();});
 
-const snapshot=()=>exportSession(ex(),at(),state.previews.has(state.active)?state.authorModel:undefined);
+/** ADR-108 (E8): a model does not record the preflight options; the author's own JSON edit sends them along. */
+const ownSettings=()=>{const policy=settingsRequest(state.author).policy;return policy?{policy}:{};};
+/** A session records the applied model with the settings it was made under (session v2). */
+const snapshot=()=>{const author=state.previews.has(state.active);return exportSession(ex(),at(),author?state.authorModel:undefined,author&&state.authorBaseline?settingsRequest(state.authorBaseline):undefined);};
 async function importSession(session,{current=captureAuthorRequest(state)}={}){
  if(!current())return;
- if(session?.kind!=='ngdynamic-session'||session.version!==1)throw Error('Ismeretlen munkamenet-verzió.');
- if(session.authorModel){await authorApply({model:session.authorModel},{sessionImport:session,current,land:'try'});return;}
+ // ADR-108 (E8): either session version; the model passes both gates again, with the recorded settings or, for an
+ // older file, the model's own environment and start values (partial origin).
+ const {author}=readSession(session);
+ if(author){await authorApply({model:author.model,...(author.settings.policy?{policy:author.settings.policy}:{})},{sessionImport:session,settingsOrigin:author.origin,current,land:'try'});return;}
  const e=state.exercises.find(x=>x.id===session.exercise?.id&&x.revision===session.exercise?.revision&&!state.previews.has(x.id));
  if(!e)throw Error('A szerver által kiadott feladat/verzió nem található.');
  const restored=restoreAttempt(session,e);enterMode(state,'practice');state.practiceActive=state.active=e.id;state.attempts.set(e.id,restored);state.view='sort';render();
@@ -247,7 +252,7 @@ root.addEventListener('change',async ev=>{
  const current=captureAuthorRequest(state);
  try{const file=input.files[0];if(!file)return;if(file.size>1024*1024)throw Error('Legfeljebb 1 MiB importálható.');const data=parseImport(await file.text());
   if(!current())return;
-  if(input.hasAttribute('data-model-file'))await authorApply({model:data},{current,land:'rules'});else await importSession(data,{current});
+  if(input.hasAttribute('data-model-file'))await authorApply({model:data},{current,land:'rules',settingsOrigin:'partial'});else await importSession(data,{current});
  }catch(err){if(current())notify(err.message);}
  finally{input.value='';}
 });

@@ -4,17 +4,29 @@
  * The import is read as `unknown` and admitted only through the same checks as before, with the
  * same messages; behaviour unchanged. */
 import { createAttempt } from './attempt.js';
+import { readSettings } from './preflight-settings.js';
 export function parseImport(text) {
     if (typeof text !== 'string' || text.length > 1024 * 1024)
         throw Error('Legfeljebb 1 MiB JSON importálható.');
     return JSON.parse(text);
 }
-export function exportSession(exercise, attempt, authorModel) {
-    return { kind: 'ngdynamic-session', version: 1, exercise: { id: exercise.id, revision: exercise.revision }, ...(authorModel ? { authorModel: structuredClone(authorModel) } : {}), attempt: { answer: [...attempt.answer], pool: [...attempt.pool], custom: [...attempt.custom] } };
+export function exportSession(exercise, attempt, authorModel, authorSettings) {
+    return { kind: 'ngdynamic-session', version: 2, exercise: { id: exercise.id, revision: exercise.revision }, ...(authorModel ? { authorModel: structuredClone(authorModel), ...(authorSettings ? { authorSettings: structuredClone(authorSettings) } : {}) } : {}), attempt: { answer: [...attempt.answer], pool: [...attempt.pool], custom: [...attempt.custom] } };
 }
 const record = (value) => typeof value === 'object' && value !== null;
+const VERSIONS = new Set([1, 2]);
+/** Reads a session file of either version (C34). Version 1 recorded no analysis settings; neither does a version 2
+ * file without them: those settings are `partial` (the model's recorded environment, start values for the rest). */
+export function readSession(value) {
+    if (!record(value) || value.kind !== 'ngdynamic-session' || !VERSIONS.has(value.version))
+        throw Error('Ismeretlen munkamenet-verzió.');
+    if (value.authorModel === undefined)
+        return { session: value };
+    const recorded = value.version === 2 && value.authorSettings !== undefined;
+    return { session: value, author: { model: value.authorModel, settings: recorded ? readSettings(value.authorSettings) : {}, origin: recorded ? 'recorded' : 'partial' } };
+}
 export function restoreAttempt(session, exercise) {
-    if (!record(session) || session.kind !== 'ngdynamic-session' || session.version !== 1)
+    if (!record(session) || session.kind !== 'ngdynamic-session' || !VERSIONS.has(session.version))
         throw Error('Ismeretlen munkamenet-verzió.');
     const a = session.attempt;
     if (!record(a) || !Array.isArray(a.answer) || a.answer.length !== exercise.lines.length || !Array.isArray(a.pool) || !Array.isArray(a.custom) || a.pool.length > 500 || a.custom.length > 500)

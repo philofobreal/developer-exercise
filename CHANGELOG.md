@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased – 2026-11-07 szerzői preflight: munkamenet v2 és régi modellek (ADR-108, E8)
+
+- **A munkamenet megőrzi az elemzési beállításokat:** a mentett munkamenet a modell mellett a beállításokat is rögzíti, és betöltéskor visszaadja őket (például a „Tilt” vagy a kikapcsolt objektumállapot-ellenőrzés).
+- **Régi munkamenet és JSON-modell:**
+  - továbbra is betölthető;
+  - a hiányzó beállításokat az új feladat kezdőértékével ellenőrizzük;
+  - a felület jelzi, hogy az eredeti forrás és a beállítások hitelessége részleges.
+- **Biztonság:** hibás vagy ismeretlen beállítást tartalmazó munkamenet nem töltődik be. A betöltött modell mindig újra átmegy mindkét ellenőrzésen.
+- **Javítva:** a modell JSON-jának szerkesztése után a szerző elemzési beállításai (például a „Tilt”) nem állnak vissza a kezdőértékre.
+
 ## Unreleased – 2026-11-07 javítás: a Próba megnyitása nem küld külön kérést (ADR-108, E6)
 
 - **Javítva:** gyorsabb gépen a szerző gyors egymás utáni műveletei túlléphették a szerver percenkénti kéréskorlátját, és ilyenkor a modellkészítés vagy a Próba megnyitása csendben elmaradt. Ez buktatta az E6 és az E7 CI-futását.
