@@ -61,6 +61,18 @@ def forced_dark(p):
         toggle.click();expect(toggle).to_have_text('Világos');assert pixel(page,x,y)==(255,255,255),pixel(page,x,y)
         toggle.click();expect(toggle).to_have_text('Sötét');assert pixel(page,x,y)==(17,17,19),pixel(page,x,y)
     finally:forced.close()
+def editor_stripes(page):
+    """The editor's alternate-row stripes scroll with the text (background-attachment: local), in the
+    text and in the line-number gutter: after an odd scroll offset every row still sits on its own stripe."""
+    practice(page);page.locator('[data-view="edit"]').click()
+    editor=page.locator('#code-editor');editor.fill('\n'.join(f'// line {i}' for i in range(60)))
+    editor.evaluate('e=>{e.scrollTop=30;e.dispatchEvent(new Event("scroll"))}');page.wait_for_timeout(100)
+    colors=page.evaluate("""()=>{const s=getComputedStyle(document.documentElement),probe=document.createElement('i');document.body.append(probe);const rgb=v=>{probe.style.color=v;return getComputedStyle(probe).color.match(/\\d+/g).map(Number).slice(0,3)};const out=['--n-10','--n-14','--n-14','--n-16'].map(name=>rgb(s.getPropertyValue(name)));probe.remove();return out}""")
+    box=editor.bounding_box();gutter=page.locator('.editor-gutter').bounding_box()
+    for j in range(2,10):
+        y=box['y']+j*23-30+11
+        assert list(pixel(page,box['x']+box['width']-40,y))==colors[j%2],('text stripe',j)
+        assert list(pixel(page,gutter['x']+3,y))==colors[2+j%2],('gutter stripe',j)
 def menus(page):
     """ADR-105: a header or step menu opens on its summary and closes on Escape, an outside click or an action inside."""
     menu=page.locator('details.session-menu');menu.locator('summary').click();expect(menu).to_have_attribute('open','')
@@ -578,6 +590,7 @@ try:
             reset(page,BASE);case('node theme choice: system, light, dark, remembered before first paint',lambda:theme_choice(page))
             reset(page,BASE);case('node header and step menus open and close',lambda:menus(page))
             case('node forced dark browser keeps the chosen light theme white',lambda:forced_dark(p))
+            reset(page,BASE);case('node editor stripes stay on their rows while scrolling',lambda:editor_stripes(page))
             reset(page,BASE);case('node duplicate-check prevention and async feedback',lambda:busy(page))
             reset(page,BASE);case('node admission preserves newer reference edits',lambda:stale_author_admission(page))
             reset(page,BASE);case('node sample loading preserves newer reference edits',lambda:stale_source_sample(page))

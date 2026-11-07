@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-07 zöld elfogadás, a szerkesztő csíkjai a helyükön, ferde fülek telefonon (ADR-105)
+
+- **Zöld elfogadás:** az „Elfogadva” sáv mindkét témában zöld, a téma hátteréhez és fő színeihez igazítva.
+- **Javítva:** a Megoldáskód szerkesztő váltakozó csíkjai görgetés közben elcsúsztak a sorokhoz képest; most együtt mozognak a szöveggel és a sorszámokkal.
+- **Telefonon is ferdék** a „Feladat készítése” és „Gyakorlás” fülek.
+
 ## Unreleased – 2026-11-06 a világos téma automatikus sötétítés mellett is világos (ADR-105)
 
 - **Új név:** CodeLineSorter (fejléc, böngészőfül, Pages-demó). A CodeLine JSON formátum neve nem változik.

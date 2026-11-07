@@ -73,7 +73,11 @@ Kockázati osztály: megjelenítés. Ez az átalakítás F2 (témaváltó) és F
    - a termék neve **CodeLineSorter** a fejlécben (a „Sorter” a kiemelő kékjével), a böngészőfülön és a Pages-demó címében;
    - a „CodeLine” továbbra is a modell és a JSON-formátum neve (CodeLine JSON, sémák, AGENTS.md szerződései), ezért ott nem változik;
    - 360 px alatt a márkajel elmarad, 400 px alatt a fejléc gombjai 34 px-esek, így a fejléc 320 px-en is két sor.
-7. **Menük:** `details.menu` elemek. Külső kattintásra, Escape-re és belső műveletre bezáródnak (`installMenus`); újrarajzoláskor csukva térnek vissza.
+8. **Visszajelzés javításai** (a felhasználó kérése, 2026-11-07):
+   - **Elfogadva = zöld** mindkét témában (`--ok`, `--ok-pale`, `--ok-text`, `--ok-line`). Kontraszt: a fehér pipa a zöldön világosban 5,24, sötétben 5,02; a cím a halványzöldön 5,85, illetve 8,91. A zöld csak a sikert jelöli, kijelölést vagy lépést soha; a kék marad a kijelölés.
+   - **A szerkesztő csíkozása** a szöveggel együtt görög (`background-attachment: local` a szövegmezőn és a sorszám-oszlopon). Eddig a sávok a dobozhoz voltak rögzítve, ezért görgetéskor elcsúsztak a soroktól. Bizonyíték: a `browser-workbench` „editor stripes” esete páratlan görgetés után minden sorban a kirajzolt képpontot méri.
+   - **Telefonon is ferdék a módfülek**; a sáv két szélén 6 px hely jut a dőlésnek, így 320 px-en sincs kilógás.
+9. **Menük:** `details.menu` elemek. Külső kattintásra, Escape-re és belső műveletre bezáródnak (`installMenus`); újrarajzoláskor csukva térnek vissza.
 
 ## Mérés
 
