@@ -19,7 +19,7 @@
     "test:browser:matrix": "python -X utf8 tests/browser-matrix.playwright.py",
     "test:browser:all": "npm run test:browser && npm run test:browser:server && npm run test:browser:matrix && npm run test:browser:drag && npm run test:browser:workbench && npm run test:browser:engine && npm run test:browser:typescript && npm run test:browser:python && npm run test:browser:a11y",
     "test:browser:a11y": "python -X utf8 tests/browser-a11y.playwright.py",
-    "test:browser:drag": "python -X utf8 tests/browser-drag.playwright.py",
+    "test:browser:drag": "python -X utf8 tests/browser-drag.playwright.py && python -X utf8 tests/browser-drag.playwright.py --code-view=cards",
     "verify:architecture": "npm run build && node dist-tools/verify-architecture.js",
     "test:browser:workbench": "python -X utf8 tests/browser-workbench.playwright.py",
     "test:engine": "npm run build:pages && node --test tests/language-engine*.test.mjs",

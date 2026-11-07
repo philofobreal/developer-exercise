@@ -34,10 +34,14 @@ export function captureAuthorAdmission(state:WorkbenchState):()=>boolean {
  const preview=previewId(state),author={...state.author},modelDraft=state.modelDraft;
  return ()=>previewId(state)===preview&&same(author,state.author)&&state.modelDraft===modelDraft;
 }
+/** ADR-106: the analysis settings a new reference starts from (the author's choice): plain valid inputs,
+ * key order not observed, standard class fields. A model brought in by JSON, a session or an admission
+ * keeps the settings it was built with; only a new or example-based draft starts here. */
+export const NEW_DRAFT_SETTINGS={inputs:'valid',keyOrder:'ignored',classFields:'define'} as const satisfies Pick<AuthorDraft,'inputs'|'keyOrder'|'classFields'>;
 /** An example is a starting point: its reference becomes the unapplied draft. */
 export function startFromExample(state:WorkbenchState,exercise:ExerciseSummary):void {
  nextRequest(state);
- state.author={title:exercise.title,description:exercise.description,...(exercise.level?{level:exercise.level}:{}),language:exercise.language,source:exercise.lines.map(line=>line.code).join('\n'),message:`A(z) „${exercise.title}” példa referenciája betöltve. A modell a Modell készítése gombbal készül el belőle.`};
+ state.author={...NEW_DRAFT_SETTINGS,title:exercise.title,description:exercise.description,...(exercise.level?{level:exercise.level}:{}),language:exercise.language,source:exercise.lines.map(line=>line.code).join('\n'),message:`A(z) „${exercise.title}” példa referenciája betöltve. A modell a Modell készítése gombbal készül el belőle.`};
 }
 /** Discards unapplied reference edits: the draft returns to what the applied model was built from. */
 export function revertAuthorDraft(state:WorkbenchState):void {

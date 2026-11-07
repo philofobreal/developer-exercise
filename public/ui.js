@@ -1,11 +1,13 @@
 import {markEditorDraft,markEditorApplied,reloadEditorFromArrangement,captureEditorRequest,adjacentMoveBoundary,dispatchWorkbenchAction} from './app/interactions.js';
-import {refreshAuthorStatus,captureAuthorRequest,authorRequest,startFromExample,revertAuthorDraft,admitAuthorModel} from './app/author-workspace.js';
+import {refreshAuthorStatus,captureAuthorRequest,authorRequest,startFromExample,revertAuthorDraft,admitAuthorModel,NEW_DRAFT_SETTINGS} from './app/author-workspace.js';
 import {readRuleEdit,readRuleKindEdits,recordRuleRefusal,ruleEditBlocked,settleRuleKind,settleRuleSelection} from './app/rule-panel.js';
 import {connection,installRuleBoard,linkWith} from './app/rule-board.js';
 import {blockedReason,enterMode,enterView,landAfterAdmission} from './app/flow.js';
 /** App orchestration and event wiring; modes, steps and staleness live in the typed flow (ADR-022). */
 import {readClipboard} from './app/clipboard.js';
 import {cycleTheme} from './app/theme.js';
+import {toggleSurface} from './app/surface.js';
+import {setCodeView} from './app/code-view.js';
 import {installPreview} from './app/author-session.js';
 import {parseImport,exportSession,restoreAttempt,downloadJSON,saveLocal,loadLocal} from './app/persistence.js';
 import {createAttempt,createAttemptController} from './app/attempt.js';
@@ -15,7 +17,7 @@ import {createInsertionDrag} from './app/drag-insert.js';
 import {createScrollMemory,updateGutters,copyToClipboard,escapeHtml} from './app/ui-utilities.js';
 import {formatSource,getExercises,compileDraft,editRules,previewDraft,evaluate,loadTypeScriptFixture} from './app/api.js';
 const root=document.querySelector('#app');
-const state={exercises:[],active:null,attempts:new Map(),previews:new Map(),drag:null,mode:'author',view:'author',practiceActive:null,author:{title:'Saját kódrendezős feladat',description:'Rendezd sorba a kódsorokat.',language:'javascript',source:`function calculate() {\n     const a = 10;\n     const b = 20;\n     return a + b;\n}`,message:''},modelDraft:'',modelMessage:''};
+const state={exercises:[],active:null,attempts:new Map(),previews:new Map(),drag:null,mode:'author',view:'author',practiceActive:null,author:{...NEW_DRAFT_SETTINGS,title:'Saját kódrendezős feladat',description:'Rendezd sorba a kódsorokat.',language:'javascript',source:`function calculate() {\n     const a = 10;\n     const b = 20;\n     return a + b;\n}`,message:''},modelDraft:'',modelMessage:''};
 const ex=()=>state.exercises.find(x=>x.id===state.active);
 const at=()=>state.attempts.get(state.active);
 const attempt=createAttemptController(ex,at);
@@ -72,11 +74,9 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  if(b.hasAttribute('data-save-local')){try{saveLocal(snapshot());commit('Munkamenet helyben elmentve.');}catch(err){commit(err.message);}return;}
  if(b.hasAttribute('data-load-local')){try{const session=loadLocal();if(!session)throw Error('Nincs helyi mentés.');await importSession(session);}catch(err){notify(err.message);}return;}
  if(b.hasAttribute('data-theme-cycle')){cycleTheme();render();root.querySelector('[data-theme-cycle]')?.focus({preventScroll:true});return;}
- if(b.hasAttribute('data-fullscreen')){
-   try{if(document.fullscreenElement===root)await document.exitFullscreen();else if(root.requestFullscreen)await root.requestFullscreen();else root.classList.toggle('ng-fullscreen');}
-   catch{root.classList.toggle('ng-fullscreen');}
-   return;
- }
+ // ADR-106: the whole workbench or only the code workspace on the full surface; the code view.
+ if(b.hasAttribute('data-fullscreen')||b.hasAttribute('data-focus')){const action=b.hasAttribute('data-focus')?'data-focus':'data-fullscreen';await toggleSurface(root,action==='data-focus'?'focus':'app',render);root.querySelector('['+action+']')?.focus({preventScroll:true});return;}
+ if(b.hasAttribute('data-set-code-view')){setCodeView(root,b.dataset.setCodeView);render();root.querySelector(`[data-set-code-view="${b.dataset.setCodeView}"]`)?.focus({preventScroll:true});return;}
  const pasteAction=['author','model','editor','solution'].find(action=>b.hasAttribute('data-paste-'+action));
  if(pasteAction){
   const current=pasteAction==='author'||pasteAction==='model'?captureAuthorRequest(state):()=>true;
@@ -200,7 +200,7 @@ root.addEventListener('input',ev=>{const el=ev.target; if(el.closest('.editor-fr
 root.addEventListener('scroll',ev=>{if(ev.target.matches('.editor-frame textarea'))updateGutters(root);},true);
 root.addEventListener('keydown',ev=>{if(ev.key==='Tab'&&ev.target.matches('.editor-frame textarea')){ev.preventDefault();const el=ev.target,i=el.selectionStart,j=el.selectionEnd;el.setRangeText('     ',i,j,'end');el.dispatchEvent(new Event('input',{bubbles:true}));}});
 root.addEventListener('change',ev=>{
- if(ev.target.dataset.author){state.author[ev.target.dataset.author]=ev.target.value;refreshAuthorStatus(root,state);if(ev.target.dataset.author==='language')render();}
+ if(ev.target.dataset.author){state.author[ev.target.dataset.author]=ev.target.value;refreshAuthorStatus(root,state);if(['language','importEmit','inputs','keyOrder','classFields'].includes(ev.target.dataset.author))render();}
  if(ev.target.matches('[data-board-all]')){state.boardAll=ev.target.checked;render();root.querySelector('[data-board-all]')?.focus({preventScroll:true});}
 });
 createInsertionDrag({root,

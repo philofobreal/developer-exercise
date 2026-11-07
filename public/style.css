@@ -181,7 +181,7 @@ button:hover:not(:disabled) {background:var(--blue-pale);border-color:var(--blue
 .primary:hover:not(:disabled) {--fill:var(--blue-hover);color:var(--blue-ink)}
 .primary.check,.primary.check:hover:not(:disabled) {--fill:var(--yellow);color:var(--yellow-ink);min-width:150px}
 .primary.check:hover:not(:disabled) {--fill:var(--yellow-hover)}
-.segment {gap:0;padding:0;border:0;background:transparent;border-radius:0}
+.segment {display:flex;max-width:100%;gap:0;padding:0;border:0;background:transparent;border-radius:0}
 .segment button {min-height:34px;padding:6px 14px;border:1px solid var(--n-36);background:var(--n-08);color:var(--n-80);font-size:12px}
 .segment button+button {border-left:0}
 .segment button.active,.segment button.active:hover:not(:disabled),.mode-switch button.active,.source-kind button.active {background:var(--blue);border-color:var(--blue);color:var(--blue-ink)}
@@ -321,14 +321,14 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
  .stepper {margin-bottom:14px}.stepper ol {gap:3px}.stepper .step {min-height:42px;padding:4px 8px;gap:6px}.step-number {display:none}.step-text b {font-size:12px}
  .author,.solution-editor {padding:14px}
  .section-bar h2 {font-size:16px}
- .toolbar {gap:8px}.toolbar-start,.toolbar-start .segment {width:100%}.toolbar-start .segment button {flex:1}
+ .toolbar {gap:8px}
  .workspace-actions {width:100%}.workspace-actions button {flex:1}
  .check-action {padding:8px}.check-action .primary {width:100%}
  .evaluation-bar {flex-direction:column}.evaluation-bar .report {padding:8px 12px 8px 0}
  .editor-heading {flex-wrap:wrap}
 }
 .author .board-toggle {display:flex;align-items:center;gap:8px;margin:0}.author .board-toggle input {display:inline-block;width:16px;min-height:0;height:16px;margin:0;padding:0}
-@media(max-width:650px) {.toolbar {flex-wrap:nowrap}.toolbar-start {width:auto;flex:1;min-width:0}.workspace-actions {width:auto;flex-wrap:nowrap}.workspace-actions button {flex:0 0 auto;width:44px;padding:0}.workspace-actions button>span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.task-heading .link-action {min-height:34px}}
+@media(max-width:650px) {.toolbar {flex-wrap:wrap}.toolbar-start {display:contents}.toolbar-start .try-tabs {display:flex;flex:1 0 100%;width:100%}.toolbar-start .try-tabs button {flex:1}.toolbar-start .code-view-switch {flex:0 0 auto;width:auto;margin-left:0}.workspace-actions {width:auto;flex-wrap:nowrap;margin-left:auto}.workspace-actions button,.code-view-switch button {flex:0 0 auto;width:44px;padding:0}.workspace-actions button>span,.code-view-switch button>span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.task-heading .link-action {min-height:34px}}
 .eyebrow {font:700 11px var(--ui);letter-spacing:.4px;text-transform:none;color:var(--n-74)}
 .try-rules {padding:8px 12px}.try-rules .board-heading {align-items:center}
 @media(max-width:650px) {.header-actions .preview-toggle {width:38px;min-width:38px;padding:0}.header-actions .preview-toggle>span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.brand strong {font-size:18px}}
@@ -336,3 +336,34 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 @media(max-width:400px) {.brand strong {font-size:16px}.brand {gap:8px}.header-actions {gap:5px}}
 @media(max-width:400px) {.header-actions>button,.menu>summary {min-height:34px}.icon-only,.theme-toggle,.menu>summary,.header-actions .preview-toggle {width:34px;min-width:34px}.mode-tabs button {padding:0 8px;font-size:12px;white-space:nowrap}}
 @media(max-width:360px) {.brand-mark {display:none}.header {padding-left:16px}}
+/* Surfaces (ADR-106): on the full screen the root scrolls itself, since the page no longer scrolls it.
+ * Focus keeps only the code workspace: a one-line heading (title, language, what validates), the
+ * toolbar, the lists or the editor at the largest height, and the check bar. */
+#app[data-surface] {position:fixed;inset:0;z-index:1000;height:100dvh;overflow:auto;overscroll-behavior:contain}
+#app:fullscreen {overflow:auto}
+#app[data-surface=focus] :is(.header,.library,.stepper,.workspace-help,.step-nav,.task-heading .description,.task-heading .link-action) {display:none}
+#app[data-surface=focus] .practice-shell {display:block}
+#app[data-surface=focus] main,#app[data-surface=focus] .author-flow {max-width:none;padding:10px 16px 12px}
+#app[data-surface=focus] .task-heading {display:flex;align-items:center;gap:8px 14px;margin:0 0 10px;min-width:0}
+#app[data-surface=focus] .task-heading h1 {min-width:0;margin:0;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#app[data-surface=focus] .task-meta {flex-wrap:nowrap}
+#app[data-surface=focus] .toolbar {margin-bottom:10px}
+#app[data-surface=focus] .drop-zone {height:calc(100dvh - 205px);max-height:none;min-height:240px}
+#app[data-surface=focus] .solution-editor {padding:12px}
+#app[data-surface=focus] .editor-frame {max-height:none}
+#app[data-surface=focus] .editor-frame textarea {height:calc(100dvh - 230px);max-height:none}
+.focus-toggle[aria-pressed=true],.fullscreen-toggle[aria-pressed=true] {background:var(--blue);border-color:var(--blue);color:var(--blue-ink)}
+@media(max-width:650px) {#app[data-surface=focus] .drop-zone {height:auto;min-height:150px;max-height:42dvh}#app[data-surface=focus] .task-meta>span:not(.mode-badge,.language-badge) {display:none}}
+/* Code views (ADR-106): editor, a dense continuous list; cards, separate tiles with large targets.
+ * :where keeps them structural, so row states (selected, graded, picked) still decide the colours. */
+@media(pointer:fine) {:where(#app[data-code-view=editor]) .panes {--row:28px}:where(#app[data-code-view=cards]) .panes {--row:40px}}
+:where(#app[data-code-view=editor]) .source-zone {padding:0}
+:where(#app[data-code-view=editor]) .source-row {margin:0;border:0;border-bottom:1px solid var(--n-18);border-radius:0}
+:where(#app[data-code-view=cards]) .drop-zone {padding:8px}
+:where(#app[data-code-view=cards]) .code-row {margin:0 0 6px;border:1px solid var(--n-28);border-radius:var(--radius)}
+:where(#app[data-code-view=cards]) .fixed-row {border-left:3px solid var(--a-54)}
+:where(#app[data-code-view=cards]) .blank-row {border:1px dashed var(--n-36)}
+:where(#app[data-code-view=cards]) .blank-row .code-text::before {display:none}
+#app[data-code-view=cards] .code-text {font-size:13px}
+.code-view-switch {margin-left:4px}
+.stepper .step.current :is(.step-text b,.step-text small,.step-number,.step-index) {color:var(--blue-ink)}

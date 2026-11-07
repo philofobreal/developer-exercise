@@ -11,12 +11,16 @@ import { createRuleMarks, renderModelInsight, renderRuleCause, renderRuleKinds, 
 import { drawRuleArcs, renderRuleBoard, renderTryRules, tryRowRuleControls } from './rule-board.js';
 import { authorPreviewId, continuityKey, flowSteps, jsonPending, staleReason, stepOf } from './flow.js';
 import { THEME_LABEL, themeChoice } from './theme.js';
+import { CODE_VIEW_LABEL, codeView } from './code-view.js';
+import { installSurface, surface } from './surface.js';
 const tool = (attribute, label, name, extra = '') => `<button type="button" ${attribute} ${extra}>${icon(name)}<span>${label}</span></button>`;
 const languageName = (language) => language === 'typescript' ? 'TypeScript' : 'JavaScript';
 export function createWorkbenchView({ root, state, ex, at, attempt, scroll }) {
     const continuity = createViewContinuity(root);
     installWorkbenchKeyboard(root);
     installMenus(root);
+    installSurface(root, () => render());
+    codeView(root);
     installAuthoringFlows(root, state, render);
     addEventListener('resize', () => drawRuleArcs(root, state));
     // ADR-090: a code list scrolls sideways as one; its rule arcs follow the row controls pinned at its right edge.
@@ -101,7 +105,10 @@ export function createWorkbenchView({ root, state, ex, at, attempt, scroll }) {
     /** Rendező | Megoldáskód: the only tabs left; the steps are not tabs. */
     function tryPanel(e, a, { actions = true } = {}) {
         const v = state.view === 'edit' ? 'edit' : 'sort', tab = (view, label, name) => `<button type="button" id="tab-${view}" role="tab" data-view="${view}" aria-controls="panel-try" aria-selected="${v === view}" tabindex="${v === view ? 0 : -1}" class="${v === view ? 'active' : ''}">${icon(name)}<span>${label}</span>${view === 'edit' && a.editorDirty ? '<span class="dirty-dot" aria-label="Nem alkalmazott változtatás"></span>' : ''}</button>`;
-        return `<div class="toolbar"><div class="toolbar-start"><div class="segment try-tabs" role="tablist" aria-label="Megoldás">${tab('sort', 'Rendező', 'sort')}${tab('edit', 'Megoldáskód', 'edit')}</div></div>${actions ? `<div class="workspace-actions">${tool('data-reset', 'Visszaállítás', 'reset')}${state.learnerPreview ? '' : tool('data-all', 'Minta kitöltés', 'file')}</div>` : ''}</div><div id="panel-try" role="tabpanel" aria-labelledby="tab-${v}">${v === 'edit' ? editView(e, a) : sortView(e, a)}</div>${v === 'sort' ? reportView(e, a) : ''}<p class="note" role="status" aria-live="polite">${esc(a.feedback || '')}</p>`;
+        // ADR-106: the code view (editor or cards) and the focus surface sit with the workspace they change.
+        const view = codeView(root), focused = surface(root) === 'focus', styles = v === 'sort' ? `<div class="segment code-view-switch" role="group" aria-label="Kódnézet">${['editor', 'cards'].map((value) => `<button type="button" data-set-code-view="${value}" aria-pressed="${view === value}" class="${view === value ? 'active' : ''}" title="Kódnézet: ${CODE_VIEW_LABEL[value]}">${icon(value === 'editor' ? 'rows' : 'cards')}<span>${CODE_VIEW_LABEL[value]}</span></button>`).join('')}</div>` : '';
+        const focus = tool('data-focus', focused ? 'Kilépés' : 'Fókusz', focused ? 'exit' : 'focus', `class="focus-toggle" aria-pressed="${focused}" title="${focused ? 'Kilépés a fókusz módból (Escape)' : 'Fókusz mód: csak a kódfelület, a lehető legnagyobb méretben'}"`);
+        return `<div class="toolbar"><div class="toolbar-start"><div class="segment try-tabs" role="tablist" aria-label="Megoldás">${tab('sort', 'Rendező', 'sort')}${tab('edit', 'Megoldáskód', 'edit')}</div>${styles}</div><div class="workspace-actions">${actions ? tool('data-reset', 'Visszaállítás', 'reset') + (state.learnerPreview ? '' : tool('data-all', 'Minta kitöltés', 'file')) : ''}${focus}</div></div><div id="panel-try" role="tabpanel" aria-labelledby="tab-${v}">${v === 'edit' ? editView(e, a) : sortView(e, a)}</div>${v === 'sort' ? reportView(e, a) : ''}<p class="note" role="status" aria-live="polite">${esc(a.feedback || '')}</p>`;
     }
     // ── Author step 1: the reference source (code or a whole CodeLine JSON) ──
     function jsonBlock(context) {
@@ -148,7 +155,7 @@ export function createWorkbenchView({ root, state, ex, at, attempt, scroll }) {
     function header() {
         const learner = !!state.learnerPreview, author = state.mode === 'author', tryStep = author && stepOf(state.view) === 'try' && !!authorPreviewId(state);
         const modeButton = (value, label, name) => `<button type="button" data-mode="${value}" aria-pressed="${state.mode === value}" class="${state.mode === value ? 'active' : ''}">${icon(name)}<span>${label}</span></button>`;
-        return `<a class="skip-link" href="#workbench-main">Ugrás a munkaterületre</a><p id="move-help" class="sr-only">Mozgatás: szóköz vagy Enter, majd nyilak, Home vagy End; Enter az elhelyezéshez, Escape a megszakításhoz.</p><div class="sr-only" data-move-status role="status" aria-live="polite"></div><header class="header"><div class="brand"><span class="brand-mark" aria-hidden="true"></span><strong>CodeLine<span class="brand-tail">Sorter</span></strong><small>Studio</small></div>${learner ? '' : `<div class="mode-switch mode-tabs" role="group" aria-label="Munkamód">${modeButton('author', 'Feladat készítése', 'plus')}${modeButton('practice', 'Gyakorlás', 'sort')}</div>`}<div class="header-actions">${learner || tryStep ? tool('data-preview-toggle', learner ? 'Vissza a szerzői nézethez' : 'Tanulói nézet', learner ? 'back' : 'code', 'class="preview-toggle"') : ''}${learner ? '' : sessionMenu()}${themeButton()}${tool('data-fullscreen', '', 'fullscreen', 'class="icon-only fullscreen-toggle" aria-label="Teljes képernyő" title="Teljes képernyő"')}</div></header><input type="file" accept="application/json,.json" data-model-file hidden><input type="file" accept="application/json,.json" data-session-file hidden>`;
+        return `<a class="skip-link" href="#workbench-main">Ugrás a munkaterületre</a><p id="move-help" class="sr-only">Mozgatás: szóköz vagy Enter, majd nyilak, Home vagy End; Enter az elhelyezéshez, Escape a megszakításhoz.</p><div class="sr-only" data-move-status role="status" aria-live="polite"></div><header class="header"><div class="brand"><span class="brand-mark" aria-hidden="true"></span><strong>CodeLine<span class="brand-tail">Sorter</span></strong><small>Studio</small></div>${learner ? '' : `<div class="mode-switch mode-tabs" role="group" aria-label="Munkamód">${modeButton('author', 'Feladat készítése', 'plus')}${modeButton('practice', 'Gyakorlás', 'sort')}</div>`}<div class="header-actions">${learner || tryStep ? tool('data-preview-toggle', learner ? 'Vissza a szerzői nézethez' : 'Tanulói nézet', learner ? 'back' : 'code', 'class="preview-toggle"') : ''}${learner ? '' : sessionMenu()}${themeButton()}${tool('data-fullscreen', '', 'fullscreen', `class="icon-only fullscreen-toggle" aria-pressed="${surface(root) === 'app'}" aria-label="Teljes képernyő" title="${surface(root) === 'app' ? 'Kilépés a teljes képernyőből' : 'Teljes képernyő'}"`)}</div></header><input type="file" accept="application/json,.json" data-model-file hidden><input type="file" accept="application/json,.json" data-session-file hidden>`;
     }
     /** Pages is a Local Demo (AGENTS.md); the badge names it, and this line says what that means. */
     const notice = () => validationMode === 'local-demo' ? '<p class="validation-notice" role="note">Local Demo / Preview Validation · Helyi demonstráció, nem hitelesített vizsgaeredmény.</p>' : '';

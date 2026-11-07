@@ -3,7 +3,7 @@ Drags use real input; unrelated-pointer cancellation is explicit fault injection
 Native code-body drags exercise the
 browser's pointercancel transition before dragover/drop.
 """
-import json,os,socket,subprocess,threading,time,urllib.request
+import json,os,socket,subprocess,sys,threading,time,urllib.request
 from http.server import SimpleHTTPRequestHandler
 from playwright.sync_api import sync_playwright,expect
 from browser_support import ROOT,ARTIFACTS,launch,StaticServer
@@ -22,6 +22,11 @@ class Pages(SimpleHTTPRequestHandler):
 static=StaticServer(('127.0.0.1',0),Pages)
 threading.Thread(target=static.serve_forever,daemon=True).start()
 count=0
+# ADR-106: the whole suite runs once per code view (`--code-view=cards`); the row geometry differs, the
+# insertion rules must not. The view is the reader's stored choice, set before the app loads.
+VIEW=next((arg.split('=',1)[1] for arg in sys.argv[1:] if arg.startswith('--code-view=')),'editor')
+assert VIEW in ('editor','cards'),VIEW
+VIEW_SCRIPT=f"try{{localStorage.setItem('ngdynamic.code-view.v1','{VIEW}')}}catch(e){{}}"
 
 def identities(page,zone='solution'):
     return page.locator('.'+zone+'-zone .code-row').evaluate_all('(rows)=>rows.map(r=>r.dataset.lineId)')
@@ -63,7 +68,7 @@ try:
         except Exception:time.sleep(.1)
     else:raise AssertionError('Test server did not start')
     with sync_playwright() as p:
-        browser=launch(p);context=browser.new_context(viewport={'width':1500,'height':1000})
+        browser=launch(p);context=browser.new_context(viewport={'width':1500,'height':1000});context.add_init_script(VIEW_SCRIPT)
         context.tracing.start(screenshots=True,snapshots=True,sources=True)
         page=context.new_page();page.set_default_timeout(8000);errors=[]
         page.on('pageerror',lambda error:errors.append(str(error)))
@@ -102,7 +107,7 @@ try:
                 pointer_drag(page,rows.first.locator('.drag-handle'),target_row.locator('.gutter'),unrelated_cancel=True)
                 assert identities(page)==rotated(exercise,before,upto)
                 count+=1;print(f'PASS drag: {mode} unrelated pointercancel preserves owned mouse drag',flush=True)
-                touch_context=browser.new_context(viewport={'width':1500,'height':1000},has_touch=True)
+                touch_context=browser.new_context(viewport={'width':1500,'height':1000},has_touch=True);touch_context.add_init_script(VIEW_SCRIPT)
                 try:
                     touch_page=touch_context.new_page();select(touch_page,url,exercise,fill=True);before=identities(touch_page)
                     rows=touch_page.locator('.solution-zone .code-row[draggable="true"]');target_row,upto=last_visible(touch_page,rows);start=rows.first.locator('.drag-handle').bounding_box();end=target_row.locator('.gutter').bounding_box()
@@ -119,7 +124,7 @@ try:
                 finally:touch_context.close()
                 count+=1;print(f'PASS drag: {mode} actual touchcancel cancels only its own gesture; native dragging still works',flush=True)
             assert not errors,errors
-            context.tracing.stop();print(f'PASS drag total: {count} cases',flush=True)
+            context.tracing.stop();print(f'PASS drag total ({VIEW} view): {count} cases',flush=True)
         except Exception:
             page.screenshot(path=str(ARTIFACTS/'drag-failure.png'))
             context.tracing.stop(path=str(ARTIFACTS/'drag-failure-trace.zip'));raise

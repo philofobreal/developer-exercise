@@ -25,7 +25,11 @@ const paths={
  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
  moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
  contrast:'<circle cx="12" cy="12" r="9"/><path d="M12 3v18a9 9 0 0 0 0-18z" fill="currentColor"/>',
- folder:'<path d="M3 6h7l2 2h9v11H3z"/>'
+ folder:'<path d="M3 6h7l2 2h9v11H3z"/>',
+ rows:'<path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>',
+ cards:'<rect x="3" y="4" width="18" height="6" rx="1"/><rect x="3" y="14" width="18" height="6" rx="1"/>',
+ focus:'<path d="M4 9V4h5m6 0h5v5m0 6v5h-5m-6 0H4v-5"/><rect x="9" y="9" width="6" height="6"/>',
+ exit:'<path d="M9 4v5H4m11-5v5h5m0 6h-5v5M4 15h5v5"/>'
 } as const;
 export type IconName=keyof typeof paths;
 export const icon=(name:IconName):string=>`<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths[name]}</svg>`;

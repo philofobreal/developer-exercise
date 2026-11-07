@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased – 2026-11-07 Fókusz mód, két kódnézet, görgethető teljes képernyő (ADR-106)
+
+- **Fókusz mód:** a Próba eszközsorában. Csak a kódfelület marad (rendező vagy Megoldáskód és az Ellenőrzés), a lehető legnagyobb méretben. Escape-pel vagy a Kilépés gombbal hagyható el; a kitöltés megmarad.
+- **Két kódnézet:**
+  - **Szerkesztő:** sűrű, folytonos lista;
+  - **Kártyák:** nagyobb, különálló csempék;
+  - a választást a böngésző megjegyzi.
+- **Javítva:** teljes képernyőn nem lehetett görgetni.
+- **Javítva:** a kék aktív lépés felirata nem volt fehér.
+- **Új szerzői alapértékek:** érvényes egyszerű adat, a kulcssorrend nem számít, csak szabványos osztálymezők. A kész feladatok és a betöltött modellek a saját beállításaikat tartják. Az „Elemzési beállítások” összefoglalója minden változtatás után frissül.
+
 ## Unreleased – 2026-11-07 zöld elfogadás, a szerkesztő csíkjai a helyükön, ferde fülek telefonon (ADR-105)
 
 - **Zöld elfogadás:** az „Elfogadva” sáv mindkét témában zöld, a téma hátteréhez és fő színeihez igazítva.

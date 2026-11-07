@@ -180,8 +180,11 @@ try:
         def copy_fullscreen_styles():
             author(page);page.locator('[data-all]').click();page.locator('[data-copy-solution]').click();expect(page.locator('.note')).to_contain_text('másolva')
             assert 'return a + b' in page.evaluate('navigator.clipboard.readText()').replace('\r\n','\n')
-            page.locator('[data-fullscreen]').click();page.wait_for_function('() => document.fullscreenElement===document.querySelector("#app") || document.querySelector("#app").classList.contains("ng-fullscreen")')
-            page.locator('[data-fullscreen]').click();page.wait_for_function('() => !document.fullscreenElement && !document.querySelector("#app").classList.contains("ng-fullscreen")')
+            # ADR-106: on the full screen the workbench scrolls itself (the page no longer scrolls it).
+            page.locator('[data-fullscreen]').click();page.wait_for_function('() => document.querySelector("#app").dataset.surface==="app"')
+            scrolled=page.evaluate('()=>{const app=document.querySelector("#app");app.scrollTop=10000;return {top:app.scrollTop,room:app.scrollHeight-app.clientHeight}}')
+            assert scrolled['room']>0 and scrolled['top']==scrolled['room'],scrolled
+            page.locator('[data-fullscreen]').click();page.wait_for_function('() => !document.fullscreenElement && !document.querySelector("#app").dataset.surface')
             assert abs(page.locator('#app').bounding_box()['width']-1500)<2
             colors=page.locator('.solution-zone .code-row').evaluate_all('(rows)=>rows.slice(0,2).map(r=>getComputedStyle(r).backgroundColor)');assert colors[0]!=colors[1]
             assert page.locator('.solution-zone .gutter span').all_text_contents()==['1','2','3','4','5']

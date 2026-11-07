@@ -73,6 +73,38 @@ def editor_stripes(page):
         y=box['y']+j*23-30+11
         assert list(pixel(page,box['x']+box['width']-40,y))==colors[j%2],('text stripe',j)
         assert list(pixel(page,gutter['x']+3,y))==colors[2+j%2],('gutter stripe',j)
+ROW_IDS="rows=>rows.map(row=>row.dataset.lineId)"
+def focus_mode(page):
+    """ADR-106: Focus keeps only the code workspace, at the largest height; leaving it restores the page,
+    and the arrangement is the same throughout."""
+    practice(page);page.locator('[data-all]').click();before=page.locator('.solution-zone .code-row').evaluate_all(ROW_IDS)
+    height=page.locator('.solution-zone').bounding_box()['height']
+    page.locator('[data-focus]').click();expect(page.locator('#app')).to_have_attribute('data-surface','focus');expect(page.locator('[data-focus]')).to_have_attribute('aria-pressed','true')
+    expect(page.locator('.header')).to_be_hidden();expect(page.locator('.library')).to_be_hidden();expect(page.locator('.mode-badge')).to_be_visible();expect(page.locator('[data-check]')).to_be_visible()
+    assert page.locator('.solution-zone').bounding_box()['height']>height+100
+    page.locator('[data-view="edit"]').click();assert page.locator('#code-editor').bounding_box()['height']>500;page.locator('[data-view="sort"]').click()
+    assert page.locator('.solution-zone .code-row').evaluate_all(ROW_IDS)==before
+    page.locator('[data-focus]').click();expect(page.locator('#app')).not_to_have_attribute('data-surface','focus');expect(page.locator('.header')).to_be_visible()
+    assert page.evaluate('document.fullscreenElement') is None and page.locator('.solution-zone .code-row').evaluate_all(ROW_IDS)==before
+def focus_without_fullscreen_api(browser):
+    """Without the Fullscreen API (iOS Safari) Focus is a fixed overlay that scrolls itself; Escape leaves it."""
+    context=browser.new_context(viewport={'width':1280,'height':800});context.add_init_script('delete Element.prototype.requestFullscreen')
+    try:
+        page=context.new_page();reset(page,BASE);practice(page);page.locator('[data-focus]').click()
+        expect(page.locator('#app')).to_have_attribute('data-surface','focus');assert page.evaluate('document.fullscreenElement') is None
+        assert page.evaluate('getComputedStyle(document.querySelector("#app")).position')=='fixed'
+        page.locator('h1').click();page.keyboard.press('Escape');expect(page.locator('#app')).not_to_have_attribute('data-surface','focus');expect(page.locator('.header')).to_be_visible()
+    finally:context.close()
+def code_views(page):
+    """ADR-106: two code views, remembered across a reload; on a fine pointer the editor rows are 28 px and
+    continuous, the cards 40 px tiles. (The drag suite runs in full in both views.)"""
+    practice(page)
+    for view,height in [('cards',40),('editor',28)]:
+        page.locator(f'[data-set-code-view="{view}"]').click();expect(page.locator('#app')).to_have_attribute('data-code-view',view)
+        expect(page.locator(f'[data-set-code-view="{view}"]')).to_have_attribute('aria-pressed','true');expect(page.locator(f'[data-set-code-view="{view}"]')).to_be_focused()
+        row=page.locator('.source-zone .code-row').first;assert abs(row.bounding_box()['height']-height)<=2,(view,row.bounding_box())
+        if view=='cards':
+            page.reload();practice(page);expect(page.locator('#app')).to_have_attribute('data-code-view','cards')
 def menus(page):
     """ADR-105: a header or step menu opens on its summary and closes on Escape, an outside click or an action inside."""
     menu=page.locator('details.session-menu');menu.locator('summary').click();expect(menu).to_have_attribute('open','')
@@ -271,9 +303,14 @@ def pending_reference_survives_rule_edit(page):
     page.locator('[data-rules-view="json"]').click();expect(page.locator('#model-editor')).to_have_value('{unapplied JSON')
 
 def input_contract(page):
-    """ADR-050: the author picks the input contract; the model records it and frees the input reads."""
+    """ADR-050: the author picks the input contract; the model records it and frees the input reads.
+    ADR-106: a new draft starts from valid inputs, ignored key order and standard class fields, and the
+    folded summary follows every change."""
     page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click()
-    analysis_options(page);expect(page.locator('[data-author="inputs"]')).to_have_value('any');page.locator('[data-author="inputs"]').select_option('valid')
+    summary=page.locator('details.analysis-options summary');expect(summary).to_contain_text('érvényes adat · kulcssorrend nem számít · szabványos mezők')
+    analysis_options(page);expect(page.locator('[data-author="inputs"]')).to_have_value('valid');expect(page.locator('[data-author="keyOrder"]')).to_have_value('ignored');expect(page.locator('[data-author="classFields"]')).to_have_value('define')
+    page.locator('[data-author="inputs"]').focus();page.locator('[data-author="inputs"]').select_option('any');expect(summary).to_contain_text('szigorú bemenet');expect(page.locator('[data-author="inputs"]')).to_be_focused()
+    page.locator('[data-author="inputs"]').select_option('valid');expect(summary).to_contain_text('érvényes adat')
     page.locator('#author-editor').fill('function measure(grid) {\n  const rows = grid.length;\n  const cols = grid[0].length;\n  return rows * cols;\n}');page.locator('[data-author-apply]').click();current(page,'rules')
     rules_json(page);generated=json.loads(page.locator('#model-editor').input_value())
     assert generated['authoring']['evidence']['environment']['inputs']=='valid';assert 2 not in generated['lines'][2]['dependencies']
@@ -361,7 +398,8 @@ def rule_cause_lifts(page):
     the button opens that rule, a confirmed policy override accepts the order; the learner sees none of it."""
     source='\n'.join(['class Box {','  constructor() {','    this.a = 1;','    this.b = 2;','  }','}','function evaluate() {',"  const list = Object['ke' + 'ys'];",'  return list(new Box());','}'])
     page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill(source)
-    analysis_options(page);page.locator('[data-author="inputs"]').select_option('valid');page.locator('[data-author-apply]').click();current(page,'rules')
+    # The rule under test exists only while key order is observed (ADR-055); since ADR-106 a new draft ignores it.
+    analysis_options(page);page.locator('[data-author="inputs"]').select_option('valid');page.locator('[data-author="keyOrder"]').select_option('observed');page.locator('[data-author-apply]').click();current(page,'rules')
     expect(page.locator('[data-ordering-policy]').first).not_to_contain_text('nem alkalmazható')
     to_try(page);page.locator('[data-all]').click();page.locator('[data-down="2"]').click();page.locator('[data-check]').click()
     expect(page.locator('.report')).to_contain_text('Hibás');cause=page.locator('.report [data-rule-cause="3-4"]')
@@ -591,6 +629,9 @@ try:
             reset(page,BASE);case('node header and step menus open and close',lambda:menus(page))
             case('node forced dark browser keeps the chosen light theme white',lambda:forced_dark(p))
             reset(page,BASE);case('node editor stripes stay on their rows while scrolling',lambda:editor_stripes(page))
+            reset(page,BASE);case('node focus mode: only the code workspace, largest surface, arrangement kept',lambda:focus_mode(page))
+            case('node focus mode without the Fullscreen API: overlay, Escape leaves',lambda:focus_without_fullscreen_api(browser))
+            reset(page,BASE);case('node two code views, remembered, with their row geometry',lambda:code_views(page))
             reset(page,BASE);case('node duplicate-check prevention and async feedback',lambda:busy(page))
             reset(page,BASE);case('node admission preserves newer reference edits',lambda:stale_author_admission(page))
             reset(page,BASE);case('node sample loading preserves newer reference edits',lambda:stale_source_sample(page))
