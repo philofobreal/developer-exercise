@@ -2,6 +2,7 @@
  * Usage: node --expose-gc tests/support/author-budget-probe.mjs <case>; prints one JSON line. */
 import ts from 'typescript';
 import {readFileSync} from 'node:fs';
+import {pathToFileURL} from 'node:url';
 import {generateCodeLineExercise} from '../../src/author/generator.mjs';
 import {getLanguageAdapter} from '../../src/author/languages.mjs';
 const range=n=>Array.from({length:n},(_,i)=>i);
@@ -13,7 +14,8 @@ export const budgetCases={
  // 498 independent declarations followed by uses: a wide, shallow dependency graph.
  'flat-500':()=>[...range(250).map(i=>`const v${i} = ${i};`),...range(250).map(i=>`log(v${i}, v${(i*7)%250});`)].join('\n')
 };
-if(process.argv[2]){
+// Only when run as the probe itself, not when another script imports the cases (scripts/preflight-measure.mjs).
+if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href&&process.argv[2]){
  const source=budgetCases[process.argv[2]]();global.gc?.();
  const base=process.memoryUsage().heapUsed;let peak=base;
  const timer=setInterval(()=>{peak=Math.max(peak,process.memoryUsage().heapUsed);},5);

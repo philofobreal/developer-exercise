@@ -304,6 +304,47 @@ Következtetés:
     - a hatályos érték és az ujjlenyomat a kikapcsolté, mert az elemzés így fut;
     - egy szerveres munkamenet így a Pages-en is betölthető.
 
+**E9–E10 – tesztkorpusz, mérés, árnyékfuttatás** ([preflight-corpus.test.mjs](../../tests/preflight-corpus.test.mjs), [preflight-measure.mjs](../../scripts/preflight-measure.mjs)):
+- **Korpusz (terv 9. pont):** a minimális esetek a szerver két kapuján át, végponttól végpontig, mért és nem remélt eredménnyel. A más fájlban tesztelt esetek (13, 15, 16, 17, 19, 20) a fájl fejlécében a tulajdonos tesztre mutatnak.
+  - **Egyezik a tervvel:**
+    - a TDZ-hibák (`typeof`, záróhívás, árnyékolás, osztálysorrend) biztos hibák;
+    - `typeof` nem deklarált névre nem TDZ (checkJs mellett ismeretlen név: nem eldönthető);
+    - `let x;` olvasása nem hiba;
+    - a feloldatlan import nem eldönthető, sosem „hibás”;
+    - amit csak a checkJs jelez, „lehetséges”;
+    - rekurzió, feltételes inicializálás és véget érő ciklus nem hiba;
+    - Proxy jelenlétében az „érvényes adat” sem enged olvasási cserét.
+  - **Tudatos eltérés (2. eltérés, nincs mögötte elemző):**
+    - a `var` deklaráció előtti olvasásához nincs minőségi figyelmeztetés (3. eset);
+    - nincs „deklaráció-előbb” mód (4. eset).
+
+    Ma mindkettő nyelvhűen „passed”.
+  - **Ismert pontatlansági rés (11. eset):** az `Object.keys(o).length` nem függ a kulcsok sorrendjétől, a szabályok mégis rögzítik az írások sorrendjét (`keyOrder: observed`).
+    - Túl szigorú, sosem veszélyes: helyes elrendezést nem fogad el tévesen, csak egy helyeset elutasíthat.
+    - A javítás a generátor kulcssorrend-elemzésébe tartozik (szerzői elemzés kockázati osztály), külön feladat.
+- **Árnyékfuttatás (2026-11-07):** mind a 41 szállított modell (16 katalógusfeladat, 25 TypeScript-mintamodell) importált modellként, három beállítással (kezdőérték, a nyelv szigorúbb diagnosztikája, „tilt”).
+  - **39 modell** mindkét kapun átmegy mindhárom beállítással.
+  - **`13-duplicate-names`:** blokkolva (szándékos TS2300-minta, E5a).
+  - **`01-user-account.values-only`:**
+    - az első kapun átmegy;
+    - a második kapu „nem eldönthető”, mert a minősítés „nem igazolt”: 15 szerzői szabály szűkíti a generált modellt;
+    - „figyelmeztet” mellett figyelmeztetéssel nyílik, „tilt” mellett zárva marad.
+
+    Itt a szerző csak szigorított. Hogy a szűkítés is „nem igazolt” legyen-e a kapu számára, pedagógiai döntés, és nyitva marad. Ma a meglévő minősítő ítéletét követjük.
+  - **Élesítés:** nincs kapcsoló. A kapuk az E5a óta élesek, és a kezdőérték mellett egyetlen szállított modellt sem blokkolnak váratlanul. A visszagörgetés a commitok visszavonása.
+- **Az első kapu költsége** (nyelvi ellenőrzés + futási biztonság + döntés, TypeScript, 15 futás, p50/p95 ms):
+
+  | Forrás | Sor | Szerver (könyvtárral) | Local Demo (könyvtár nélkül) |
+  | --- | ---: | ---: | ---: |
+  | service-436 (valós szolgáltatás) | 483 | 41 / 71 | 7 / 12 |
+  | objects-500 (közös objektumok) | 499 | 304 / 422 | 285 / 303 |
+  | flat-500 (500 független deklaráció) | 500 | 182 / 267 | 193 / 219 |
+
+  - Az idő döntő része a futási biztonsági elemzésé, nem a fordítóé (a könyvtár nélküli futás alig gyorsabb).
+  - A generátorhoz képest kicsi: az author-budget mérése szerint az objects-500 generálása 1,27 s. A szerver 10 s-os korlátján belül marad.
+  - A Pages-en a fő szálon fut, ezért a 64-es (worker) feladat ezt is érinti.
+  - A számok ennek a gépnek a mérései, nem garantált küszöbök. Újramérés: `npm run build && node scripts/preflight-measure.mjs`.
+
 **Bizonyíték:**
 - `tests/author-policy.test.mjs`:
   - az összes kombináció tulajdonságtesztje: a konzervatív preset mindig a szigorú szerződést adja, és az ujjlenyomat csak a hatályos policytól függ;

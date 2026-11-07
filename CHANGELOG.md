@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased – 2026-11-07 szerzői preflight: tesztkorpusz, mérés és árnyékfuttatás (ADR-108, E9–E10)
+
+- **Tesztkorpusz:** a terv minimális esetei teljes úton tesztelve. A biztos hibákat (például inicializálás előtti hozzáférés) megállítja; a hiányzó projektkörnyezetet nem jelöli hibásnak.
+- **Árnyékfuttatás a 41 szállított modellen:**
+  - 39 modell minden beállítással átmegy;
+  - a szándékosan hibás mintát az ellenőrzés továbbra is megállítja;
+  - egy szerzői szabályokkal szűkített minta figyelmeztetéssel nyílik meg (a „Tilt” beállítás mellett nem).
+- **Mérés:** az első ellenőrzés 500 soros forráson legfeljebb kb. 0,4 másodperc. Újramérhető: `node scripts/preflight-measure.mjs`.
+
 ## Unreleased – 2026-11-07 javítás: a Local Demóban nem választható „Tilt” (ADR-108, C16)
 
 - **Javítva:** a Local Demóban (Pages) nem fut nyelvi ellenőrzés. A „Nem eldönthető eredmények: Tilt” beállítással ezért egyetlen modell sem készülhetett, és a hibaüzenet nem mondta meg, miért.
