@@ -30,6 +30,9 @@ export interface AuthorPolicy {
  tsDiagnostics: 'baseline' | 'strict';
  /** JavaScript only (E2): `on` adds a `checkJs` type check; what only it finds is a possible error. */
  jsCheck: 'off' | 'on';
+ /** E4: `local` reports a definite TypeError on a local binding whose value is known from its declaration
+  * (a null/undefined dereference, a call of a non-callable literal). */
+ objectState: 'off' | 'local';
 }
 export type PolicyPath = keyof AuthorPolicy;
 export interface PolicyLock {path: PolicyPath; requested: string | undefined; effective: string; rule: string; reason: string;}
@@ -55,11 +58,12 @@ const OPTIONS: Readonly<Record<PolicyPath, Option>> = {
  portability: {values: ['configured', 'conservative'], fallback: 'configured', label: 'Hordozhatóság'},
  unknownPolicy: {values: ['warn', 'block'], fallback: 'warn', label: 'Nem eldönthető eredmények'},
  tsDiagnostics: {values: ['baseline', 'strict'], fallback: 'baseline', label: 'TypeScript-diagnosztika', languages: ['typescript']},
- jsCheck: {values: ['off', 'on'], fallback: 'off', label: 'JavaScript típusellenőrzés', languages: ['javascript']}
+ jsCheck: {values: ['off', 'on'], fallback: 'off', label: 'JavaScript típusellenőrzés', languages: ['javascript']},
+ objectState: {values: ['off', 'local'], fallback: 'local', label: 'Helyi objektumállapot'}
 };
 /** The source-contract options keep their top-level request names; the newer ones live under `policy`. */
 const TOP_LEVEL: readonly PolicyPath[] = ['inputs', 'keyOrder', 'classFields', 'importEmit'];
-const NESTED: readonly PolicyPath[] = ['portability', 'unknownPolicy', 'tsDiagnostics', 'jsCheck'];
+const NESTED: readonly PolicyPath[] = ['portability', 'unknownPolicy', 'tsDiagnostics', 'jsCheck', 'objectState'];
 /** C01–C04: the conservative preset and the strict value of each source-contract option. */
 const CONSERVATIVE: readonly {path: PolicyPath; value: string; rule: string; reason: string}[] = [
  {path: 'inputs', value: 'any', rule: 'C01', reason: 'A konzervatív sorrend nem tételezhet fel érvényes bemenetet: minden bemenetet vizsgál.'},

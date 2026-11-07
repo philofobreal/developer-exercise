@@ -3,13 +3,14 @@ const describe = (diagnostics) => diagnostics.slice(0, 5).map(d => `${d.line}. s
 const TDZ_CODES = new Set(['TS2448', 'TS2449', 'TS2450']);
 export function sourceGate(audit, policy, binding) {
     const compiled = audit.diagnostics.map(d => ({ line: d.line, code: 'TS' + d.code, message: d.message, certainty: d.certainty, origin: d.context ? 'environment' : 'compiler' }));
-    // C35: one list. A definite compiler report keeps its line; a binding finding replaces a possible one there.
-    const found = (binding?.findings ?? []).filter(f => !compiled.some(d => d.line === f.line && d.certainty === 'definite' && TDZ_CODES.has(d.code)));
+    // C35: one list. A definite compiler report on a line stays the one report there (TDZ, not callable…);
+    // a runtime finding replaces a possible TDZ report of the type check on its line.
+    const found = (binding?.findings ?? []).filter(f => !compiled.some(d => d.line === f.line && d.certainty === 'definite'));
     const diagnostics = [...compiled.filter(d => !(d.certainty === 'possible' && TDZ_CODES.has(d.code) && found.some(f => f.line === d.line))), ...found.map(f => ({ line: f.line, code: f.code, message: f.message, certainty: f.certainty, origin: f.origin }))].sort((a, b) => a.line - b.line);
     const base = { gate: 'source-to-rules', diagnostics, policyFingerprint: policy.fingerprint, assumptions: binding ? [...audit.assumptions, 'binding-safety'] : audit.assumptions };
     if (audit.semantics === 'errors' || found.length) {
         const definite = diagnostics.filter(d => d.certainty === 'definite');
-        const what = audit.semantics === 'errors' ? 'nyelvi hibát tartalmaz' : 'futáskor biztosan hibát dob (inicializálás előtti hozzáférés)';
+        const what = audit.semantics === 'errors' ? 'nyelvi hibát tartalmaz' : found.some(f => f.origin === 'runtime-order') ? 'futáskor biztosan hibát dob (inicializálás előtti hozzáférés)' : 'futáskor biztosan hibát dob (null/undefined vagy nem hívható érték)';
         return { ...base, verdict: 'blocked', admitted: false, completeness: 'within-supported-scope', message: `A referencia ${what}, ezért nem készült modell; a korábbi modell megmaradt. ${describe(definite)}` };
     }
     const blocked = policy.effective.unknownPolicy === 'block';

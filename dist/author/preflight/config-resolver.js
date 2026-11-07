@@ -21,11 +21,12 @@ const OPTIONS = {
     portability: { values: ['configured', 'conservative'], fallback: 'configured', label: 'Hordozhatóság' },
     unknownPolicy: { values: ['warn', 'block'], fallback: 'warn', label: 'Nem eldönthető eredmények' },
     tsDiagnostics: { values: ['baseline', 'strict'], fallback: 'baseline', label: 'TypeScript-diagnosztika', languages: ['typescript'] },
-    jsCheck: { values: ['off', 'on'], fallback: 'off', label: 'JavaScript típusellenőrzés', languages: ['javascript'] }
+    jsCheck: { values: ['off', 'on'], fallback: 'off', label: 'JavaScript típusellenőrzés', languages: ['javascript'] },
+    objectState: { values: ['off', 'local'], fallback: 'local', label: 'Helyi objektumállapot' }
 };
 /** The source-contract options keep their top-level request names; the newer ones live under `policy`. */
 const TOP_LEVEL = ['inputs', 'keyOrder', 'classFields', 'importEmit'];
-const NESTED = ['portability', 'unknownPolicy', 'tsDiagnostics', 'jsCheck'];
+const NESTED = ['portability', 'unknownPolicy', 'tsDiagnostics', 'jsCheck', 'objectState'];
 /** C01–C04: the conservative preset and the strict value of each source-contract option. */
 const CONSERVATIVE = [
     { path: 'inputs', value: 'any', rule: 'C01', reason: 'A konzervatív sorrend nem tételezhet fel érvényes bemenetet: minden bemenetet vizsgál.' },

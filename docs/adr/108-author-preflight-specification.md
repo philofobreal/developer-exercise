@@ -128,7 +128,7 @@ Következtetés:
 - **Bizonyíték:** `tests/audit-modes.test.mjs`.
 
 **E3 – kötés- és TDZ-biztonság** ([binding-safety.ts](../../src/author/preflight/binding-safety.ts)):
-- **Mit talál:** a `let`, `const` vagy `class` kötéshez az inicializálás előtt történő hozzáférést (TDZ, futáskor ReferenceError), de **csak a biztos esetet**. Biztos az, amelyik minden olyan futásban bekövetkezik, amely eléri a blokkját.
+- **Mit talál:** a `let`, `const` vagy `class` kötéshez az inicializálás előtt történő hozzáférést (TDZ, futáskor ReferenceError), de **csak a biztos esetet**. ~~Biztos az, amelyik minden olyan futásban bekövetkezik, amely eléri a blokkját.~~ Pontosítva (E4): biztos az, amelyik bekövetkezik, ha a tartalmazó utasítás lefut.
   - **Kötés:** a fordító szimbólumfeloldása azonosítja, így az árnyékolás helyes, és a típuspozíció nem számít.
   - **Feltétel nélküli út a deklaráció blokkjáig:** átlátszó szerkezetek engedélylistája. Feltételesnek számít minden más:
     - függvényhatár, `if`- és `switch`-ág, ciklustörzs, `try`;
@@ -154,6 +154,30 @@ Következtetés:
   - a zéró hamis pozitív korpuszpróba;
   - a kapu viselkedése;
   - a szerveres 422 a hívás sorával.
+
+**E4 – vezérlésfolyam és helyi objektumállapot** ([flow-paths.ts](../../src/author/preflight/flow-paths.ts), [object-state.ts](../../src/author/preflight/object-state.ts), [runtime-safety.ts](../../src/author/preflight/runtime-safety.ts)):
+- **Egy gazda a „biztosan lefut-e” kérdésnek:** a `flow-paths.ts` adja egy programra a szimbólumokat, az írásokat, az átlátszó utakat és a `mustEvaluate` választ. Ezt a TDZ-elemzés (E3) és az objektumállapot-elemzés közösen használja.
+  - **Ágak összekapcsolása:** az `if/else` mindkét ága együtt biztos, ha mindkettő biztosan kiértékeli a keresett csomópontot.
+  - **Egyszer lefutó ciklus:** a `do … while`, a `while (true)` és a `for (…;;…)` első menete számít.
+  - **Kilépés:** egy utasítás után csak akkor folytatódik a biztos út, ha semmilyen úton nem léphet ki (`return`, `throw`, `break` vagy `continue` a beágyazott függvényeken kívül).
+- **Az E3 definíciójának javítása:**
+  - **A pontos definíció:** „ha a hozzáférést tartalmazó utasítás lefut, a hiba biztosan bekövetkezik”. A korábbi szöveg („minden futásban, amely eléri a blokkját”) pontatlan volt, mert egy korábbi feltételes `return` után a blokk utasítása kimaradhat.
+  - **Két hamis pozitív kockázat:** az új szabály megszüntette őket. Ezeket csak az utasítás nélküli kilépést figyelő E3-változat jelezte volna:
+    - a hívott függvényben feltételes `return` előzi meg a hozzáférést;
+    - beágyazott blokkban ugyanez történik.
+  - **Bizonyíték:** mindkettőt teszt rögzíti.
+- **Helyi objektumállapot** (`objectState: local`, a terv szerint alapértelmezett; `off` kikapcsolja):
+  - **OS001:** tagelérés, hívás, `new`, destrukturálás, `for…of` vagy tömbbe szórás olyan kötésen, amely ott biztosan `null` vagy `undefined` (`let o;`, `= null`, `= undefined`, `= void …`; az árnyékolt `undefined` nem számít).
+  - **OS002:** biztosan nem hívható literál (szám, szöveg, logikai érték, objektum, tömb, reguláris kifejezés) hívása vagy `new`-ja.
+  - **Az érték csak az első írásig ismert:** ha bármelyik függvény írja a kötést, kimarad, mert egy hívás bármikor megváltoztathatja. Az `?.` soha, az objektumba szórás (`{...null}`) nem hiba.
+- **Nincs `controlFlow` kapcsoló:** a terv `basic`/`interprocedural` kapcsolója helyett a biztos-út elemzés pontosítás, nem policy. A hívásláncot (legfeljebb 8 szint) mindig követi, és a csend nem bizonyíték (ADR-108, 2. eltérés).
+- **Kapu:** a futásidejű találat akkor sem ismétlődik, ha ugyanazon a soron a fordítónak biztos jelzése van (például TS2349 „nem hívható”), mert a fordító jelzése marad az egyetlen (C35).
+- **Mérés:**
+  - az E4-korpusz 31 esete pontos;
+  - a 482 valós programon a két elemzés együtt is csak a szándékos `const broken = broken;` sort jelzi;
+  - programonként átlagosan 1,3 ms, legfeljebb 28,6 ms.
+- **Nem vizsgált** (csend, nem bizonyíték): mezőszintű objektumállapot (`o.a.b`), metódus- és konstruktorhívás, `switch`-ágak, `try`, osztályinicializálás sorrendje.
+- **Bizonyíték:** `tests/runtime-safety.test.mjs`.
 
 **Bizonyíték:**
 - `tests/author-policy.test.mjs`:

@@ -8,7 +8,7 @@ import {authorRuleSheet,editAuthorModel,refreshAuthorModel,verifyAuthorModel} fr
 import {createReferenceAuditor} from '../dist/author/reference-audit.js';
 import {auditMode,generatorOptions,policyRefusal,resolveAuthorPolicy} from '../dist/author/preflight/config-resolver.js';
 import {sourceGate} from '../dist/author/preflight/source-gate.js';
-import {bindingSafety} from '../dist/author/preflight/binding-safety.js';
+import {runtimeSafety} from '../dist/author/preflight/runtime-safety.js';
 
 export const validationMode='local-demo';
 const records = new Map();
@@ -65,7 +65,7 @@ export async function compileDraft(body){
   policy??=resolveAuthorPolicy({language:model.language,...(body?.policy!==undefined?{policy:body.policy}:{})});
   {const refusal=policyRefusal(policy);if(refusal)throw Error(refusal);}
   const reviewed=typeof body?.source==='string'&&!body?.model?body.source.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n'):model.lines.map(l=>l.code).join('\n');
-  const gate=sourceGate(createReferenceAuditor(getTypeScript()).audit(reviewed,model.language,auditMode(policy)),policy,bindingSafety(getTypeScript(),reviewed,model.language==='typescript'?'typescript':'javascript'));
+  const gate=sourceGate(createReferenceAuditor(getTypeScript()).audit(reviewed,model.language,auditMode(policy)),policy,runtimeSafety(getTypeScript(),reviewed,model.language==='typescript'?'typescript':'javascript',{objectState:policy.effective.objectState}));
   if(!gate.admitted)throw Error(gate.message);
   if(drafts.size>=MAX_DRAFTS)drafts.delete(drafts.keys().next().value);
   // No standard library is shipped to the static demo: the language audit reports `not-run` (ADR-016).

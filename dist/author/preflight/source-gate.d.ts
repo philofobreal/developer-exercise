@@ -15,14 +15,14 @@
  */
 import type { ReferenceAudit } from '../reference-audit.js';
 import type { PolicyResolution } from './config-resolver.js';
-import type { BindingSafety } from './binding-safety.js';
+import type { RuntimeAnalysis } from './binding-safety.js';
 export type GateVerdict = 'passed' | 'blocked' | 'inconclusive';
 export interface GateDiagnostic {
     line: number;
     code: string;
     message: string;
     certainty: 'definite' | 'possible' | 'unknown';
-    origin: 'compiler' | 'environment' | 'runtime-order';
+    origin: 'compiler' | 'environment' | 'runtime-order' | 'runtime-value';
 }
 export interface SourceGate {
     gate: 'source-to-rules';
@@ -36,4 +36,4 @@ export interface SourceGate {
     policyFingerprint: string;
     assumptions: string[];
 }
-export declare function sourceGate(audit: ReferenceAudit, policy: PolicyResolution, binding?: BindingSafety): SourceGate;
+export declare function sourceGate(audit: ReferenceAudit, policy: PolicyResolution, binding?: RuntimeAnalysis): SourceGate;

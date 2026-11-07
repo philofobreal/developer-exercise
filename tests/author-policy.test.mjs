@@ -12,7 +12,7 @@ import {generateCodeLineExercise} from '../src/author/generator.mjs';
 test('an empty request keeps the historical fallback (any, observed, either, verbatim) and warns on unknowns',()=>{
  const r=resolveAuthorPolicy({language:'typescript'});
  assert.equal(r.schema,POLICY_SCHEMA);
- assert.deepEqual(r.effective,{inputs:'any',keyOrder:'observed',classFields:'either',importEmit:'verbatim',portability:'configured',unknownPolicy:'warn',tsDiagnostics:'baseline',jsCheck:'off'});
+ assert.deepEqual(r.effective,{inputs:'any',keyOrder:'observed',classFields:'either',importEmit:'verbatim',portability:'configured',unknownPolicy:'warn',tsDiagnostics:'baseline',jsCheck:'off',objectState:'local'});
  assert.deepEqual(r.requested,{});assert.deepEqual(r.locks,[]);assert.deepEqual(r.conflicts,[]);assert.equal(policyRefusal(r),'');
 });
 

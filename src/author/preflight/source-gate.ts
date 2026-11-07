@@ -15,10 +15,10 @@
  */
 import type {ReferenceAudit} from '../reference-audit.js';
 import type {PolicyResolution} from './config-resolver.js';
-import type {BindingSafety} from './binding-safety.js';
+import type {RuntimeAnalysis} from './binding-safety.js';
 
 export type GateVerdict = 'passed' | 'blocked' | 'inconclusive';
-export interface GateDiagnostic {line: number; code: string; message: string; certainty: 'definite' | 'possible' | 'unknown'; origin: 'compiler' | 'environment' | 'runtime-order';}
+export interface GateDiagnostic {line: number; code: string; message: string; certainty: 'definite' | 'possible' | 'unknown'; origin: 'compiler' | 'environment' | 'runtime-order' | 'runtime-value';}
 export interface SourceGate {
  gate: 'source-to-rules';
  verdict: GateVerdict;
@@ -37,15 +37,16 @@ const describe = (diagnostics: readonly GateDiagnostic[]): string => diagnostics
 /** The compiler's own access-before-declaration codes; a binding finding on the same line repeats them. */
 const TDZ_CODES = new Set(['TS2448', 'TS2449', 'TS2450']);
 
-export function sourceGate(audit: ReferenceAudit, policy: PolicyResolution, binding?: BindingSafety): SourceGate {
+export function sourceGate(audit: ReferenceAudit, policy: PolicyResolution, binding?: RuntimeAnalysis): SourceGate {
  const compiled: GateDiagnostic[] = audit.diagnostics.map(d => ({line: d.line, code: 'TS' + d.code, message: d.message, certainty: d.certainty, origin: d.context ? 'environment' : 'compiler'}));
- // C35: one list. A definite compiler report keeps its line; a binding finding replaces a possible one there.
- const found = (binding?.findings ?? []).filter(f => !compiled.some(d => d.line === f.line && d.certainty === 'definite' && TDZ_CODES.has(d.code)));
+ // C35: one list. A definite compiler report on a line stays the one report there (TDZ, not callable…);
+ // a runtime finding replaces a possible TDZ report of the type check on its line.
+ const found = (binding?.findings ?? []).filter(f => !compiled.some(d => d.line === f.line && d.certainty === 'definite'));
  const diagnostics: GateDiagnostic[] = [...compiled.filter(d => !(d.certainty === 'possible' && TDZ_CODES.has(d.code) && found.some(f => f.line === d.line))), ...found.map(f => ({line: f.line, code: f.code, message: f.message, certainty: f.certainty, origin: f.origin}))].sort((a, b) => a.line - b.line);
  const base = {gate: 'source-to-rules' as const, diagnostics, policyFingerprint: policy.fingerprint, assumptions: binding ? [...audit.assumptions, 'binding-safety'] : audit.assumptions};
  if (audit.semantics === 'errors' || found.length) {
   const definite = diagnostics.filter(d => d.certainty === 'definite');
-  const what = audit.semantics === 'errors' ? 'nyelvi hibát tartalmaz' : 'futáskor biztosan hibát dob (inicializálás előtti hozzáférés)';
+  const what = audit.semantics === 'errors' ? 'nyelvi hibát tartalmaz' : found.some(f => f.origin === 'runtime-order') ? 'futáskor biztosan hibát dob (inicializálás előtti hozzáférés)' : 'futáskor biztosan hibát dob (null/undefined vagy nem hívható érték)';
   return {...base, verdict: 'blocked', admitted: false, completeness: 'within-supported-scope', message: `A referencia ${what}, ezért nem készült modell; a korábbi modell megmaradt. ${describe(definite)}`};
  }
  const blocked = policy.effective.unknownPolicy === 'block';

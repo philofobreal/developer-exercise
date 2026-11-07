@@ -54,5 +54,5 @@ test('server: every entry path is gated: an imported model and a dependency refr
  await assert.rejects(catalog.createDraft({model:broken}),error=>error.statusCode===422&&error.details.gate.verdict==='blocked');
  await assert.rejects(catalog.createDraft({model:broken,refreshDependencies:true}),error=>error.statusCode===422);
  const imported=await catalog.createDraft({model});assert.equal(imported.gate.verdict,'passed');
- await assert.rejects(catalog.createDraft({model,policy:{objectState:'local'}}),error=>error.statusCode===422&&error.details.policy.conflicts[0].code==='C33');
+ await assert.rejects(catalog.createDraft({model,policy:{declarationOrder:'declaration-first'}}),error=>error.statusCode===422&&error.details.policy.conflicts[0].code==='C33');
 });

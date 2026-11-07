@@ -14,7 +14,7 @@ import {authorRuleSheet,editAuthorModel,refreshAuthorModel,verifyAuthorModel} fr
 import {createReferenceAuditor} from '../../dist/author/reference-audit.js';
 import {auditMode,generatorOptions,policyRefusal,resolveAuthorPolicy} from '../../dist/author/preflight/config-resolver.js';
 import {sourceGate} from '../../dist/author/preflight/source-gate.js';
-import {bindingSafety} from '../../dist/author/preflight/binding-safety.js';
+import {runtimeSafety} from '../../dist/author/preflight/runtime-safety.js';
 export class ServiceError extends Error{constructor(code,message,details){super(message);this.statusCode=code;if(details)this.details=details;}}
 /** The publication policy named by `CODELINE_PUBLICATION` (ADR-027, ADR-035); unset, the core's default
  * (`verified-only`, ADR-089). The server, the model check and the Pages build read it here alike; a
@@ -80,7 +80,7 @@ export class ExerciseCatalog{
     policy??=resolveAuthorPolicy({language:model.language,...(body?.policy!==undefined?{policy:body.policy}:{})});
     {const refusal=policyRefusal(policy);if(refusal)throw new ServiceError(422,refusal,{policy});}
     const reviewed=typeof body?.source==='string'&&!body?.model?body.source.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n'):model.lines.map(l=>l.code).join('\n');
-    const gate=sourceGate((await this.auditor()).audit(reviewed,model.language,auditMode(policy)),policy,bindingSafety(await this.parser(),reviewed,model.language==='typescript'?'typescript':'javascript'));
+    const gate=sourceGate((await this.auditor()).audit(reviewed,model.language,auditMode(policy)),policy,runtimeSafety(await this.parser(),reviewed,model.language==='typescript'?'typescript':'javascript',{objectState:policy.effective.objectState}));
     if(!gate.admitted)throw new ServiceError(422,gate.message,{gate,policy});
     const self=validateSubmission(result.compiled,{exerciseId:model.id,revision:1,lines:model.lines.map(l=>l.code)},{maxStates:200_000});
     if(!self.accepted)throw new ServiceError(422,`A referencia nem érvényes: ${self.message}`);

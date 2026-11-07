@@ -30,6 +30,9 @@ export interface AuthorPolicy {
     tsDiagnostics: 'baseline' | 'strict';
     /** JavaScript only (E2): `on` adds a `checkJs` type check; what only it finds is a possible error. */
     jsCheck: 'off' | 'on';
+    /** E4: `local` reports a definite TypeError on a local binding whose value is known from its declaration
+     * (a null/undefined dereference, a call of a non-callable literal). */
+    objectState: 'off' | 'local';
 }
 export type PolicyPath = keyof AuthorPolicy;
 export interface PolicyLock {

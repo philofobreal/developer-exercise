@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-07 szerzői preflight: ágak, ciklusok és biztos null/undefined hiba (ADR-108, E4)
+
+- **Pontosabb ágkezelés:** az inicializálás előtti hozzáférést az elemzés akkor is látja, ha az egy `if/else` mindkét ágán vagy egy biztosan egyszer lefutó ciklusban (`do…while`, `while (true)`) történik.
+- **Új ellenőrzés:** biztos `null`/`undefined` értéken végzett tagelérés vagy hívás (például `let o; o.name`), illetve egy nem függvény meghívása (például `const n = 5; n()`). Mindkettő futáskor TypeError, és megállítja a modellkészítést. Kikapcsolható (`objectState: off`).
+- **Javítva:** az előző verzió hibát jelezhetett, ha egy függvény feltételesen kilépett, mielőtt elérte volna a hibás sort. Most csak a valóban biztos esetet jelzi. A repó 482 valódi programján továbbra is egyetlen, szándékosan hibás tesztprogramot jelez.
+
 ## Unreleased – 2026-11-07 szerzői preflight: inicializálás előtti hozzáférés felismerése (ADR-108, E3)
 
 - **Új elemzés:** a modellkészítés biztosra megállít, ha a referencia egy `let`, `const` vagy `class` kötést az inicializálása előtt olvas vagy ír, mert ez futáskor ReferenceError. Közvetlenül és hívásláncon át is látja, például `const f = () => x; f(); const x = 1;`. JavaScriptben és a Pages-en is működik.
