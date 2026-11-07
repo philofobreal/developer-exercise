@@ -23,7 +23,7 @@ button:hover:not(:disabled) {background:var(--n-20);border-color:var(--n-46)}but
 .author,.solution-editor {padding:23px;border:1px solid var(--border);border-radius:var(--radius);background:var(--n-12)}.section-heading {display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:20px}.section-heading h2 {margin:7px 0 8px}.section-heading p {font-size:12px;color:var(--n-74);line-height:1.7;max-width:760px;margin:0}.context-label {border:1px solid var(--a-32);background:var(--a-14);color:var(--a-78);padding:5px 8px;border-radius:var(--radius);font-size:11px;white-space:nowrap}.context-label.pending {border-color:var(--w-36);background:var(--w-16);color:var(--w-80)}.form-grid {display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:15px}.author label {display:block;color:var(--n-82);font-size:12px;font-weight:550;margin:0 0 15px}.author input,.author select {display:block;width:100%;min-width:0;margin-top:6px;background:var(--n-10);color:var(--n-94);border:1px solid var(--n-36);border-radius:var(--radius);padding:10px 11px;min-height:40px;font-size:13px}.editor-heading {display:flex;align-items:center;justify-content:space-between;gap:12px;margin:20px 0 10px}.editor-heading h3 {font-size:12px;margin:0}.editor-tools button {background:transparent;font-size:11px;padding:6px 8px}.editor-tools .icon {width:14px}.editor-frame {display:grid;grid-template-columns:48px minmax(0,1fr);background:var(--n-10);min-height:310px;max-height:650px;overflow:hidden}.editor-gutter {overflow:hidden;color:var(--n-66);background:repeating-linear-gradient(to bottom,var(--n-14) 0 23px,var(--n-16) 23px 46px);background-attachment:local;user-select:none;padding:0 9px 0 0;text-align:right;font:12px/23px var(--mono);white-space:pre;pointer-events:none;height:345px}.editor-gutter span {display:block;height:23px}.editor-frame textarea {display:block;width:100%;background:repeating-linear-gradient(to bottom,var(--n-10) 0 23px,var(--n-14) 23px 46px);background-attachment:local;color:var(--n-92);border:0;outline:0;padding:0 14px;margin:0;min-height:310px;height:345px;max-height:650px;resize:vertical;white-space:pre;tab-size:5;font:12px/23px var(--mono);overflow:auto}.editor-frame:focus-within {outline:2px solid var(--accent);outline-offset:-2px}.editor-frame[data-editor-kind=model] textarea,.editor-frame[data-editor-kind=model] .editor-gutter {height:440px}.editor-actions {display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:15px}.editor-actions .primary {margin-left:auto}.editor-actions button {font-size:11px}.editor-actions .inline-hint {max-width:600px;font-size:11px;margin:0}.author-status {color:var(--a-80);font-size:11px;line-height:1.7;white-space:pre-wrap;margin:14px 0 0}.model-overview {display:flex;align-items:center;gap:22px;flex-wrap:wrap;border:1px solid var(--n-28);background:var(--n-14);border-radius:var(--radius);padding:14px 16px;margin-bottom:18px}.model-overview>span {font-size:11px;color:var(--n-78)}.model-overview b {font-size:16px;color:var(--a-88);margin-right:4px}.model-overview p {flex-basis:100%;font-size:11px;color:var(--n-74);margin:0}.dependency-details {margin:18px 0;padding:12px 15px;border:1px solid var(--n-32);border-radius:var(--radius);font-size:12px;background:var(--n-14)}.dependency-details summary {color:var(--n-86);font-size:12px;font-weight:550}.dependency-details p {font-size:11px;line-height:1.8;color:var(--n-76);margin:10px 0}.dependency-scroll {overflow:auto;max-height:360px;scrollbar-width:thin}.dependency-details table {border-collapse:collapse;width:100%;text-align:left;min-width:540px}.dependency-details th,.dependency-details td {padding:10px;border-bottom:1px solid var(--n-30);vertical-align:top;font-size:11px}.dependency-details th {font-size:11px;color:var(--n-76);position:sticky;top:0;background:var(--n-14)}.dependency-details code {white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.6 var(--mono);color:var(--n-90)}
 #app .code-text .token {background:transparent;box-shadow:none;text-shadow:none;border:0;padding:0;border-radius:0}#app .token.keyword {color:var(--i-78)}#app .token.string {color:var(--w-72)}#app .token.number,#app .token.boolean {color:var(--v-78)}#app .token.function {color:var(--a-68)}#app .token.operator,#app .token.punctuation {color:var(--n-88)}#app .token.entity {color:var(--a-66)}.sr-only {position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}.learner-preview main {width:100%;padding-left:clamp(20px,4vw,70px);padding-right:clamp(20px,4vw,70px)}.loading {min-height:60dvh;display:grid;place-items:center;color:var(--n-82)}
 @keyframes spin {to{transform:rotate(360deg)}}
-@media(min-width:1750px) {.panes {grid-template-columns:minmax(0,43fr) minmax(0,57fr)}.drop-zone {height:clamp(420px,calc(100dvh - 430px),720px);max-height:720px}}
+@media(min-width:1750px) {.drop-zone {height:clamp(420px,calc(100dvh - 430px),720px);max-height:720px}}
 @media(max-width:650px) {h1 {font-size:21px}.panes {grid-template-columns:minmax(0,1fr);gap:16px}.drop-zone {height:auto;min-height:180px;max-height:300px}.source-zone {padding:7px}.empty {min-height:170px}.row-actions {gap:2px;padding:3px 2px}.fixed-tag {font-size:11px;padding:0 3px}.form-grid {grid-template-columns:1fr}.editor-frame {grid-template-columns:35px minmax(0,1fr)}.editor-frame textarea,.editor-gutter {font-size:11px}.editor-actions {align-items:stretch;gap:10px}.editor-actions .primary {width:100%;margin-left:0}.model-overview {gap:12px;padding:12px}.model-overview>span {font-size:11px}.model-overview b {font-size:14px}.dependency-details {padding:10px}}
 @media(pointer:coarse) {button,summary {min-height:44px}:root {--row:44px}.drag-handle {flex-basis:44px;width:44px;height:44px}.row-actions button {height:36px;min-height:36px;width:32px}.source-row .gutter {width:27px;flex-basis:27px}.pane-clipboard button {min-height:40px}.session-actions button {min-height:40px}}
 @media(prefers-reduced-motion:reduce) {*,*::before,*::after {animation:none;transition:none;scroll-behavior:auto}}
@@ -348,12 +348,8 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 #app[data-surface=focus] .task-heading h1 {min-width:0;margin:0;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #app[data-surface=focus] .task-meta {flex-wrap:nowrap}
 #app[data-surface=focus] .toolbar {margin-bottom:10px}
-#app[data-surface=focus] .drop-zone {height:calc(100dvh - 205px);max-height:none;min-height:240px}
 #app[data-surface=focus] .solution-editor {padding:12px}
-#app[data-surface=focus] .editor-frame {max-height:none}
-#app[data-surface=focus] .editor-frame textarea {height:calc(100dvh - 230px);max-height:none}
 .focus-toggle[aria-pressed=true],.fullscreen-toggle[aria-pressed=true] {background:var(--blue);border-color:var(--blue);color:var(--blue-ink)}
-@media(max-width:650px) {#app[data-surface=focus] .drop-zone {height:auto;min-height:150px;max-height:42dvh}#app[data-surface=focus] .task-meta>span:not(.mode-badge,.language-badge) {display:none}}
 /* Code views (ADR-106): editor, a dense continuous list; cards, separate tiles with large targets.
  * :where keeps them structural, so row states (selected, graded, picked) still decide the colours. */
 @media(pointer:fine) {:where(#app[data-code-view=editor]) .panes {--row:28px}:where(#app[data-code-view=cards]) .panes {--row:40px}}
@@ -367,3 +363,59 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 #app[data-code-view=cards] .code-text {font-size:13px}
 .code-view-switch {margin-left:4px}
 .stepper .step.current :is(.step-text b,.step-text small,.step-number,.step-index) {color:var(--blue-ink)}
+/* Lists and separator (ADR-107): the pool takes --split of the width, the solution the rest; the separator
+ * is a 12 px target with a 2 px line, wider on hover, focus and drag. One column on a phone. */
+.panes {grid-template-columns:minmax(0,var(--split,40%)) 12px minmax(0,1fr);gap:0}
+.pane-split {position:relative;cursor:col-resize;touch-action:none;outline-offset:-2px}
+.pane-split::before {content:'';position:absolute;top:0;bottom:0;left:5px;width:2px;background:var(--n-24);transition:background 120ms,left 120ms,width 120ms}
+.pane-split:hover::before,.pane-split:focus-visible::before,.pane-split.dragging::before {left:4px;width:4px;background:var(--blue)}
+@media(max-width:650px) {.panes {grid-template-columns:minmax(0,1fr);gap:16px}.pane-split {display:none}}
+/* Rule inspector (ADR-107): opened by its toolbar button only. Wide, it docks to the right of the lists
+ * (a secondary side bar); narrow, it slides over from the right as a sheet. Escape or × closes it. */
+.try-body {display:grid;grid-template-columns:minmax(0,1fr);gap:12px;min-height:0}
+.try-body.with-inspector {grid-template-columns:minmax(0,1fr) minmax(300px,360px)}
+.rule-inspector {min-width:0;display:flex;flex-direction:column;border:1px solid var(--n-32);background:var(--n-08);align-self:stretch;max-height:calc(100dvh - 140px);overflow:auto;overscroll-behavior:contain}
+.inspector-head {position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:40px;padding:0 4px 0 14px;border-bottom:1px solid var(--n-24);background:var(--n-14)}
+.inspector-head h2 {display:flex;align-items:center;gap:8px;margin:0;font-size:13px;font-weight:800}
+.inspector-head h2 .icon {width:15px;color:var(--accent-text)}
+.inspector-head button {border-color:transparent;background:transparent}
+.rule-inspector .try-rules {margin:0;padding:10px 14px;border:0;border-bottom:1px solid var(--n-20);background:transparent}
+.rule-inspector .try-rule-panel {margin:0;padding:12px 14px}
+.rule-inspector .rule-panel {margin:0;padding:0;border:0;background:transparent}
+.rule-inspector .rule-columns {grid-template-columns:minmax(0,1fr)}
+.inspector-toggle[aria-pressed=true] {background:var(--blue-pale);border-color:var(--blue);color:var(--accent-text)}
+.board-connecting {margin:0 0 8px}
+@media(max-width:1100px) {
+ .try-body.with-inspector {grid-template-columns:minmax(0,1fr)}
+ .rule-inspector {position:fixed;top:0;right:0;bottom:0;z-index:1100;width:min(400px,100vw);max-height:none;box-shadow:-16px 0 40px color-mix(in srgb,var(--shadow) 55%,transparent)}
+}
+/* Focus (ADR-107): the workspace is one flex column of the screen's height, like an editor window. The
+ * heading, toolbar and check bar take their own height; the lists or the editor take the rest and scroll
+ * inside; whatever opens (feedback, details) shrinks them, never the page. */
+#app[data-surface=focus] {display:flex;flex-direction:column;overflow:hidden}
+#app[data-surface=focus] .shell {flex:1;min-height:0;display:flex;flex-direction:column}
+#app[data-surface=focus] main {flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;padding:8px 12px 10px}
+#app[data-surface=focus] :is(.try-step,#panel-try) {flex:1;min-height:0;display:flex;flex-direction:column}
+#app[data-surface=focus] :is(.task-heading,.toolbar,.validation-notice,.stale-notice,.board-connecting,.evaluation-bar,.note,.editor-heading,.editor-actions,.draft-notice) {flex:none}
+#app[data-surface=focus] .task-heading {margin:0 0 8px}
+#app[data-surface=focus] .toolbar {margin:0 0 8px}
+#app[data-surface=focus] .try-body {flex:1;min-height:0}
+#app[data-surface=focus] .panes {height:100%;min-height:0}
+#app[data-surface=focus] .pane {display:flex;flex-direction:column;min-height:0}
+#app[data-surface=focus] .ide-pane {flex:1;min-height:0;display:flex;flex-direction:column}
+#app[data-surface=focus] .drop-zone {flex:1;height:auto;min-height:0;max-height:none}
+#app[data-surface=focus] .rule-inspector {max-height:none;height:100%}
+#app[data-surface=focus] .evaluation-bar {position:static;margin-top:8px;max-height:30dvh;overflow:auto;box-shadow:none}
+#app[data-surface=focus] :is(.feedback-details,.dependency-details) {flex:0 1 auto;min-height:0;max-height:26dvh;overflow:auto;margin-top:6px}
+#app[data-surface=focus] .note {margin:4px 0 0}
+#app[data-surface=focus] .solution-editor {flex:1;min-height:0;display:flex;flex-direction:column;padding:10px}
+#app[data-surface=focus] .solution-editor .ide-pane {flex:1}
+#app[data-surface=focus] .editor-frame {flex:1;min-height:0;max-height:none;height:auto}
+#app[data-surface=focus] .editor-frame textarea {height:100%;min-height:0;max-height:none;resize:none}
+#app[data-surface=focus] .editor-actions {margin-top:8px}
+@media(max-width:650px) {
+ #app[data-surface=focus] .task-meta>span:not(.mode-badge,.language-badge) {display:none}
+ #app[data-surface=focus] .panes {grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:8px}
+}
+.rule-inspector [data-rule-close] {display:none}
+#app[data-surface=focus] .note {white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

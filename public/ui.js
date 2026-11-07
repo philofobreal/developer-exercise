@@ -155,7 +155,9 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
   if(anchor===line){render();root.querySelector(`[data-rule-connect="${line}"]`)?.focus({preventScroll:true});return;}
   await toggleLink(anchor,line);return;
  }
- if(b.dataset.ruleLine){const line=+b.dataset.ruleLine,row=b.closest('.code-row,.board-row');state.ruleSelection=row&&state.ruleSelection?.line===line?undefined:{line,message:''};render();if(!row)root.querySelector('#rule-panel-title')?.focus({preventScroll:true});return;}
+ // ADR-107: a row's link selects the line (marks and arcs) without opening the inspector; a rule-cause link outside a row asks to open the rule, so it opens it.
+ if(b.hasAttribute('data-rule-panel-toggle')){state.rulePanelOpen=!state.rulePanelOpen;render();root.querySelector(state.rulePanelOpen?'.inspector-head [data-rule-panel-toggle]':'.inspector-toggle')?.focus({preventScroll:true});return;}
+ if(b.dataset.ruleLine){const line=+b.dataset.ruleLine,row=b.closest('.code-row,.board-row');state.ruleSelection=row&&state.ruleSelection?.line===line?undefined:{line,message:''};if(!row)state.rulePanelOpen=true;render();if(!row)root.querySelector('#rule-panel-title')?.focus({preventScroll:true});return;}
  if(b.hasAttribute('data-rule-close')){const line=state.ruleSelection?.line;state.ruleSelection=undefined;render();root.querySelector(`:is(.board-row,.code-row) [data-rule-line="${line}"]`)?.focus({preventScroll:true});return;}
  // ADR-056: a rule kind is lifted as one confirmed batch; the typed panel module builds and settles it.
  if(b.dataset.ruleKind){state.ruleKind={code:b.dataset.ruleKind,message:''};render();root.querySelector('[data-rule-kind-note]')?.focus();return;}
@@ -196,6 +198,7 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
    catch{if(at()===a&&a.generation===generation)a.report={status:'indeterminate',message:'A validációs szerver nem érhető el.',exploredStates:0};}render();return;
  }
 },error=>notify(error instanceof Error?error.message:'A művelet nem sikerült.')));
+root.addEventListener('keydown',ev=>{if(ev.key!=='Escape'||!state.rulePanelOpen||ev.defaultPrevented||!(ev.target instanceof Element)||!ev.target.closest('.rule-inspector,.inspector-toggle')||ev.target.closest('input,textarea,select'))return;ev.preventDefault();state.rulePanelOpen=false;render();root.querySelector('.inspector-toggle')?.focus({preventScroll:true});});
 root.addEventListener('input',ev=>{const el=ev.target; if(el.closest('.editor-frame'))updateGutters(root);if(el.id==='code-editor')markEditorDraft(at(),el.value);else if(el.id==='model-editor')state.modelDraft=el.value;else if(el.id==='author-editor')state.author.source=el.value;else if(el.dataset.author)state.author[el.dataset.author]=el.value;refreshAuthorStatus(root,state);});
 root.addEventListener('scroll',ev=>{if(ev.target.matches('.editor-frame textarea'))updateGutters(root);},true);
 root.addEventListener('keydown',ev=>{if(ev.key==='Tab'&&ev.target.matches('.editor-frame textarea')){ev.preventDefault();const el=ev.target,i=el.selectionStart,j=el.selectionEnd;el.setRangeText('     ',i,j,'end');el.dispatchEvent(new Event('input',{bubbles:true}));}});

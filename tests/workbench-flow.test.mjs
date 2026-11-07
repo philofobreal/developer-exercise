@@ -75,7 +75,8 @@ test('try step: rule controls and the rule bar exist only for the author preview
  const state=make();const model=admit(state,'try');
  state.authorInsight={rules:{provenance:'complete',unexplained:0,stale:0,relaxations:[],constraints:[]}};
  assert.match(tryRowRuleControls(state,1),/data-rule-line="1"[\s\S]*data-rule-connect="1"/);
- assert.match(renderTryRules(state),/data-try-rules/);
+ // ADR-107: the inspector head (legend and the draw-all switch); the arcs' marker sits on the lists themselves.
+ assert.match(renderTryRules(state),/data-board-all/);
  assert.equal(tryRowRuleControls(state,'edited_1'),'','an edited learner line has no reference identity');
  state.learnerPreview=true;assert.equal(tryRowRuleControls(state,1),'');assert.equal(renderTryRules(state),'');
  state.learnerPreview=false;enterMode(state,'practice');assert.equal(tryRowRuleControls(state,1),'');assert.equal(renderTryRules(state),'');

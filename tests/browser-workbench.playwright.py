@@ -362,14 +362,41 @@ def author_level(page):
     rules_json(page);assert json.loads(page.locator('#model-editor').input_value()).get('level')=='intermediate'
     page.locator('[data-step="source"]').click();expect(page.locator('[data-author="level"]')).to_have_value('intermediate')
 
+def open_rules(page):
+    """ADR-107: the rule inspector opens from its toolbar button only."""
+    toggle=page.locator('.inspector-toggle')
+    if toggle.get_attribute('aria-pressed')!='true':toggle.click()
+    expect(page.locator('.rule-inspector')).to_be_visible()
+def split_and_full_screen_focus(page):
+    """ADR-107: the separator moves the split by pointer and keyboard and is remembered; Focus fills the
+    screen with no page or workspace scroll, also with the inspector and the feedback open."""
+    build(page,rules_source);to_try(page);page.locator('[data-all]').click()
+    split=page.locator('[data-pane-split]');pool=page.locator('#pool-pane');expect(split).to_have_attribute('aria-valuenow','40')
+    box=split.bounding_box();page.mouse.move(box['x']+6,box['y']+60);page.mouse.down();page.mouse.move(box['x']+206,box['y']+60,steps=6);page.mouse.up()
+    value=int(split.get_attribute('aria-valuenow'));assert 50<value<80,value
+    split.focus();page.keyboard.press('ArrowLeft');expect(split).to_have_attribute('aria-valuenow',str(value-2));page.keyboard.press('Home');expect(split).to_have_attribute('aria-valuenow','20')
+    width=pool.bounding_box()['width'];page.reload();current(page,'source');build(page,rules_source);to_try(page);expect(page.locator('[data-pane-split]')).to_have_attribute('aria-valuenow','20');assert abs(page.locator('#pool-pane').bounding_box()['width']-width)<3
+    page.locator('[data-pane-split]').focus();page.keyboard.press('End')
+    for _ in range(20):page.keyboard.press('ArrowLeft')
+    expect(page.locator('[data-pane-split]')).to_have_attribute('aria-valuenow','40')
+    no_scroll='()=>({page:document.documentElement.scrollHeight-innerHeight,app:document.querySelector("#app").scrollHeight-document.querySelector("#app").clientHeight})'
+    page.locator('[data-all]').click();page.locator('[data-focus]').click();expect(page.locator('#app')).to_have_attribute('data-surface','focus')
+    open_rules(page);page.locator('[data-check]').click();expect(page.locator('.report')).not_to_have_class(re.compile('idle'))
+    page.locator('.technical-details summary').click();assert page.evaluate(no_scroll)=={'page':0,'app':0},page.evaluate(no_scroll)
+    page.locator('[data-view="edit"]').click();assert page.evaluate(no_scroll)=={'page':0,'app':0},page.evaluate(no_scroll)
+    page.locator('[data-view="sort"]').click();page.locator('[data-focus]').click()
 def try_rules(page):
     """ADR-022: the try sorter shows and edits rules while arranging; learners and practice never see them."""
     build(page,rules_source);to_try(page);expect(page.locator('[data-try-rules]')).to_be_visible()
     expect(page.locator('.source-zone .code-row[data-line-id="3"] [data-rule-line]')).to_have_count(1)
     page.locator('[data-all]').click()
-    page.locator('.solution-zone .code-row[data-line-id="4"] [data-rule-line]').click()
-    panel=page.locator('.try-rule-panel [data-rule-panel]');expect(panel).to_have_attribute('data-rule-panel-line','4')
-    expect(page.locator('.solution-zone .code-row[data-line-id="2"]')).to_have_class(re.compile('rule-before'));expect(page.locator('.solution-zone .code-row[data-line-id="5"]')).to_have_class(re.compile('rule-after'))
+    # ADR-107: the row link selects (marks and arcs) and never opens the inspector; its toolbar button does.
+    page.locator('.solution-zone .code-row[data-line-id="4"] [data-rule-line]').click();expect(page.locator('.rule-inspector')).to_have_count(0)
+    expect(page.locator('.solution-zone .code-row[data-line-id="2"]')).to_have_class(re.compile('rule-before'))
+    open_rules(page);panel=page.locator('.try-rule-panel [data-rule-panel]');expect(panel).to_have_attribute('data-rule-panel-line','4')
+    expect(page.locator('.inspector-head [data-rule-panel-toggle]')).to_be_focused()
+    page.keyboard.press('Escape');expect(page.locator('.rule-inspector')).to_have_count(0);expect(page.locator('.inspector-toggle')).to_be_focused();expect(page.locator('.inspector-toggle')).to_have_attribute('aria-pressed','false')
+    open_rules(page);expect(panel).to_have_attribute('data-rule-panel-line','4');expect(page.locator('.solution-zone .code-row[data-line-id="5"]')).to_have_class(re.compile('rule-after'))
     arcs=page.locator('.solution-zone .zone-arcs path.arc');expect(arcs).to_have_count(4);expect(page.locator('.solution-zone .zone-arcs path[data-arc="2-4"]')).to_have_class(re.compile('before'))
     # Arranging keeps the rules visible: a move redraws the arcs at the new row positions.
     before=page.locator('.solution-zone .zone-arcs path[data-arc="2-4"]').get_attribute('d')
@@ -457,7 +484,7 @@ def rule_edit_keeps_scroll(page):
     source='\n'.join(['function f() {',*[f'  const v{i} = {i};' for i in range(38)],'  g(v0, v37);','}'])
     build(page,source);to_try(page);page.locator('[data-all]').click()
     zone=page.locator('.solution-zone');zone.evaluate('z=>{z.scrollTop=z.scrollHeight}');top=zone.evaluate('z=>z.scrollTop');assert top>200,top
-    page.locator('.solution-zone .code-row[data-line-id="40"] [data-rule-line]').click()
+    open_rules(page);page.locator('.solution-zone .code-row[data-line-id="40"] [data-rule-line]').click()
     panel=page.locator('.try-rule-panel [data-rule-panel]');expect(panel).to_have_attribute('data-rule-panel-line','40')
     draft=page.locator('.solution-zone').evaluate('()=>document.querySelector("#app").dataset.renderedExercise')
     panel.locator('[data-rule-add="before"] select').select_option('30');panel.locator('[data-rule-add="before"] [data-rule-edit="add"]').click()
@@ -503,7 +530,7 @@ def link_toggle(page):
         page.mouse.move(start['x']+start['width']/2,start['y']+start['height']/2);page.mouse.down()
         page.mouse.move(end['x']+20,end['y']+end['height']/2,steps=8);page.mouse.up()
     order=[item.get_attribute('data-line-id') for item in page.locator('.solution-zone .code-row').all()]
-    drag(3,4);expect(page.locator('.try-rule-panel [data-rule-panel] [data-rule-pair="3-4"] .rule-badge')).to_have_text('Szerzői')
+    open_rules(page);drag(3,4);expect(page.locator('.try-rule-panel [data-rule-panel] [data-rule-pair="3-4"] .rule-badge')).to_have_text('Szerzői')
     # The edit re-evaluates the arrangement and renders once more; wait for it before the next drag.
     expect(page.locator('.report')).to_contain_text('Elfogadva')
     drag(3,4);expect(page.locator('.try-rule-panel [data-rule-panel] [data-rule-pair="3-4"]')).to_have_count(0)
@@ -632,6 +659,7 @@ try:
             reset(page,BASE);case('node focus mode: only the code workspace, largest surface, arrangement kept',lambda:focus_mode(page))
             case('node focus mode without the Fullscreen API: overlay, Escape leaves',lambda:focus_without_fullscreen_api(browser))
             reset(page,BASE);case('node two code views, remembered, with their row geometry',lambda:code_views(page))
+            reset(page,BASE);case('node pane separator and full-screen focus without scroll',lambda:split_and_full_screen_focus(page))
             reset(page,BASE);case('node duplicate-check prevention and async feedback',lambda:busy(page))
             reset(page,BASE);case('node admission preserves newer reference edits',lambda:stale_author_admission(page))
             reset(page,BASE);case('node sample loading preserves newer reference edits',lambda:stale_source_sample(page))

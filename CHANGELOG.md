@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased – 2026-11-07 Fókusz mód szerkesztőablakként, állítható elválasztó, szabálypanel gombra (ADR-107)
+
+- **Fókusz mód:** kódszerkesztő-ablakként tölti ki a képernyőt, görgetés nélkül. A listák vagy a szerkesztő kapják a maradék helyet; ami lenyílik (részletek, magyarázat), azt a kódnézet zsugorodása fogadja be.
+- **Állítható elválasztó a két lista között:** húzható, billentyűzettel is (nyilak, Home, End), és a böngésző megjegyzi.
+- **Szabálypanel:**
+  - a sor láncszem ikonja már csak kijelöl;
+  - a panelt az eszközsor „Szabályok” gombja nyitja: széles képernyőn jobb oldali dokkolt panelként, keskenyen becsúszó lapként;
+  - Escape vagy × zárja be.
+
 ## Unreleased – 2026-11-07 Fókusz mód, két kódnézet, görgethető teljes képernyő (ADR-106)
 
 - **Fókusz mód:** a Próba eszközsorában. Csak a kódfelület marad (rendező vagy Megoldáskód és az Ellenőrzés), a lehető legnagyobb méretben. Escape-pel vagy a Kilépés gombbal hagyható el; a kitöltés megmarad.

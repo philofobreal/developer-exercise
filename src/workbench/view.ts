@@ -11,8 +11,9 @@ import {icon,type IconName} from './icons.js';
 import {createViewContinuity} from './continuity.js';
 import {installWorkbenchKeyboard,installAuthoringFlows,installMenus} from './interactions.js';
 import {authorDraftPending,refreshAuthorStatus} from './author-workspace.js';
-import {createRuleMarks,renderModelInsight,renderRuleCause,renderRuleKinds,renderRulePanel} from './rule-panel.js';
-import {drawRuleArcs,renderRuleBoard,renderTryRules,tryRowRuleControls} from './rule-board.js';
+import {createRuleMarks,renderModelInsight,renderRuleCause,renderRuleKinds,renderRulePanel,rulesAvailable} from './rule-panel.js';
+import {drawRuleArcs,renderRuleBoard,renderTryConnecting,renderTryRules,tryRowRuleControls} from './rule-board.js';
+import {installPaneSplit,paneSplit} from './pane-split.js';
 import {authorPreviewId,continuityKey,flowSteps,jsonPending,staleReason,stepOf} from './flow.js';
 import {THEME_LABEL,themeChoice,type ThemeChoice} from './theme.js';
 import {CODE_VIEW_LABEL,codeView,type CodeView} from './code-view.js';
@@ -21,8 +22,8 @@ declare global {interface Window {Prism?:{languages:Record<string,unknown>;highl
 const tool=(attribute:string,label:string,name:IconName,extra=''):string=>`<button type="button" ${attribute} ${extra}>${icon(name)}<span>${label}</span></button>`;
 const languageName=(language:string):string=>language==='typescript'?'TypeScript':'JavaScript';
 export function createWorkbenchView({root,state,ex,at,attempt,scroll}:WorkbenchOptions){
- const continuity=createViewContinuity(root);installWorkbenchKeyboard(root);installMenus(root);installSurface(root,()=>render());codeView(root);installAuthoringFlows(root,state,render);
- addEventListener('resize',()=>drawRuleArcs(root,state));
+ const continuity=createViewContinuity(root);installWorkbenchKeyboard(root);installMenus(root);installSurface(root,()=>render());codeView(root);paneSplit(root);installPaneSplit(root,()=>drawRuleArcs(root,state));installAuthoringFlows(root,state,render);
+ addEventListener('resize',()=>{drawRuleArcs(root,state);updateGutters(root);});
  // ADR-090: a code list scrolls sideways as one; its rule arcs follow the row controls pinned at its right edge.
  let arcFrame=0;
  root.addEventListener('scroll',event=>{if(arcFrame||!(event.target instanceof HTMLElement)||!event.target.matches('.drop-zone[data-zone]')||!event.target.querySelector(':scope > svg.zone-arcs'))return;arcFrame=requestAnimationFrame(()=>{arcFrame=0;drawRuleArcs(root,state);});},{capture:true,passive:true});
@@ -52,7 +53,11 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll}:WorkbenchO
  }
  function sortView(e:ExerciseSummary,a:AttemptSnapshot):string {
   const filled=a.answer.filter(id=>id!==null).length;
-  return `${renderTryRules(state)}<div class="panes"><section class="pane pool-pane" aria-labelledby="source-title"><div class="panel-title"><div><h2 id="source-title">Felhasználható sorok</h2><span class="count">${a.pool.length}</span></div><div class="pane-clipboard">${tool('data-copy-pool','','copy','class="icon-only" aria-label="Másolás: a felhasználható sorok a vágólapra" title="Másolás"')}</div></div>${zone(e,a,'pool')}</section><section class="pane answer-pane" aria-labelledby="solution-title"><div class="panel-title"><div><h2 id="solution-title">Megoldás</h2><span class="count">${filled}/${a.answer.length}</span><progress data-arrangement-progress max="${e.lines.length}" value="${filled}" aria-label="Elhelyezett sorok">${filled}/${e.lines.length}</progress></div><div class="pane-clipboard">${tool('data-copy-arrangement data-copy-solution','','copy','class="icon-only" aria-label="Másolás: az összerendezett megoldás a vágólapra" title="Másolás"')}${tool('data-paste-solution','','paste','class="icon-only" aria-label="Beillesztés: megoldás a vágólapról a rendezőbe" title="Beillesztés"')}</div></div>${zone(e,a,'answer')}</section></div>${renderTryRules(state)?`<div class="try-rule-panel">${renderRulePanel(state)}</div>`:''}`;
+  // ADR-107: the two lists with a movable separator; the rule inspector docks beside them only on request.
+  const rules=rulesAvailable(state),open=rules&&!!state.rulePanelOpen,split=paneSplit(root);
+  const separator=`<div class="pane-split" data-pane-split role="separator" tabindex="0" aria-orientation="vertical" aria-controls="pool-pane answer-pane" aria-label="A két lista szélessége: balra vagy jobbra nyíllal állítható" aria-valuemin="20" aria-valuemax="80" aria-valuenow="${split}" title="Húzd a két lista szélességének állításához"></div>`;
+  const inspector=open?`<aside id="try-rule-panel" class="rule-inspector" aria-labelledby="inspector-title"><div class="inspector-head"><h2 id="inspector-title">${icon('link')}Szabályok</h2>${tool('data-rule-panel-toggle','','close','class="icon-only" aria-label="Szabálypanel bezárása" title="Bezárás (Escape)"')}</div>${renderTryRules(state)}<div class="try-rule-panel">${renderRulePanel(state)}</div></aside>`:'';
+  return `${renderTryConnecting(state)}<div class="try-body${open?' with-inspector':''}"><div class="panes"${rules?' data-try-rules':''}><section id="pool-pane" class="pane pool-pane" aria-labelledby="source-title"><div class="panel-title"><div><h2 id="source-title">Felhasználható sorok</h2><span class="count">${a.pool.length}</span></div><div class="pane-clipboard">${tool('data-copy-pool','','copy','class="icon-only" aria-label="Másolás: a felhasználható sorok a vágólapra" title="Másolás"')}</div></div>${zone(e,a,'pool')}</section>${separator}<section id="answer-pane" class="pane answer-pane" aria-labelledby="solution-title"><div class="panel-title"><div><h2 id="solution-title">Megoldás</h2><span class="count">${filled}/${a.answer.length}</span><progress data-arrangement-progress max="${e.lines.length}" value="${filled}" aria-label="Elhelyezett sorok">${filled}/${e.lines.length}</progress></div><div class="pane-clipboard">${tool('data-copy-arrangement data-copy-solution','','copy','class="icon-only" aria-label="Másolás: az összerendezett megoldás a vágólapra" title="Másolás"')}${tool('data-paste-solution','','paste','class="icon-only" aria-label="Beillesztés: megoldás a vágólapról a rendezőbe" title="Beillesztés"')}</div></div>${zone(e,a,'answer')}</section></div>${inspector}</div>`;
  }
  function editView(e:ExerciseSummary,a:AttemptSnapshot):string {
   const stale=a.editorDirty&&a.editorGeneration!==a.generation;
@@ -92,7 +97,8 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll}:WorkbenchO
   // ADR-106: the code view (editor or cards) and the focus surface sit with the workspace they change.
   const view=codeView(root),focused=surface(root)==='focus',styles=v==='sort'?`<div class="segment code-view-switch" role="group" aria-label="Kódnézet">${(['editor','cards'] as const).map((value:CodeView)=>`<button type="button" data-set-code-view="${value}" aria-pressed="${view===value}" class="${view===value?'active':''}" title="Kódnézet: ${CODE_VIEW_LABEL[value]}">${icon(value==='editor'?'rows':'cards')}<span>${CODE_VIEW_LABEL[value]}</span></button>`).join('')}</div>`:'';
   const focus=tool('data-focus',focused?'Kilépés':'Fókusz',focused?'exit':'focus',`class="focus-toggle" aria-pressed="${focused}" title="${focused?'Kilépés a fókusz módból (Escape)':'Fókusz mód: csak a kódfelület, a lehető legnagyobb méretben'}"`);
-  return `<div class="toolbar"><div class="toolbar-start"><div class="segment try-tabs" role="tablist" aria-label="Megoldás">${tab('sort','Rendező','sort')}${tab('edit','Megoldáskód','edit')}</div>${styles}</div><div class="workspace-actions">${actions?tool('data-reset','Visszaállítás','reset')+(state.learnerPreview?'':tool('data-all','Minta kitöltés','file')):''}${focus}</div></div><div id="panel-try" role="tabpanel" aria-labelledby="tab-${v}">${v==='edit'?editView(e,a):sortView(e,a)}</div>${v==='sort'?reportView(e,a):''}<p class="note" role="status" aria-live="polite">${esc(a.feedback||'')}</p>`;
+  const inspect=v==='sort'&&rulesAvailable(state)?tool('data-rule-panel-toggle','Szabályok','link',`class="inspector-toggle" aria-pressed="${!!state.rulePanelOpen}" aria-expanded="${!!state.rulePanelOpen}" aria-controls="try-rule-panel" title="${state.rulePanelOpen?'Szabálypanel bezárása':'Szabálypanel: a kijelölt sor szabályai és szerkesztésük'}"`):'';
+  return `<div class="toolbar"><div class="toolbar-start"><div class="segment try-tabs" role="tablist" aria-label="Megoldás">${tab('sort','Rendező','sort')}${tab('edit','Megoldáskód','edit')}</div>${styles}</div><div class="workspace-actions">${actions?tool('data-reset','Visszaállítás','reset')+(state.learnerPreview?'':tool('data-all','Minta kitöltés','file')):''}${inspect}${focus}</div></div><div id="panel-try" role="tabpanel" aria-labelledby="tab-${v}">${v==='edit'?editView(e,a):sortView(e,a)}</div>${v==='sort'?reportView(e,a):''}<p class="note" role="status" aria-live="polite">${esc(a.feedback||'')}</p>`;
  }
  // ── Author step 1: the reference source (code or a whole CodeLine JSON) ──
  function jsonBlock(context:'source'|'rules'):string {

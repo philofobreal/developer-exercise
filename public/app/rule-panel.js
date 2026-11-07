@@ -119,7 +119,7 @@ export function renderRulePanel(state) {
     if (!found)
         return '';
     if (!selection)
-        return `<p class="rule-hint" data-rule-hint>${icon('link')}<span>Szerzői előnézet: a sorok láncszem gombjával megnyithatod és szerkesztheted a szabályaikat. A tanulói preview ebből semmit nem mutat.</span></p>`;
+        return `<p class="rule-hint" data-rule-hint>${icon('link')}<span>Jelölj ki egy sort a láncszem gombjával: itt jelennek meg a szabályai, és itt szerkesztheted őket. A tanulói nézet ebből semmit nem mutat.</span></p>`;
     const { model, constraints } = found, index = model.lines.findIndex(line => line.id === selection.line), line = model.lines[index];
     if (!line)
         return '';
