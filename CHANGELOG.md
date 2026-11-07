@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-07 javítás: a Próba megnyitása nem küld külön kérést (ADR-108, E6)
+
+- **Javítva:** gyorsabb gépen a szerző gyors egymás utáni műveletei túlléphették a szerver percenkénti kéréskorlátját, és ilyenkor a modellkészítés vagy a Próba megnyitása csendben elmaradt. Ez buktatta az E6 és az E7 CI-futását.
+- **Most:** a Próba lépés a modell saját ellenőrzési döntéséből nyílik meg, külön szerverkérés nélkül. Minden előnézeti értékelést a szerver továbbra is ellenőriz.
+- **Új:** a lépéssoron „Zárva” jelzi, ha a Próba a „tilt” beállítás miatt nem nyitható meg.
+
 ## Unreleased – 2026-11-07 szerzői preflight: beállítások, zárolások és leletek a felületen (ADR-108, E7)
 
 - **Csoportosított elemzési beállítások:** Elemzési környezet, Forrás biztonságossága, Haladó profil. Új vezérlők: helyi objektumállapot, JavaScript típusellenőrzés (checkJs) vagy TypeScript-diagnosztika a nyelv szerint, a nem eldönthető eredmények kezelése és a hordozhatóság. A másik nyelv opciója nem jelenik meg.

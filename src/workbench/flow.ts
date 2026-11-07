@@ -7,7 +7,7 @@
  * after it marks them stale until it is applied or discarded. Practice: the trusted exercises,
  * `sort` | `edit` only. Learner preview is UI isolation inside the author's try step. */
 import type {AttemptSnapshot,Mode,ViewName,WorkbenchState} from './contracts.js';
-import {authorDraftPending} from './author-workspace.js';
+import {authorDraftPending,evidenceStale} from './author-workspace.js';
 import {activateView} from './interactions.js';
 
 export type Step='source'|'rules'|'try';
@@ -41,8 +41,19 @@ function sourceStatus(state:WorkbenchState):Pick<StepState,'status'|'tone'> {
 }
 /** The second gate's word on the applied draft: admitted with a warning (an unverified model, an undecided check). */
 function tryStatus(state:WorkbenchState):Pick<StepState,'status'|'tone'> {
- const gate=state.tryGate,draft=authorPreviewId(state);
- return gate&&draft&&gate.draftId===state.previews.get(draft)&&gate.verdict==='inconclusive'?{status:'Figyelmeztetéssel',tone:'warning'}:{status:'',tone:''};
+ const gate=state.authorInsight?.tryGate;
+ return gate?.verdict==='inconclusive'&&gate.admitted?{status:'Figyelmeztetéssel',tone:'warning'}:gate&&!gate.admitted?{status:'Zárva',tone:'blocked'}:{status:'',tone:''};
+}
+const STALE_EVIDENCE='A Próba lépés nem nyitható meg: a forrás vagy az elemzési beállítások a modell készítése óta változott; készítsd újra a modellt, vagy vesd el a változtatást.';
+/** ADR-108 (E6): whether the author's Try step opens now. The draft brings the second gate's decision for the
+ * source and policy it was made from; a source or setting changed since makes that decision stale. A draft
+ * without one stays closed. Opening is navigation only: the server checks every preview again. */
+export function tryAdmission(state:WorkbenchState):{ok:boolean;message:string} {
+ if(!authorPreviewId(state))return {ok:false,message:NEEDS_MODEL};
+ if(evidenceStale(state))return {ok:false,message:STALE_EVIDENCE};
+ const gate=state.authorInsight?.tryGate;
+ if(!gate)return {ok:false,message:'A Próba lépés nem nyitható meg: ehhez a modellhez nincs második kapus döntés; készítsd újra a modellt.'};
+ return {ok:gate.admitted,message:gate.message};
 }
 export function flowSteps(state:WorkbenchState):StepState[] {
  const current=stepOf(state.view),locked=authorPreviewId(state)?'':NEEDS_MODEL,stale=!!staleReason(state);

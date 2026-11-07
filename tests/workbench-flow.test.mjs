@@ -2,7 +2,7 @@
  * steps after the source need an applied model and turn stale on unapplied reference or JSON edits. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {authorPreviewId,blockedReason,continuityKey,enterMode,enterView,flowSteps,jsonPending,landAfterAdmission,staleReason,stepOf} from '../public/app/flow.js';
+import {authorPreviewId,blockedReason,continuityKey,enterMode,enterView,flowSteps,jsonPending,landAfterAdmission,staleReason,stepOf,tryAdmission} from '../public/app/flow.js';
 import {admitAuthorModel} from '../public/app/author-workspace.js';
 import {connection} from '../public/app/rule-board.js';
 
@@ -112,4 +112,21 @@ test('pin toggle: a board row pins the line at its reference place and says so f
  assert.match(pinButton(3,2,false),/data-rule-pin="3" aria-pressed="false" aria-label="A\(z\) #3 sor rögzítése a 3\. helyen"/);
  assert.match(pinButton(3,2,true),/aria-pressed="true" aria-label="A\(z\) #3 sor rögzítésének feloldása \(most a 3\. helyen rögzített\)"/);
  assert.match(pinButton(3,2,true),/class="icon"[\s\S]*pin-head/,'the pin icon, filled by CSS when pressed');
+});
+
+test('ADR-108 (E6): Try opens on the draft’s own second-gate decision, without a request; a changed source or setting makes it stale, a title does not',()=>{
+ const state=make();assert.match(tryAdmission(state).message,/Előbb készíts modellt/);
+ admit(state,'rules');
+ assert.equal(tryAdmission(state).ok,false,'a draft without a decision stays closed');
+ const passed={gate:'rules-to-try',verdict:'passed',admitted:true,reasons:[],message:''};
+ state.authorInsight={tryGate:passed};assert.deepEqual(tryAdmission(state),{ok:true,message:''});
+ state.author.title='Új cím';assert.equal(tryAdmission(state).ok,true,'a title is not evidence');state.author.title=state.authorBaseline.title;
+ state.author.source+='\n';assert.match(tryAdmission(state).message,/a modell készítése óta változott/);
+ state.author.source=state.authorBaseline.source;state.author.policy={unknownPolicy:'block'};assert.equal(tryAdmission(state).ok,false,'a setting is evidence');
+ delete state.author.policy;
+ state.authorInsight={tryGate:{...passed,verdict:'inconclusive',message:'Továbbléphetsz a Próbára, de…'}};
+ assert.deepEqual(tryAdmission(state),{ok:true,message:'Továbbléphetsz a Próbára, de…'});
+ assert.equal(flowSteps(state).find(step=>step.step==='try').status,'Figyelmeztetéssel');
+ state.authorInsight={tryGate:{...passed,verdict:'inconclusive',admitted:false,message:'A Próba lépés nem nyitható meg a „tilt” beállítás miatt'}};
+ assert.equal(tryAdmission(state).ok,false);assert.equal(flowSteps(state).find(step=>step.step==='try').status,'Zárva');
 });

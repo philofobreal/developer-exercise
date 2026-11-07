@@ -12,6 +12,10 @@
  *    passed; a first gate that was itself inconclusive stays so.
  * Unknown follows the policy's `unknownPolicy` (warn lets through, block stops). A rule edit makes a new
  * draft, so the gate is passed again (C28). The proof names what was checked by fingerprints.
+ *
+ * `tryReadiness` is the same decision for the source and policy the draft was made from: every draft response
+ * carries it, so a client can open the step without asking again; whether its current text is still that
+ * source is the client's to know, and a preview is refused by the server all the same when it is not.
  */
 import type { PolicyResolution } from './config-resolver.js';
 import type { SourceGate } from './source-gate.js';
@@ -61,3 +65,7 @@ export interface RulesGateInput {
     analyzer: string;
 }
 export declare function rulesGate(input: RulesGateInput): RulesGate;
+/** The second gate for the draft's own source and policy (no staleness to check). */
+export declare function tryReadiness(input: Omit<RulesGateInput, 'current' | 'snapshot'> & {
+    snapshot: SourceSnapshot | undefined;
+}): RulesGate;

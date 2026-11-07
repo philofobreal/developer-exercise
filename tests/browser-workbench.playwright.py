@@ -26,6 +26,10 @@ def case(name,action):
     global count
     action();count+=1;print('PASS workbench: '+name,flush=True)
 def reset(page,url):page.goto(url);expect(page.locator('[data-step="source"]')).to_have_attribute('aria-current','step')
+# Every POST any context of this file sends to the Node server (it counts them per client, not per context).
+posts=[]
+def watch(context):
+    context.on('request',lambda request:posts.append(request.url) if request.method=='POST' and request.url.startswith(BASE) else None);return context
 def current(page,step):expect(page.locator(f'[data-step="{step}"]')).to_have_attribute('aria-current','step')
 def build(page,text):
     """Forrás → Modell készítése: the flow continues on the rules step."""
@@ -55,7 +59,7 @@ def forced_dark(p):
     repaint the chosen light theme into odd dark shades: the light theme declares `only light`."""
     forced=launch(p,['--blink-settings=forceDarkModeEnabled=true,forceDarkModeInversionAlgorithm=4'])
     try:
-        page=forced.new_context(viewport={'width':1280,'height':800},color_scheme='dark').new_page();reset(page,BASE)
+        page=watch(forced.new_context(viewport={'width':1280,'height':800},color_scheme='dark')).new_page();reset(page,BASE)
         toggle=page.locator('[data-theme-cycle]');box=page.locator('.task-heading').bounding_box();x,y=box['x']+box['width']-4,box['y']+4
         assert pixel(page,x,y)==(17,17,19),pixel(page,x,y)
         toggle.click();expect(toggle).to_have_text('Világos');assert pixel(page,x,y)==(255,255,255),pixel(page,x,y)
@@ -88,7 +92,7 @@ def focus_mode(page):
     assert page.evaluate('document.fullscreenElement') is None and page.locator('.solution-zone .code-row').evaluate_all(ROW_IDS)==before
 def focus_without_fullscreen_api(browser):
     """Without the Fullscreen API (iOS Safari) Focus is a fixed overlay that scrolls itself; Escape leaves it."""
-    context=browser.new_context(viewport={'width':1280,'height':800});context.add_init_script('delete Element.prototype.requestFullscreen')
+    context=watch(browser.new_context(viewport={'width':1280,'height':800}));context.add_init_script('delete Element.prototype.requestFullscreen')
     try:
         page=context.new_page();reset(page,BASE);practice(page);page.locator('[data-focus]').click()
         expect(page.locator('#app')).to_have_attribute('data-surface','focus');assert page.evaluate('document.fullscreenElement') is None
@@ -383,7 +387,7 @@ def single_horizontal_scroll(page):
 # fills it, a tap on a row splits it at its midpoint, a tap on the pool takes a solution row back, a tap
 # on the picked handle again cancels; on a small touch screen the up/down buttons give way to it.
 def tap_to_place(browser):
-    mobile=browser.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True);page=mobile.new_page()
+    mobile=watch(browser.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True));page=mobile.new_page()
     try:
         page.goto(BASE);practice(page)
         first=page.locator('.source-zone .code-row').first;text=first.locator('.code-text').inner_text()
@@ -688,6 +692,7 @@ try:
         except Exception:time.sleep(.1)
     with sync_playwright() as p:
         browser=launch(p);context=browser.new_context(viewport={'width':1500,'height':1000},permissions=['clipboard-read','clipboard-write']);context.tracing.start(screenshots=True,snapshots=True,sources=True);page=context.new_page();page.set_default_timeout(10000);errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
+        watch(context)
         try:
             for mode,url in [('node',BASE),('pages',f'http://127.0.0.1:{static.server_port}/developer-exercise/')]:
                 for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('preflight settings, locks and findings',preflight_ui),('model-first creation',model_first),('a rejected order names its rule and how to lift it',rule_cause_lifts),('key order setting and rule kinds',key_order_and_rule_kinds),('class-field mode setting',class_fields_setting),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('the input contract is chosen, recorded and restored',input_contract),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll),('circles toggle links: checks, removal and exact restore',link_toggle),('pins fix and release a line on the board',pin_lines),('feedback marks graded rows, invalidates on a move and respects the learner view',learner_feedback)]:
@@ -713,7 +718,7 @@ try:
             for name,action in [('author format preserves newer edits',lambda:stale_format(page,True)),('solution format preserves newer edits',lambda:stale_format(page,False)),('stale check failure cannot replace newer attempt',lambda:stale_check_failure(page))]:
                 reset(page,BASE);case('node '+name,action)
             for width in [320,390,768]:
-                mobile=browser.new_context(viewport={'width':width,'height':900},is_mobile=True,has_touch=True);target=mobile.new_page();target.on('pageerror',lambda error:errors.append(str(error)))
+                mobile=watch(browser.new_context(viewport={'width':width,'height':900},is_mobile=True,has_touch=True));target=mobile.new_page();target.on('pageerror',lambda error:errors.append(str(error)))
                 try:
                     reset(target,BASE);assert target.evaluate('document.documentElement.scrollWidth')<=width
                     practice(target);target.locator('[data-all]').click();assert target.evaluate('document.documentElement.scrollWidth')<=width
@@ -722,6 +727,9 @@ try:
                     connector=target.locator('[data-rule-connect="3"]').bounding_box();assert connector['width']>=28 and connector['height']>=28
                     target.screenshot(path=str(ARTIFACTS/f'ux-mobile-{width}.png'),full_page=True);count+=1;print(f'PASS workbench: {width}px touch practice and author layout',flush=True)
                 finally:mobile.close()
+            # The server allows 120 POSTs a minute per client; this file stays under it in total, so no machine is
+            # fast enough to trip it (the second gate travels with each draft instead of a request of its own).
+            assert len(posts)<120,f'{len(posts)} POSTs to the server: the 120/min limit can refuse them on a fast machine'
             assert not errors,errors;context.tracing.stop(path=str(ARTIFACTS/'workbench-trace.zip'));print(f'PASS workbench total: {count} cases',flush=True)
         except Exception:
             page.screenshot(path=str(ARTIFACTS/'workbench-failure.png'),full_page=True);context.tracing.stop(path=str(ARTIFACTS/'workbench-failure-trace.zip'));raise

@@ -4,7 +4,7 @@ import {NEW_DRAFT_SETTINGS,setPreflightOption,settingsKey,settingsRequest} from 
 import {revealLine} from './app/ui-utilities.js';
 import {readRuleEdit,readRuleKindEdits,recordRuleRefusal,ruleEditBlocked,settleRuleKind,settleRuleSelection} from './app/rule-panel.js';
 import {connection,installRuleBoard,linkWith} from './app/rule-board.js';
-import {authorPreviewId,blockedReason,enterMode,enterView,landAfterAdmission} from './app/flow.js';
+import {authorPreviewId,blockedReason,enterMode,enterView,landAfterAdmission,tryAdmission} from './app/flow.js';
 /** App orchestration and event wiring; modes, steps and staleness live in the typed flow (ADR-022). */
 import {readClipboard} from './app/clipboard.js';
 import {cycleTheme} from './app/theme.js';
@@ -17,7 +17,7 @@ import {createWorkbenchView} from './app/view.js';
 import {practiceOrder} from './app/fields.js';
 import {createInsertionDrag} from './app/drag-insert.js';
 import {createScrollMemory,updateGutters,copyToClipboard,escapeHtml} from './app/ui-utilities.js';
-import {formatSource,getExercises,compileDraft,editRules,previewDraft,authorTransition,resolvePolicy,evaluate,loadTypeScriptFixture} from './app/api.js';
+import {formatSource,getExercises,compileDraft,editRules,previewDraft,resolvePolicy,evaluate,loadTypeScriptFixture} from './app/api.js';
 const root=document.querySelector('#app');
 const state={exercises:[],active:null,attempts:new Map(),previews:new Map(),drag:null,mode:'author',view:'author',practiceActive:null,author:{...NEW_DRAFT_SETTINGS,title:'Saját kódrendezős feladat',description:'Rendezd sorba a kódsorokat.',language:'javascript',source:`function calculate() {\n     const a = 10;\n     const b = 20;\n     return a + b;\n}`,message:''},modelDraft:'',modelMessage:''};
 const ex=()=>state.exercises.find(x=>x.id===state.active);
@@ -36,15 +36,6 @@ function moveAnswerToBoundary(index,boundary){if(attempt.moveInAnswer(index,boun
 const firstFreeBoundary=()=>{const i=at().answer.findIndex(x=>x===null);return i<0?at().answer.length:i;};
 function remove(index){if(attempt.back(index))commit();}
 function applyEditor(){const result=attempt.applyText(root.querySelector('#code-editor').value);if(!result.ok)return commit(result.message);markEditorApplied(at());state.view='sort';commit();}
-/** ADR-108 (E6): the second gate. The Try step of the author's draft opens only after the server (or the
- * demo) has checked it against the author's current source and policy; once per draft and source. */
-const admitted=new Set();
-async function admitToTry(){
- const id=authorPreviewId(state),draftId=id&&state.previews.get(id);if(!draftId)return {ok:false,message:blockedReason(state,'sort')};
- const key=draftId+'\u0000'+state.author.source+'\u0000'+JSON.stringify(authorRequest(state.author));if(admitted.has(key))return {ok:true};
- try{const answer=await authorTransition({draftId,...authorRequest(state.author)});state.tryGate={verdict:answer.gate.verdict,message:answer.gate.message,draftId};admitted.add(key);return {ok:true};}
- catch(error){return {ok:false,message:error instanceof Error?error.message:'A Próba lépés most nem nyitható meg.'};}
-}
 /** ADR-108 (E7): the resolver's answer for the author's current request (locks, inactive options, refusals);
  * the latest request wins. */
 let policyKey='';
@@ -57,7 +48,7 @@ const gateEvidence=body=>({...authorRequest(state.author),...body});
 const entersTry=next=>state.mode==='author'&&!state.learnerPreview&&(next==='sort'||next==='edit')&&state.view!=='sort'&&state.view!=='edit';
 async function go(next){
  // A refused Try lands on Rules, where the stale notice offers rebuilding or discarding the change.
- if(entersTry(next)){const gate=await admitToTry();if(!gate.ok){state.modelMessage=gate.message;if(state.view==='author')state.author.message=gate.message;if(state.view==='model'){render();return;}next='model';}}
+ if(entersTry(next)){const gate=tryAdmission(state);if(!gate.ok){state.modelMessage=gate.message;if(state.view==='author')state.author.message=gate.message;if(state.view==='model'){render();return;}next='model';}}
  const a=at();if(!enterView(state,a,a?formattedAnswer():[],next)){notify(blockedReason(state,next)||'Ez a lépés most nem érhető el.');return;}render();
 }
 const steps={source:'author',rules:'model',try:'sort'};
@@ -75,7 +66,7 @@ async function authorApply(body,{preserveAttempt=false,sessionImport,current=cap
  state.modelMessage=body.source!==undefined?summary:compatible?'A módosított szabályok érvényesek. A kitöltés megmaradt; ellenőrizheted az új függőségekkel.':'A módosított modell érvényes. A kitöltést az új szerkezethez visszaállítottuk.';
  state.author.message=summary;
  // ADR-108 (E6): landing on Try (a session import) passes the second gate first; refused, it lands on Rules.
- if(land==='try'){const gate=await admitToTry();if(!gate.ok){land='rules';state.modelMessage=gate.message;}}
+ if(land==='try'){const gate=tryAdmission(state);if(!gate.ok){land='rules';state.modelMessage=gate.message;}}
  landAfterAdmission(state,land);commit(state.modelMessage);
  if(compatible){const id=state.active,a=at(),generation=a.generation,{lines,slots}=submitted(a);let report;try{report={...await previewDraft(gateEvidence({draftId:data.draftId,lines})),slots};}catch(error){report={status:'indeterminate',message:error instanceof Error&&/^A Próba lépés/.test(error.message)?error.message:'Az előnézet értékelése nem érhető el.',exploredStates:0};}if(state.active===id&&at()===a&&a.generation===generation){a.report=report;render();}}
  return data;

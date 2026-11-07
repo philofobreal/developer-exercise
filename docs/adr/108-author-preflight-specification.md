@@ -199,7 +199,15 @@ Következtetés:
   - **Miért:** a szabályszerkesztés új draftot ad, ezért külön átmenettel minden szerkesztés három kérés lett volna (szerkesztés, átmenet, előnézet). A böngészős tesztsor gyors szerkesztései így túllépték a szerver percenkénti 120 POST-os korlátját (429).
   - **Most:** a szerkesztés utáni újraértékelés és az ellenőrzés egy kéréssel jár, mint E6 előtt. A korlátot nem emeltem.
 - **Felület:**
-  - **A lépésváltás és az import „landolása”:** egy út, az `admitToTry`, amely draftonként és forrásonként egyszer kérdez.
+  - **A lépésváltás és az import „landolása”:** egy út, a [flow.ts](../../src/workbench/flow.ts) `tryAdmission` függvénye. Nem kérdezi a szervert.
+    - Minden draft-válasz (modellkészítés, szabályszerkesztés) magával hozza a második kapu döntését a saját forrására és policyjára (`tryGate`, `tryReadiness`). Ez ugyanaz a döntés, mint az átmeneté, csak elavultság-ellenőrzés nélkül.
+    - Az elavultságot a kliens tudja: a forrás vagy a beállítások kulcsa eltér attól, amiből a modell készült. A cím, a leírás és a szint nem számít bele, ahogy az ujjlenyomatba sem.
+    - Döntés nélküli draft zárva marad.
+    - **Miért nem kérdez a navigáció:** az E6 első változata minden új draftnál külön átmenet-kérést küldött. A böngészős workbench-sor így egy perc alatt 118 POST-ot küldött, a szerver korlátja 120. A gyorsabb CI-gépen ez 429-et adott, és a modellkészítés vagy a Próba nem nyílt meg (ez buktatta az E6 és az E7 CI-futását).
+      - A korlát emelését vagy a tesztszerver kivételezését elvetettem, mert az elfedte volna, hogy a navigáció fölösleges szerverkérés.
+      - Most a teljes fájl 109 POST-ot küld (csúcs 92/perc), és a teszt kifejezetten ellenőrzi, hogy a fájl összesen 120 alatt marad.
+    - **A kikényszerítés változatlan:** az előnézetet a szerver bizonyíték nélkül 409-cel, elavult bizonyítékkal 422-vel utasítja el. A navigáció nem biztonsági határ.
+    - Az átmenet-végpont (`POST /api/author/transition`, a Pages-en `authorTransition`) megmarad közvetlen API-hívóknak és a teszteknek; a felület nem használja.
     - A Próbára lépés (Rendező és Megoldáskód nézet) elutasításkor a Szabályok lépésre visz. Ott látszik az ok és az elavultsági sáv a „Modell újrakészítése” és a „Forrásváltozás elvetése” gombbal.
     - A munkamenet-import is a Szabályok lépésre érkezik, ha a kapu elutasítja.
   - **Az ellenőrzés és a szerkesztés utáni újraértékelés:** a bizonyítékot vivő előnézeti kéréssel megy. Elutasításkor az értékelés „Nem eldönthető”, és a kapu üzenetét mutatja.
@@ -266,7 +274,7 @@ Következtetés:
   - A kliensoldali portok a hibát `details`-szel adják tovább, a szerver és a Pages egyformán.
 - **Lépésállapotok:**
   - **Forrás:** „Hibás forrás”, ha az első kapu elutasította az éppen szerkesztett szöveget. „Figyelmeztetés”, ha nem eldönthető eredménnyel engedte tovább.
-  - **Próba:** „Figyelmeztetéssel”, ha a második kapu nem eldönthető eredménnyel engedte be az aktuális draftot.
+  - **Próba:** „Figyelmeztetéssel”, ha a draft második kapus döntése nem eldönthető, de továbbenged. „Zárva”, ha nem enged tovább (például „tilt” mellett).
   - **Szabályok és Próba:** a „Zárolt” és az „Elavult” állapot megmarad.
 
   Az állapotot a [flow.ts](../../src/workbench/flow.ts) számítja (`status`, `tone`), a nézet csak kirajzolja.

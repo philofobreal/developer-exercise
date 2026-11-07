@@ -12,6 +12,10 @@
  *    passed; a first gate that was itself inconclusive stays so.
  * Unknown follows the policy's `unknownPolicy` (warn lets through, block stops). A rule edit makes a new
  * draft, so the gate is passed again (C28). The proof names what was checked by fingerprints.
+ *
+ * `tryReadiness` is the same decision for the source and policy the draft was made from: every draft response
+ * carries it, so a client can open the step without asking again; whether its current text is still that
+ * source is the client's to know, and a preview is refused by the server all the same when it is not.
  */
 import type {PolicyResolution} from './config-resolver.js';
 import type {SourceGate} from './source-gate.js';
@@ -33,8 +37,9 @@ export interface RulesGateInput {
  analyzer: string;
 }
 
+const blocked = (reasons: string[]): RulesGate => ({gate: 'rules-to-try', verdict: 'blocked', admitted: false, reasons, message: `A Próba lépés nem nyitható meg: ${reasons.join(' ')}`});
+
 export function rulesGate(input: RulesGateInput): RulesGate {
- const blocked = (reasons: string[]): RulesGate => ({gate: 'rules-to-try', verdict: 'blocked', admitted: false, reasons, message: `A Próba lépés nem nyitható meg: ${reasons.join(' ')}`});
  const {snapshot, current, verification} = input;
  if (!snapshot) return blocked(['Ehhez a modellhez nincs első kapus ellenőrzés; készítsd el a modellt a Forrás lépésben.']);
  if (typeof current.source !== 'string') return blocked(['Hiányzik a jelenlegi forrás.']);
@@ -42,6 +47,13 @@ export function rulesGate(input: RulesGateInput): RulesGate {
  if (sourceFingerprint(current.source) !== snapshot.sourceFingerprint) stale.push('A forrás a modell készítése óta változott; készítsd újra a modellt, vagy vesd el a változtatást.');
  if (current.policy.fingerprint !== snapshot.policy.fingerprint) stale.push('Az elemzési beállítások a modell készítése óta változtak; készítsd újra a modellt.');
  if (stale.length) return blocked(stale);
+ return tryReadiness({snapshot, model: input.model, verification, analyzer: input.analyzer});
+}
+
+/** The second gate for the draft's own source and policy (no staleness to check). */
+export function tryReadiness(input: Omit<RulesGateInput, 'current' | 'snapshot'> & {snapshot: SourceSnapshot | undefined}): RulesGate {
+ const {snapshot, verification} = input;
+ if (!snapshot) return blocked(['Ehhez a modellhez nincs első kapus ellenőrzés; készítsd el a modellt a Forrás lépésben.']);
  if (!snapshot.gate.admitted) return blocked(['Az első kapu nem engedte tovább a forrást.']);
  if (!verification || verification.checks.reference === 'rejected') return blocked(['A modell nem fogadja el a saját referenciasorrendjét.']);
  const unknown: string[] = [];
@@ -50,7 +62,7 @@ export function rulesGate(input: RulesGateInput): RulesGate {
  if (verification.status === 'unverified') unknown.push(`A modell minősítése: nem igazolt${verification.findings?.length ? ` (${verification.findings.slice(0, 2).join(' ')})` : ''}.`);
  const proof: RulesProof = {sourceFingerprint: snapshot.sourceFingerprint, policyFingerprint: snapshot.policy.fingerprint, modelFingerprint: modelFingerprint(input.model), analyzer: input.analyzer, verification: verification.status};
  if (!unknown.length) return {gate: 'rules-to-try', verdict: 'passed', admitted: true, reasons: [], message: '', proof};
- const block = current.policy.effective.unknownPolicy === 'block';
+ const block = snapshot.policy.effective.unknownPolicy === 'block';
  return {gate: 'rules-to-try', verdict: 'inconclusive', admitted: !block, reasons: unknown, proof,
   message: block ? `A Próba lépés nem nyitható meg a „tilt” beállítás miatt: ${unknown.join(' ')}` : `Továbbléphetsz a Próbára, de a modell nem tekinthető teljesen ellenőrzöttnek: ${unknown.join(' ')}`};
 }

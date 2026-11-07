@@ -63,6 +63,18 @@ test('server: a preview carrying the current source passes the second gate itsel
  assert.equal(catalog.preview({draftId:first.draftId,lines}).status,'accepted','admitted once, the draft stays open');
 });
 
+test('every draft response carries the second gate for its own source and policy (tryGate), so opening Try needs no request',async()=>{
+ for(const [unknownPolicy,admitted] of [['warn',true],['block',false]]){
+  const catalog=new ExerciseCatalog(new Map()),source='function f() {\n  const a = 1;\n  const b = 2;\n  const c = a + 3;\n  g(b, c);\n}';
+  const first=await catalog.createDraft({source,language:'javascript',policy:{unknownPolicy}});
+  assert.equal(first.tryGate.verdict,'passed');assert.equal(first.tryGate.proof.policyFingerprint,first.policy.fingerprint);
+  const relaxed=await catalog.editDraft({draftId:first.draftId,edits:[{kind:'remove-rule',before:2,after:4,acknowledge:'policy-override',note:'Didaktikai lazítás'}]});
+  assert.equal(relaxed.tryGate.verdict,'inconclusive');assert.equal(relaxed.tryGate.admitted,admitted);
+  // The same decision as the transition with the draft's own source.
+  if(admitted)assert.deepEqual((await catalog.transition(gateBody(relaxed,source))).gate,relaxed.tryGate);
+ }
+});
+
 test('server: a relaxed proven rule (C29) makes the model unverified: Try opens with a warning, or not at all under block',async()=>{
  const source='function f() {\n  const a = 1;\n  const b = 2;\n  const c = a + 3;\n  g(b, c);\n}';
  for(const [unknownPolicy,admitted] of [['warn',true],['block',false]]){

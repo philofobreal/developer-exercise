@@ -9,7 +9,7 @@ import {createReferenceAuditor} from '../dist/author/reference-audit.js';
 import {auditMode,generatorOptions,policyRefusal,recordedContract,resolveAuthorPolicy} from '../dist/author/preflight/config-resolver.js';
 import {sourceGate} from '../dist/author/preflight/source-gate.js';
 import {runtimeSafety} from '../dist/author/preflight/runtime-safety.js';
-import {rulesGate,snapshotOf} from '../dist/author/preflight/rules-gate.js';
+import {rulesGate,snapshotOf,tryReadiness} from '../dist/author/preflight/rules-gate.js';
 
 export const validationMode='local-demo';
 const records = new Map();
@@ -74,8 +74,9 @@ export async function compileDraft(body){
   // No standard library is shipped to the static demo: the language audit reports `not-run` (ADR-016).
   const audit=createReferenceAuditor(getTypeScript()).audit(model.lines.map(l=>l.code).join('\n'),model.language,auditMode(policy));
   const verification=await verifyAuthorModel(model,{generate:input=>generateCodeLineExercise(input,getTypeScript())},{audit:audit.semantics});
-  drafts.set(draftId,{model,compiled,audit,verification,snapshot:snapshotOf(reviewed,policy,gate)});
-  return {draftId,model,previewOnly:true,mode:'local-demo',audit,verification,rules:authorRuleSheet(model),...(refresh?{refresh}:{}),policy,gate};
+  const snapshot=snapshotOf(reviewed,policy,gate);
+  drafts.set(draftId,{model,compiled,audit,verification,snapshot});
+  return {draftId,model,previewOnly:true,mode:'local-demo',audit,verification,rules:authorRuleSheet(model),...(refresh?{refresh}:{}),policy,gate,tryGate:tryReadiness({snapshot,model,verification,analyzer:analyzer()})};
 }
 /** Typed rule edits on the demo's own draft copy (ADR-018, ADR-021); a refused edit is `ok: false`. */
 export async function editRules(body){
@@ -85,8 +86,9 @@ export async function editRules(body){
   if(!result.ok)return result;
   const draftId='pages-'+nextDraft++,model={...result.model,id:'author-'+draftId},compiled=assertSafeModel(model);
   drafts.delete(body.draftId);drafts.set(draftId,{model,compiled,audit:ref.audit,verification,snapshot:ref.snapshot});
-  return {ok:true,draftId,model,previewOnly:true,mode:'local-demo',audit:ref.audit,verification,effect:result.effect,rules:authorRuleSheet(model),...(ref.snapshot?{policy:ref.snapshot.policy}:{})};
+  return {ok:true,draftId,model,previewOnly:true,mode:'local-demo',audit:ref.audit,verification,effect:result.effect,rules:authorRuleSheet(model),...(ref.snapshot?{policy:ref.snapshot.policy}:{}),tryGate:tryReadiness({snapshot:ref.snapshot,model,verification,analyzer:analyzer()})};
 }
+const analyzer=()=>`${DEPENDENCY_POLICY}+typescript-${getTypeScript().version}`;
 /** ADR-108 (E7): the same policy resolver as the server, for the settings block. */
 export async function resolvePolicy(body){return resolveAuthorPolicy(body??{});}
 /** ADR-108 (E6): the same second gate as the server, on the demo's own draft copy. */
@@ -97,7 +99,7 @@ export async function authorTransition(body){
 }
 function admit(ref,body){
   const policy=resolveAuthorPolicy({...body,language:ref.model.language});{const refusal=policyRefusal(policy);if(refusal)throw Error(refusal);}
-  const gate=rulesGate({snapshot:ref.snapshot,current:{source:body.source,policy},model:ref.model,verification:ref.verification,analyzer:`${DEPENDENCY_POLICY}+typescript-${getTypeScript().version}`});
+  const gate=rulesGate({snapshot:ref.snapshot,current:{source:body.source,policy},model:ref.model,verification:ref.verification,analyzer:analyzer()});
   if(!gate.admitted)throw Error(gate.message);
   ref.tryProof=gate.proof;
   return gate;

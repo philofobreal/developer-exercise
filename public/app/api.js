@@ -4,8 +4,6 @@ async function jsonRequest(url,body){const response=await fetch(url,{method:'POS
 export const validationMode='trusted-server';
 export const getExercises=async()=>{const r=await fetch('/api/exercises');if(!r.ok)throw new Error(`HTTP ${r.status}`);return (await r.json()).exercises;};
 export const compileDraft=body=>jsonRequest('/api/author/compile',body);
-/** ADR-108 (E6): the second gate, Rules → Try; previews of a draft need it. */
-export const authorTransition=body=>jsonRequest('/api/author/transition',body);
 /** ADR-108 (E7): the server's policy resolver for the language and settings (locks, inactive options, refusals);
  * a safe query, so GET: nothing is stored, and the source is never part of it. */
 export const resolvePolicy=async settings=>{const response=await fetch('/api/author/policy?request='+encodeURIComponent(JSON.stringify(settings)));const data=await response.json();if(!response.ok)throw new Error(data.error??`HTTP ${response.status}`);return data;};

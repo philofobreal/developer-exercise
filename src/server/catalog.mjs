@@ -15,7 +15,7 @@ import {createReferenceAuditor} from '../../dist/author/reference-audit.js';
 import {auditMode,generatorOptions,policyRefusal,recordedContract,resolveAuthorPolicy} from '../../dist/author/preflight/config-resolver.js';
 import {sourceGate} from '../../dist/author/preflight/source-gate.js';
 import {runtimeSafety} from '../../dist/author/preflight/runtime-safety.js';
-import {rulesGate,snapshotOf} from '../../dist/author/preflight/rules-gate.js';
+import {rulesGate,snapshotOf,tryReadiness} from '../../dist/author/preflight/rules-gate.js';
 export class ServiceError extends Error{constructor(code,message,details){super(message);this.statusCode=code;if(details)this.details=details;}}
 /** The publication policy named by `CODELINE_PUBLICATION` (ADR-027, ADR-035); unset, the core's default
  * (`verified-only`, ADR-089). The server, the model check and the Pages build read it here alike; a
@@ -90,8 +90,9 @@ export class ExerciseCatalog{
     const parser=await this.parser(),audit=(await this.auditor()).audit(model.lines.map(l=>l.code).join('\n'),model.language,auditMode(policy));
     // Model Verification Gate (ADR-017): re-derived here, never taken from the request.
     const verification=await verifyAuthorModel(model,{generate:input=>generateCodeLineExercise(input,parser)},{audit:audit.semantics});
-    this.drafts.set(draftId,{created:Date.now(),model,compiled:result.compiled,audit,verification,snapshot:snapshotOf(reviewed,policy,gate)});
-    return {draftId,model,previewOnly:true,mode:'preview-validation',audit,verification,rules:authorRuleSheet(model),...(refresh?{refresh}:{}),policy,gate};
+    const snapshot=snapshotOf(reviewed,policy,gate);
+    this.drafts.set(draftId,{created:Date.now(),model,compiled:result.compiled,audit,verification,snapshot});
+    return {draftId,model,previewOnly:true,mode:'preview-validation',audit,verification,rules:authorRuleSheet(model),...(refresh?{refresh}:{}),policy,gate,tryGate:this.readiness({snapshot,model,verification})};
   }
   /** Typed rule edits on an admitted draft (ADR-018, ADR-021). The server edits its own copy,
    * never a model taken from the request, and re-qualifies the result. A refused edit is a
@@ -107,7 +108,7 @@ export class ExerciseCatalog{
     // The edited draft replaces its predecessor, so editing never exhausts the preview limit.
     // ADR-108 (E6): the edit keeps the first gate's snapshot (same source and policy), not the Try admission (C28).
     this.drafts.delete(body.draftId);this.drafts.set(draftId,{created:Date.now(),model,compiled:compiled.compiled,audit:item.audit,verification,snapshot:item.snapshot});
-    return {ok:true,draftId,model,previewOnly:true,mode:'preview-validation',audit:item.audit,verification,effect:result.effect,rules:authorRuleSheet(model),...(item.snapshot?{policy:item.snapshot.policy}:{})};
+    return {ok:true,draftId,model,previewOnly:true,mode:'preview-validation',audit:item.audit,verification,effect:result.effect,rules:authorRuleSheet(model),...(item.snapshot?{policy:item.snapshot.policy}:{}),tryGate:this.readiness({snapshot:item.snapshot,model,verification})};
   }
   /** ADR-108 (E6): the second gate, Rules → Try. The author's current source and policy must be the ones
    * the draft's first-gate snapshot was made from; the model must accept its reference; unknown follows
@@ -124,11 +125,15 @@ export class ExerciseCatalog{
     await this.parser();
     return {ok:true,draftId:body.draftId,gate:this.admit(item,body)};
   }
+  /** ADR-108 (E6): the second gate for the source and policy a draft was made from; every draft response
+   *  carries it, so opening the Try step needs no request of its own. */
+  readiness({snapshot,model,verification}){return tryReadiness({snapshot,model,verification,analyzer:this.analyzer()});}
+  analyzer(){return `${DEPENDENCY_POLICY}+typescript-${this.ts?.version??'not-loaded'}`;}
   /** The second gate on a stored draft: admits it for preview or refuses with 422. A draft with a
    *  snapshot was made with the parser loaded, so the proof's compiler version is known here. */
   admit(item,body){
     const policy=resolveAuthorPolicy({...body,language:item.model.language});{const refusal=policyRefusal(policy);if(refusal)throw new ServiceError(422,refusal,{policy});}
-    const gate=rulesGate({snapshot:item.snapshot,current:{source:body.source,policy},model:item.model,verification:item.verification,analyzer:`${DEPENDENCY_POLICY}+typescript-${this.ts?.version??'not-loaded'}`});
+    const gate=rulesGate({snapshot:item.snapshot,current:{source:body.source,policy},model:item.model,verification:item.verification,analyzer:this.analyzer()});
     if(!gate.admitted)throw new ServiceError(422,gate.message,{gate});
     item.tryProof=gate.proof;
     return gate;

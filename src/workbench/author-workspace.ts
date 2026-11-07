@@ -14,6 +14,12 @@ export function authorRequest(author:AuthorDraft):Omit<AuthorDraft,'message'> {
  const {title,description,level,language,source}=author;
  return {title,description,...(level?{level}:{}),language,source,...settingsRequest(author)};
 }
+/** ADR-108 (E6): the source or the analysis settings differ from those the applied model was made from, so
+ * its gate decisions no longer speak for them (a title or level edit does not count). */
+export function evidenceStale(state:WorkbenchState):boolean {
+ const base=state.authorBaseline;
+ return !!base&&(base.source!==state.author.source||settingsKey(base)!==settingsKey(state.author));
+}
 /** The reference differs from the one the applied model was built from (or none was built yet). */
 export function authorDraftPending(state:WorkbenchState):boolean {
  return !!state.authorBaseline&&!same(state.author,state.authorBaseline);

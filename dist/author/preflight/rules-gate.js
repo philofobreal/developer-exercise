@@ -1,7 +1,7 @@
 import { modelFingerprint, normalizeSource, sourceFingerprint } from './fingerprint.js';
 export const snapshotOf = (source, policy, gate) => ({ sourceFingerprint: sourceFingerprint(normalizeSource(source)), policy, gate });
+const blocked = (reasons) => ({ gate: 'rules-to-try', verdict: 'blocked', admitted: false, reasons, message: `A Próba lépés nem nyitható meg: ${reasons.join(' ')}` });
 export function rulesGate(input) {
-    const blocked = (reasons) => ({ gate: 'rules-to-try', verdict: 'blocked', admitted: false, reasons, message: `A Próba lépés nem nyitható meg: ${reasons.join(' ')}` });
     const { snapshot, current, verification } = input;
     if (!snapshot)
         return blocked(['Ehhez a modellhez nincs első kapus ellenőrzés; készítsd el a modellt a Forrás lépésben.']);
@@ -14,6 +14,13 @@ export function rulesGate(input) {
         stale.push('Az elemzési beállítások a modell készítése óta változtak; készítsd újra a modellt.');
     if (stale.length)
         return blocked(stale);
+    return tryReadiness({ snapshot, model: input.model, verification, analyzer: input.analyzer });
+}
+/** The second gate for the draft's own source and policy (no staleness to check). */
+export function tryReadiness(input) {
+    const { snapshot, verification } = input;
+    if (!snapshot)
+        return blocked(['Ehhez a modellhez nincs első kapus ellenőrzés; készítsd el a modellt a Forrás lépésben.']);
     if (!snapshot.gate.admitted)
         return blocked(['Az első kapu nem engedte tovább a forrást.']);
     if (!verification || verification.checks.reference === 'rejected')
@@ -28,7 +35,7 @@ export function rulesGate(input) {
     const proof = { sourceFingerprint: snapshot.sourceFingerprint, policyFingerprint: snapshot.policy.fingerprint, modelFingerprint: modelFingerprint(input.model), analyzer: input.analyzer, verification: verification.status };
     if (!unknown.length)
         return { gate: 'rules-to-try', verdict: 'passed', admitted: true, reasons: [], message: '', proof };
-    const block = current.policy.effective.unknownPolicy === 'block';
+    const block = snapshot.policy.effective.unknownPolicy === 'block';
     return { gate: 'rules-to-try', verdict: 'inconclusive', admitted: !block, reasons: unknown, proof,
         message: block ? `A Próba lépés nem nyitható meg a „tilt” beállítás miatt: ${unknown.join(' ')}` : `Továbbléphetsz a Próbára, de a modell nem tekinthető teljesen ellenőrzöttnek: ${unknown.join(' ')}` };
 }
