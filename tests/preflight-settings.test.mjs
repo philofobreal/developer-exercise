@@ -90,3 +90,17 @@ test('a resolution made for another request is not shown: the locks belong to th
  assert.doesNotMatch(renderPreflightSettings(author,stale),/disabled/);
  assert.match(renderPreflightSettings({...author,policy:{portability:'conservative'}},stale),/disabled/);
 });
+
+test('C16: what the environment does not offer is a disabled option that says why, even before a matching resolution arrives',()=>{
+ const author=draft(),local=resolveAuthorPolicy(authorRequest(author),{languageAudit:false});
+ const html=renderPreflightSettings(author,local);
+ assert.match(control(html,'unknownPolicy'),/<option value="block" disabled>Tilt[^<]*\(csak szerveren\)<\/option>/);
+ assert.match(control(html,'unknownPolicy'),/data-server-only="unknownPolicy">[^<]*csak a szerveren választható/);
+ assert.match(control(html,'jsCheck'),/<option value="on" disabled>/);
+ assert.doesNotMatch(control(renderPreflightSettings(author,resolve(author)),'unknownPolicy'),/disabled/,'the server offers it');
+ const changed={...author,policy:{objectState:'off'}};
+ assert.match(control(renderPreflightSettings(changed,local),'unknownPolicy'),/<option value="block" disabled>/,'an environment fact needs no fresh resolution');
+ // A server session that asked for checkJs: kept in the request, inactive here, and said so.
+ const asked=draft({policy:{jsCheck:'on'}});
+ assert.match(control(renderPreflightSettings(asked,resolveAuthorPolicy(authorRequest(asked),{languageAudit:false})),'jsCheck'),/data-server-only="jsCheck">JavaScript típusellenőrzés: Itt nem fut/);
+});

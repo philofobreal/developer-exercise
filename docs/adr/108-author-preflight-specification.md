@@ -293,6 +293,17 @@ Következtetés:
 - **Javított E7-hiba:** a szerző saját JSON-szerkesztése (Szabályok → JSON alkalmazása, függőségfrissítés) nem küldte el a preflight-opciókat. Így például a „Tilt” csendben „Figyelmeztet”-re állt vissza. Most a saját JSON-szerkesztés a szerző beállításaival megy.
 - **Mi marad a kliensnél:** hogy a modell útján csak a `policy` részt kell küldeni, a környezetet a modell bizonyítéka adja (`recordedContract`). Ez a két hívó (munkamenet, saját JSON) közös, egysoros szabálya, nem külön modul.
 
+**C16 – ami a futási környezetben nem végezhető el** ([config-resolver.ts](../../src/author/preflight/config-resolver.ts)):
+- **A hiba:** a Local Demóban (Pages) nincs szabványos könyvtár, ezért a nyelvi ellenőrzés nem fut, és az első kapu minden forrásra „nem eldönthető”.
+  - A „Nem eldönthető eredmények: Tilt” beállítással így egyetlen modell sem készülhetett.
+  - A felület ezt felajánlotta, és csak a modellkészítés bukott el, félrevezető üzenettel.
+- **A döntés a feloldóé:** `resolveAuthorPolicy(request, environment)`; a Pages `{languageAudit: false}`-szal hívja, a szerver környezet nélkül. A felület csak megjeleníti, amit a feloldó mond (`unavailable`). Mindhárom értéknél letiltott opció „(csak szerveren)” felirattal és okkal.
+  - **`unknownPolicy: block`:** blokkoló C16-konfliktus. Úgyis minden modellt megállítana, így azonnal, a valódi okkal áll meg.
+  - **`jsCheck: on`, `tsDiagnostics: strict`:** itt egyszerűen nem futnának. Ezért inaktívak:
+    - a kérés megtartja őket, semmi nem áll vissza csendben;
+    - a hatályos érték és az ujjlenyomat a kikapcsolté, mert az elemzés így fut;
+    - egy szerveres munkamenet így a Pages-en is betölthető.
+
 **Bizonyíték:**
 - `tests/author-policy.test.mjs`:
   - az összes kombináció tulajdonságtesztje: a konzervatív preset mindig a szigorú szerződést adja, és az ujjlenyomat csak a hatályos policytól függ;

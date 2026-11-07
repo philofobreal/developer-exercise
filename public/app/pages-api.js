@@ -52,7 +52,7 @@ export async function compileDraft(body){
     model={...structuredClone(body.model),id:'draft',revision:1};
   }else{
     // ADR-108 (E1): the same policy resolution as the server, in the browser.
-    policy=resolveAuthorPolicy(body??{});const refusal=policyRefusal(policy);if(refusal)throw Error(refusal);
+    policy=resolveAuthorPolicy(body??{},LOCAL);const refusal=policyRefusal(policy);if(refusal)throw Error(refusal);
     model=generateCodeLineExercise({...(body??{}),...generatorOptions(policy)},getTypeScript());
   }
   if(body?.refreshDependencies)({model,report:refresh}=await refreshAuthorModel(model,{generate:input=>generateCodeLineExercise(input,getTypeScript()),audit:reference=>auditReference(reference,getTypeScript())}));
@@ -65,7 +65,7 @@ export async function compileDraft(body){
   // the gate is inconclusive here: it lets the draft through only under the `warn` policy.
   // An imported model states its own source contract (plan §2.3): its recorded environment is the
     // requested policy, an assumption and never a proof (C27).
-    policy??=resolveAuthorPolicy({language:model.language,...recordedContract(model),...(body?.policy!==undefined?{policy:body.policy}:{})});
+    policy??=resolveAuthorPolicy({language:model.language,...recordedContract(model),...(body?.policy!==undefined?{policy:body.policy}:{})},LOCAL);
   {const refusal=policyRefusal(policy);if(refusal)throw Error(refusal);}
   const reviewed=typeof body?.source==='string'&&!body?.model?body.source.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n'):model.lines.map(l=>l.code).join('\n');
   const gate=sourceGate(createReferenceAuditor(getTypeScript()).audit(reviewed,model.language,auditMode(policy)),policy,runtimeSafety(getTypeScript(),reviewed,model.language==='typescript'?'typescript':'javascript',{objectState:policy.effective.objectState}));
@@ -88,9 +88,11 @@ export async function editRules(body){
   drafts.delete(body.draftId);drafts.set(draftId,{model,compiled,audit:ref.audit,verification,snapshot:ref.snapshot});
   return {ok:true,draftId,model,previewOnly:true,mode:'local-demo',audit:ref.audit,verification,effect:result.effect,rules:authorRuleSheet(model),...(ref.snapshot?{policy:ref.snapshot.policy}:{}),tryGate:tryReadiness({snapshot:ref.snapshot,model,verification,analyzer:analyzer()})};
 }
+/** ADR-108 (C16): the demo has no standard library, so the language audit does not run here. */
+const LOCAL={languageAudit:false};
 const analyzer=()=>`${DEPENDENCY_POLICY}+typescript-${getTypeScript().version}`;
 /** ADR-108 (E7): the same policy resolver as the server, for the settings block. */
-export async function resolvePolicy(body){return resolveAuthorPolicy(body??{});}
+export async function resolvePolicy(body){return resolveAuthorPolicy(body??{},LOCAL);}
 /** ADR-108 (E6): the same second gate as the server, on the demo's own draft copy. */
 export async function authorTransition(body){
   const ref=drafts.get(body?.draftId);
@@ -98,7 +100,7 @@ export async function authorTransition(body){
   return {ok:true,draftId:body.draftId,gate:admit(ref,body)};
 }
 function admit(ref,body){
-  const policy=resolveAuthorPolicy({...body,language:ref.model.language});{const refusal=policyRefusal(policy);if(refusal)throw Error(refusal);}
+  const policy=resolveAuthorPolicy({...body,language:ref.model.language},LOCAL);{const refusal=policyRefusal(policy);if(refusal)throw Error(refusal);}
   const gate=rulesGate({snapshot:ref.snapshot,current:{source:body.source,policy},model:ref.model,verification:ref.verification,analyzer:analyzer()});
   if(!gate.admitted)throw Error(gate.message);
   ref.tryProof=gate.proof;

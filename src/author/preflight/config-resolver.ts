@@ -40,6 +40,10 @@ export type PolicyPath = keyof AuthorPolicy;
 export interface PolicyLock {path: PolicyPath; requested: string | undefined; effective: string; rule: string; reason: string;}
 export interface PolicyNote {path: PolicyPath; reason: string;}
 export interface PolicyConflict {code: string; path: string; message: string; blocking: boolean;}
+/** C16: a value the analysis cannot carry out where it runs (no standard library, e.g. the Local Demo). */
+export interface PolicyUnavailable {path: PolicyPath; value: string; reason: string;}
+/** Where the analysis runs. `languageAudit: false`: the language audit cannot run (no standard library). */
+export interface PolicyEnvironment {languageAudit?: boolean;}
 export interface PolicyResolution {
  schema: typeof POLICY_SCHEMA;
  language: PolicyLanguage;
@@ -48,6 +52,8 @@ export interface PolicyResolution {
  locks: PolicyLock[];
  inactive: PolicyNote[];
  conflicts: PolicyConflict[];
+ /** C16: values not offered here, whatever was asked; a request for one is a conflict or an inactive note. */
+ unavailable: PolicyUnavailable[];
  fingerprint: string;
 }
 
@@ -76,9 +82,21 @@ const CONSERVATIVE: readonly {path: PolicyPath; value: string; rule: string; rea
 
 const text = (value: unknown): string | undefined => typeof value === 'string' ? value : undefined;
 
+/** C16: without the language audit every source is undecided, so `block` would refuse every model (a blocking
+ * conflict, said at once instead of after a build); the stricter diagnostics would simply not run (inactive,
+ * nothing is switched back silently: the request keeps them). */
+function unavailableIn(environment: PolicyEnvironment, language: PolicyLanguage): PolicyUnavailable[] {
+ if (environment.languageAudit !== false) return [];
+ const why = 'Itt nem fut nyelvi ellenőrzés (nincs szabványos könyvtár, például a Local Demóban), ezért csak a szerveren választható';
+ return [
+  {path: 'unknownPolicy', value: 'block', reason: `${why}: itt minden forrás nem eldönthető lenne, és egyetlen modell sem készülhetne.`},
+  language === 'javascript' ? {path: 'jsCheck', value: 'on', reason: `${why}: a típusellenőrzés itt nem futna le.`} : {path: 'tsDiagnostics', value: 'strict', reason: `${why}: a szigorú fordítás itt nem futna le.`}
+ ];
+}
+
 /** Resolves a compile request (`inputs`, `keyOrder`, `classFields`, `importEmit` at the top level,
- * `policy: {portability, unknownPolicy}`) into the effective author policy. Never throws. */
-export function resolveAuthorPolicy(request: Readonly<Record<string, unknown>>): PolicyResolution {
+ * `policy: {portability, unknownPolicy}`) into the effective author policy where it runs. Never throws. */
+export function resolveAuthorPolicy(request: Readonly<Record<string, unknown>>, environment: PolicyEnvironment = {}): PolicyResolution {
  const language: PolicyLanguage = request['language'] === 'typescript' ? 'typescript' : 'javascript';
  const conflicts: PolicyConflict[] = [], locks: PolicyLock[] = [], inactive: PolicyNote[] = [];
  const requested: Partial<Record<PolicyPath, string>> = {};
@@ -103,6 +121,12 @@ export function resolveAuthorPolicy(request: Readonly<Record<string, unknown>>):
   const only = OPTIONS[path].languages;
   if (only && !only.includes(language) && requested[path] !== undefined) inactive.push({path, reason: `${OPTIONS[path].label}: csak ${only.join(', ')} nyelvnél érvényes.`});
  }
+ const unavailable = unavailableIn(environment, language);
+ for (const item of unavailable) {
+  if (requested[item.path] !== item.value) continue;
+  if (item.path === 'unknownPolicy') conflicts.push({code: 'C16', path: item.path, message: `${OPTIONS[item.path].label} „tilt”: ${item.reason}`, blocking: true});
+  else {inactive.push({path: item.path, reason: `${OPTIONS[item.path].label}: ${item.reason}`}); effective[item.path] = OPTIONS[item.path].fallback;}
+ }
  if (effective.portability === 'conservative') for (const lock of CONSERVATIVE) {
   if (OPTIONS[lock.path].languages && !OPTIONS[lock.path].languages!.includes(language)) continue;
   if (effective[lock.path] !== lock.value) locks.push({path: lock.path, requested: requested[lock.path], effective: lock.value, rule: lock.rule, reason: lock.reason});
@@ -110,7 +134,7 @@ export function resolveAuthorPolicy(request: Readonly<Record<string, unknown>>):
  }
  const resolved = effective as unknown as AuthorPolicy;
  const canonical = JSON.stringify({schema: POLICY_SCHEMA, language, effective: Object.fromEntries([...TOP_LEVEL, ...NESTED].filter(path => !OPTIONS[path].languages || OPTIONS[path].languages!.includes(language)).map(path => [path, resolved[path]]))});
- return {schema: POLICY_SCHEMA, language, requested, effective: resolved, locks, inactive, conflicts, fingerprint: 'p1-' + fnv1a64(canonical)};
+ return {schema: POLICY_SCHEMA, language, requested, effective: resolved, locks, inactive, conflicts, unavailable, fingerprint: 'p1-' + fnv1a64(canonical)};
 }
 
 /** The source contract an imported model recorded (`authoring.evidence.environment`), as request fields. */

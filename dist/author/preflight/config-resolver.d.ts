@@ -38,6 +38,16 @@ export interface PolicyConflict {
     message: string;
     blocking: boolean;
 }
+/** C16: a value the analysis cannot carry out where it runs (no standard library, e.g. the Local Demo). */
+export interface PolicyUnavailable {
+    path: PolicyPath;
+    value: string;
+    reason: string;
+}
+/** Where the analysis runs. `languageAudit: false`: the language audit cannot run (no standard library). */
+export interface PolicyEnvironment {
+    languageAudit?: boolean;
+}
 export interface PolicyResolution {
     schema: typeof POLICY_SCHEMA;
     language: PolicyLanguage;
@@ -46,11 +56,13 @@ export interface PolicyResolution {
     locks: PolicyLock[];
     inactive: PolicyNote[];
     conflicts: PolicyConflict[];
+    /** C16: values not offered here, whatever was asked; a request for one is a conflict or an inactive note. */
+    unavailable: PolicyUnavailable[];
     fingerprint: string;
 }
 /** Resolves a compile request (`inputs`, `keyOrder`, `classFields`, `importEmit` at the top level,
- * `policy: {portability, unknownPolicy}`) into the effective author policy. Never throws. */
-export declare function resolveAuthorPolicy(request: Readonly<Record<string, unknown>>): PolicyResolution;
+ * `policy: {portability, unknownPolicy}`) into the effective author policy where it runs. Never throws. */
+export declare function resolveAuthorPolicy(request: Readonly<Record<string, unknown>>, environment?: PolicyEnvironment): PolicyResolution;
 /** The source contract an imported model recorded (`authoring.evidence.environment`), as request fields. */
 export declare function recordedContract(model: {
     authoring?: {

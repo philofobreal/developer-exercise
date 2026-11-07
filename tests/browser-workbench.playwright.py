@@ -142,8 +142,14 @@ def preflight_ui(page):
     expect(why).to_have_attribute('open','');expect(why.locator('p')).to_contain_text('Feloldás');expect(why.locator('p')).to_contain_text('Érvényes egyszerű adat')
     expect(page.locator('[data-preflight="objectState"]')).to_be_enabled()
     page.locator('[data-preflight="portability"]').select_option('configured');expect(inputs).to_be_enabled();expect(inputs).to_have_value('valid');expect(summary).not_to_contain_text('zárolt')
-    page.locator('[data-preflight="unknownPolicy"]').select_option('block');expect(summary).to_contain_text('bizonytalan: tilt')
-    page.locator('[data-preflight="unknownPolicy"]').select_option('warn')
+    if page.url.startswith(BASE):
+        page.locator('[data-preflight="unknownPolicy"]').select_option('block');expect(summary).to_contain_text('bizonytalan: tilt')
+        page.locator('[data-preflight="unknownPolicy"]').select_option('warn')
+    else:
+        # C16: the Local Demo runs no language audit, so "block" would refuse every model: offered only on the server.
+        for path,value in [('unknownPolicy','block'),('jsCheck','on')]:
+            option=page.locator(f'[data-preflight="{path}"] option[value="{value}"]');expect(option).to_be_disabled();expect(option).to_contain_text('csak szerveren')
+            expect(page.locator(f'[data-server-only="{path}"]')).to_contain_text('csak a szerveren választható')
     page.locator('#author-editor').fill('function f() {\n  const a = b;\n  const b = 1;\n  return a;\n}');page.locator('[data-author-apply]').click();current(page,'source')
     findings=page.locator('[data-source-diagnostics]');expect(findings).to_contain_text('Biztos hiba');expect(findings).to_contain_text('BS001')
     expect(page.locator('[data-step="source"]')).to_contain_text('Hibás forrás')

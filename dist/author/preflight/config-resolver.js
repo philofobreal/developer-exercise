@@ -36,9 +36,21 @@ const CONSERVATIVE = [
     { path: 'importEmit', value: 'verbatim', rule: 'C04', reason: 'A konzervatív sorrend minden importot megtartottnak vesz; a buildkörnyezet így sem bizonyított.' }
 ];
 const text = (value) => typeof value === 'string' ? value : undefined;
+/** C16: without the language audit every source is undecided, so `block` would refuse every model (a blocking
+ * conflict, said at once instead of after a build); the stricter diagnostics would simply not run (inactive,
+ * nothing is switched back silently: the request keeps them). */
+function unavailableIn(environment, language) {
+    if (environment.languageAudit !== false)
+        return [];
+    const why = 'Itt nem fut nyelvi ellenőrzés (nincs szabványos könyvtár, például a Local Demóban), ezért csak a szerveren választható';
+    return [
+        { path: 'unknownPolicy', value: 'block', reason: `${why}: itt minden forrás nem eldönthető lenne, és egyetlen modell sem készülhetne.` },
+        language === 'javascript' ? { path: 'jsCheck', value: 'on', reason: `${why}: a típusellenőrzés itt nem futna le.` } : { path: 'tsDiagnostics', value: 'strict', reason: `${why}: a szigorú fordítás itt nem futna le.` }
+    ];
+}
 /** Resolves a compile request (`inputs`, `keyOrder`, `classFields`, `importEmit` at the top level,
- * `policy: {portability, unknownPolicy}`) into the effective author policy. Never throws. */
-export function resolveAuthorPolicy(request) {
+ * `policy: {portability, unknownPolicy}`) into the effective author policy where it runs. Never throws. */
+export function resolveAuthorPolicy(request, environment = {}) {
     const language = request['language'] === 'typescript' ? 'typescript' : 'javascript';
     const conflicts = [], locks = [], inactive = [];
     const requested = {};
@@ -72,6 +84,17 @@ export function resolveAuthorPolicy(request) {
         if (only && !only.includes(language) && requested[path] !== undefined)
             inactive.push({ path, reason: `${OPTIONS[path].label}: csak ${only.join(', ')} nyelvnél érvényes.` });
     }
+    const unavailable = unavailableIn(environment, language);
+    for (const item of unavailable) {
+        if (requested[item.path] !== item.value)
+            continue;
+        if (item.path === 'unknownPolicy')
+            conflicts.push({ code: 'C16', path: item.path, message: `${OPTIONS[item.path].label} „tilt”: ${item.reason}`, blocking: true });
+        else {
+            inactive.push({ path: item.path, reason: `${OPTIONS[item.path].label}: ${item.reason}` });
+            effective[item.path] = OPTIONS[item.path].fallback;
+        }
+    }
     if (effective.portability === 'conservative')
         for (const lock of CONSERVATIVE) {
             if (OPTIONS[lock.path].languages && !OPTIONS[lock.path].languages.includes(language))
@@ -82,7 +105,7 @@ export function resolveAuthorPolicy(request) {
         }
     const resolved = effective;
     const canonical = JSON.stringify({ schema: POLICY_SCHEMA, language, effective: Object.fromEntries([...TOP_LEVEL, ...NESTED].filter(path => !OPTIONS[path].languages || OPTIONS[path].languages.includes(language)).map(path => [path, resolved[path]])) });
-    return { schema: POLICY_SCHEMA, language, requested, effective: resolved, locks, inactive, conflicts, fingerprint: 'p1-' + fnv1a64(canonical) };
+    return { schema: POLICY_SCHEMA, language, requested, effective: resolved, locks, inactive, conflicts, unavailable, fingerprint: 'p1-' + fnv1a64(canonical) };
 }
 /** The source contract an imported model recorded (`authoring.evidence.environment`), as request fields. */
 export function recordedContract(model) {

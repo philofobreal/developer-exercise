@@ -11,7 +11,7 @@
  * which `tests/preflight-settings.test.mjs` holds equal.
  */
 import type {AuthorDraft,PreflightOptions,SettingsOrigin} from './contracts.js';
-import type {PolicyPath,PolicyResolution} from '../../dist/author/preflight/config-resolver.js';
+import type {PolicyPath,PolicyResolution,PolicyUnavailable} from '../../dist/author/preflight/config-resolver.js';
 import type {GateDiagnostic,SourceGate} from '../../dist/author/preflight/source-gate.js';
 import {escapeHtml as esc} from './ui-utilities.js';
 
@@ -123,12 +123,15 @@ const choiceLabel=(setting:Setting,value:string):string=>setting.choices.find(ch
 const suffix=(setting:Setting,value:string):string=>value===setting.start?' (új feladat kezdőértéke)':value===setting.legacy?' (régi modellek kompatibilitási értéke)':'';
 const controlId=(path:string):string=>`preflight-${path}`;
 
-function control(setting:Setting,author:AuthorDraft,resolution:PolicyResolution|undefined):string {
+/** `environment`: the values not offered where the analysis runs (C16), whatever the request; `resolution` answers it. */
+function control(setting:Setting,author:AuthorDraft,resolution:PolicyResolution|undefined,environment:readonly PolicyUnavailable[]):string {
  const lock=resolution?.locks.find(item=>item.path===setting.path),asked=requested(author,setting),shown=lock?lock.effective:asked;
- const options=setting.choices.map(choice=>`<option value="${esc(choice.value)}" ${choice.value===shown?'selected':''}>${esc(choice.label+suffix(setting,choice.value))}</option>`).join('');
+ const off=environment.filter(item=>item.path===setting.path),inactive=resolution?.inactive.find(item=>item.path===setting.path);
+ const options=setting.choices.map(choice=>{const unavailable=off.some(item=>item.value===choice.value);return `<option value="${esc(choice.value)}"${choice.value===shown?' selected':''}${unavailable?' disabled':''}>${esc(choice.label+suffix(setting,choice.value)+(unavailable?' (csak szerveren)':''))}</option>`;}).join('');
  const hintId=`${controlId(setting.path)}-hint`,whyId=`${controlId(setting.path)}-why`;
+ const notes=[inactive?.reason,...off.filter(item=>item.value!==shown||!inactive).map(item=>item.reason)].filter((note,index,all):note is string=>!!note&&all.indexOf(note)===index);
  const why=lock?`<details class="lock-why" data-lock-why="${esc(setting.path)}"><summary>Miért?</summary><p id="${whyId}">${esc(lock.reason)} Feloldás: állítsd a Hordozhatóságot „Beállított környezet” értékre${asked!==lock.effective?`; ekkor a választásod („${esc(choiceLabel(setting,asked))}”) visszaáll`:''}.</p></details>`:'';
- return `<div class="preflight-setting${lock?' locked':''}" data-preflight-setting="${esc(setting.path)}"><label for="${controlId(setting.path)}">${esc(setting.label)}${lock?' <span class="lock-label">zárolva</span>':''}</label><select id="${controlId(setting.path)}" data-preflight="${esc(setting.path)}" aria-describedby="${lock?whyId+' ':''}${hintId}" ${lock?'disabled':''}>${options}</select>${why}<small class="inline-hint" id="${hintId}">${esc(setting.hint)}</small></div>`;
+ return `<div class="preflight-setting${lock?' locked':''}" data-preflight-setting="${esc(setting.path)}"><label for="${controlId(setting.path)}">${esc(setting.label)}${lock?' <span class="lock-label">zárolva</span>':''}</label><select id="${controlId(setting.path)}" data-preflight="${esc(setting.path)}" aria-describedby="${lock?whyId+' ':''}${hintId}" ${lock?'disabled':''}>${options}</select>${why}<small class="inline-hint" id="${hintId}">${esc(setting.hint)}</small>${notes.map(note=>`<small class="inline-hint server-only" data-server-only="${esc(setting.path)}">${esc(note)}</small>`).join('')}</div>`;
 }
 
 /** One line: the environment as the analysis will run it, the source checks, how unknowns are treated, the profile and locks. */
@@ -145,8 +148,10 @@ function summary(author:AuthorDraft,resolution:PolicyResolution|undefined):strin
 /** The folded settings block of the Source step, from the author's request and its last resolution. */
 export function renderPreflightSettings(author:AuthorDraft,resolution:PolicyResolution|undefined,origin?:SettingsOrigin):string {
  const current=answers(resolution,author)?resolution:undefined;
+ // What the environment does not offer depends on the language only, so a resolution for an earlier request still says it.
+ const environment=resolution&&resolution.language===(author.language==='typescript'?'typescript':'javascript')?resolution.unavailable??[]:[];
  const conflicts=current?.conflicts.filter(conflict=>conflict.blocking)??[];
- const groups=GROUPS.map(group=>{const settings=group.settings.filter(setting=>applies(setting,author.language));return settings.length?`<fieldset class="preflight-group"><legend>${esc(group.title)}</legend><p class="inline-hint">${esc(group.intro)}</p><div class="options-grid">${settings.map(setting=>control(setting,author,current)).join('')}</div></fieldset>`:'';}).join('');
+ const groups=GROUPS.map(group=>{const settings=group.settings.filter(setting=>applies(setting,author.language));return settings.length?`<fieldset class="preflight-group"><legend>${esc(group.title)}</legend><p class="inline-hint">${esc(group.intro)}</p><div class="options-grid">${settings.map(setting=>control(setting,author,current,environment)).join('')}</div></fieldset>`:'';}).join('');
  return `<details class="analysis-options" data-memory="analysis-options"><summary><b>Elemzési beállítások</b><span data-preflight-summary>${esc(summary(author,current))}</span></summary>${renderSettingsOrigin(origin)}${conflicts.length?`<ul class="preflight-conflicts" role="alert">${conflicts.map(conflict=>`<li>${esc(conflict.message)}</li>`).join('')}</ul>`:''}${groups}</details>`;
 }
 

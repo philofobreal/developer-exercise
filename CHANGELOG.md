@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-11-07 javítás: a Local Demóban nem választható „Tilt” (ADR-108, C16)
+
+- **Javítva:** a Local Demóban (Pages) nem fut nyelvi ellenőrzés. A „Nem eldönthető eredmények: Tilt” beállítással ezért egyetlen modell sem készülhetett, és a hibaüzenet nem mondta meg, miért.
+- **Most:**
+  - a „Tilt”, a JavaScript-típusellenőrzés és a szigorú TypeScript-diagnosztika ott letiltott, „(csak szerveren)” felirattal és indoklással;
+  - egy szerveren mentett munkamenet ezekkel a beállításokkal is betölthető a demóban: a két diagnosztika ott nem fut, és ezt a felület jelzi.
+
 ## Unreleased – 2026-11-07 szerzői preflight: munkamenet v2 és régi modellek (ADR-108, E8)
 
 - **A munkamenet megőrzi az elemzési beállításokat:** a mentett munkamenet a modell mellett a beállításokat is rögzíti, és betöltéskor visszaadja őket (például a „Tilt” vagy a kikapcsolt objektumállapot-ellenőrzés).

@@ -87,3 +87,17 @@ test('HTTP: a refused option is a structured 422 with the resolution; an admitte
  assert.equal(conflict.status,200);assert.equal((await conflict.json()).conflicts[0].code,'C33');
  assert.equal((await resolve([])).status,400);assert.equal((await fetch(url+'/api/author/policy?request=%7B')).status,400);
 });
+
+test('C16: without the language audit (the Local Demo) block is refused at once, the stricter diagnostics are inactive, nothing is switched back silently',()=>{
+ for(const language of ['javascript','typescript']){
+  const local=resolveAuthorPolicy({language},{languageAudit:false});
+  assert.deepEqual(local.unavailable.map(item=>[item.path,item.value]),[['unknownPolicy','block'],language==='javascript'?['jsCheck','on']:['tsDiagnostics','strict']]);
+  assert.deepEqual(resolveAuthorPolicy({language}).unavailable,[],'the server offers everything');
+  const block=resolveAuthorPolicy({language,policy:{unknownPolicy:'block'}},{languageAudit:false});
+  assert.equal(block.conflicts[0].code,'C16');assert.equal(block.conflicts[0].blocking,true);assert.match(policyRefusal(block),/csak a szerveren választható/);
+  const path=language==='javascript'?'jsCheck':'tsDiagnostics',value=language==='javascript'?'on':'strict';
+  const strict=resolveAuthorPolicy({language,policy:{[path]:value}},{languageAudit:false});
+  assert.deepEqual(strict.conflicts,[]);assert.equal(strict.requested[path],value,'the request keeps it');assert.equal(strict.inactive[0].path,path);
+  assert.equal(strict.fingerprint,resolveAuthorPolicy({language},{languageAudit:false}).fingerprint,'it runs as if off, and the proof says so');
+ }
+});
