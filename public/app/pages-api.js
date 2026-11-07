@@ -6,6 +6,8 @@ import {getLanguageAdapter} from '../author/languages.mjs';
 import {auditReference} from '../author/audit.mjs';
 import {authorRuleSheet,editAuthorModel,refreshAuthorModel,verifyAuthorModel} from '../dist/author/engine.js';
 import {createReferenceAuditor} from '../dist/author/reference-audit.js';
+import {generatorOptions,policyRefusal,resolveAuthorPolicy} from '../dist/author/preflight/config-resolver.js';
+import {sourceGate} from '../dist/author/preflight/source-gate.js';
 
 export const validationMode='local-demo';
 const records = new Map();
@@ -42,23 +44,34 @@ export async function getExercises(){
 }
 export async function compileDraft(body){
   if(body?.refreshDependencies!==undefined&&typeof body.refreshDependencies!=='boolean'||body?.refreshDependencies&&!body.model)throw Error('A függőségfrissítéshez teljes modell és logikai refreshDependencies jelző kell.');
-  let model,refresh;
+  let model,refresh,policy;
   if(body?.model){
     if(typeof body.model!=='object'||Array.isArray(body.model))throw Error('A szerzői modell nem objektum.');
     model={...structuredClone(body.model),id:'draft',revision:1};
-  }else model=generateCodeLineExercise(body??{},getTypeScript());
+  }else{
+    // ADR-108 (E1): the same policy resolution as the server, in the browser.
+    policy=resolveAuthorPolicy(body??{});const refusal=policyRefusal(policy);if(refusal)throw Error(refusal);
+    model=generateCodeLineExercise({...(body??{}),...generatorOptions(policy)},getTypeScript());
+  }
   if(body?.refreshDependencies)({model,report:refresh}=await refreshAuthorModel(model,{generate:input=>generateCodeLineExercise(input,getTypeScript()),audit:reference=>auditReference(reference,getTypeScript())}));
   if(!model.lines?.length||model.lines.length>MODEL_LIMIT)throw Error('Túl sok kódsor.');
   const draftId='pages-'+nextDraft++;
   model={...model,id:'author-'+draftId,revision:1};
   const compiled=assertSafeModel(model);
   auditReference(model,getTypeScript());
+  // ADR-108 (E5a): the same first gate as the server. Without a standard library the audit is not-run, so
+  // the gate is inconclusive here: it lets the draft through only under the `warn` policy.
+  policy??=resolveAuthorPolicy({language:model.language,...(body?.policy!==undefined?{policy:body.policy}:{})});
+  {const refusal=policyRefusal(policy);if(refusal)throw Error(refusal);}
+  const reviewed=typeof body?.source==='string'&&!body?.model?body.source.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n'):model.lines.map(l=>l.code).join('\n');
+  const gate=sourceGate(createReferenceAuditor(getTypeScript()).audit(reviewed,model.language),policy);
+  if(!gate.admitted)throw Error(gate.message);
   if(drafts.size>=MAX_DRAFTS)drafts.delete(drafts.keys().next().value);
   // No standard library is shipped to the static demo: the language audit reports `not-run` (ADR-016).
   const audit=createReferenceAuditor(getTypeScript()).audit(model.lines.map(l=>l.code).join('\n'),model.language);
   const verification=await verifyAuthorModel(model,{generate:input=>generateCodeLineExercise(input,getTypeScript())},{audit:audit.semantics});
   drafts.set(draftId,{model,compiled,audit});
-  return {draftId,model,previewOnly:true,mode:'local-demo',audit,verification,rules:authorRuleSheet(model),...(refresh?{refresh}:{})};
+  return {draftId,model,previewOnly:true,mode:'local-demo',audit,verification,rules:authorRuleSheet(model),...(refresh?{refresh}:{}),policy,gate};
 }
 /** Typed rule edits on the demo's own draft copy (ADR-018, ADR-021); a refused edit is `ok: false`. */
 export async function editRules(body){

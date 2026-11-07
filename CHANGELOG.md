@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased – 2026-11-07 szerzői preflight: első kapu (ADR-108, E5a)
+
+- **Biztos nyelvi hiba blokkol:** a TypeScript-fordítási hibás referencia (köztük a deklaráció előtti használat) már nem kap modellt. A szerző a Forrás lépésen marad, látja a hibát a szerkesztő sorszámával, és a korábbi modell megmarad.
+- **Ami nem ellenőrizhető, nem „ellenőrzött”:** feloldatlan import vagy a Pages-en le nem futó nyelvi ellenőrzés esetén a kapu „nem eldönthető” eredményt ad. Alapból figyelmeztetéssel továbbenged; „tilt” beállítás mellett megáll, és megmondja, hogy ez nem jelent hibás forrást.
+- **Minden belépési úton:** forrás, JSON-import, függőségfrissítés és közvetlen API.
+
+## Unreleased – 2026-11-07 szerzői preflight: specifikáció és konfigurációfeloldó (ADR-108, E0–E1)
+
+- **Ütemezés:** a konfigurálható forrás- és modellvalidáció terve bekerült a dizájn hátralévő szakaszai elé. A terv állításait a kódon ellenőriztük, az eltéréseket indokkal rögzítettük (ADR-108).
+- **Konfigurációfeloldó** (szerver és Pages közösen):
+  - a kért és a ténylegesen használt elemzési beállítás külön látszik;
+  - a „konzervatív” preset indokkal zárolja a forrásszerződés négy beállítását;
+  - a TypeScript-only beállítás JavaScriptnél inaktív;
+  - érvénytelen vagy még nem megvalósított beállítást az API strukturált 422-es hibával utasít el, nem hagyja figyelmen kívül.
+- A szerzői generálás a feloldott, ténylegesen használt beállításokkal fut. A felület egyelőre ugyanazokat az értékeket küldi, mint eddig, ezért látható változás még nincs.
+
 ## Unreleased – 2026-11-07 Fókusz mód szerkesztőablakként, állítható elválasztó, szabálypanel gombra (ADR-107)
 
 - **Fókusz mód:** kódszerkesztő-ablakként tölti ki a képernyőt, görgetés nélkül. A listák vagy a szerkesztő kapják a maradék helyet; ami lenyílik (részletek, magyarázat), azt a kódnézet zsugorodása fogadja be.

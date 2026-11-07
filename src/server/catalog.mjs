@@ -12,7 +12,9 @@ import {auditReference} from '../author/audit.mjs';
 import {compileCodeLineExercise,validateSubmission,diagnoseSubmission,channelFeedback,codeLineDiagnosticReasons,publicationRefusal,DEFAULT_PUBLICATION_POLICY} from '../../dist/index.js';
 import {authorRuleSheet,editAuthorModel,refreshAuthorModel,verifyAuthorModel} from '../../dist/author/engine.js';
 import {createReferenceAuditor} from '../../dist/author/reference-audit.js';
-export class ServiceError extends Error{constructor(code,message){super(message);this.statusCode=code;}}
+import {generatorOptions,policyRefusal,resolveAuthorPolicy} from '../../dist/author/preflight/config-resolver.js';
+import {sourceGate} from '../../dist/author/preflight/source-gate.js';
+export class ServiceError extends Error{constructor(code,message,details){super(message);this.statusCode=code;if(details)this.details=details;}}
 /** The publication policy named by `CODELINE_PUBLICATION` (ADR-027, ADR-035); unset, the core's default
  * (`verified-only`, ADR-089). The server, the model check and the Pages build read it here alike; a
  * misspelt value fails instead of serving more. */
@@ -58,23 +60,34 @@ export class ExerciseCatalog{
   async createDraft(body){
     this.prune();if(this.drafts.size>=100)throw new ServiceError(429,'Too many active previews');
     if(body?.refreshDependencies!==undefined&&typeof body.refreshDependencies!=='boolean'||body?.refreshDependencies&&!body.model)throw new ServiceError(400,'A függőségfrissítéshez teljes modell és logikai refreshDependencies jelző kell.');
-    let model,refresh;
+    let model,refresh,policy;
     if(body?.model){
       if(typeof body.model!=='object'||Array.isArray(body.model))throw new ServiceError(400,'Invalid author model');
       model={...structuredClone(body.model),id:'draft',revision:1};
-    }else model=generateCodeLineExercise(body??{},await this.parser());
+    }else{
+      // ADR-108 (E1): the effective author policy; a refused option is a structured 422, never ignored.
+      policy=resolveAuthorPolicy(body??{});const refusal=policyRefusal(policy);if(refusal)throw new ServiceError(422,refusal,{policy});
+      model=generateCodeLineExercise({...(body??{}),...generatorOptions(policy)},await this.parser());
+    }
     if(body?.refreshDependencies)try{const parser=await this.parser();({model,report:refresh}=await refreshAuthorModel(model,{generate:input=>generateCodeLineExercise(input,parser),audit:reference=>auditReference(reference,parser)}));}catch(error){throw new ServiceError(422,error.message);}
     const draftId=randomUUID();model.id=`author-${draftId}`;
     const result=compileCodeLineExercise(model);
     if('status' in result)throw new ServiceError(422,result.message);
     auditReference(model,await this.parser());
+    // ADR-108 (E5a): the first gate, after the generator's parse and nesting budget (ADR-103) and the syntax
+    // admission (ADR-016), before the draft is stored. It audits the author's source (editor line numbers), or the rows of an imported model.
+    policy??=resolveAuthorPolicy({language:model.language,...(body?.policy!==undefined?{policy:body.policy}:{})});
+    {const refusal=policyRefusal(policy);if(refusal)throw new ServiceError(422,refusal,{policy});}
+    const reviewed=typeof body?.source==='string'&&!body?.model?body.source.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n'):model.lines.map(l=>l.code).join('\n');
+    const gate=sourceGate((await this.auditor()).audit(reviewed,model.language),policy);
+    if(!gate.admitted)throw new ServiceError(422,gate.message,{gate,policy});
     const self=validateSubmission(result.compiled,{exerciseId:model.id,revision:1,lines:model.lines.map(l=>l.code)},{maxStates:200_000});
     if(!self.accepted)throw new ServiceError(422,`A referencia nem érvényes: ${self.message}`);
     const parser=await this.parser(),audit=(await this.auditor()).audit(model.lines.map(l=>l.code).join('\n'),model.language);
     // Model Verification Gate (ADR-017): re-derived here, never taken from the request.
     const verification=await verifyAuthorModel(model,{generate:input=>generateCodeLineExercise(input,parser)},{audit:audit.semantics});
     this.drafts.set(draftId,{created:Date.now(),model,compiled:result.compiled,audit,verification});
-    return {draftId,model,previewOnly:true,mode:'preview-validation',audit,verification,rules:authorRuleSheet(model),...(refresh?{refresh}:{})};
+    return {draftId,model,previewOnly:true,mode:'preview-validation',audit,verification,rules:authorRuleSheet(model),...(refresh?{refresh}:{}),policy,gate};
   }
   /** Typed rule edits on an admitted draft (ADR-018, ADR-021). The server edits its own copy,
    * never a model taken from the request, and re-qualifies the result. A refused edit is a

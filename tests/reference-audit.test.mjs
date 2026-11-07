@@ -76,8 +76,10 @@ test('the library port is asked only for standard library files, once each',()=>
 
 test('server admission reports the audit with every draft and recomputes it for imported models',async()=>{
  const catalog=new ExerciseCatalog(new Map());
- const draft=await catalog.createDraft({source:'const a: number = 1;\nconst b: string = a;',language:'typescript'});
- assert.equal(draft.audit.semantics,'errors');
+ // ADR-108 (E5a): a definite language error no longer becomes a draft; the first gate refuses it.
+ await assert.rejects(catalog.createDraft({source:'const a: number = 1;\nconst b: string = a;',language:'typescript'}),error=>error.statusCode===422&&error.details.gate.verdict==='blocked');
+ const draft=await catalog.createDraft({source:'const a: number = 1;\nconst b: number = a;',language:'typescript'});
+ assert.equal(draft.audit.semantics,'ok');
  const imported=await catalog.createDraft({model:generateCodeLineExercise({source:'const a = 1;\nconst b = a + 1;',language:'typescript'},ts)});
  assert.equal(imported.audit.semantics,'ok');
  assert.equal(imported.model.authoring.audit,undefined,'the audit is reported, never stored in the model');

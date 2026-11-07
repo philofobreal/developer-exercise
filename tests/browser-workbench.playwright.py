@@ -105,6 +105,15 @@ def code_views(page):
         row=page.locator('.source-zone .code-row').first;assert abs(row.bounding_box()['height']-height)<=2,(view,row.bounding_box())
         if view=='cards':
             page.reload();practice(page);expect(page.locator('#app')).to_have_attribute('data-code-view','cards')
+def source_gate(page):
+    """ADR-108 (E5a): a definite language error keeps the author on the source step, with the reason at the
+    editor's line; the previous model stays; a fixed source passes the gate."""
+    page.locator('[data-source-kind="code"]').click()
+    page.locator('[data-author="language"]').select_option('typescript')
+    page.locator('#author-editor').fill('function f() {\n  const a: number = 1;\n\n  const b: string = a;\n  return b;\n}');page.locator('[data-author-apply]').click()
+    expect(page.locator('.author-status')).to_contain_text('nyelvi hibát tartalmaz');expect(page.locator('.author-status')).to_contain_text('4. sor');current(page,'source')
+    expect(page.locator('[data-step="rules"]')).to_be_disabled()
+    page.locator('#author-editor').fill('function f() {\n  const a: number = 1;\n\n  const b: number = a;\n  return b;\n}');page.locator('[data-author-apply]').click();current(page,'rules')
 def menus(page):
     """ADR-105: a header or step menu opens on its summary and closes on Escape, an outside click or an action inside."""
     menu=page.locator('details.session-menu');menu.locator('summary').click();expect(menu).to_have_attribute('open','')
@@ -660,6 +669,7 @@ try:
             case('node focus mode without the Fullscreen API: overlay, Escape leaves',lambda:focus_without_fullscreen_api(browser))
             reset(page,BASE);case('node two code views, remembered, with their row geometry',lambda:code_views(page))
             reset(page,BASE);case('node pane separator and full-screen focus without scroll',lambda:split_and_full_screen_focus(page))
+            reset(page,BASE);case('node first gate: a definite language error stays on the source step',lambda:source_gate(page))
             reset(page,BASE);case('node duplicate-check prevention and async feedback',lambda:busy(page))
             reset(page,BASE);case('node admission preserves newer reference edits',lambda:stale_author_admission(page))
             reset(page,BASE);case('node sample loading preserves newer reference edits',lambda:stale_source_sample(page))

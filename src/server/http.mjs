@@ -48,7 +48,7 @@ export function createApplication({catalog,staticRoot,authorToken}){
         res.writeHead(200,{'Content-Type':mime[ext],'Cache-Control':'no-store'});res.end(await readFile(target));
       }catch{return json(res,404,{error:'Not found'});}
     }catch(error){
-      if(error instanceof ServiceError)return json(res,error.statusCode,{error:error.message});
+      if(error instanceof ServiceError)return json(res,error.statusCode,{error:error.message,...(error.details??{})});
       if(error instanceof AuthoringError)return json(res,400,{error:error.message});
       return json(res,400,{error:'Érvénytelen kérés vagy nem elérhető TypeScript parser.'});
     }
