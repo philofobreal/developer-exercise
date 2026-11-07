@@ -16,7 +16,7 @@ test('the decision: definite blocks under every policy; unknown is inconclusive 
  for(const p of ['warn','block']){
   const blocked=sourceGate(audit('errors',[{line:3,code:2322,message:'Type mismatch',context:false,certainty:'definite'},{line:1,code:2307,message:"Cannot find module 'x'",context:true,certainty:'unknown'}]),policy(p));
   assert.equal(blocked.verdict,'blocked');assert.equal(blocked.admitted,false);
-  assert.deepEqual(blocked.diagnostics.map(d=>d.certainty),['definite','unknown']);assert.match(blocked.message,/3\. sor: Type mismatch \(TS2322\)/);
+  assert.deepEqual(blocked.diagnostics.map(d=>[d.line,d.certainty]),[[1,'unknown'],[3,'definite']],'one list, in source order');assert.match(blocked.message,/3\. sor: Type mismatch \(TS2322\)/);
  }
  for(const semantics of ['unverifiable','not-run']){
   const warned=sourceGate(audit(semantics,[],['x']),policy('warn')),refused=sourceGate(audit(semantics,[],['x']),policy('block'));

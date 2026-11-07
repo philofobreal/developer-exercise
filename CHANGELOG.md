@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased – 2026-11-07 szerzői preflight: inicializálás előtti hozzáférés felismerése (ADR-108, E3)
+
+- **Új elemzés:** a modellkészítés biztosra megállít, ha a referencia egy `let`, `const` vagy `class` kötést az inicializálása előtt olvas vagy ír, mert ez futáskor ReferenceError. Közvetlenül és hívásláncon át is látja, például `const f = () => x; f(); const x = 1;`. JavaScriptben és a Pages-en is működik.
+- **Csak a biztos esetet jelzi:** elérhetetlen ágban, `try`-ban, feltételes hívásban vagy rekurzióban nem. A repó 482 valódi programján egyetlen jelzést ad: egy szándékosan hibás tesztprogramot.
+
 ## Unreleased – 2026-11-07 szerzői preflight: választható szigorúbb nyelvi ellenőrzés (ADR-108, E2)
 
 - **Szigorú TypeScript-ellenőrzés** (`tsDiagnostics: strict`): a szigorú fordítás hibái (például implicit `any`, `null` szöveg helyén) biztos hibák, és megállítják a modellkészítést.

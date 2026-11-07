@@ -7,18 +7,22 @@
  *    standard library, as on Pages) is `inconclusive`, never `passed`; the policy's `unknownPolicy`
  *    lets it through with a warning (`warn`) or blocks it (`block`);
  *  - a possible error (only a JavaScript type check reports it, E2) is `inconclusive` under the same policy;
- *  - only a clean audit is `passed`, meaning: no error found within the audit's supported scope.
+ *  - a definite binding-safety finding (E3: access before initialization, directly or through a call)
+ *    blocks like a language error; it needs no standard library, so it blocks on Pages too; a spent
+ *    analysis budget is unknown;
+ *  - only a clean audit and a clean binding analysis are `passed`: no error found within the supported scope.
  * The audit's own certainty is kept per diagnostic: definite, possible (type check only) or unknown (context).
  */
 import type { ReferenceAudit } from '../reference-audit.js';
 import type { PolicyResolution } from './config-resolver.js';
+import type { BindingSafety } from './binding-safety.js';
 export type GateVerdict = 'passed' | 'blocked' | 'inconclusive';
 export interface GateDiagnostic {
     line: number;
     code: string;
     message: string;
     certainty: 'definite' | 'possible' | 'unknown';
-    origin: 'compiler' | 'environment';
+    origin: 'compiler' | 'environment' | 'runtime-order';
 }
 export interface SourceGate {
     gate: 'source-to-rules';
@@ -32,4 +36,4 @@ export interface SourceGate {
     policyFingerprint: string;
     assumptions: string[];
 }
-export declare function sourceGate(audit: ReferenceAudit, policy: PolicyResolution): SourceGate;
+export declare function sourceGate(audit: ReferenceAudit, policy: PolicyResolution, binding?: BindingSafety): SourceGate;

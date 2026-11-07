@@ -127,6 +127,34 @@ Következtetés:
   A katalógus mintái mindkét szigorúbb módban átmennek.
 - **Bizonyíték:** `tests/audit-modes.test.mjs`.
 
+**E3 – kötés- és TDZ-biztonság** ([binding-safety.ts](../../src/author/preflight/binding-safety.ts)):
+- **Mit talál:** a `let`, `const` vagy `class` kötéshez az inicializálás előtt történő hozzáférést (TDZ, futáskor ReferenceError), de **csak a biztos esetet**. Biztos az, amelyik minden olyan futásban bekövetkezik, amely eléri a blokkját.
+  - **Kötés:** a fordító szimbólumfeloldása azonosítja, így az árnyékolás helyes, és a típuspozíció nem számít.
+  - **Feltétel nélküli út a deklaráció blokkjáig:** átlátszó szerkezetek engedélylistája. Feltételesnek számít minden más:
+    - függvényhatár, `if`- és `switch`-ág, ciklustörzs, `try`;
+    - a `&&`, `||`, `??` jobb oldala;
+    - a `?.` utáni rész;
+    - destrukturáló alapértelmezett érték.
+  - **Elérhetőség:** feltétel nélküli `return`, `throw`, `break` vagy `continue` után nem.
+  - **Sorrend:** a hozzáférés megelőzi a deklarációt, vagy a saját, illetve egy korábbi deklarátor inicializálójában, vagy az osztály `extends` részében van.
+  - **Hívásút (BS002):**
+    - csak olyan hívás számít, amelynek hívottja biztos: újra nem értékadott `function`-deklaráció, a hívás előtt deklarált `const` függvénykifejezés, vagy azonnal hívott függvény;
+    - legfeljebb 8 hívás mélységig;
+    - a deklarációt tartalmazó függvény (a rekurziót is beleértve) minden hívásra új kötést hoz létre, ezért a hívásút oda nem vezet. Ezt a valós korpusz egy hamis pozitívja (`fib-memo-js`) mutatta meg, és javítottuk.
+- **Nem vizsgált** (szándékosan csendes, nem `passed` értelmű bizonyíték): metódushívás (`o.m()`), konstruktor és osztálymező, `switch`-ágbeli deklaráció, ciklus első köre, `try` blokk. Ezek a tervezett E4 (vezérlésfolyam) körébe tartoznak.
+- **Kapu:** a biztos találat blokkol.
+  - Nem kell hozzá standard könyvtár, tehát a Pages-en is blokkol.
+  - TypeScriptben a fordító azonos sorú TS2448/2449/2450 jelzése marad (nincs dupla jelzés). JavaScriptben a `checkJs` „lehetséges” TDZ-jelzését a biztos találat váltja fel (C35).
+  - Költségkeret: 400 000 lépés; túllépéskor `budget-exceeded`, ami `inconclusive`.
+- **Mérés:**
+  - a repó 482 valódi programja (katalógus, mintatár, orákulum-korpusz és -generátorok) egy jelzést ad: a `wp6-self-referential-initializer` szándékos `const broken = broken;` sorát (valódi találat);
+  - programonként átlagosan kb. 1,3 ms, legfeljebb 18 ms.
+- **Bizonyíték:** `tests/binding-safety.test.mjs`:
+  - a 35 eset táblázata (17 biztos hiba, 18 kötelező hallgatás, köztük az elérhetetlen ág, a `try`, a rövidzár, a feltételes hívás, az újraértékelt hívott, az árnyékoló paraméter, a rekurzió);
+  - a zéró hamis pozitív korpuszpróba;
+  - a kapu viselkedése;
+  - a szerveres 422 a hívás sorával.
+
 **Bizonyíték:**
 - `tests/author-policy.test.mjs`:
   - az összes kombináció tulajdonságtesztje: a konzervatív preset mindig a szigorú szerződést adja, és az ujjlenyomat csak a hatályos policytól függ;

@@ -1,13 +1,22 @@
 const describe = (diagnostics) => diagnostics.slice(0, 5).map(d => `${d.line}. sor: ${d.message} (${d.code})`).join(' · ');
-export function sourceGate(audit, policy) {
-    const diagnostics = audit.diagnostics.map(d => ({ line: d.line, code: 'TS' + d.code, message: d.message, certainty: d.certainty, origin: d.context ? 'environment' : 'compiler' }));
-    const base = { gate: 'source-to-rules', diagnostics, policyFingerprint: policy.fingerprint, assumptions: audit.assumptions };
-    if (audit.semantics === 'errors') {
+/** The compiler's own access-before-declaration codes; a binding finding on the same line repeats them. */
+const TDZ_CODES = new Set(['TS2448', 'TS2449', 'TS2450']);
+export function sourceGate(audit, policy, binding) {
+    const compiled = audit.diagnostics.map(d => ({ line: d.line, code: 'TS' + d.code, message: d.message, certainty: d.certainty, origin: d.context ? 'environment' : 'compiler' }));
+    // C35: one list. A definite compiler report keeps its line; a binding finding replaces a possible one there.
+    const found = (binding?.findings ?? []).filter(f => !compiled.some(d => d.line === f.line && d.certainty === 'definite' && TDZ_CODES.has(d.code)));
+    const diagnostics = [...compiled.filter(d => !(d.certainty === 'possible' && TDZ_CODES.has(d.code) && found.some(f => f.line === d.line))), ...found.map(f => ({ line: f.line, code: f.code, message: f.message, certainty: f.certainty, origin: f.origin }))].sort((a, b) => a.line - b.line);
+    const base = { gate: 'source-to-rules', diagnostics, policyFingerprint: policy.fingerprint, assumptions: binding ? [...audit.assumptions, 'binding-safety'] : audit.assumptions };
+    if (audit.semantics === 'errors' || found.length) {
         const definite = diagnostics.filter(d => d.certainty === 'definite');
-        return { ...base, verdict: 'blocked', admitted: false, completeness: 'within-supported-scope', message: `A referencia nyelvi hibát tartalmaz, ezért nem készült modell; a korábbi modell megmaradt. ${describe(definite)}` };
+        const what = audit.semantics === 'errors' ? 'nyelvi hibát tartalmaz' : 'futáskor biztosan hibát dob (inicializálás előtti hozzáférés)';
+        return { ...base, verdict: 'blocked', admitted: false, completeness: 'within-supported-scope', message: `A referencia ${what}, ezért nem készült modell; a korábbi modell megmaradt. ${describe(definite)}` };
     }
     const blocked = policy.effective.unknownPolicy === 'block';
     const possible = diagnostics.filter(d => d.certainty === 'possible');
+    if (binding?.completeness === 'budget-exceeded')
+        return { ...base, verdict: 'inconclusive', admitted: !blocked, completeness: 'partial',
+            message: `A kötéselemzés túllépte a költségkeretét, ezért nem teljes.${blocked ? ' A „tilt” beállítás miatt nem készült modell; ez nem jelenti, hogy a forrás hibás.' : ' Továbbléphetsz, de a forrás nem tekinthető ellenőrzöttnek.'}` };
     if (audit.semantics === 'ok' && !possible.length)
         return { ...base, verdict: 'passed', admitted: true, completeness: 'within-supported-scope', message: '' };
     // E2: a JavaScript type check's finding is a possible error: the program may still run as meant.
