@@ -112,6 +112,12 @@ export class ExerciseCatalog{
   /** ADR-108 (E6): the second gate, Rules → Try. The author's current source and policy must be the ones
    * the draft's first-gate snapshot was made from; the model must accept its reference; unknown follows
    * the policy. A passing draft may be evaluated by preview; nothing else opens it. */
+  /** ADR-108 (E7): the resolution of a settings request, for the author's settings block; nothing is stored.
+   *  A refused option is reported in `conflicts`, as the compile request would refuse it (C33). */
+  resolvePolicy(body){
+    if(!body||typeof body!=='object'||Array.isArray(body))throw new ServiceError(400,'Invalid policy request');
+    return resolveAuthorPolicy(body);
+  }
   async transition(body){
     this.prune();if(typeof body?.draftId!=='string')throw new ServiceError(400,'Invalid transition');
     const item=this.drafts.get(body.draftId);if(!item)throw new ServiceError(404,'Preview not found or expired');

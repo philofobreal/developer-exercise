@@ -79,4 +79,11 @@ test('HTTP: a refused option is a structured 422 with the resolution; an admitte
  const admitted=await post({source:'const a = 1;\nconst b = 2;',language:'typescript',inputs:'valid',policy:{portability:'conservative'}});
  assert.equal(admitted.status,200);const draft=await admitted.json();
  assert.equal(draft.policy.effective.inputs,'any');assert.deepEqual(draft.policy.locks.map(lock=>lock.rule),['C01']);
+ // E7: the settings block asks the same resolver; it answers a refused option in `conflicts` and stores nothing.
+ const resolve=body=>fetch(url+'/api/author/policy?request='+encodeURIComponent(JSON.stringify(body)));
+ const locks=await (await resolve({language:'javascript',inputs:'valid',policy:{portability:'conservative'}})).json();
+ assert.deepEqual(locks.locks.map(lock=>[lock.path,lock.requested,lock.effective]),[['inputs','valid','any']]);
+ const conflict=await resolve({language:'javascript',policy:{bindingSafety:'off'}});
+ assert.equal(conflict.status,200);assert.equal((await conflict.json()).conflicts[0].code,'C33');
+ assert.equal((await resolve([])).status,400);assert.equal((await fetch(url+'/api/author/policy?request=%7B')).status,400);
 });

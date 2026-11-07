@@ -2,6 +2,8 @@
 import type {Acknowledgement,CodeLineExercise,EditEffect,Feedback,ModelVerification,Normalization,RefreshReport,RuleEdit,ValidationResult} from '../../dist/index.js';
 import type {AuthorRuleSheet} from '../../dist/author/engine.js';
 import type {ReferenceAudit} from '../../dist/author/reference-audit.js';
+import type {AuthorPolicy,PolicyResolution} from '../../dist/author/preflight/config-resolver.js';
+import type {SourceGate} from '../../dist/author/preflight/source-gate.js';
 export type ViewName='sort'|'edit'|'author'|'model';
 export type LineId=number|string;
 export interface ExerciseLine {id:number;code:string;fixed?:boolean;normalization?:Normalization;sourceLine?:number;functionBlock?:number;}
@@ -19,7 +21,11 @@ export type InputContract='any'|'valid';
 export type KeyOrder='observed'|'ignored';
 /** ADR-075: whether the analysis covers both class-field modes or only the standard [[Define]]. */
 export type ClassFields='either'|'define';
-export interface AuthorDraft {title:string;description:string;level?:ExerciseLevel|'';language:string;source:string;message:string;importEmit?:ImportEmit;inputs?:InputContract;keyOrder?:KeyOrder;classFields?:ClassFields;}
+/** ADR-108 (E7): the preflight options of the request's `policy` object; absent is the resolver's start value. */
+export type PreflightOptions=Partial<Pick<AuthorPolicy,'portability'|'unknownPolicy'|'tsDiagnostics'|'jsCheck'|'objectState'>>;
+export interface AuthorDraft {title:string;description:string;level?:ExerciseLevel|'';language:string;source:string;message:string;importEmit?:ImportEmit;inputs?:InputContract;keyOrder?:KeyOrder;classFields?:ClassFields;policy?:PreflightOptions;}
+/** ADR-108 (E7): the first gate's outcome with the source it was made from, so its findings can say when they are out of date. */
+export interface SourceGateRecord {gate:SourceGate;source:string;}
 /** What the API reported with the active author draft: presentation data, never a rule source (ADR-021). */
 export interface AuthorInsight {rules?:AuthorRuleSheet;verification?:ModelVerification;audit?:ReferenceAudit;refresh?:RefreshReport;effect?:EditEffect;}
 export type RemoveRule=Extract<RuleEdit,{kind:'remove-rule'}>;
@@ -33,7 +39,11 @@ export type Mode='author'|'practice';
 export type RulesView='visual'|'json';
 /** `active`: the exercise whose attempt is shown — the author's preview or the practice exercise.
  * `modeViews`: the view each mode returns to. `ruleConnect`: a keyboard connection's first line. */
-export interface WorkbenchState {exercises:ExerciseSummary[];active:string|null;previews:Map<string,string>;view:ViewName;mode:Mode;modeViews?:Partial<Record<Mode,ViewName>>;practiceActive?:string|null;rulesView?:RulesView;sourceKind?:'code'|'json';boardAll?:boolean;ruleConnect?:number;boardStatus?:string;feedbackFocus?:number;learnerPreview?:boolean;author:AuthorDraft;authorBaseline?:AuthorDraft;authorRequestGeneration?:number;authorModel?:CodeLineExercise;authorInsight?:AuthorInsight;ruleSelection?:RuleSelection;rulePanelOpen?:boolean;ruleKind?:RuleKindSelection;modelDraft:string;modelMessage:string;}
+export interface WorkbenchState {exercises:ExerciseSummary[];active:string|null;previews:Map<string,string>;view:ViewName;mode:Mode;modeViews?:Partial<Record<Mode,ViewName>>;practiceActive?:string|null;rulesView?:RulesView;sourceKind?:'code'|'json';boardAll?:boolean;ruleConnect?:number;boardStatus?:string;feedbackFocus?:number;learnerPreview?:boolean;author:AuthorDraft;authorBaseline?:AuthorDraft;authorRequestGeneration?:number;authorModel?:CodeLineExercise;authorInsight?:AuthorInsight;ruleSelection?:RuleSelection;rulePanelOpen?:boolean;ruleKind?:RuleKindSelection;modelDraft:string;modelMessage:string;
+ /** ADR-108 (E7): the resolver's answer for the author's current request, and the last first-gate outcome. */
+ authorPolicy?:PolicyResolution;sourceGate?:SourceGateRecord;
+ /** ADR-108 (E6/E7): the last second-gate answer and the draft it was given for. */
+ tryGate?:{verdict:'passed'|'blocked'|'inconclusive';message:string;draftId:string};}
 export interface AttemptPresentation {text:(id:LineId|null)=>string;fixed:(position:number)=>boolean;formattedAnswer:()=>string[];}
 export interface ScrollMemory {capture:()=>void;restore:(id:string)=>void;}
 export interface WorkbenchOptions {root:HTMLElement;state:WorkbenchState;ex:()=>ExerciseSummary|undefined;at:()=>AttemptSnapshot|undefined;attempt:AttemptPresentation;scroll:ScrollMemory;}

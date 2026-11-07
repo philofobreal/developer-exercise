@@ -123,13 +123,39 @@ def second_gate(page):
     page.locator('[data-step="try"]').click();current(page,'rules')
     expect(page.locator('main')).to_contain_text('a modell készítése óta változott');expect(page.locator('.solution-zone')).to_have_count(0)
     page.locator('[data-stale-notice] [data-author-apply]').click();expect(page.locator('[data-stale-notice]')).to_have_count(0);current(page,'rules');to_try(page)
+def preflight_ui(page):
+    """ADR-108 (E7): grouped settings from the resolver; the conservative profile locks controls that say why
+    and give the choice back; a refused source lists its findings with the certainty in words, the line as a
+    button that selects it in the editor, and the step's state; an edited source marks the findings out of date."""
+    page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();box=analysis_options(page)
+    for legend in ['Elemzési környezet','Forrás biztonságossága','Haladó profil']:expect(box.locator('legend',has_text=legend)).to_have_count(1)
+    expect(page.locator('[data-preflight="jsCheck"]')).to_have_count(1);expect(page.locator('[data-preflight="tsDiagnostics"]')).to_have_count(0)
+    expect(page.locator('[data-preflight="inputs"] option:checked')).to_contain_text('új feladat kezdőértéke')
+    summary=page.locator('[data-preflight-summary]')
+    page.locator('[data-preflight="portability"]').select_option('conservative')
+    inputs=page.locator('[data-preflight="inputs"]');expect(inputs).to_be_disabled();expect(inputs).to_have_value('any');expect(summary).to_contain_text('3 zárolt')
+    why=page.locator('[data-lock-why="inputs"]');why.locator('summary').focus();page.keyboard.press('Enter')
+    expect(why).to_have_attribute('open','');expect(why.locator('p')).to_contain_text('Feloldás');expect(why.locator('p')).to_contain_text('Érvényes egyszerű adat')
+    expect(page.locator('[data-preflight="objectState"]')).to_be_enabled()
+    page.locator('[data-preflight="portability"]').select_option('configured');expect(inputs).to_be_enabled();expect(inputs).to_have_value('valid');expect(summary).not_to_contain_text('zárolt')
+    page.locator('[data-preflight="unknownPolicy"]').select_option('block');expect(summary).to_contain_text('bizonytalan: tilt')
+    page.locator('[data-preflight="unknownPolicy"]').select_option('warn')
+    page.locator('#author-editor').fill('function f() {\n  const a = b;\n  const b = 1;\n  return a;\n}');page.locator('[data-author-apply]').click();current(page,'source')
+    findings=page.locator('[data-source-diagnostics]');expect(findings).to_contain_text('Biztos hiba');expect(findings).to_contain_text('BS001')
+    expect(page.locator('[data-step="source"]')).to_contain_text('Hibás forrás')
+    findings.locator('[data-goto-line="2"]').click();expect(page.locator('#author-editor')).to_be_focused()
+    assert page.evaluate("()=>{const e=document.querySelector('#author-editor');return e.value.slice(e.selectionStart,e.selectionEnd)}")=='  const a = b;'
+    page.locator('#author-editor').fill('function f() {\n  const b = 1;\n  const a = b;\n  return a;\n}')
+    page.locator('[data-preflight="objectState"]').select_option('off');expect(page.locator('[data-diagnostics-stale]')).to_be_visible();expect(page.locator('[data-step="source"]')).not_to_contain_text('Hibás forrás')
+    page.locator('[data-author-apply]').click();current(page,'rules');page.locator('[data-step="source"]').click()
+    expect(page.locator('[data-source-diagnostics]')).to_have_count(0);analysis_options(page);expect(page.locator('[data-preflight="objectState"]')).to_have_value('off')
 def menus(page):
     """ADR-105: a header or step menu opens on its summary and closes on Escape, an outside click or an action inside."""
     menu=page.locator('details.session-menu');menu.locator('summary').click();expect(menu).to_have_attribute('open','')
     page.keyboard.press('Escape');expect(menu).not_to_have_attribute('open','');expect(menu.locator('summary')).to_be_focused()
     menu.locator('summary').click();page.locator('h1').click();expect(menu).not_to_have_attribute('open','')
     opener=page.locator('details.open-menu');opener.locator('summary').click();expect(page.locator('[data-start-example]')).to_be_visible()
-    page.locator('details.analysis-options summary').click();expect(opener).not_to_have_attribute('open','');expect(page.locator('[data-author="inputs"]')).to_be_visible()
+    page.locator('details.analysis-options summary').click();expect(opener).not_to_have_attribute('open','');expect(page.locator('[data-preflight="inputs"]')).to_be_visible()
 
 def steps_locked_until_model(page):
     for step in ['rules','try']:expect(page.locator(f'[data-step="{step}"]')).to_be_disabled()
@@ -310,7 +336,7 @@ def rule_connect(page):
     page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Hibás')
 def pending_reference_survives_rule_edit(page):
     build(page,'function f() {\n  const a = 1;\n  return a;\n}')
-    page.locator('[data-step="source"]').click();page.locator('[data-author="language"]').select_option('typescript');analysis_options(page);expect(page.locator('[data-author="importEmit"]')).to_have_value('verbatim')
+    page.locator('[data-step="source"]').click();page.locator('[data-author="language"]').select_option('typescript');analysis_options(page);expect(page.locator('[data-preflight="importEmit"]')).to_have_value('verbatim')
     unapplied='function f() {\n  const unapplied = 1;\n}'
     page.locator('#author-editor').fill(unapplied);page.locator('[data-step="rules"]').click();expect(page.locator('[data-stale-notice]')).to_be_visible()
     page.locator('.board-row').first.locator('[data-rule-line]').click();page.locator('[data-rule-edit="fixed"]').click()
@@ -327,13 +353,13 @@ def input_contract(page):
     folded summary follows every change."""
     page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click()
     summary=page.locator('details.analysis-options summary');expect(summary).to_contain_text('érvényes adat · kulcssorrend nem számít · szabványos mezők')
-    analysis_options(page);expect(page.locator('[data-author="inputs"]')).to_have_value('valid');expect(page.locator('[data-author="keyOrder"]')).to_have_value('ignored');expect(page.locator('[data-author="classFields"]')).to_have_value('define')
-    page.locator('[data-author="inputs"]').focus();page.locator('[data-author="inputs"]').select_option('any');expect(summary).to_contain_text('szigorú bemenet');expect(page.locator('[data-author="inputs"]')).to_be_focused()
-    page.locator('[data-author="inputs"]').select_option('valid');expect(summary).to_contain_text('érvényes adat')
+    analysis_options(page);expect(page.locator('[data-preflight="inputs"]')).to_have_value('valid');expect(page.locator('[data-preflight="keyOrder"]')).to_have_value('ignored');expect(page.locator('[data-preflight="classFields"]')).to_have_value('define')
+    page.locator('[data-preflight="inputs"]').focus();page.locator('[data-preflight="inputs"]').select_option('any');expect(summary).to_contain_text('szigorú bemenet');expect(page.locator('[data-preflight="inputs"]')).to_be_focused()
+    page.locator('[data-preflight="inputs"]').select_option('valid');expect(summary).to_contain_text('érvényes adat')
     page.locator('#author-editor').fill('function measure(grid) {\n  const rows = grid.length;\n  const cols = grid[0].length;\n  return rows * cols;\n}');page.locator('[data-author-apply]').click();current(page,'rules')
     rules_json(page);generated=json.loads(page.locator('#model-editor').input_value())
     assert generated['authoring']['evidence']['environment']['inputs']=='valid';assert 2 not in generated['lines'][2]['dependencies']
-    page.locator('[data-step="source"]').click();analysis_options(page);expect(page.locator('[data-author="inputs"]')).to_have_value('valid');expect(page.locator('[data-author-status]')).to_contain_text('ebből a forrásból')
+    page.locator('[data-step="source"]').click();analysis_options(page);expect(page.locator('[data-preflight="inputs"]')).to_have_value('valid');expect(page.locator('[data-author-status]')).to_contain_text('ebből a forrásból')
 
 # ADR-090: rows never scroll on their own; a list scrolls sideways as one, and its row controls stay
 # inside the list's visible area at both ends of that scroll.
@@ -445,7 +471,7 @@ def rule_cause_lifts(page):
     source='\n'.join(['class Box {','  constructor() {','    this.a = 1;','    this.b = 2;','  }','}','function evaluate() {',"  const list = Object['ke' + 'ys'];",'  return list(new Box());','}'])
     page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill(source)
     # The rule under test exists only while key order is observed (ADR-055); since ADR-106 a new draft ignores it.
-    analysis_options(page);page.locator('[data-author="inputs"]').select_option('valid');page.locator('[data-author="keyOrder"]').select_option('observed');page.locator('[data-author-apply]').click();current(page,'rules')
+    analysis_options(page);page.locator('[data-preflight="inputs"]').select_option('valid');page.locator('[data-preflight="keyOrder"]').select_option('observed');page.locator('[data-author-apply]').click();current(page,'rules')
     expect(page.locator('[data-ordering-policy]').first).not_to_contain_text('nem alkalmazható')
     to_try(page);page.locator('[data-all]').click();page.locator('[data-down="2"]').click();page.locator('[data-check]').click()
     expect(page.locator('.report')).to_contain_text('Hibás');cause=page.locator('.report [data-rule-cause="3-4"]')
@@ -465,7 +491,7 @@ def key_order_and_rule_kinds(page):
     source='\n'.join(['class Box {','  constructor() {','    this.a = 1;','    this.b = 2;','  }','}','function evaluate() {',"  const list = Object['ke' + 'ys'];",'  return list(new Box());','}'])
     def make(key_order):
         page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill(source)
-        analysis_options(page);page.locator('[data-author="keyOrder"]').select_option(key_order);page.locator('[data-author-apply]').click();current(page,'rules')
+        analysis_options(page);page.locator('[data-preflight="keyOrder"]').select_option(key_order);page.locator('[data-author-apply]').click();current(page,'rules')
     def swapped_verdict():
         to_try(page)
         if page.locator('[data-all]').count():page.locator('[data-all]').click()
@@ -486,7 +512,7 @@ def class_fields_setting(page):
     source='\n'.join(['class B {','  set f5(value) {',"    record('set', this.g);",'  }','}','class A extends B {','  f5 = 6;','  g = 7;','}','function evaluate() {','  const a = new A();','  return [a.g, a.f5];','}'])
     def make(class_fields):
         page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill(source)
-        analysis_options(page);page.locator('[data-author="classFields"]').select_option(class_fields);page.locator('[data-author-apply]').click();current(page,'rules')
+        analysis_options(page);page.locator('[data-preflight="classFields"]').select_option(class_fields);page.locator('[data-author-apply]').click();current(page,'rules')
     def swapped_verdict():
         to_try(page)
         if page.locator('[data-all]').count():page.locator('[data-all]').click()
@@ -497,7 +523,7 @@ def class_fields_setting(page):
     expect(swapped_verdict()).to_contain_text('Hibás')
     make('define');expect(page.locator('[data-analysis-settings]')).to_contain_text('csak szabványos');expect(page.locator('[data-step-verification]')).to_have_text('Elemzéssel igazolt')
     expect(swapped_verdict()).to_contain_text('Elfogadva')
-    page.locator('[data-step="source"]').click();analysis_options(page);expect(page.locator('[data-author="classFields"]')).to_have_value('define')
+    page.locator('[data-step="source"]').click();analysis_options(page);expect(page.locator('[data-preflight="classFields"]')).to_have_value('define')
 def rule_edit_keeps_scroll(page):
     """A rule edit yields a new draft id, but it is the same project: the sorter keeps its scroll like after a drag."""
     source='\n'.join(['function f() {',*[f'  const v{i} = {i};' for i in range(38)],'  g(v0, v37);','}'])
@@ -664,7 +690,7 @@ try:
         browser=launch(p);context=browser.new_context(viewport={'width':1500,'height':1000},permissions=['clipboard-read','clipboard-write']);context.tracing.start(screenshots=True,snapshots=True,sources=True);page=context.new_page();page.set_default_timeout(10000);errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
         try:
             for mode,url in [('node',BASE),('pages',f'http://127.0.0.1:{static.server_port}/developer-exercise/')]:
-                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('model-first creation',model_first),('a rejected order names its rule and how to lift it',rule_cause_lifts),('key order setting and rule kinds',key_order_and_rule_kinds),('class-field mode setting',class_fields_setting),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('the input contract is chosen, recorded and restored',input_contract),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll),('circles toggle links: checks, removal and exact restore',link_toggle),('pins fix and release a line on the board',pin_lines),('feedback marks graded rows, invalidates on a move and respects the learner view',learner_feedback)]:
+                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('preflight settings, locks and findings',preflight_ui),('model-first creation',model_first),('a rejected order names its rule and how to lift it',rule_cause_lifts),('key order setting and rule kinds',key_order_and_rule_kinds),('class-field mode setting',class_fields_setting),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('the input contract is chosen, recorded and restored',input_contract),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll),('circles toggle links: checks, removal and exact restore',link_toggle),('pins fix and release a line on the board',pin_lines),('feedback marks graded rows, invalidates on a move and respects the learner view',learner_feedback)]:
                     reset(page,url);case(mode+' '+name,lambda:action(page))
                 reset(page,url);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-author.png')),full_page=True)
                 practice(page);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-practice.png')),full_page=True)

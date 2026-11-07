@@ -33,3 +33,13 @@ export function createScrollMemory(root) {
         } } };
 }
 export { copyToClipboard } from './clipboard.js';
+/** Selects one 1-based line of an editor and scrolls it into view (ADR-108, E7: a gate finding points at its line). */
+export function revealLine(editor, line) {
+    const lines = editor.value.split('\n'), index = Math.min(Math.max(1, Math.floor(line)), lines.length) - 1;
+    const start = lines.slice(0, index).reduce((offset, text) => offset + text.length + 1, 0);
+    editor.focus({ preventScroll: true });
+    editor.setSelectionRange(start, start + (lines[index]?.length ?? 0));
+    const height = parseFloat(getComputedStyle(editor).lineHeight) || 20;
+    editor.scrollTop = Math.max(0, index * height - editor.clientHeight / 3);
+    editor.dispatchEvent(new Event('scroll'));
+}

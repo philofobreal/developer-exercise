@@ -419,3 +419,31 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 }
 .rule-inspector [data-rule-close] {display:none}
 #app[data-surface=focus] .note {white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ADR-108 (E7): grouped preflight settings, locks with their reason, first-gate findings, gate words on the steps. */
+.preflight-group {margin:0;padding:10px 12px 4px;border:0;border-top:1px solid var(--border);min-width:0}
+.preflight-group>legend {padding:0;font-size:12px;font-weight:700;color:var(--text)}
+.preflight-group>.inline-hint {margin:2px 0 0}
+.preflight-group .options-grid {padding:10px 0 0;border-top:0}
+.preflight-setting {min-width:0;margin-bottom:12px}
+.preflight-setting>label {display:block}
+.preflight-setting select {width:100%}
+.preflight-setting.locked select {opacity:1;border-style:dashed;cursor:not-allowed}
+.lock-label {margin-left:6px;padding:0 5px;border:1px solid var(--w-40);background:var(--w-18);color:var(--w-80);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.lock-why {margin-top:4px;font-size:12px}
+.lock-why>summary {display:inline-flex;min-height:24px;align-items:center;cursor:pointer;color:var(--accent-text);text-decoration:underline;text-underline-offset:2px}
+.lock-why>p {margin:4px 0 0;line-height:1.55;color:var(--text)}
+.preflight-conflicts {margin:0;padding:10px 12px 10px 30px;border-top:1px solid var(--d-48);background:var(--d-16);color:var(--text);font-size:12px}
+.source-diagnostics {margin:10px 0 0;padding:10px 12px;border:1px solid var(--border);border-left:4px solid var(--w-40);background:var(--n-12)}
+.source-diagnostics.verdict-blocked {border-left-color:var(--d-48)}
+.source-diagnostics>h3 {margin:0 0 6px;font-size:13px}
+.source-diagnostics>ol {margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.diagnostic {display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:2px 10px;align-items:baseline;font-size:12px;line-height:1.5}
+.diagnostic-kind {font-weight:700;white-space:nowrap}
+.diagnostic.certainty-definite .diagnostic-kind {color:var(--d-82)}
+.diagnostic.certainty-possible .diagnostic-kind,.diagnostic.certainty-unknown .diagnostic-kind {color:var(--w-80)}
+.diagnostic-line {min-height:24px;padding:0 6px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.diagnostic-message {min-width:0;overflow-wrap:anywhere}
+.diagnostic-origin {grid-column:3;color:var(--muted)}
+.step.tone-blocked .step-text small {color:var(--d-82);opacity:1}
+.step.tone-warning .step-text small {color:var(--w-80);opacity:1}
+@media (max-width:640px){.diagnostic {grid-template-columns:auto minmax(0,1fr)}.diagnostic-message,.diagnostic-origin {grid-column:1 / -1}}

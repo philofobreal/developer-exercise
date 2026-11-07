@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {authorDraftPending,authorRequest,captureAuthorAdmission,captureAuthorRequest,startFromExample,revertAuthorDraft,admitAuthorModel,NEW_DRAFT_SETTINGS} from '../public/app/author-workspace.js';
+import {NEW_DRAFT_SETTINGS} from '../public/app/preflight-settings.js';
+import {authorDraftPending,authorRequest,captureAuthorAdmission,captureAuthorRequest,startFromExample,revertAuthorDraft,admitAuthorModel} from '../public/app/author-workspace.js';
 import {reloadEditorFromArrangement,markEditorDraft} from '../public/app/interactions.js';
 const first={id:'first',revision:1,title:'First',description:'First task',language:'javascript',lines:[{id:1,code:'const a = 1;'}]};
 const second={...first,id:'second',title:'Second',language:'typescript',lines:[{id:1,code:'const b: number = 2;'}]};
@@ -23,8 +24,11 @@ test('admission establishes the reference baseline; a rule edit keeps an unappli
  admitAuthorModel(state,model);assert.equal(state.author.source,first.lines[0].code,'a new model replaces the draft');
 });
 test('late source or JSON admission cannot replace newer edits or another preview',()=>{
- for(const mutate of [s=>s.previews.set('other','d'),s=>s.author.source+='new',s=>s.author.title='new',s=>s.author.language='typescript',s=>{s.author.importEmit='elide-unused';},s=>{s.author.inputs='any';},s=>{s.author.keyOrder='observed';},s=>{s.author.classFields='either';},s=>s.modelDraft+='new']){
+ for(const mutate of [s=>s.previews.set('other','d'),s=>s.author.source+='new',s=>s.author.title='new',s=>s.author.language='typescript',s=>{s.author.policy={unknownPolicy:'block'};},s=>{s.author.inputs='any';},s=>{s.author.keyOrder='observed';},s=>{s.author.classFields='either';},s=>s.modelDraft+='new']){
   const state=make();startFromExample(state,first);const current=captureAuthorAdmission(state);assert.equal(current(),true);mutate(state);assert.equal(current(),false);
+ }
+ {// ADR-108 (E7): an option the language does not have is no change of the request (C12).
+  const state=make();startFromExample(state,first);const current=captureAuthorAdmission(state);state.author.importEmit='elide-unused';assert.equal(current(),true);
  }
  const state=make();const current=captureAuthorAdmission(state);state.mode='practice';state.active='first';state.view='sort';
  assert.equal(current(),true,'switching to practice does not cancel an author request');

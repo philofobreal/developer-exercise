@@ -40,6 +40,7 @@
     "src/workbench/theme-boot.ts": "public/app/theme-boot.js",
     "src/workbench/surface.ts": "public/app/surface.js",
     "src/workbench/code-view.ts": "public/app/code-view.js",
-    "src/workbench/pane-split.ts": "public/app/pane-split.js"
+    "src/workbench/pane-split.ts": "public/app/pane-split.js",
+    "src/workbench/preflight-settings.ts": "public/app/preflight-settings.js"
   }
 }

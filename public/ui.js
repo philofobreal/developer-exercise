@@ -1,5 +1,7 @@
 import {markEditorDraft,markEditorApplied,reloadEditorFromArrangement,captureEditorRequest,adjacentMoveBoundary,dispatchWorkbenchAction} from './app/interactions.js';
-import {refreshAuthorStatus,captureAuthorRequest,authorRequest,startFromExample,revertAuthorDraft,admitAuthorModel,NEW_DRAFT_SETTINGS} from './app/author-workspace.js';
+import {refreshAuthorStatus,captureAuthorRequest,authorRequest,startFromExample,revertAuthorDraft,admitAuthorModel} from './app/author-workspace.js';
+import {NEW_DRAFT_SETTINGS,setPreflightOption,settingsKey,settingsRequest} from './app/preflight-settings.js';
+import {revealLine} from './app/ui-utilities.js';
 import {readRuleEdit,readRuleKindEdits,recordRuleRefusal,ruleEditBlocked,settleRuleKind,settleRuleSelection} from './app/rule-panel.js';
 import {connection,installRuleBoard,linkWith} from './app/rule-board.js';
 import {authorPreviewId,blockedReason,enterMode,enterView,landAfterAdmission} from './app/flow.js';
@@ -15,7 +17,7 @@ import {createWorkbenchView} from './app/view.js';
 import {practiceOrder} from './app/fields.js';
 import {createInsertionDrag} from './app/drag-insert.js';
 import {createScrollMemory,updateGutters,copyToClipboard,escapeHtml} from './app/ui-utilities.js';
-import {formatSource,getExercises,compileDraft,editRules,previewDraft,authorTransition,evaluate,loadTypeScriptFixture} from './app/api.js';
+import {formatSource,getExercises,compileDraft,editRules,previewDraft,authorTransition,resolvePolicy,evaluate,loadTypeScriptFixture} from './app/api.js';
 const root=document.querySelector('#app');
 const state={exercises:[],active:null,attempts:new Map(),previews:new Map(),drag:null,mode:'author',view:'author',practiceActive:null,author:{...NEW_DRAFT_SETTINGS,title:'Saját kódrendezős feladat',description:'Rendezd sorba a kódsorokat.',language:'javascript',source:`function calculate() {\n     const a = 10;\n     const b = 20;\n     return a + b;\n}`,message:''},modelDraft:'',modelMessage:''};
 const ex=()=>state.exercises.find(x=>x.id===state.active);
@@ -23,7 +25,7 @@ const at=()=>state.attempts.get(state.active);
 const attempt=createAttemptController(ex,at);
 const {text,formattedAnswer}=attempt;
 const view=createWorkbenchView({root,state,ex,at,attempt,scroll:createScrollMemory(root)});
-const render=()=>view.render();
+const render=()=>{view.render();ensurePolicy();};
 function commit(msg=''){at().generation=(at().generation??0)+1;at().report=null;at().feedback=msg;delete state.feedbackFocus;render();}
 /** The graded lines and the sorter slot of each, so a diagnostic position marks its row (ADR-026). */
 const submitted=a=>({lines:a.answer.filter(x=>x!==null).map(text),slots:a.answer.flatMap((x,i)=>x===null?[]:[i])});
@@ -40,8 +42,15 @@ const admitted=new Set();
 async function admitToTry(){
  const id=authorPreviewId(state),draftId=id&&state.previews.get(id);if(!draftId)return {ok:false,message:blockedReason(state,'sort')};
  const key=draftId+'\u0000'+state.author.source+'\u0000'+JSON.stringify(authorRequest(state.author));if(admitted.has(key))return {ok:true};
- try{const answer=await authorTransition({draftId,...authorRequest(state.author)});state.tryGate=answer.gate;admitted.add(key);return {ok:true};}
+ try{const answer=await authorTransition({draftId,...authorRequest(state.author)});state.tryGate={verdict:answer.gate.verdict,message:answer.gate.message,draftId};admitted.add(key);return {ok:true};}
  catch(error){return {ok:false,message:error instanceof Error?error.message:'A Próba lépés most nem nyitható meg.'};}
+}
+/** ADR-108 (E7): the resolver's answer for the author's current request (locks, inactive options, refusals);
+ * the latest request wins. */
+let policyKey='';
+function ensurePolicy(){
+ const key=settingsKey(state.author);if(key===policyKey)return;policyKey=key;
+ resolvePolicy({language:state.author.language,...settingsRequest(state.author)}).then(resolution=>{if(key===policyKey){state.authorPolicy=resolution;render();}},()=>{if(key===policyKey)policyKey='';});
 }
 /** A preview request with the second gate's evidence: the author's current source and analysis settings. */
 const gateEvidence=body=>({...authorRequest(state.author),...body});
@@ -56,12 +65,12 @@ const steps={source:'author',rules:'model',try:'sort'};
  * Compatible attempts survive a dependency-only edit, so the new rules are observable at once. */
 async function authorApply(body,{preserveAttempt=false,sessionImport,current=captureAuthorRequest(state),request=compileDraft,land='stay'}={}){
  delete state.boardStatus;
- let data;try{data=await request(body);}catch(error){if(!current())return;throw error;}
+ let data;try{data=await request(body);}catch(error){if(!current())return;if(error?.details?.gate&&typeof body.source==='string')state.sourceGate={gate:error.details.gate,source:body.source};throw error;}
  if(!current())return;
  if(data.ok===false){if(state.ruleSelection)recordRuleRefusal(state.ruleSelection,data,body.edits);render();return data;}
  const restoredAttempt=sessionImport?restoreAttempt(sessionImport,data.model):undefined;
  const {compatible,model:m}=installPreview(state,data,{preserveAttempt,restoredAttempt});
- admitAuthorModel(state,m,body.source,{keepPending:!!body.edits});settleRuleSelection(state,!!body.edits);delete state.ruleConnect;
+ admitAuthorModel(state,m,body.source,{keepPending:!!body.edits,policy:data.policy});if(data.gate)state.sourceGate={gate:data.gate,source:state.authorBaseline.source};settleRuleSelection(state,!!body.edits);delete state.ruleConnect;
  const summary='A modell elkészült: '+m.lines.length+' sor, '+m.blocks.length+' blokk. '+(m.authoring?.dependencyHints?.length??0)+' deklaráció/használat jelzés. Az egyszerű const deklarációk kötésalapú függőségeket kapnak; teljes szemantikai bizonyítás nincs.'+(m.authoring?.omittedBlocks?' '+m.authoring.omittedBlocks+' közös sorhatárú blokk csak sorrendvédelemmel reprezentált.':'');
  state.modelMessage=body.source!==undefined?summary:compatible?'A módosított szabályok érvényesek. A kitöltés megmaradt; ellenőrizheted az új függőségekkel.':'A módosított modell érvényes. A kitöltést az új szerkezethez visszaállítottuk.';
  state.author.message=summary;
@@ -150,6 +159,7 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  if(b.hasAttribute('data-start-load')){const e=state.exercises.find(x=>x.id===root.querySelector('[data-start-example]')?.value);if(!e){state.author.message='Válassz egy példát a listából.';render();return;}startFromExample(state,e);state.sourceKind='code';render();return;}
  if(b.hasAttribute('data-edit-example')){const e=ex();if(!e)return;startFromExample(state,e);enterMode(state,'author');state.view='author';state.sourceKind='code';render();return;}
  if(b.hasAttribute('data-author-revert')){revertAuthorDraft(state);render();return;}
+ if(b.hasAttribute('data-goto-line')){const editor=root.querySelector('#author-editor');if(editor)revealLine(editor,Number(b.dataset.gotoLine));return;}
  if(b.dataset.feedbackGoto!==undefined){
   // Move to the rows a diagnostic names; the marks come from the graded report, not from a search here.
   state.feedbackFocus=+b.dataset.feedbackGoto;render();
@@ -222,7 +232,8 @@ root.addEventListener('input',ev=>{const el=ev.target; if(el.closest('.editor-fr
 root.addEventListener('scroll',ev=>{if(ev.target.matches('.editor-frame textarea'))updateGutters(root);},true);
 root.addEventListener('keydown',ev=>{if(ev.key==='Tab'&&ev.target.matches('.editor-frame textarea')){ev.preventDefault();const el=ev.target,i=el.selectionStart,j=el.selectionEnd;el.setRangeText('     ',i,j,'end');el.dispatchEvent(new Event('input',{bubbles:true}));}});
 root.addEventListener('change',ev=>{
- if(ev.target.dataset.author){state.author[ev.target.dataset.author]=ev.target.value;refreshAuthorStatus(root,state);if(['language','importEmit','inputs','keyOrder','classFields'].includes(ev.target.dataset.author))render();}
+ if(ev.target.dataset.author){state.author[ev.target.dataset.author]=ev.target.value;refreshAuthorStatus(root,state);if(ev.target.dataset.author==='language')render();}
+ if(ev.target.dataset.preflight&&setPreflightOption(state.author,ev.target.dataset.preflight,ev.target.value)){refreshAuthorStatus(root,state);render();}
  if(ev.target.matches('[data-board-all]')){state.boardAll=ev.target.checked;render();root.querySelector('[data-board-all]')?.focus({preventScroll:true});}
 });
 createInsertionDrag({root,

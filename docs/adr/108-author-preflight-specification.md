@@ -214,6 +214,64 @@ Következtetés:
   - `browser-workbench`, „second gate”: módosított forrás mellett a Próba zárva marad.
 
 
+**E7 – felület: csoportosított beállítások, zárolás és indoklás, diagnosztikai lista, lépésállapotok** ([preflight-settings.ts](../../src/workbench/preflight-settings.ts)):
+- **Egy modul tudja, hogyan látszanak a beállítások.** A [preflight-settings.ts](../../src/workbench/preflight-settings.ts) rejti el:
+  - melyik opció melyik nyelvhez és csoporthoz tartozik;
+  - hogyan nevezzük az értékeket;
+  - melyik az új feladat kezdőértéke, és melyik a régi modellek kompatibilitási értéke;
+  - hogyan magyarázza magát a zárolt vezérlő;
+  - mi kerül az összegzés sorába;
+  - hogyan mutat egy lelet a sorára.
+
+  Interfésze:
+  - a beállításblokk és a leletlista rajzolása;
+  - egy választás rögzítése;
+  - a kérés beállításrésze (`settingsRequest`) és annak kulcsa (`settingsKey`).
+
+  A kezdőértékek (`NEW_DRAFT_SETTINGS`) is itt vannak. A kompatibilitási értékek a feloldó fallbackjei, ezek egyezését teszt tartja.
+  - **Nem kell szinkronban tartani semmit:**
+    - Minden rajzolás után a kliens maga kér új feloldást, ha a beállítások kulcsa változott; ehhez egyik útnak (nyelvváltás, példabetöltés, elvetés, átvétel) sem kell külön hívás.
+    - A modul nem mutat olyan feloldást, amely más kérésre készült.
+- **A feloldó marad az egyetlen döntéshozó.** A felület nem számolja újra, mit zárol a konzervatív profil, és mi tilos. A kliens minden beállítás- és nyelvváltáskor elkéri a feloldást.
+  - Új port: `resolvePolicy`, a szerveren `GET /api/author/policy?request=…`, a Pages-en a helyi feloldó. Csak a nyelvet és a beállításokat kapja, a forrást soha. Biztonságos lekérdezés, nem tárol semmit, és nem számít bele a POST-korlátba. Ugyanaz a szerzői jogosultság-ellenőrzés védi, mint a többi szerzői végpontot.
+  - **Másik változat, amit elvetettem:** a feloldó modulját a böngésző is betöltené. Node-módban a `dist` nincs kiszolgálva, és a megjelenítési határ (architecture-rules) sem engedi.
+  - **A harmadik változat, amit elvetettem:** csak a draft válaszában kapott feloldás látszana. Így a konzervatív profil zárolása csak a modellkészítés után jelenne meg, addig a felület mást mutatna, mint amivel az elemzés futni fog.
+- **Csoportok:**
+  1. **Elemzési környezet:** bemenetek, kulcssorrend, osztálymezők, TS importkibocsátás.
+  2. **Forrás biztonságossága:**
+     - helyi objektumállapot;
+     - a TS-diagnosztika vagy a JS checkJs, a nyelv szerint;
+     - a nem eldönthető eredmények kezelése.
+  3. **Haladó profil:** hordozhatóság.
+
+  Az „Oktatási sorrendi elvárások” csoport elemző nélkül nem jelenik meg (2. eltérés). A másik nyelv opciója nem látszik (C14, C15), így nincs ok nélküli inaktív vezérlő.
+- **Értékfeliratok:** az „alapértelmezett” felirat megszűnt. A helyén két felirat áll:
+  - „új feladat kezdőértéke” (ADR-106);
+  - „régi modellek kompatibilitási értéke” (`any`, `observed`, `either`).
+- **Zárolás (C01–C04):**
+  - A zárolt vezérlő le van tiltva, és a hatályos értéket mutatja, „zárolva” jelöléssel.
+  - Mellette egy „Miért?” kibontó áll: az ok, a feloldás feltétele és a megőrzött választás, amely a profil kikapcsolásakor visszaáll.
+  - A vezérlő `aria-describedby` attribútuma az okra és a súgóra mutat.
+  - A feloldó elutasítása (C33) `role="alert"` listában látszik.
+- **Összegzés:**
+  - a környezet, ahogy az elemzés futni fog;
+  - a bekapcsolt forrásellenőrzések;
+  - a bizonytalan eredmény kezelése;
+  - a profil;
+  - a zárolt értékek száma.
+- **Diagnosztikai lista a Forrás lépésben:** az első kapu leletei, akár elutasította a forrást (422 a `details.gate`-tel), akár figyelmeztetéssel engedte tovább.
+  - Minden lelet mutatja a bizonyosságot szövegesen („Biztos hiba”, „Lehetséges hiba”, „Nem eldönthető”), az eredetet és a kódot. A szín csak kiegészítő.
+  - A sorszám gomb: a szerkesztőben kijelöli és láthatóvá teszi a sort.
+  - Ha a forrás azóta változott, a lista ezt kiírja.
+  - A kliensoldali portok a hibát `details`-szel adják tovább, a szerver és a Pages egyformán.
+- **Lépésállapotok:**
+  - **Forrás:** „Hibás forrás”, ha az első kapu elutasította az éppen szerkesztett szöveget. „Figyelmeztetés”, ha nem eldönthető eredménnyel engedte tovább.
+  - **Próba:** „Figyelmeztetéssel”, ha a második kapu nem eldönthető eredménnyel engedte be az aktuális draftot.
+  - **Szabályok és Próba:** a „Zárolt” és az „Elavult” állapot megmarad.
+
+  Az állapotot a [flow.ts](../../src/workbench/flow.ts) számítja (`status`, `tone`), a nézet csak kirajzolja.
+- **Átvétel:** a modell elfogadásakor a draft hatályos policyjának preflight-opciói a szerzőéi lesznek (`admitAuthorModel`, `policy`). Így a második kapu ugyanazzal az ujjlenyomattal találkozik.
+
 **Bizonyíték:**
 - `tests/author-policy.test.mjs`:
   - az összes kombináció tulajdonságtesztje: a konzervatív preset mindig a szigorú szerződést adja, és az ujjlenyomat csak a hatályos policytól függ;

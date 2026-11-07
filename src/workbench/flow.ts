@@ -31,13 +31,26 @@ export function staleReason(state:WorkbenchState):string {
  return jsonPending(state)?'A Szabályok lépés JSON-jában nem alkalmazott módosítás van; a próba még az aktív modellt használja.':'';
 }
 
-export interface StepState {step:Step;view:ViewName;number:number;label:string;hint:string;current:boolean;locked:string;stale:boolean;}
+/** `status`: the step's state in a word, as text (colour only adds to it): locked, stale, or what a gate said (ADR-108, E7). */
+export interface StepState {step:Step;view:ViewName;number:number;label:string;hint:string;current:boolean;locked:string;stale:boolean;status:string;tone:''|'locked'|'stale'|'blocked'|'warning';}
+/** The first gate's word on the source: refused, or admitted with an undecided finding; only for the text it checked. */
+function sourceStatus(state:WorkbenchState):Pick<StepState,'status'|'tone'> {
+ const record=state.sourceGate;
+ if(!record||record.source!==state.author.source)return {status:'',tone:''};
+ return record.gate.verdict==='blocked'?{status:'Hibás forrás',tone:'blocked'}:record.gate.verdict==='inconclusive'?{status:'Figyelmeztetés',tone:'warning'}:{status:'',tone:''};
+}
+/** The second gate's word on the applied draft: admitted with a warning (an unverified model, an undecided check). */
+function tryStatus(state:WorkbenchState):Pick<StepState,'status'|'tone'> {
+ const gate=state.tryGate,draft=authorPreviewId(state);
+ return gate&&draft&&gate.draftId===state.previews.get(draft)&&gate.verdict==='inconclusive'?{status:'Figyelmeztetéssel',tone:'warning'}:{status:'',tone:''};
+}
 export function flowSteps(state:WorkbenchState):StepState[] {
  const current=stepOf(state.view),locked=authorPreviewId(state)?'':NEEDS_MODEL,stale=!!staleReason(state);
+ const later=(step:''|'try'):Pick<StepState,'status'|'tone'>=>locked?{status:'Zárolt',tone:'locked'}:stale?{status:'Elavult',tone:'stale'}:step==='try'?tryStatus(state):{status:'',tone:''};
  return [
-  {step:'source',view:'author',number:1,label:'Forrás',hint:'A helyes referenciakód',current:current==='source',locked:'',stale:false},
-  {step:'rules',view:'model',number:2,label:'Szabályok',hint:'Függőségek és minősítés',current:current==='rules',locked,stale},
-  {step:'try',view:'sort',number:3,label:'Próba',hint:'Rendezés és ellenőrzés',current:current==='try',locked,stale}
+  {step:'source',view:'author',number:1,label:'Forrás',hint:'A helyes referenciakód',current:current==='source',locked:'',stale:false,...sourceStatus(state)},
+  {step:'rules',view:'model',number:2,label:'Szabályok',hint:'Függőségek és minősítés',current:current==='rules',locked,stale,...later('')},
+  {step:'try',view:'sort',number:3,label:'Próba',hint:'Rendezés és ellenőrzés',current:current==='try',locked,stale,...later('try')}
  ];
 }
 /** Why a view cannot be entered now, or ''. */

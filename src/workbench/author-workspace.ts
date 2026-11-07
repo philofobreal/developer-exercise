@@ -3,13 +3,16 @@
  * Practice attempts never read or change it. */
 import type {AuthorDraft,ExerciseSummary,WorkbenchState} from './contracts.js';
 import type {CodeLineExercise} from '../../dist/index.js';
+import type {PolicyResolution} from '../../dist/author/preflight/config-resolver.js';
+import {NEW_DRAFT_SETTINGS,settingsKey,settingsRequest} from './preflight-settings.js';
 
-const same=(a:AuthorDraft,b:AuthorDraft):boolean=>a.source===b.source&&a.language===b.language&&a.title===b.title&&a.description===b.description&&(a.level||'')===(b.level||'')&&(a.importEmit??'verbatim')===(b.importEmit??'verbatim')&&(a.inputs??'any')===(b.inputs??'any')&&(a.keyOrder??'observed')===(b.keyOrder??'observed')&&(a.classFields??'either')===(b.classFields??'either');
+const same=(a:AuthorDraft,b:AuthorDraft):boolean=>a.source===b.source&&a.language===b.language&&a.title===b.title&&a.description===b.description&&(a.level||'')===(b.level||'')&&settingsKey(a)===settingsKey(b);
 /** The generation request for the reference; the import emit is a TypeScript-only assumption (ADR-013),
- * the input contract (ADR-050), the key order (ADR-055) and the class-field mode (ADR-075) are choices of either language. */
+ * the input contract (ADR-050), the key order (ADR-055) and the class-field mode (ADR-075) are choices of either language;
+ * the preflight options (ADR-108) travel in `policy`, only where they differ from their start value. */
 export function authorRequest(author:AuthorDraft):Omit<AuthorDraft,'message'> {
- const {title,description,level,language,source,importEmit,inputs,keyOrder,classFields}=author;
- return {title,description,...(level?{level}:{}),language,source,...(language==='typescript'&&importEmit?{importEmit}:{}),...(inputs==='valid'?{inputs}:{}),...(keyOrder==='ignored'?{keyOrder}:{}),...(classFields==='define'?{classFields}:{})};
+ const {title,description,level,language,source}=author;
+ return {title,description,...(level?{level}:{}),language,source,...settingsRequest(author)};
 }
 /** The reference differs from the one the applied model was built from (or none was built yet). */
 export function authorDraftPending(state:WorkbenchState):boolean {
@@ -34,10 +37,6 @@ export function captureAuthorAdmission(state:WorkbenchState):()=>boolean {
  const preview=previewId(state),author={...state.author},modelDraft=state.modelDraft;
  return ()=>previewId(state)===preview&&same(author,state.author)&&state.modelDraft===modelDraft;
 }
-/** ADR-106: the analysis settings a new reference starts from (the author's choice): plain valid inputs,
- * key order not observed, standard class fields. A model brought in by JSON, a session or an admission
- * keeps the settings it was built with; only a new or example-based draft starts here. */
-export const NEW_DRAFT_SETTINGS={inputs:'valid',keyOrder:'ignored',classFields:'define'} as const satisfies Pick<AuthorDraft,'inputs'|'keyOrder'|'classFields'>;
 /** An example is a starting point: its reference becomes the unapplied draft. */
 export function startFromExample(state:WorkbenchState,exercise:ExerciseSummary):void {
  nextRequest(state);
@@ -49,10 +48,13 @@ export function revertAuthorDraft(state:WorkbenchState):void {
  nextRequest(state);state.author={...state.authorBaseline,message:'A nem alkalmazott változtatásokat elvetettük.'};
 }
 /** Call only after installPreview succeeds: the admitted model becomes the reference baseline.
- * `keepPending`: a rule edit changes no line, so an unapplied reference draft stays pending. */
-export function admitAuthorModel(state:WorkbenchState,model:CodeLineExercise,source?:string,{keepPending=false}:{keepPending?:boolean}={}):void {
+ * `keepPending`: a rule edit changes no line, so an unapplied reference draft stays pending. `policy`: the
+ * resolution the draft was admitted under; its preflight options become the author's (ADR-108, E7). */
+export function admitAuthorModel(state:WorkbenchState,model:CodeLineExercise,source?:string,{keepPending=false,policy}:{keepPending?:boolean;policy?:PolicyResolution}={}):void {
  nextRequest(state);
  const pending=keepPending&&authorDraftPending(state)?state.author:undefined,environment=model.authoring?.evidence?.environment,importEmit=environment?.importEmit,inputs=environment?.inputs,keyOrder=environment?.keyOrder,classFields=environment?.classFields;
  const author:AuthorDraft={title:model.title,description:model.description,...(model.level?{level:model.level}:{}),language:model.language,source:source??model.lines.map(l=>l.code).join('\n'),message:'',...(importEmit?{importEmit}:{}),...(inputs==='valid'?{inputs}:{}),...(keyOrder==='ignored'?{keyOrder}:{}),...(classFields==='define'?{classFields}:{})};
- state.author=pending??author;state.authorBaseline={...author};
+ const preflight=Object.fromEntries((['portability','unknownPolicy','tsDiagnostics','jsCheck','objectState'] as const).flatMap(path=>policy?.requested[path]?[[path,policy.requested[path]]]:[]));
+ if(Object.keys(preflight).length)author.policy=preflight;
+ state.author=pending??author;state.authorBaseline={...author};if(policy&&!pending)state.authorPolicy=policy;
 }

@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased – 2026-11-07 szerzői preflight: beállítások, zárolások és leletek a felületen (ADR-108, E7)
+
+- **Csoportosított elemzési beállítások:** Elemzési környezet, Forrás biztonságossága, Haladó profil. Új vezérlők: helyi objektumállapot, JavaScript típusellenőrzés (checkJs) vagy TypeScript-diagnosztika a nyelv szerint, a nem eldönthető eredmények kezelése és a hordozhatóság. A másik nyelv opciója nem jelenik meg.
+- **Érthetőbb feliratok:** „alapértelmezett” helyett „új feladat kezdőértéke” és „régi modellek kompatibilitási értéke”.
+- **Zárolás magyarázattal:**
+  - A konzervatív profil letiltja a környezeti beállításokat, és a hatályos értéket mutatja.
+  - Mindegyik mellett egy „Miért?” kibontó mondja meg az okot és a feloldás módját.
+  - A választásod megmarad, és a profil kikapcsolásakor visszaáll.
+- **Leletlista a Forrás lépésben:**
+  - ha a modellkészítés megáll vagy figyelmeztet, egy lista mutatja a leleteket: a bizonyosságot szövegesen, az eredetet és a kódot;
+  - a sorszámra kattintva a szerkesztő kijelöli az adott sort;
+  - ha a forrás azóta változott, a lista jelzi.
+- **Lépésállapotok:**
+  - **Forrás:** „Hibás forrás” vagy „Figyelmeztetés”.
+  - **Próba:** „Figyelmeztetéssel”, ha a második kapu nem eldönthető eredménnyel engedett be.
+
 ## Unreleased – 2026-11-07 szerzői preflight: második kapu, Szabályok → Próba (ADR-108, E6)
 
 - **A Próba csak ellenőrzött modellel nyílik meg:**

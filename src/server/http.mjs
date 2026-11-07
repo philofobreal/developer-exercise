@@ -29,6 +29,12 @@ export function createApplication({catalog,staticRoot,authorToken}){
     try{
       if(req.method==='GET'&&route==='/api/exercises')return json(res,200,{exercises:catalog.list()});
       if(req.method==='POST'&&route==='/api/evaluate')return json(res,200,catalog.evaluate(await readJson(req,1024*1024)));
+      // ADR-108 (E7): the policy resolution is a safe query (language and settings only), so GET.
+      if(req.method==='GET'&&route==='/api/author/policy'){
+        const refusal=authorRefusal(req,{token:authorToken});if(refusal)return json(res,refusal.status,{error:refusal.error});
+        let request;try{request=JSON.parse(new URL(req.url??'/','http://localhost').searchParams.get('request')??'{}');}catch{return json(res,400,{error:'Invalid policy request'});}
+        return json(res,200,catalog.resolvePolicy(request));
+      }
       if(req.method==='POST'&&route.startsWith('/api/author/')){
         const refusal=authorRefusal(req,{token:authorToken});if(refusal)return json(res,refusal.status,{error:refusal.error});
         // A 436-line TypeScript service generates a >64KiB CodeLine JSON model.
