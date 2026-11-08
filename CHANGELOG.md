@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-11-08 javítás: egy behúzás a Forrásban, a Szabályokban és a Próbán (ADR-112)
+
+- **Javítva:** ugyanaz a kód a Forrás szerkesztőben, a Szabályok táblán és a Próba rendezőben háromféle behúzással jelent meg.
+  - Egy többsoros deklaráció folytatósorai (`t = Infinity,`) a táblán túl mélyen, a rendezőben túl sekélyen álltak.
+  - A visszaadott objektum tulajdonságai a rendezőben a sor elejére kerültek.
+- **Most:** a tábla és a rendező ugyanúgy húz be, és a helyes sorrendben pontosan a formázott forrást mutatja. A rendezőben a beágyazás továbbra is a te elrendezésedet követi, nem árulja el a helyes megoldást.
+
 ## Unreleased – 2026-11-08 javítás: a fókusz gyors ki-be kapcsolása nem hagy teljes képernyőt (ADR-110)
 
 - **Javítva:** ha a Fókusz gombot gyorsan kétszer megnyomtad, lassabb gépen az oldal teljes képernyőn maradhatott fókusz nélkül. A CI-futás ezt mutatta ki.

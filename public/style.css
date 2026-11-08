@@ -112,7 +112,6 @@ button:hover:not(:disabled) {background:var(--n-20);border-color:var(--n-46)}but
 .pin-toggle {color:var(--n-64);background:transparent}.pin-toggle:hover {color:var(--n-90);background:var(--n-20)}.pin-toggle[aria-pressed=true] {background:var(--a-26);color:var(--a-96)}.pin-toggle[aria-pressed=true] .pin-head,.rule-fixed [aria-pressed=true] .pin-head {fill:currentColor}
 .board-row.fixed-row {border-left:0;box-shadow:inset 2px 0 0 var(--a-54)}
 .board-status {font-size:12px;color:var(--a-78);margin:0 0 8px;min-height:0}.board-status:empty {display:none}
-#app .depth-1 {padding-left:18px}#app .depth-2 {padding-left:36px}#app .depth-3 {padding-left:54px}#app .depth-4 {padding-left:72px}#app .depth-5 {padding-left:90px}#app .depth-6 {padding-left:108px}#app .depth-7 {padding-left:126px}#app .depth-8 {padding-left:144px}
 .arc {fill:none;stroke-width:1.6;opacity:.9}.arc.before {stroke:var(--i-74)}.arc.after {stroke:var(--w-66)}.arc.other {stroke:var(--n-62);opacity:.55}
 .arc.other.editability-pedagogical {stroke:var(--i-82);opacity:.85}.arc.other.editability-conservative {stroke:var(--w-62);opacity:.8}.arc.editability-hard {stroke-dasharray:3 3}
 .arc-head.before {fill:var(--i-74)}.arc-head.after {fill:var(--w-66)}.arc-head.other {fill:var(--n-62)}

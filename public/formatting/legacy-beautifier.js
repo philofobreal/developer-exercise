@@ -9,24 +9,5 @@ export const ORIGINAL_BEAUTIFY_OPTIONS=Object.freeze({
   e4x:false,comma_first:false,operator_position:'before-newline',
   indent_empty_lines:false,templating:['auto']
 });
-export const LEGACY_SENTINEL='_____code_line_end_;';
-/**
- * The marker is used as a DISPLAY guide only. Unlike the original implementation,
- * a marker never becomes part of a CodeLine, and a formatter cannot add/remove IDs.
- * When beautifier rewrites a marker boundary, only the independent lexer is used.
- */
-export function legacyIndentHints(lines,beautify){
-  if(typeof beautify!=='function'||lines.some(x=>x.includes(LEGACY_SENTINEL)))return null;
-  try{
-    const annotated=lines.map(line=>line.trim()+LEGACY_SENTINEL).join('');
-    const output=beautify(annotated,ORIGINAL_BEAUTIFY_OPTIONS);
-    if(typeof output!=='string'||output===annotated)return null;
-    const chunks=output.split(LEGACY_SENTINEL);
-    if(chunks.length!==lines.length+1)return null;
-    return chunks.slice(0,-1).map(chunk=>{
-      const nonempty=chunk.replace(/\r/g,'').split('\n').filter(s=>s.trim());
-      if(nonempty.length!==1)return null;
-      return (nonempty[0].match(/^[ \t]*/)||[''])[0].replace(/\t/g,'     ').length;
-    });
-  }catch{return null;}
-}
+// ADR-112: the projection no longer takes indentation hints from Beautify (they put a returned object literal's
+// properties at column 0); only the editor's explicit full formatting (formatEditor) uses these options.

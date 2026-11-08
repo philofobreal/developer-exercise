@@ -1,13 +1,8 @@
 import { createRuleMarks, ruleButton, rulesAvailable } from './rule-panel.js';
 import { icon } from './icons.js';
 import { escapeHtml as esc } from './ui-utilities.js';
+import { formatForIDE, referenceLayout } from '../formatter.js';
 const SVG = 'http://www.w3.org/2000/svg';
-/** Nesting depth for indentation only: the number of enclosing blocks. */
-function depths(model) {
-    const parent = new Map(model.blocks.map(block => [block.id, block.parentScopeId])), depth = (scope) => { let count = 0; for (let at = scope; at !== null && count < 32; at = parent.get(at) ?? null)
-        count++; return count; };
-    return new Map(model.lines.map(line => [line.id, depth(line.scopeId)]));
-}
 /** The anchor's direct constraint with `id`, in either direction. */
 export function linkWith(state, anchor, id) {
     return (state.authorInsight?.rules?.constraints ?? []).find(c => c.before === anchor && c.after === id || c.before === id && c.after === anchor);
@@ -41,8 +36,9 @@ export function renderRuleBoard(state, highlight) {
     const model = state.authorModel;
     if (!model || !rulesAvailable(state))
         return '';
-    const marks = createRuleMarks(state), indent = depths(model);
-    const rows = model.lines.map((line, index) => `<li class="board-row${marks(line.id)}${state.ruleConnect === line.id ? ' connect-source' : ''}${line.fixed ? ' fixed-row' : ''}" data-board-line="${line.id}">${connectButton(state, line.id)}<span class="board-id">#${line.id}</span><span class="board-index">${index + 1}.</span><pre class="code-text depth-${Math.min(indent.get(line.id) ?? 0, 8)}"><code>${highlight(line.code)}</code></pre><span class="row-actions">${pinButton(line.id, index, line.fixed)}${ruleButton(state, line.id)}</span></li>`).join('');
+    // ADR-112: the reference rows as the sorter projects them (the formatted source's indentation), not block depth.
+    const marks = createRuleMarks(state), reference = referenceLayout(model.lines), shown = formatForIDE(model.lines.map((line, i) => ({ code: line.code, normalization: line.normalization ?? 'indent', offset: reference.offsets[i] ?? 0 })), { indentSize: reference.indentSize });
+    const rows = model.lines.map((line, index) => `<li class="board-row${marks(line.id)}${state.ruleConnect === line.id ? ' connect-source' : ''}${line.fixed ? ' fixed-row' : ''}" data-board-line="${line.id}">${connectButton(state, line.id)}<span class="board-id">#${line.id}</span><span class="board-index">${index + 1}.</span><pre class="code-text"><code>${highlight(shown[index] ?? line.code)}</code></pre><span class="row-actions">${pinButton(line.id, index, line.fixed)}${ruleButton(state, line.id)}</span></li>`).join('');
     return `<section class="rule-board" aria-labelledby="rule-board-title"><div class="board-heading"><h3 id="rule-board-title">A referencia sorai és szabályai</h3>${toggle(state)}</div>${legend}${connecting(state)}<p class="board-status" role="status" aria-live="polite" data-board-status>${esc(state.boardStatus ?? '')}</p><div class="board-frame"><svg class="board-arcs" data-board-arcs aria-hidden="true" focusable="false"></svg><ol class="board-list" data-board-list aria-label="A referencia sorai">${rows}</ol></div></section>`;
 }
 /** The Try step's rule inspector head (ADR-107): the same legend and drawing switch as the board. */

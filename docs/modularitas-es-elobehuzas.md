@@ -9,8 +9,11 @@ A `src/author/languages.mjs` nyelvi adaptere auditálja a teljes referenciát. J
 `formatForIDE(rows,{language})` megjelenítési projekció, ugyanannyi elemmel, mint a bemenete. Az `attempt.js` a még üres fizikai pozíciókat külön őrzi, majd visszailleszti őket. Nem az eredeti referenciasorrend, hanem az aktuális tokenrend határozza meg a kontextust.
 
 - `lexical-indenter.js`: toleráns állapotgép; code/string/comment/regex/template módok, karakterosztály és escape, interpolációs és zárójelvermek. A kontrollzárójel és az értéket befejező zárójel külön slash-kontextust ad. A hibás regex EOL-nál lezárul, nem nyel el további blokkokat. Rossz zárójel nem pattint le idegen keretet.
-- `legacy-beautifier.js`: az eredeti JS Beautify 1.13.13 konfiguráció és `_____code_line_end_;` segédjelölés. A jelölő kizárólag a formázó ideiglenes szövegében él. Ütköző marker, eltérő sorszám, széttördelt sor, kivétel vagy no-op formatter esetén nincs megbízható javaslat.
-- `formatter.js`: JS-nél a megbízható Beautify-prefixel korrigálható a lexikai mélység; nem követel mechanikus egyenlőséget. Csak behúzási prefixet használ, a formázó által visszaadott tokentartalmat soha. Érvénytelen egyedi hintnél lexikai fallback. TS, `exact`, backticket vagy folytatott stringet tartalmazó bemenetnél konzervatívan a lexikai projekció dönt.
+- `legacy-beautifier.js`: az eredeti JS Beautify 1.13.13 konfiguráció. Csak a Megoldáskód-szerkesztő kifejezett formázása (`formatEditor`) használja. A korábbi `_____code_line_end_;` jelölős behúzás-javaslatot az [ADR-112](adr/112-one-indentation-projection.md) megszüntette: a visszaadott objektumliterál tulajdonságait 0-ra tette.
+- `formatter.js` ([ADR-112](adr/112-one-indentation-projection.md)): a szabálytáblát és a rendezőt ugyanaz a kivetítés rajzolja.
+  - **Mélység:** a lexikai mélység az elrendezésből jön.
+  - **Folytatás:** a sor saját folytatási behúzása (`referenceLayout`) a formázott referenciából, annak behúzási egységében.
+  - **Eredmény:** a referenciasorrend így pontosan a formázott forrás. Beautify-prefixet nem használ.
 
 Öt szóköz az alap. Minden `indent` sorra `display.replace(/^[ \t]*/, '') === code.replace(/^[ \t]*/, '')`: csak az ASCII szóköz/tab előtag változhat. A sor eleji NBSP, EM SPACE és BOM is megmarad, mert a validátor ezeket tartalomnak tekinti. `exact` sorra minden kódegység azonos. A többsoros literál nyers tartalmi sorainak vezető whitespace-e is változatlan. A megjelenítési eredmény nem lesz az automatikus értékelés bemenete; a validátor az eredeti elem tartalmát kapja.
 

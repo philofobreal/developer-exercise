@@ -7,7 +7,7 @@
  * NY-28 (ADR-097): migrated from the hand-written public/app/attempt.js to strict TypeScript;
  * behaviour unchanged.
  */
-import {formatForIDE} from '../formatter.js';
+import {formatForIDE,referenceLayout} from '../formatter.js';
 import type {AttemptSnapshot,ExerciseLine,ExerciseSummary,LineId} from './contracts.js';
 
 /** A learner's arrangement: the snapshot the view reads, plus the text of lines edited in the code view. */
@@ -72,11 +72,18 @@ export function createAttemptController(getExercise:()=>Pick<ExerciseSummary,'li
   };
   const fixed=(i:number):boolean=>Boolean(getExercise().lines[i]?.fixed);
   const fixedSlots=():boolean[]=>getExercise().lines.map(l=>Boolean(l.fixed));
+  // ADR-112: each reference row's own continuation indent, computed once per exercise.
+  let layoutFor:readonly ExerciseLine[]|null=null,offsets=new Map<LineId,number>(),indentSize=5;
+  const layout=():void=>{
+    const lines=getExercise().lines;if(layoutFor===lines)return;
+    const reference=referenceLayout(lines);offsets=new Map(lines.map((line,i)=>[line.id,reference.offsets[i]??0]));indentSize=reference.indentSize;layoutFor=lines;
+  };
+  const offsetOf=(id:LineId):number=>{layout();return offsets.get(id)??0;};
   const formattedAnswer=():string[]=>{
     const ids=getAttempt().answer;
     const lookup=new Map<LineId,ExerciseLine>(getExercise().lines.map(x=>[x.id,x]));
-    const rows=ids.filter((id):id is LineId=>id!==null).map(id=>({code:text(id),normalization:lookup.get(id)?.normalization??'indent'}));
-    const projected=formatForIDE(rows,{language:getExercise().language});
+    const rows=ids.filter((id):id is LineId=>id!==null).map(id=>({code:text(id),normalization:lookup.get(id)?.normalization??'indent',offset:offsetOf(id)}));
+    layout();const projected=formatForIDE(rows,{indentSize});
     let index=0;
     return ids.map(id=>id===null?'':projected[index++]!);
   };

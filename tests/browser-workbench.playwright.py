@@ -9,7 +9,9 @@ from browser_support import ROOT,ARTIFACTS,launch,StaticServer,open_menu,analysi
 CURRENT_POLICY=re.search(r"export const DEPENDENCY_POLICY='([^']+)'",(ROOT/'src/author/generator.mjs').read_text(encoding='utf8')).group(1)
 with socket.socket() as sock:sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
 BASE=f'http://127.0.0.1:{port}'
-proc=subprocess.Popen(['node','server.mjs'],cwd=ROOT,env={**os.environ,'HOST':'127.0.0.1','PORT':str(port)},stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
+def start_server():
+    return subprocess.Popen(['node','server.mjs'],cwd=ROOT,env={**os.environ,'HOST':'127.0.0.1','PORT':str(port)},stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
+proc=start_server()
 class Pages(SimpleHTTPRequestHandler):
     def __init__(self,*args,**kwargs):super().__init__(*args,directory=str(ROOT/'_site'),**kwargs)
     def do_GET(self):
@@ -27,7 +29,7 @@ def case(name,action):
     action();count+=1;print('PASS workbench: '+name,flush=True)
 def reset(page,url):page.goto(url);expect(page.locator('[data-step="source"]')).to_have_attribute('aria-current','step')
 # Every POST any context of this file sends to the Node server (it counts them per client, not per context).
-posts=[]
+posts=[];segments=[]
 def watch(context):
     context.on('request',lambda request:posts.append(request.url) if request.method=='POST' and request.url.startswith(BASE) else None);return context
 def current(page,step):expect(page.locator(f'[data-step="{step}"]')).to_have_attribute('aria-current','step')
@@ -444,6 +446,20 @@ def open_rules(page):
     toggle=page.locator('.inspector-toggle')
     if toggle.get_attribute('aria-pressed')!='true':toggle.click()
     expect(page.locator('.rule-inspector')).to_be_visible()
+def indentation_single_owner(page):
+    """ADR-112: the source, the rules board and the sorter (in the reference order) show the same indentation:
+    a declaration's continuation lines and a returned object literal's properties included."""
+    raw='function summarize(n) {\nlet r = 0,\nt = Infinity,\ni = -Infinity;\nconst u = n.length;\nreturn {\ncount: u,\nrange: i - t\n}\n}'
+    page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill(raw)
+    page.locator('[data-author-format]').click();expect(page.locator('.author-status')).to_contain_text('Formázva')
+    source=page.locator('#author-editor').input_value().rstrip('\n').split('\n')
+    assert source[2]=='          t = Infinity,' and source[6]=='          count: u,',source
+    page.locator('[data-author-apply]').click();current(page,'rules')
+    board=[text.rstrip() for text in page.locator('.board-row .code-text').all_inner_texts()]
+    assert board==source,board
+    to_try(page);page.locator('[data-all]').click()
+    sorter=[text.rstrip() for text in page.locator('.solution-zone .code-row .code-text').all_inner_texts()]
+    assert sorter==source,sorter
 def focus_bar_and_full_screen_return(page):
     """ADR-110: Focus has a slim bar with the logo; entered from the full-screen page it returns there (the
     browser's full screen stays), entered from the page it leaves the full screen it opened."""
@@ -750,10 +766,16 @@ try:
         watch(context)
         try:
             for mode,url in [('node',BASE),('pages',f'http://127.0.0.1:{static.server_port}/developer-exercise/')]:
-                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('preflight settings, locks and findings',preflight_ui),('session v2 records the analysis settings; v1 is partial',session_settings),('model-first creation',model_first),('a rejected order names its rule and how to lift it',rule_cause_lifts),('key order setting and rule kinds',key_order_and_rule_kinds),('class-field mode setting',class_fields_setting),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('the input contract is chosen, recorded and restored',input_contract),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll),('circles toggle links: checks, removal and exact restore',link_toggle),('pins fix and release a line on the board',pin_lines),('feedback marks graded rows, invalidates on a move and respects the learner view',learner_feedback)]:
+                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('preflight settings, locks and findings',preflight_ui),('one indentation in source, board and sorter',indentation_single_owner),('session v2 records the analysis settings; v1 is partial',session_settings),('model-first creation',model_first),('a rejected order names its rule and how to lift it',rule_cause_lifts),('key order setting and rule kinds',key_order_and_rule_kinds),('class-field mode setting',class_fields_setting),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('the input contract is chosen, recorded and restored',input_contract),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll),('circles toggle links: checks, removal and exact restore',link_toggle),('pins fix and release a line on the board',pin_lines),('feedback marks graded rows, invalidates on a move and respects the learner view',learner_feedback)]:
                     reset(page,url);case(mode+' '+name,lambda:action(page))
                 reset(page,url);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-author.png')),full_page=True)
                 practice(page);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-practice.png')),full_page=True)
+            # The server counts POSTs per client and minute (120). This file runs two server processes, each staying under
+            # 120 POSTs in total, so no machine is fast enough to trip the limit (ADR-110, the CI 429 of E6/E7).
+            segments.append(len(posts));proc.terminate();proc.wait(timeout=10);proc=start_server()
+            for _ in range(100):
+                try:urllib.request.urlopen(BASE+'/api/exercises',timeout=.5);break
+                except Exception:time.sleep(.1)
             reset(page,BASE);case('node one horizontal scroll per code list, row controls pinned',lambda:single_horizontal_scroll(page))
             reset(page,BASE);case('node author chooses the exercise level',lambda:author_level(page))
             case('node tap to pick, tap to place on a touch screen',lambda:tap_to_place(browser))
@@ -783,9 +805,9 @@ try:
                     connector=target.locator('[data-rule-connect="3"]').bounding_box();assert connector['width']>=28 and connector['height']>=28
                     target.screenshot(path=str(ARTIFACTS/f'ux-mobile-{width}.png'),full_page=True);count+=1;print(f'PASS workbench: {width}px touch practice and author layout',flush=True)
                 finally:mobile.close()
-            # The server allows 120 POSTs a minute per client; this file stays under it in total, so no machine is
-            # fast enough to trip it (the second gate travels with each draft instead of a request of its own).
-            assert len(posts)<120,f'{len(posts)} POSTs to the server: the 120/min limit can refuse them on a fast machine'
+            # Each server process stays under 120 POSTs in total (the server's per-minute limit), whatever the machine speed.
+            counts=[segments[0],len(posts)-segments[0]]
+            assert all(count_<120 for count_ in counts),f'{counts} POSTs per server process: the 120/min limit can refuse them on a fast machine'
             assert not errors,errors;context.tracing.stop(path=str(ARTIFACTS/'workbench-trace.zip'));print(f'PASS workbench total: {count} cases',flush=True)
         except Exception:
             page.screenshot(path=str(ARTIFACTS/'workbench-failure.png'),full_page=True);context.tracing.stop(path=str(ARTIFACTS/'workbench-failure-trace.zip'));raise

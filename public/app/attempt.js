@@ -7,7 +7,7 @@
  * NY-28 (ADR-097): migrated from the hand-written public/app/attempt.js to strict TypeScript;
  * behaviour unchanged.
  */
-import { formatForIDE } from '../formatter.js';
+import { formatForIDE, referenceLayout } from '../formatter.js';
 export const normalize = (s, mode = 'indent') => mode === 'indent' ? s.replace(/^[ \t]*/, '') : s;
 /** ADR-103: a typed row matches a reference row by the row's normalization. An `indent` row also
  * tolerates trailing whitespace and no-break-space or byte-order-mark indentation, which editors and
@@ -60,11 +60,24 @@ export function createAttemptController(getExercise, getAttempt) {
     };
     const fixed = (i) => Boolean(getExercise().lines[i]?.fixed);
     const fixedSlots = () => getExercise().lines.map(l => Boolean(l.fixed));
+    // ADR-112: each reference row's own continuation indent, computed once per exercise.
+    let layoutFor = null, offsets = new Map(), indentSize = 5;
+    const layout = () => {
+        const lines = getExercise().lines;
+        if (layoutFor === lines)
+            return;
+        const reference = referenceLayout(lines);
+        offsets = new Map(lines.map((line, i) => [line.id, reference.offsets[i] ?? 0]));
+        indentSize = reference.indentSize;
+        layoutFor = lines;
+    };
+    const offsetOf = (id) => { layout(); return offsets.get(id) ?? 0; };
     const formattedAnswer = () => {
         const ids = getAttempt().answer;
         const lookup = new Map(getExercise().lines.map(x => [x.id, x]));
-        const rows = ids.filter((id) => id !== null).map(id => ({ code: text(id), normalization: lookup.get(id)?.normalization ?? 'indent' }));
-        const projected = formatForIDE(rows, { language: getExercise().language });
+        const rows = ids.filter((id) => id !== null).map(id => ({ code: text(id), normalization: lookup.get(id)?.normalization ?? 'indent', offset: offsetOf(id) }));
+        layout();
+        const projected = formatForIDE(rows, { indentSize });
         let index = 0;
         return ids.map(id => id === null ? '' : projected[index++]);
     };

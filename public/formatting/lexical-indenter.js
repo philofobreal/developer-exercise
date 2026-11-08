@@ -94,7 +94,9 @@ export function deriveIndentation(lines,{indentSize=INDENT_SIZE}={}){
   if(s.mode==='code'){
    for(const ch of text){if(/\s/.test(ch))continue;if(!Object.hasOwn(closes,ch))break;if(preview.at(-1)?.char===closes[ch])preview.pop();}
   }
-  const out=preserve?source:' '.repeat(depth(preview)*indentSize)+text;
+  // `offset` (ADR-112): the row's own continuation indent from the formatted reference, in levels.
+  const offset=Number.isInteger(item?.offset)&&item.offset>0&&item.offset<=8?item.offset:0;
+  const out=preserve?source:' '.repeat((depth(preview)+offset)*indentSize)+text;
   scan(source,s,frames);
   return out;
  });

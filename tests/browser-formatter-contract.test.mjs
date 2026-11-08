@@ -1,9 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {beautifier,formatEditor,formatForIDE,ORIGINAL_BEAUTIFY_OPTIONS} from '../public/formatter.js';
-import {LEGACY_SENTINEL} from '../public/formatting/legacy-beautifier.js';
 
-test('Legacy JS Beautify 5-space config is forwarded, sentinel is a private formatting hint',()=>{
+test('the editor forwards the 5-space Beautify options; the projection never calls Beautify (ADR-112)',()=>{
  const original=globalThis.window;let requests=[];
  try{
   globalThis.window={js_beautify:(text,options)=>{requests.push({text,options});return text;}};
@@ -12,7 +11,7 @@ test('Legacy JS Beautify 5-space config is forwarded, sentinel is a private form
   const lines=['function f() {','return 1;','}'];
   assert.deepEqual(formatForIDE(lines), ['function f() {','     return 1;','}']);
   assert.equal(requests[0].options.indent_size,5);
-  assert.equal(requests[1].text.includes(LEGACY_SENTINEL),true);
+  assert.equal(requests.length,1,'only formatEditor called Beautify');
   assert.deepEqual(formatForIDE(lines).map(x=>x.trim()),lines.map(x=>x.trim()));
  }finally{globalThis.window=original;}
 });
@@ -45,7 +44,7 @@ test('TypeScript live indent does not call JS Beautify; it still re-indents',()=
 test('Beautifier output cannot mutate tokens even with a matching marker count',()=>{
  const original=globalThis.window;
  try{
-  globalThis.window={js_beautify:()=>`   BAD CODE${LEGACY_SENTINEL}\n     OTHER CODE${LEGACY_SENTINEL}\n`};
+  globalThis.window={js_beautify:()=>'   BAD CODE\n     OTHER CODE\n'};
   const lines=['function f() {','return 1;'];
   assert.deepEqual(formatForIDE(lines).map(x=>x.trim()),lines.map(x=>x.trim()));
  }finally{globalThis.window=original;}

@@ -174,7 +174,9 @@ try:
         def incomplete(language):
             author(page,JS,language);page.locator('[data-view="edit"]').click();rows=['function calc<T>(a: T) {' if language=='typescript' else 'function calc() {','const re = /}/;','if (ok) {','run();','}']
             page.locator('#code-editor').fill('\n'.join(rows));page.locator('[data-apply]').click();expect(page.locator('.solution-zone')).to_be_visible()
-            actual=values(page);assert len(actual)==5;assert [x.strip() for x in actual]==rows;assert actual[3].startswith('          ')
+            actual=values(page);assert len(actual)==5;assert [x.strip() for x in actual]==rows
+            # ADR-112: the sorter indents in the source's own unit (here 1 space): run() stands two levels deep.
+            lead=lambda text:len(text)-len(text.lstrip(' '));assert lead(actual[1])>0 and lead(actual[3])==2*lead(actual[1]),actual
         case('incomplete invalid JS retains row count and live regex indentation',lambda:incomplete('javascript'))
         case('incomplete invalid TS retains row count and live regex indentation',lambda:incomplete('typescript'))
         def copy_fullscreen_styles():
