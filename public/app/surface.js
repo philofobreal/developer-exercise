@@ -41,6 +41,14 @@ export async function toggleSurface(root, wanted, changed) {
         return;
     try {
         await root.requestFullscreen();
+        // Left again while the browser was still entering: the full screen it opened must not outlive the surface.
+        if (!surface(root)) {
+            try {
+                await document.exitFullscreen();
+            }
+            catch { /* already left */ }
+            return;
+        }
         root.dataset.native = '1';
     }
     catch { /* refused or unsupported: the overlay stays */ }

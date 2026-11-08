@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased – 2026-11-08 javítás: a fókusz gyors ki-be kapcsolása nem hagy teljes képernyőt (ADR-110)
+
+- **Javítva:** ha a Fókusz gombot gyorsan kétszer megnyomtad, lassabb gépen az oldal teljes képernyőn maradhatott fókusz nélkül. A CI-futás ezt mutatta ki.
+
 ## Unreleased – 2026-11-08 a Formázás sorokra tördel (ADR-111)
 
 - **Soronként egy utasítás:** a Formázás most az egysoros vagy rosszul tördelt kódot is sorokra bontja, az eredeti ngDynamic megoldás mintájára.

@@ -29,11 +29,18 @@ A felhasználó jelzései:
    - **Teljes képernyős oldalnézetből lépünk fókuszba:** a fókusz megjegyzi, honnan jött (`data-surface-return`). Kioldáskor oda tér vissza: a teljes képernyős oldalnézet marad, a böngésző teljes képernyője nem zárul be. Ugyanez történik az Escape-re a Fullscreen API nélküli böngészőben.
    - **Az oldalról lépünk fókuszba:** a kioldás a fókusz által nyitott teljes képernyőt is bezárja, mint eddig.
    - **A böngésző saját kilépése** (Escape a natív teljes képernyőben) mindkettőt bezárja.
+   - **Versenyhelyzet (a CI-ban talált hiba):** a böngésző aszinkron lép teljes képernyőre. Ha a fókuszt elhagyják, mielőtt a belépés befejeződne, a belépés után a felület azonnal ki is lép. Így az oldal nem ragad teljes képernyőn fókusz nélkül.
 
 ## Bizonyíték
 
 - [browser-workbench.playwright.py](../../tests/browser-workbench.playwright.py), Node és Pages módban:
-  - `focus_bar_and_full_screen_return`: a fókuszsáv látszik, legfeljebb 34 px magas; teljes képernyőről fókuszba és vissza: a felület `app`, a natív teljes képernyő változatlan; oldalról fókuszba és vissza: semmi nem marad teljes képernyőn.
+  - `focus_bar_and_full_screen_return`:
+    - a fókuszsáv látszik, legfeljebb 34 px magas;
+    - teljes képernyőről fókuszba és vissza: a felület `app`, a natív teljes képernyő változatlan;
+    - oldalról fókuszba és vissza: semmi nem marad teljes képernyőn;
+    - gyors dupla kattintás késleltetett belépéssel: a javítás nélkül az oldal teljes képernyőn ragad, a javítással nem.
+
+    Minden lépés a beállt állapotot várja meg, mert a teljes képernyő ki- és bekapcsolása aszinkron.
   - `preflight_ui`: a Formázás gomb látható, feliratos, és van kerete.
 - [browser-matrix.playwright.py](../../tests/browser-matrix.playwright.py): a Pages jelvénye „Local Demo”, a teljes név az akadálymentes nevében; az „Értem” után a sáv újratöltéskor sem jelenik meg.
 - A gépi akadálymentességi átvizsgálás a fő nézeteken 0 hibával.

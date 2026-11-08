@@ -448,19 +448,28 @@ def focus_bar_and_full_screen_return(page):
     """ADR-110: Focus has a slim bar with the logo; entered from the full-screen page it returns there (the
     browser's full screen stays), entered from the page it leaves the full screen it opened."""
     practice(page);state="()=>({surface:document.querySelector('#app').dataset.surface??null,native:document.fullscreenElement===document.querySelector('#app')})"
+    # Entering and leaving the browser's full screen is asynchronous: every step waits for the settled state.
+    settled="([surface,native])=>{const app=document.querySelector('#app');return (app.dataset.surface??null)===surface&&(document.fullscreenElement===app)===native;}"
     page.locator('[data-fullscreen]').click();page.wait_for_function("()=>document.querySelector('#app').dataset.surface==='app'")
-    native=page.evaluate(state)['native']
+    # Whether this browser grants the native full screen at all (a headless runner may refuse it: then the overlay).
+    try:page.wait_for_function("()=>document.fullscreenElement===document.querySelector('#app')",timeout=3000);native=True
+    except Exception:native=False
+    page.wait_for_function(settled,arg=['app',native])
     expect(page.locator('.focus-bar')).to_be_hidden();expect(page.locator('.header')).to_be_visible()
     page.locator('[data-focus]').click();page.wait_for_function("()=>document.querySelector('#app').dataset.surface==='focus'")
     bar=page.locator('.focus-bar');expect(bar).to_be_visible();expect(bar).to_contain_text('CodeLineSorter');expect(page.locator('.header')).to_be_hidden()
     assert bar.bounding_box()['height']<=34,bar.bounding_box()
-    page.locator('[data-focus]').click();page.wait_for_function("()=>document.querySelector('#app').dataset.surface==='app'")
+    page.locator('[data-focus]').click();page.wait_for_function(settled,arg=['app',native])
     assert page.evaluate(state)=={'surface':'app','native':native},'leaving focus returns to the full-screen page, its full screen kept'
     expect(page.locator('.header')).to_be_visible();expect(page.locator('.focus-bar')).to_be_hidden()
-    page.locator('[data-fullscreen]').click();page.wait_for_function("()=>!document.querySelector('#app').dataset.surface")
+    page.locator('[data-fullscreen]').click();page.wait_for_function(settled,arg=[None,False])
     # From the page: focus opens the full screen it later leaves.
-    page.locator('[data-focus]').click();page.wait_for_function("()=>document.querySelector('#app').dataset.surface==='focus'");expect(page.locator('.focus-bar')).to_be_visible()
-    page.locator('[data-focus]').click();page.wait_for_function("()=>!document.querySelector('#app').dataset.surface")
+    page.locator('[data-focus]').click();page.wait_for_function(settled,arg=['focus',native]);expect(page.locator('.focus-bar')).to_be_visible()
+    page.locator('[data-focus]').click();page.wait_for_function(settled,arg=[None,False])
+    # A quick double toggle: leaving before the browser finished entering leaves no full screen behind. The entry is
+    # delayed as on a slow machine (the CI run that left the page in full screen), so the race is deterministic.
+    page.evaluate("()=>{const enter=Element.prototype.requestFullscreen;Element.prototype.requestFullscreen=function(...args){return new Promise(resolve=>setTimeout(resolve,300)).then(()=>enter.apply(this,args));};}")
+    page.locator('[data-focus]').click();page.locator('[data-focus]').click();page.wait_for_timeout(900);page.wait_for_function(settled,arg=[None,False])
     assert page.evaluate(state)=={'surface':None,'native':False}
 def split_and_full_screen_focus(page):
     """ADR-107: the separator moves the split by pointer and keyboard and is remembered; Focus fills the

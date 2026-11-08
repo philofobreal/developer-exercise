@@ -25,7 +25,12 @@ export async function toggleSurface(root:HTMLElement,wanted:Surface,changed:()=>
  if(wanted==='focus'&&current==='app')root.dataset.surfaceReturn='app';else delete root.dataset.surfaceReturn;
  root.dataset.surface=wanted;changed();
  if(document.fullscreenElement===root||typeof root.requestFullscreen!=='function')return;
- try{await root.requestFullscreen();root.dataset.native='1';}catch{/* refused or unsupported: the overlay stays */}
+ try{
+  await root.requestFullscreen();
+  // Left again while the browser was still entering: the full screen it opened must not outlive the surface.
+  if(!surface(root)){try{await document.exitFullscreen();}catch{/* already left */}return;}
+  root.dataset.native='1';
+ }catch{/* refused or unsupported: the overlay stays */}
 }
 /** Leaving the browser's fullscreen (Escape, a browser gesture) leaves the surface too; without the
  * Fullscreen API, Escape outside a list, an editor or a menu leaves it. */
