@@ -17,12 +17,13 @@ test('HTTP accepts edited >64 KiB data models generated from the full 436-line T
  assert.equal(formatted.status,200);
  const created=await post(base,'/api/author/compile',{source:formatted.body.code,language:'typescript',title:'Large model'});
  assert.equal(created.status,200,JSON.stringify(created.body).slice(0,300));
- assert.equal(created.body.model.lines.length,436);
+ // ADR-111: the fixture's one-line `.map(asset => { …; return asset; })` callback is formatted into rows: 436 + 3.
+ assert.equal(created.body.model.lines.length,439);
  const model=created.body.model;model.lines[1].dependencies=[model.lines[0].id];
  assert.ok(Buffer.byteLength(JSON.stringify({model}))>65536);
  const edited=await post(base,'/api/author/compile',{model});
  assert.equal(edited.status,200,JSON.stringify(edited.body).slice(0,300));
- assert.equal(edited.body.model.lines.length,436);
+ assert.equal(edited.body.model.lines.length,439);
  assert.equal((await post(base,'/api/author/transition',gateBody(edited.body))).status,200);
  const tested=await post(base,'/api/author/preview',{draftId:edited.body.draftId,lines:model.lines.map(l=>l.code)});
  assert.equal(tested.status,200);assert.equal(tested.body.status,'accepted');

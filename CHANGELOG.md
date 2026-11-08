@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased – 2026-11-08 a Formázás sorokra tördel (ADR-111)
+
+- **Soronként egy utasítás:** a Formázás most az egysoros vagy rosszul tördelt kódot is sorokra bontja, az eredeti ngDynamic megoldás mintájára.
+  - Minden utasítás, osztály- és interfésztag, valamint `case`-ág külön sorba kerül.
+  - A sorvégi záró kapcsos zárójel is saját sort kap; a `} else {` együtt marad.
+- **Biztonság:** a formázás csak szóközt és sortörést változtat. Ha a kód szerkezete változna, nem formáz. Az objektumliterálok egy sorban maradnak.
+
+## Unreleased – 2026-11-08 Formázás gomb, Local Demo jelzés, fókuszsáv (ADR-110)
+
+- **A Formázás gomb újra látható:** feliratos gomb a Referenciaforrás címsorában. Eddig keret nélküli ikon volt, ezért nem lehetett észrevenni.
+- **Kisebb Local Demo jelzés:** a cím alatt egy rövid „Local Demo” jelvény. A magyarázat a jelvényre mutatva olvasható; a magyarázó sáv az „Értem” gombbal elvethető, és utána nem jön vissza.
+- **Fókusz mód:**
+  - keskeny sávot kap a logóval;
+  - ha a teljes képernyős oldalnézetből lépsz fókuszba, a kilépés oda tér vissza, és a teljes képernyő megmarad.
+
 ## Unreleased – 2026-11-08 a kulcsok darabszáma nem köti a sorrendet (ADR-109, v53)
 
 - **Kevesebb fölösleges szabály:** ha a program csak a kulcsok számát olvassa (például `Object.keys(o).length`), a kulcsokat létrehozó sorok egymás közötti sorrendje már nem kötött, akkor sem, ha a kulcssorrend „Számít”. A darabszám olvasása továbbra is az írások után marad.

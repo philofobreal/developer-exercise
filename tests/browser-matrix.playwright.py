@@ -1,5 +1,5 @@
 # Real HTTP and subpath Pages matrix. Each case prints its own result.
-import functools, json, os, socket, subprocess, threading, time, urllib.request
+import functools, json, os, re, socket, subprocess, threading, time, urllib.request
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
@@ -234,11 +234,12 @@ try:
             expect(page.locator('.solution-zone .code-text code')).to_have_text(before)
             assert values(page)==before
         case('model/session files and opt-in local save survive reload',transfers)
-        # Admitting the 436-row service runs the full publication gate (every adjacent swap and the
+        # ADR-111: formatting breaks the fixture's one-line callback, so the 436-line service has 439 rows.
+        # Admitting the 439-row service runs the full publication gate (every adjacent swap and the
         # hard probes, ADR-036): about 0.75 s in Node, longer in a loaded browser, so the board waits longer.
         def full_ts():
             page.locator('[data-step="source"]').click();open_menu(page,'open');page.locator('[data-author-sample]').click();expect(page.locator('#author-editor')).to_have_value(__import__('re').compile('CopyFieldUtilityService'))
-            page.locator('[data-author-format]').click();expect(page.locator('.author-status')).to_contain_text('Formázva');page.locator('[data-author-apply]').click();expect(page.locator('[data-board-line]')).to_have_count(436,timeout=20_000);to_try(page);expect(page.locator('.solution-zone .code-row')).to_have_count(436)
+            page.locator('[data-author-format]').click();expect(page.locator('.author-status')).to_contain_text('Formázva');page.locator('[data-author-apply]').click();expect(page.locator('[data-board-line]')).to_have_count(439,timeout=20_000);to_try(page);expect(page.locator('.solution-zone .code-row')).to_have_count(439)
             page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
             m=model(page);assert len(m['blocks'])>20;assert len([x for x in m['lines'] if x['functionBlock']])>200
             page.locator('.solution-zone').evaluate('(x)=>x.scrollTop=3000');saved=page.locator('.solution-zone').evaluate('(x)=>x.scrollTop');visible_index=page.locator('.solution-zone').evaluate('(zone)=>Math.floor(zone.scrollTop/zone.querySelector(".code-row").getBoundingClientRect().height)+3');page.locator(f'[data-down="{visible_index}"]').click();assert abs(page.locator('.solution-zone').evaluate('(x)=>x.scrollTop')-saved)<2
@@ -248,8 +249,11 @@ try:
             demo=context.new_page();assets=[];demo.on('response',lambda r:assets.append((r.url,r.status)))
             demo.on('pageerror',lambda error:errors.append(str(error)))
             prefix=f'http://127.0.0.1:{static.server_port}/developer-exercise/'
-            demo.goto(prefix);expect(demo.locator('[data-step="source"]')).to_have_attribute('aria-current','step');expect(demo.locator('.mode-badge')).to_contain_text('Local Demo / Preview Validation')
+            demo.goto(prefix);expect(demo.locator('[data-step="source"]')).to_have_attribute('aria-current','step');expect(demo.locator('.mode-badge')).to_have_text('Local Demo');expect(demo.locator('.mode-badge')).to_have_attribute('aria-label',re.compile('Local Demo / Preview Validation: Helyi demonstráció'))
             expect(demo.locator('.validation-notice')).to_contain_text('nem hitelesített')
+            # Shown once: dismissed, it stays away after a reload; the badge still names the Local Demo.
+            demo.locator('[data-dismiss-notice]').click();expect(demo.locator('.validation-notice')).to_have_count(0);demo.reload();expect(demo.locator('.mode-badge')).to_have_text('Local Demo');expect(demo.locator('.validation-notice')).to_have_count(0)
+            demo.evaluate("()=>localStorage.removeItem('codeline.local-demo-notice')")
             demo.locator('[data-mode="practice"]').click();demo.locator('[data-all]').click();demo.locator('[data-check]').click();expect(demo.locator('.report')).to_contain_text('Elfogadva')
             demo.locator('[data-mode="author"]').click();demo.locator('[data-step="source"]').click();demo.locator('[data-author="language"]').select_option('typescript');demo.locator('#author-editor').fill(TS);demo.locator('[data-author-format]').click();expect(demo.locator('.author-status')).to_contain_text('Formázva');demo.locator('[data-author-apply]').click();expect(demo.locator('[data-step="rules"]')).to_have_attribute('aria-current','step');to_try(demo)
             demo.locator('[data-all]').click();demo.locator('[data-check]').click();expect(demo.locator('.report')).to_contain_text('Elfogadva')

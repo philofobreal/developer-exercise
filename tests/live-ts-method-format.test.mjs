@@ -28,7 +28,8 @@ for(let i=0;i<methodFixtures.length;i++){
 }
 test('Full 436-line formatted TS fixture dynamically re-indents with zero token loss',()=>{
  const body=formatTypedSource(raw,'typescript',ts).code;
- const rows=body.split('\n').filter(x=>x.trim());assert.equal(rows.length,436);
+ // ADR-111: the fixture's one-line `.map(asset => { …; return asset; })` callback is formatted into rows: 436 + 3.
+ const rows=body.split('\n').filter(x=>x.trim());assert.equal(rows.length,439);
  const projected=formatForIDE(rows,{language:'typescript'});
  assert.deepEqual(projected.map(x=>x.trim()),rows.map(x=>x.trim()));
  assert.ok(projected.some(x=>x.startsWith('     ')));

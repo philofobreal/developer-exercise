@@ -132,6 +132,9 @@ def preflight_ui(page):
     and give the choice back; a refused source lists its findings with the certainty in words, the line as a
     button that selects it in the editor, and the step's state; an edited source marks the findings out of date."""
     page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();box=analysis_options(page)
+    # The Format action is a labelled, visible button again (it had become a bare, borderless icon).
+    fmt=page.locator('[data-author-format]');expect(fmt).to_be_visible();expect(fmt).to_have_text('Formázás')
+    assert fmt.evaluate("b=>getComputedStyle(b).borderTopColor!=='rgba(0, 0, 0, 0)'")
     for legend in ['Elemzési környezet','Forrás biztonságossága','Haladó profil']:expect(box.locator('legend',has_text=legend)).to_have_count(1)
     expect(page.locator('[data-preflight="jsCheck"]')).to_have_count(1);expect(page.locator('[data-preflight="tsDiagnostics"]')).to_have_count(0)
     expect(page.locator('[data-preflight="inputs"] option:checked')).to_contain_text('új feladat kezdőértéke')
@@ -441,6 +444,24 @@ def open_rules(page):
     toggle=page.locator('.inspector-toggle')
     if toggle.get_attribute('aria-pressed')!='true':toggle.click()
     expect(page.locator('.rule-inspector')).to_be_visible()
+def focus_bar_and_full_screen_return(page):
+    """ADR-110: Focus has a slim bar with the logo; entered from the full-screen page it returns there (the
+    browser's full screen stays), entered from the page it leaves the full screen it opened."""
+    practice(page);state="()=>({surface:document.querySelector('#app').dataset.surface??null,native:document.fullscreenElement===document.querySelector('#app')})"
+    page.locator('[data-fullscreen]').click();page.wait_for_function("()=>document.querySelector('#app').dataset.surface==='app'")
+    native=page.evaluate(state)['native']
+    expect(page.locator('.focus-bar')).to_be_hidden();expect(page.locator('.header')).to_be_visible()
+    page.locator('[data-focus]').click();page.wait_for_function("()=>document.querySelector('#app').dataset.surface==='focus'")
+    bar=page.locator('.focus-bar');expect(bar).to_be_visible();expect(bar).to_contain_text('CodeLineSorter');expect(page.locator('.header')).to_be_hidden()
+    assert bar.bounding_box()['height']<=34,bar.bounding_box()
+    page.locator('[data-focus]').click();page.wait_for_function("()=>document.querySelector('#app').dataset.surface==='app'")
+    assert page.evaluate(state)=={'surface':'app','native':native},'leaving focus returns to the full-screen page, its full screen kept'
+    expect(page.locator('.header')).to_be_visible();expect(page.locator('.focus-bar')).to_be_hidden()
+    page.locator('[data-fullscreen]').click();page.wait_for_function("()=>!document.querySelector('#app').dataset.surface")
+    # From the page: focus opens the full screen it later leaves.
+    page.locator('[data-focus]').click();page.wait_for_function("()=>document.querySelector('#app').dataset.surface==='focus'");expect(page.locator('.focus-bar')).to_be_visible()
+    page.locator('[data-focus]').click();page.wait_for_function("()=>!document.querySelector('#app').dataset.surface")
+    assert page.evaluate(state)=={'surface':None,'native':False}
 def split_and_full_screen_focus(page):
     """ADR-107: the separator moves the split by pointer and keyboard and is remembered; Focus fills the
     screen with no page or workspace scroll, also with the inspector and the feedback open."""
@@ -735,6 +756,7 @@ try:
             case('node focus mode without the Fullscreen API: overlay, Escape leaves',lambda:focus_without_fullscreen_api(browser))
             reset(page,BASE);case('node two code views, remembered, with their row geometry',lambda:code_views(page))
             reset(page,BASE);case('node pane separator and full-screen focus without scroll',lambda:split_and_full_screen_focus(page))
+            reset(page,BASE);case('node focus bar and the return to the full-screen page',lambda:focus_bar_and_full_screen_return(page))
             reset(page,BASE);case('node first gate: a definite language error stays on the source step',lambda:source_gate(page))
             reset(page,BASE);case('node second gate: stale source keeps the Try step closed',lambda:second_gate(page))
             reset(page,BASE);case('node duplicate-check prevention and async feedback',lambda:busy(page))

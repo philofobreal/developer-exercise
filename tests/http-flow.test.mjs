@@ -17,7 +17,8 @@ test('HTTP: TS Beautify → Alkalmazás → Rendezés → Ellenőrzés; invalid 
  assert.match(fmt.body.code,/class CopyFieldUtilityService/);
  const compiled=await response(url+'/api/author/compile',{source:fmt.body.code,language:'typescript',title:'Mellékelt TypeScript'});
  assert.equal(compiled.status,200,JSON.stringify(compiled.body).slice(0,300));
- assert.equal(compiled.body.model.lines.length,436);
+ // ADR-111: the fixture's one-line `.map(asset => { …; return asset; })` callback is formatted into rows: 436 + 3.
+ assert.equal(compiled.body.model.lines.length,439);
  // ADR-108 (E6): previews need the second gate; before it, the server refuses them.
  assert.equal((await response(url+'/api/author/preview',{draftId:compiled.body.draftId,lines:[]})).status,409);
  const opened=await response(url+'/api/author/transition',gateBody({draftId:compiled.body.draftId,...compiled.body},fmt.body.code));assert.equal(opened.status,200,JSON.stringify(opened.body).slice(0,300));

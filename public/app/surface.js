@@ -11,14 +11,30 @@ async function leaveNative(root) {
         catch { /* already left */ }
     }
 }
-/** Enter `wanted`, or leave it when it is the current surface; `changed` re-renders the labels. */
-export async function toggleSurface(root, wanted, changed) {
-    if (surface(root) === wanted) {
-        delete root.dataset.surface;
-        await leaveNative(root);
+/** Leaves the current surface: back to the full-screen app when focus came from there, else to the page. */
+async function leave(root, changed) {
+    if (surface(root) === 'focus' && root.dataset.surfaceReturn === 'app') {
+        root.dataset.surface = 'app';
+        delete root.dataset.surfaceReturn;
         changed();
         return;
     }
+    delete root.dataset.surface;
+    delete root.dataset.surfaceReturn;
+    await leaveNative(root);
+    changed();
+}
+/** Enter `wanted`, or leave it when it is the current surface; `changed` re-renders the labels. */
+export async function toggleSurface(root, wanted, changed) {
+    const current = surface(root);
+    if (current === wanted) {
+        await leave(root, changed);
+        return;
+    }
+    if (wanted === 'focus' && current === 'app')
+        root.dataset.surfaceReturn = 'app';
+    else
+        delete root.dataset.surfaceReturn;
     root.dataset.surface = wanted;
     changed();
     if (document.fullscreenElement === root || typeof root.requestFullscreen !== 'function')
@@ -35,6 +51,7 @@ export function installSurface(root, changed) {
     document.addEventListener('fullscreenchange', () => { if (document.fullscreenElement !== root && root.dataset.native) {
         delete root.dataset.native;
         delete root.dataset.surface;
+        delete root.dataset.surfaceReturn;
         changed();
     } });
     document.addEventListener('keydown', event => {
@@ -43,7 +60,6 @@ export function installSurface(root, changed) {
         const target = event.target instanceof Element ? event.target : null;
         if (target?.closest('.drop-zone,.board-list,textarea,input,select,details.menu[open]') || root.querySelector('.code-row.picked,.connect-source'))
             return;
-        delete root.dataset.surface;
-        changed();
+        void leave(root, changed);
     });
 }

@@ -227,6 +227,7 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 .status-dot {width:6px;height:6px;background:var(--blue)}
 .description {margin:8px 0 0;max-width:820px;font-size:13px;line-height:1.6;color:var(--n-76)}
 .task-heading .link-action {margin-top:8px;min-height:30px;padding:4px 10px;font-size:12px}
+.validation-notice {display:flex;align-items:center;gap:12px}.validation-notice>span {flex:1;min-width:0}.notice-dismiss {flex:none;min-height:30px;padding:0 10px;font-size:12px}
 .validation-notice,.draft-notice {margin:0 0 14px;padding:8px 12px;border:1px solid var(--yellow-line);border-left:4px solid var(--yellow);background:var(--yellow-pale);color:var(--n-86);font-size:12px;line-height:1.6}
 .draft-notice {border-color:var(--n-32);border-left-color:var(--n-48);background:var(--n-14)}
 /* Stepper: three grey steps; the current one is blue with the cut corner. */
@@ -263,6 +264,9 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 .editor-heading .editor-tools {margin-left:auto}
 .solution-editor .editor-heading {margin-top:0}
 .editor-tools button {background:transparent;border-color:transparent}
+/* The reference's one text action stays visible among the quiet icon tools (it had vanished as a bare icon). */
+.editor-tools button.labeled-tool {background:var(--n-16);border-color:var(--border);color:var(--text)}
+.editor-tools button.labeled-tool:hover {border-color:var(--n-40)}
 .context-label {border-radius:0}
 .ide-pane {border-radius:0;box-shadow:none;border:1px solid var(--n-32)}
 .step-nav {margin:18px 0 6px}
@@ -393,6 +397,11 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
  * heading, toolbar and check bar take their own height; the lists or the editor take the rest and scroll
  * inside; whatever opens (feedback, details) shrinks them, never the page. */
 #app[data-surface=focus] {display:flex;flex-direction:column;overflow:hidden}
+/* ADR-110: focus keeps a slim bar with the logo, smaller than the page header. */
+.focus-bar {display:none}
+#app[data-surface=focus] .focus-bar {display:flex;flex:none;align-items:center;gap:8px;height:32px;padding:0 12px;border-bottom:1px solid var(--border);background:var(--n-10);font-size:13px}
+#app[data-surface=focus] .focus-bar .brand-mark {width:18px;height:18px}
+#app[data-surface=focus] .focus-bar .brand-mark::after {width:6px;height:6px;border-width:2px}
 #app[data-surface=focus] .shell {flex:1;min-height:0;display:flex;flex-direction:column}
 #app[data-surface=focus] main {flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;padding:8px 12px 10px}
 #app[data-surface=focus] :is(.try-step,#panel-try) {flex:1;min-height:0;display:flex;flex-direction:column}
