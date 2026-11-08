@@ -319,9 +319,7 @@ Következtetés:
     - nincs „deklaráció-előbb” mód (4. eset).
 
     Ma mindkettő nyelvhűen „passed”.
-  - **Ismert pontatlansági rés (11. eset):** az `Object.keys(o).length` nem függ a kulcsok sorrendjétől, a szabályok mégis rögzítik az írások sorrendjét (`keyOrder: observed`).
-    - Túl szigorú, sosem veszélyes: helyes elrendezést nem fogad el tévesen, csak egy helyeset elutasíthat.
-    - A javítás a generátor kulcssorrend-elemzésébe tartozik (szerzői elemzés kockázati osztály), külön feladat.
+  - **A 11. eset rése lezárva** ([ADR-109](109-count-only-key-enumeration.md), v53): az `Object.keys(o).length` nem függ a kulcsok sorrendjétől, ezért a kulcsírások egymás közötti sorrendje szabad.
 - **Árnyékfuttatás (2026-11-07):** mind a 41 szállított modell (16 katalógusfeladat, 25 TypeScript-mintamodell) importált modellként, három beállítással (kezdőérték, a nyelv szigorúbb diagnosztikája, „tilt”).
   - **39 modell** mindkét kapun átmegy mindhárom beállítással.
   - **`13-duplicate-names`:** blokkolva (szándékos TS2300-minta, E5a).

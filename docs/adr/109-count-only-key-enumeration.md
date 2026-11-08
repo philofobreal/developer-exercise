@@ -1,6 +1,6 @@
 # ADR-109 – A kulcsok csak darabszámát olvasó felsorolás nem köti a kulcsírások sorrendjét
 
-Állapot: **elfogadva, megvalósítás alatt** (2026-11-08). Kockázati osztály: szerzői elemzés. Az [ADR-029](029-unobserved-instance-field-order.md) és az [ADR-055](055-key-order-setting.md) szűkítése. Az ADR-108 E9 korpuszának 11-es esete (ismert pontatlansági rés) zárja le.
+Állapot: **elfogadva** (2026-11-08), szabályverzió `scoped-effect-analysis-v53`. Kockázati osztály: szerzői elemzés. Az [ADR-029](029-unobserved-instance-field-order.md) és az [ADR-055](055-key-order-setting.md) szűkítése. Az ADR-108 E9 korpuszának 11-es esete (ismert pontatlansági rés) zárja le.
 
 ## Kontextus
 
@@ -53,11 +53,40 @@ Ha egy saját `Object.keys` mégis felsorolna, annak a helye (`Object.keys = …
    - Csak azoknak az objektumoknak a kulcsírásai lennének kötöttek, amelyek felsorolásba kerülnek.
    - Pontosabb, de álnév- és szökéselemzést kíván, és az ADR-029 programszintű döntését cserélné le. Ez újratervezés, nem rés-zárás.
 
+## Megvalósítás
+
+A [js-ts-ordering.ts](../../src/author/js-ts-ordering.ts) `keyObservationText` függvénye kihagyja a darabszám-olvasás tulajdonságnevét (`COUNT_ONLY`, `countOnly`).
+- **Ugyanott dől el, hogy az `Object` a beépített-e** (`builtinObject`):
+  - nincs `Object` nevű kötés, sem értékadás, `++`/`--` vagy `for…in/of` cél;
+  - nincs `with`;
+  - nincs kiírás nélkül elért név.
+- **Az `Object` egyszerű olvasása** (`typeof Object`, `!Object`) nem kötés.
+- **Az interfész nem változott.**
+
+## Mérés (2026-11-08)
+
+- **Monotonitás:** 418 program (a fixture-katalógus és a sorrendkorpusz), mindkét kulcssorrend-beállítással, 813 740 sorrend:
+  - a v52 által elfogadottak közül a v53 egyet sem utasít el;
+  - egyik program modellje sem változott, mert a meglévő korpuszban egyik programban sem a darabszám az egyetlen felsorolás.
+- **Korpusz-, generatív és kampány-alapvonal:** változatlan, 0 hibás elfogadás.
+- **Példák és minták:**
+  - a 16 katalógusfeladat és a 25 TypeScript-mintamodell szabálykészlete nem változott, csak a szabályverzió címkéje;
+  - a minősítés is ugyanaz: 14 elemzéssel igazolt, 2 szerzői módosítású, mint előtte.
+
+## Bizonyíték
+
+[count-only-key-enumeration.test.mjs](../../tests/count-only-key-enumeration.test.mjs):
+- **pozitív:**
+  - `Object.keys/values/entries(o).length`, `?.length` és összehasonlításban is: a két írás szabad, a darabszám olvasása az írások után marad, mindkét kulcssorrend-beállításban, JavaScriptben és TypeScriptben;
+  - **orákulum:** a darabszám-tanúk minden elfogadott sorrendje ugyanazt adja (0 hibás elfogadás, 0 rés).
+- **negatív, kötött marad:**
+  - indexelés, a teljes lista, `join`, `JSON.stringify` (és hossza), spread, `for…in`, álnév, a darabszám mellett más felsorolás;
+  - nem egyargumentumos vagy spreades hívás;
+  - saját `Object` kötés vagy értékadás, és a lecserélt `Object.keys`;
+  - **orákulum:** ahol a sorrend látszik az eredményen, a csere indokolt elutasítás.
+- [preflight-corpus.test.mjs](../../tests/preflight-corpus.test.mjs): a terv 11. esete elfogadott.
+
 ## Következmények
 
-- A generált szabályok változnak azokban a programokban, amelyek csak darabszámot olvasnak, ezért új szabályverzió kell (`DEPENDENCY_POLICY`). A szállított modellek hatását a verify-models és az árnyékfuttatás mutatja meg (K3).
-- **Bizonyíték:**
-  - esetkorpusz a fenti táblázat soraival: a darabszám-olvasás szabad, a többi kötött marad, a megfigyelés az írások után marad;
-  - árnyékolt `Object` és `with` mellett kötött;
-  - a szerzői elemzés kockázati osztályának mérési sorai.
+- **Új szabályverzió:** `scoped-effect-analysis-v53`, a formális szerződésben és a sémában is.
 - **Mellékmegfigyelés, nem e döntés része:** „Nem számít” módban a `for…in` és az álnéven át olvasott hossz mellett is kötött a csere.

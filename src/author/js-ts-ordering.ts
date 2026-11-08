@@ -49,18 +49,31 @@ export function jsTsEnvironment(file: ts.SourceFile, compiler: typeof ts, option
  *  - properties of the program's own instances: `this.x` inside its class bodies, and `v.x` where
  *    `const v = new C(…)` of a class in the file without heritage or a constructor `return`, used
  *    in the declaring block — unless a method may be rebound (`call`, `apply`, `bind`, `Reflect`,
- *    `prototype`, a method read without a call, or an unspelled name).
+ *    `prototype`, a method read without a call, or an unspelled name);
+ *  - ADR-109: the property name of a key listing read only for its count, `Object.keys(x).length` (also
+ *    `values`, `entries`): it observes how many keys there are, not their order. Only where `Object` is the
+ *    built-in: the file binds or assigns no `Object`, uses no `with`, and reaches no name unspelled.
  * Everything else stays textual, strings included. */
+const COUNT_ONLY = new Set(['keys', 'values', 'entries']);
 const PROPERTY_ONLY = new Set(['keys', 'values', 'entries', 'stringify', 'assign', 'getOwnPropertyNames', 'ownKeys', 'getOwnPropertyDescriptors']);
 const REBINDING = /\.(?:call|apply|bind)\b|\bReflect\b|\.prototype\b|setPrototypeOf|__proto__|\bwith\s*\(/;
 export function keyObservationText(file: ts.SourceFile, compiler: typeof ts, reached = unspelledNames(file, compiler)): string {
  const text = file.text, S = compiler.SyntaxKind, blank: [number, number][] = [];
  const name = (node: ts.Node | undefined): void => {if (node && (compiler.isIdentifier(node) || compiler.isPrivateIdentifier(node) || compiler.isStringLiteral(node))) blank.push([node.getStart(file), node.end]);};
- let withStatement = false;
+ let withStatement = false, objectBound = false;
+ // Whether this occurrence of `Object` declares or assigns a binding of that name (then `Object` may not be the built-in).
+ const bindsObject = (node: ts.Identifier): boolean => {
+  const parent = node.parent;
+  if ((compiler.isVariableDeclaration(parent) || compiler.isParameter(parent) || compiler.isFunctionDeclaration(parent) || compiler.isClassDeclaration(parent) || compiler.isClassExpression(parent) || compiler.isFunctionExpression(parent) || compiler.isBindingElement(parent) || compiler.isImportClause(parent) || compiler.isImportSpecifier(parent) || compiler.isNamespaceImport(parent) || compiler.isImportEqualsDeclaration(parent) || compiler.isEnumDeclaration(parent) || compiler.isModuleDeclaration(parent)) && parent.name === node) return true;
+  if (compiler.isBinaryExpression(parent) && parent.left === node && parent.operatorToken.kind >= S.FirstAssignment && parent.operatorToken.kind <= S.LastAssignment) return true;
+  if ((compiler.isPrefixUnaryExpression(parent) || compiler.isPostfixUnaryExpression(parent)) && (parent.operator === S.PlusPlusToken || parent.operator === S.MinusMinusToken)) return true;
+  return (compiler.isForInStatement(parent) || compiler.isForOfStatement(parent)) && parent.initializer === node;
+ };
  const methods = new Set<string>(), declared = new Map<string, number>(), instances = new Map<string, ts.Node>();
  const classes = new Map<string, ts.ClassDeclaration>();
  const survey = (node: ts.Node): void => {
   if (compiler.isWithStatement(node)) withStatement = true;
+  if (compiler.isIdentifier(node) && node.text === 'Object' && bindsObject(node)) objectBound = true;
   if (compiler.isClassDeclaration(node) && node.name) classes.set(node.name.text, node);
   if ((compiler.isMethodDeclaration(node) || compiler.isGetAccessorDeclaration(node) || compiler.isSetAccessorDeclaration(node)) && compiler.isClassLike(node.parent) && compiler.isIdentifier(node.name)) methods.add(node.name.text);
   if ((compiler.isVariableDeclaration(node) || compiler.isParameter(node) || compiler.isFunctionDeclaration(node) || compiler.isClassDeclaration(node) || compiler.isBindingElement(node)) && node.name && compiler.isIdentifier(node.name)) declared.set(node.name.text, (declared.get(node.name.text) ?? 0) + 1);
@@ -76,6 +89,14 @@ export function keyObservationText(file: ts.SourceFile, compiler: typeof ts, rea
  };
  reads(file);
  const rebindable = extracted || REBINDING.test(text) || reached === 'any' || reached.some(item => item === 'call' || item === 'apply' || item === 'bind' || item === 'prototype');
+ const builtinObject = !objectBound && !withStatement && reached !== 'any';
+ /** ADR-109: `Object.keys(x).length` (or `values`, `entries`), one plain argument, its result read only for `.length`. */
+ const countOnly = (node: ts.Node): node is ts.CallExpression & {expression: ts.PropertyAccessExpression} => {
+  if (!builtinObject || !compiler.isCallExpression(node) || node.arguments.length !== 1 || compiler.isSpreadElement(node.arguments[0]!)) return false;
+  const callee = node.expression, parent = node.parent;
+  return compiler.isPropertyAccessExpression(callee) && compiler.isIdentifier(callee.expression) && callee.expression.text === 'Object' && compiler.isIdentifier(callee.name) && COUNT_ONLY.has(callee.name.text)
+   && compiler.isPropertyAccessExpression(parent) && parent.expression === node && parent.name.text === 'length';
+ };
  // `const v = new C(…)`: v is declared once in the file, C is a class of the file that returns its own instance.
  const ownClass = (expression: ts.Expression): boolean => {
   if (!compiler.isIdentifier(expression)) return false;
@@ -114,6 +135,7 @@ export function keyObservationText(file: ts.SourceFile, compiler: typeof ts, rea
    const property = compiler.isPropertyAccessExpression(parent) && parent.name === node || compiler.isBindingElement(parent) && (parent.propertyName === node || !parent.propertyName) || compiler.isPropertyAssignment(parent) && parent.name === node || compiler.isQualifiedName(parent);
    if (!property) name(node);
   }
+  if (countOnly(node)) blank.push([node.expression.name.getStart(file), node.expression.name.end]);
   if (compiler.isPropertyAccessExpression(node) && !rebindable) {
    const receiver = node.expression;
    if (receiver.kind === S.ThisKeyword && inClassBody(node)) name(node.name);

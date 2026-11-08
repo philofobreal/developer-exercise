@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-11-08 a kulcsok darabszáma nem köti a sorrendet (ADR-109, v53)
+
+- **Kevesebb fölösleges szabály:** ha a program csak a kulcsok számát olvassa (például `Object.keys(o).length`), a kulcsokat létrehozó sorok egymás közötti sorrendje már nem kötött, akkor sem, ha a kulcssorrend „Számít”. A darabszám olvasása továbbra is az írások után marad.
+- **Változatlanul kötött:** ahol a sorrend látszhat: első kulcs, a teljes lista, `JSON.stringify`, `for…in`, spread, vagy ha a program a `Object`-et sajátjával helyettesíti.
+- **Mérés:**
+  - 418 programon egyetlen korábban elfogadott sorrend sem lett elutasítva;
+  - a 16 gyakorlófeladat és a TypeScript-minták szabályai nem változtak, csak a szabályverzió címkéje.
+
 ## Unreleased – 2026-11-07 szerzői preflight: tesztkorpusz, mérés és árnyékfuttatás (ADR-108, E9–E10)
 
 - **Tesztkorpusz:** a terv minimális esetei teljes úton tesztelve. A biztos hibákat (például inicializálás előtti hozzáférés) megállítja; a hiányzó projektkörnyezetet nem jelöli hibásnak.

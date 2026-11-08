@@ -67,9 +67,8 @@ test('11, 12: key order and a Proxy under valid inputs, as the rules decide them
  const keys='function f() {\n  const o = {};\n  o.a = 1;\n  o.b = 2;\n  return Object.keys(o);\n}';
  assert.equal(swap(await run(keys,{keyOrder:'observed'}),2,3),'rejected');
  assert.equal(swap(await run(keys,{keyOrder:'ignored'}),2,3),'accepted');
- // Known precision gap (plan §9.11): the length alone does not depend on key order, but the rules still order the
- // writes. Over-strict, never unsafe: a correct arrangement is never accepted wrongly. Recorded in ADR-108.
- assert.equal(swap(await run(keys.replace('Object.keys(o);','Object.keys(o).length;'),{keyOrder:'observed'}),2,3),'rejected');
+ // Plan §9.11 (ADR-109, v53): the length alone does not depend on key order, so the writes are free.
+ assert.equal(swap(await run(keys.replace('Object.keys(o);','Object.keys(o).length;'),{keyOrder:'observed'}),2,3),'accepted');
  const reads='function f(o) {\n  const a = o.x;\n  const b = o.y;\n  return a + b;\n}';
  assert.equal(swap(await run(reads,{inputs:'valid'}),1,2),'accepted');
  assert.equal(swap(await run(reads,{inputs:'any'}),1,2),'rejected');
