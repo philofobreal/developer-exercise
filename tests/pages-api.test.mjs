@@ -32,14 +32,20 @@ test('Pages demo: exercises → local validation → author → edited model →
    const js='function demo() {\nconst a = 10;\nconst b = 20;\nreturn a + b;\n}';
    const first=await api.compileDraft({source:js,language:'javascript',title:'User draft'});
    assert.equal(first.model.lines.length,5);
-   assert.equal(first.audit.semantics,'not-run','the static demo ships no standard library (ADR-016)');
-   assert.ok(first.audit.assumptions.includes('no-standard-library'));
+   // ADR-113: the demo fetches the standard library the server reads, so its language audit runs as the server's does.
+   assert.equal(first.audit.semantics,'ok');
+   assert.ok(first.audit.assumptions.includes('lib:lib.es2022.full.d.ts'));
+   assert.deepEqual((await api.resolvePolicy({language:'javascript'})).unavailable,[],'with the library nothing is server-only');
+   const checked=await api.checkSource({source:'console.log(x);\nconst x = 1;',language:'javascript'});
+   assert.equal(checked.gate.verdict,'blocked');assert.equal(checked.gate.diagnostics[0].code,'BS001');
+   const typed=await api.checkSource({source:'const n: number = "s";',language:'typescript'});
+   assert.equal(typed.gate.verdict,'blocked','a language error is found here as on the server');assert.equal(typed.gate.diagnostics[0].code,'TS2322');
    assert.equal(first.verification.publishable,true);
    assert.equal(first.verification.checks.rederivation,'match','the static demo re-derives the rules locally (ADR-017)');
    // ADR-108 (E6): previews need the second gate; the demo refuses them before it.
    await assert.rejects(api.previewDraft({draftId:first.draftId,lines:[]}),/második kapun/);
    const gate=(await api.authorTransition(gateBody(first,js))).gate;
-   assert.equal(gate.verdict,'inconclusive','the demo has no standard library: the first gate was inconclusive, so is the second');
+   assert.equal(gate.verdict,'passed','ADR-113: with the standard library both gates decide here as on the server');
    assert.equal((await api.previewDraft({draftId:first.draftId,lines:first.model.lines.map(x=>x.code)})).status,'accepted');
    await assert.rejects(api.authorTransition(gateBody(first,js+'\n// edited')),/forrás a modell készítése óta változott/);
    const changed=structuredClone(first.model);
@@ -95,4 +101,25 @@ test('Pages rule edits (ADR-021): the demo edits its own draft copy, re-qualifie
   await admit(api,fixed,'function f() {\n  const a = 1;\n  const b = 2;\n  const c = a + 3;\n  g(b, c);\n}');assert.equal((await api.previewDraft({draftId:fixed.draftId,lines:fixed.model.lines.map(x=>x.code)})).status,'accepted');
   await assert.rejects(api.previewDraft({draftId:first.draftId,lines:[]}),/lejárt/,'the edited draft replaced its predecessor');
  }finally{globalThis.ts=saved;}
+});
+
+test('ADR-113: without the standard library (a failed fetch) the demo falls back to C16: not-run, block server-only',async()=>{
+ const nativeFetch=globalThis.fetch,originalTS=globalThis.ts;
+ const require=createRequire(import.meta.url);
+ let ts;
+ try{ts=require('typescript');}catch{ts=require(join(execFileSync('npm',['root','-g'],{encoding:'utf8'}).trim(),'typescript/lib/typescript.js'));}
+ globalThis.ts={...ts,sys:undefined};
+ globalThis.fetch=async url=>{
+  const pathname=fileURLToPath(url instanceof URL?url:new URL(url));
+  if(pathname.endsWith('typescript-lib.json'))return new Response('Not found',{status:404});
+  try{return new Response(await readFile(pathname),{status:200});}catch{return new Response('Not found',{status:404});}
+ };
+ try{
+  // A fresh module instance, so the library is fetched (and fails) anew.
+  const api=await import('../_site/app/pages-api.js?without-library');
+  assert.deepEqual((await api.resolvePolicy({language:'javascript'})).unavailable.map(item=>item.path),['unknownPolicy','jsCheck']);
+  const draft=await api.compileDraft({source:'function f() {\nconst a = 1;\nreturn a;\n}',language:'javascript',title:'T'});
+  assert.equal(draft.audit.semantics,'not-run');assert.ok(draft.audit.assumptions.includes('no-standard-library'));
+  await assert.rejects(api.checkSource({source:'const a = 1;',language:'javascript',policy:{unknownPolicy:'block'}}),/csak a szerveren választható/);
+ }finally{globalThis.fetch=nativeFetch;globalThis.ts=originalTS;}
 });

@@ -293,7 +293,7 @@ Következtetés:
 - **Javított E7-hiba:** a szerző saját JSON-szerkesztése (Szabályok → JSON alkalmazása, függőségfrissítés) nem küldte el a preflight-opciókat. Így például a „Tilt” csendben „Figyelmeztet”-re állt vissza. Most a saját JSON-szerkesztés a szerző beállításaival megy.
 - **Mi marad a kliensnél:** hogy a modell útján csak a `policy` részt kell küldeni, a környezetet a modell bizonyítéka adja (`recordedContract`). Ez a két hívó (munkamenet, saját JSON) közös, egysoros szabálya, nem külön modul.
 
-**C16 – ami a futási környezetben nem végezhető el** ([config-resolver.ts](../../src/author/preflight/config-resolver.ts)):
+**C16 – ami a futási környezetben nem végezhető el** (az [ADR-113](113-local-demo-standard-library-and-source-check.md) óta a Pages szállítja a szabványos könyvtárat, a szabály a betöltés sikertelenségére marad) ([config-resolver.ts](../../src/author/preflight/config-resolver.ts)):
 - **A hiba:** a Local Demóban (Pages) nincs szabványos könyvtár, ezért a nyelvi ellenőrzés nem fut, és az első kapu minden forrásra „nem eldönthető”.
   - A „Nem eldönthető eredmények: Tilt” beállítással így egyetlen modell sem készülhetett.
   - A felület ezt felajánlotta, és csak a modellkészítés bukott el, félrevezető üzenettel.

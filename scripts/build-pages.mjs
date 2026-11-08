@@ -1,5 +1,6 @@
 /** Prepare a GitHub Pages static demonstrator, retaining the original Node project. */
 import {cp,copyFile,mkdir,rm,writeFile,readFile} from 'node:fs/promises';
+import {readFileSync} from 'node:fs';
 import path from 'node:path';
 import {createRequire} from 'node:module';
 import {publishExamples} from './publish-examples.mjs';
@@ -33,6 +34,14 @@ const tsSource=require.resolve('typescript/lib/typescript.js');
 await mkdir(path.join(out,'vendor'),{recursive:true});
 await copyFile(tsSource,path.join(out,'vendor','typescript.js'));
 await copyFile(path.join(path.dirname(path.dirname(tsSource)),'LICENSE.txt'),path.join(out,'vendor','LICENSE-typescript.txt'));
+// ADR-113: the standard library the server's language audit reads (lib.es2022.full.d.ts and what it references),
+// so the Local Demo audits as the server does. Fetched once, on the first author action.
+{
+ const libDir=path.dirname(tsSource),library={};
+ const visit=name=>{const file=`lib.${name}.d.ts`;if(Object.hasOwn(library,file))return;const text=readFileSync(path.join(libDir,file),'utf8');library[file]=text;for(const match of text.matchAll(/<reference lib="([^"]+)"/g))visit(match[1]);};
+ visit('es2022.full');
+ await writeFile(path.join(out,'vendor','typescript-lib.json'),JSON.stringify(library));
+}
 let index=await readFile(path.join(out,'index.html'),'utf8');
 index=index.replaceAll('href="/','href="./').replaceAll('src="/','src="./');
 index=index.replace('<title>CodeLineSorter</title>','<title>CodeLineSorter – GitHub Pages demo</title>');

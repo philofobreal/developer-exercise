@@ -59,6 +59,16 @@ export class ExerciseCatalog{
   async auditor(){const ts=await this.parser(),dir=path.dirname(ts.getDefaultLibFilePath({}));return this.languageAudit??=createReferenceAuditor(ts,name=>{try{return readFileSync(path.join(dir,path.basename(name)),'utf8');}catch{return undefined;}});}
   async format({source,language='typescript'}={}){return getLanguageAdapter(language).format(source,await this.parser());}
   prune(){const now=Date.now();for(const [key,value] of this.drafts)if(now-value.created>1_800_000)this.drafts.delete(key);}
+  /** ADR-113: the first gate on a source, without making a model or storing anything: the author checks the
+   *  reference under the chosen settings before building. A refused option is the same 422 as for a build. */
+  async checkSource(body){
+    if(typeof body?.source!=='string'||body.source.length>200_000)throw new ServiceError(400,'Invalid source');
+    const language=body.language==='typescript'?'typescript':'javascript';
+    const policy=resolveAuthorPolicy({...body,language});{const refusal=policyRefusal(policy);if(refusal)throw new ServiceError(422,refusal,{policy});}
+    const source=body.source.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n');
+    const gate=sourceGate((await this.auditor()).audit(source,language,auditMode(policy)),policy,runtimeSafety(await this.parser(),source,language,{objectState:policy.effective.objectState}));
+    return {gate,policy};
+  }
   async createDraft(body){
     this.prune();if(this.drafts.size>=100)throw new ServiceError(429,'Too many active previews');
     if(body?.refreshDependencies!==undefined&&typeof body.refreshDependencies!=='boolean'||body?.refreshDependencies&&!body.model)throw new ServiceError(400,'A függőségfrissítéshez teljes modell és logikai refreshDependencies jelző kell.');

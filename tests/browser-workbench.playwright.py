@@ -147,14 +147,10 @@ def preflight_ui(page):
     expect(why).to_have_attribute('open','');expect(why.locator('p')).to_contain_text('Feloldás');expect(why.locator('p')).to_contain_text('Érvényes egyszerű adat')
     expect(page.locator('[data-preflight="objectState"]')).to_be_enabled()
     page.locator('[data-preflight="portability"]').select_option('configured');expect(inputs).to_be_enabled();expect(inputs).to_have_value('valid');expect(summary).not_to_contain_text('zárolt')
-    if page.url.startswith(BASE):
-        page.locator('[data-preflight="unknownPolicy"]').select_option('block');expect(summary).to_contain_text('bizonytalan: tilt')
-        page.locator('[data-preflight="unknownPolicy"]').select_option('warn')
-    else:
-        # C16: the Local Demo runs no language audit, so "block" would refuse every model: offered only on the server.
-        for path,value in [('unknownPolicy','block'),('jsCheck','on')]:
-            option=page.locator(f'[data-preflight="{path}"] option[value="{value}"]');expect(option).to_be_disabled();expect(option).to_contain_text('csak szerveren')
-            expect(page.locator(f'[data-server-only="{path}"]')).to_contain_text('csak a szerveren választható')
+    # ADR-113: the Local Demo loads the standard library, so it offers what the server offers (C16 only without it).
+    expect(page.locator('[data-preflight="unknownPolicy"] option[value="block"]')).to_be_enabled();expect(page.locator('[data-server-only]')).to_have_count(0)
+    page.locator('[data-preflight="unknownPolicy"]').select_option('block');expect(summary).to_contain_text('bizonytalan: tilt')
+    page.locator('[data-preflight="unknownPolicy"]').select_option('warn')
     page.locator('#author-editor').fill('function f() {\n  const a = b;\n  const b = 1;\n  return a;\n}');page.locator('[data-author-apply]').click();current(page,'source')
     findings=page.locator('[data-source-diagnostics]');expect(findings).to_contain_text('Biztos hiba');expect(findings).to_contain_text('BS001')
     expect(page.locator('[data-step="source"]')).to_contain_text('Hibás forrás')
@@ -460,6 +456,17 @@ def indentation_single_owner(page):
     to_try(page);page.locator('[data-all]').click()
     sorter=[text.rstrip() for text in page.locator('.solution-zone .code-row .code-text').all_inner_texts()]
     assert sorter==source,sorter
+def source_check(page):
+    """ADR-113: the Source step checks the reference under the chosen settings without making a model: findings
+    with their line, the step's state, and a clean result in words; no model, so Rules stays locked."""
+    page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click()
+    page.locator('#author-editor').fill('function f() {\n  const a = b;\n  const b = 1;\n  return a;\n}')
+    page.locator('[data-author-check]').click()
+    findings=page.locator('[data-source-diagnostics]');expect(findings).to_contain_text('BS001');expect(findings).to_contain_text('Biztos hiba')
+    expect(page.locator('[data-step="source"]')).to_contain_text('Hibás forrás');expect(page.locator('[data-step="rules"]')).to_be_disabled()
+    page.locator('#author-editor').fill('function f() {\n  const b = 1;\n  const a = b;\n  return a;\n}');page.locator('[data-author-check]').click()
+    expect(page.locator('.author-status')).to_contain_text('nem találtam hibát');expect(page.locator('[data-source-diagnostics]')).to_have_count(0)
+    expect(page.locator('[data-step="rules"]')).to_be_disabled()
 def focus_bar_and_full_screen_return(page):
     """ADR-110: Focus has a slim bar with the logo; entered from the full-screen page it returns there (the
     browser's full screen stays), entered from the page it leaves the full screen it opened."""
@@ -766,7 +773,7 @@ try:
         watch(context)
         try:
             for mode,url in [('node',BASE),('pages',f'http://127.0.0.1:{static.server_port}/developer-exercise/')]:
-                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('preflight settings, locks and findings',preflight_ui),('one indentation in source, board and sorter',indentation_single_owner),('session v2 records the analysis settings; v1 is partial',session_settings),('model-first creation',model_first),('a rejected order names its rule and how to lift it',rule_cause_lifts),('key order setting and rule kinds',key_order_and_rule_kinds),('class-field mode setting',class_fields_setting),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('the input contract is chosen, recorded and restored',input_contract),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll),('circles toggle links: checks, removal and exact restore',link_toggle),('pins fix and release a line on the board',pin_lines),('feedback marks graded rows, invalidates on a move and respects the learner view',learner_feedback)]:
+                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('preflight settings, locks and findings',preflight_ui),('one indentation in source, board and sorter',indentation_single_owner),('the source is checked without a model',source_check),('session v2 records the analysis settings; v1 is partial',session_settings),('model-first creation',model_first),('a rejected order names its rule and how to lift it',rule_cause_lifts),('key order setting and rule kinds',key_order_and_rule_kinds),('class-field mode setting',class_fields_setting),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('the input contract is chosen, recorded and restored',input_contract),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll),('circles toggle links: checks, removal and exact restore',link_toggle),('pins fix and release a line on the board',pin_lines),('feedback marks graded rows, invalidates on a move and respects the learner view',learner_feedback)]:
                     reset(page,url);case(mode+' '+name,lambda:action(page))
                 reset(page,url);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-author.png')),full_page=True)
                 practice(page);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-practice.png')),full_page=True)

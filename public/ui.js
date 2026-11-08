@@ -17,7 +17,7 @@ import {createWorkbenchView} from './app/view.js';
 import {practiceOrder} from './app/fields.js';
 import {createInsertionDrag} from './app/drag-insert.js';
 import {createScrollMemory,updateGutters,copyToClipboard,escapeHtml} from './app/ui-utilities.js';
-import {formatSource,getExercises,compileDraft,editRules,previewDraft,resolvePolicy,evaluate,loadTypeScriptFixture} from './app/api.js';
+import {formatSource,getExercises,compileDraft,checkSource,editRules,previewDraft,resolvePolicy,evaluate,loadTypeScriptFixture} from './app/api.js';
 const root=document.querySelector('#app');
 const state={exercises:[],active:null,attempts:new Map(),previews:new Map(),drag:null,mode:'author',view:'author',practiceActive:null,author:{...NEW_DRAFT_SETTINGS,title:'Saját kódrendezős feladat',description:'Rendezd sorba a kódsorokat.',language:'javascript',source:`function calculate() {\n     const a = 10;\n     const b = 20;\n     return a + b;\n}`,message:''},modelDraft:'',modelMessage:''};
 const ex=()=>state.exercises.find(x=>x.id===state.active);
@@ -206,6 +206,14 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
    try{const result=await formatSource(ed.value,state.author.language);if(!current())return;state.author.source=result.code;state.author.message=`Formázva: ${result.formatter} (${result.indentSize??5} szóköz).`;render();}
    catch(err){if(current()){state.author.message=err.message;render();}}return;
  }
+ if(b.hasAttribute('data-author-check')){
+  // ADR-113: the first gate alone; its findings go to the same list a build would fill.
+  const editor=root.querySelector('#author-editor');if(editor)state.author.source=editor.value;
+  const source=state.author.source,current=captureAuthorRequest(state);b.disabled=true;
+  try{const {gate}=await checkSource(authorRequest(state.author));if(!current())return;state.sourceGate={gate,source};
+   state.author.message=gate.verdict==='passed'?'A forrás ellenőrzése: nem találtam hibát a bekapcsolt ellenőrzésekkel. A Modell készítése ugyanezt az ellenőrzést futtatja.':gate.message;}
+  catch(err){if(!current())return;if(err?.details?.gate)state.sourceGate={gate:err.details.gate,source};state.author.message=err.message;}
+  render();return;}
  if(b.hasAttribute('data-author-apply')){const editor=root.querySelector('#author-editor');if(editor)state.author.source=editor.value;b.disabled=true;try{await authorApply(authorRequest(state.author),{land:'rules'});}catch(err){state.author.message=err.message;if(state.view!=='author')state.modelMessage=err.message;render();}return;}
  if(b.hasAttribute('data-model-apply')){state.modelDraft=root.querySelector('#model-editor').value;b.disabled=true;try{await authorApply({model:JSON.parse(state.modelDraft),...ownSettings()},{preserveAttempt:true,land:state.view==='author'?'rules':'stay'});}catch(err){state.modelMessage=err.message;render();}return;}
  if(b.hasAttribute('data-model-refresh')){state.modelDraft=root.querySelector('#model-editor').value;try{await authorApply({model:JSON.parse(state.modelDraft),refreshDependencies:true,...ownSettings()},{preserveAttempt:true});}catch(err){state.modelMessage=err.message;render();}return;}

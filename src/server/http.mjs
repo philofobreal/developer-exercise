@@ -43,6 +43,7 @@ export function createApplication({catalog,staticRoot,authorToken}){
         if(route==='/api/author/format')return json(res,200,await catalog.format(body));
         if(route==='/api/author/compile')return json(res,200,await catalog.createDraft(body));
         if(route==='/api/author/transition')return json(res,200,await catalog.transition(body));
+        if(route==='/api/author/check')return json(res,200,await catalog.checkSource(body));
         if(route==='/api/author/preview')return json(res,200,catalog.preview(body));
         if(route==='/api/author/rules')return json(res,200,await catalog.editDraft(body));
       }

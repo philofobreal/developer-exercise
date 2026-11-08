@@ -40,9 +40,9 @@ try:
                         for(const item of suite){
                             const prefix='./samples/typescript/'+item.id;
                             const source=await (await read(prefix+'.ts')).text(),expected=await (await read(prefix+'.model.json')).json();
-                            // ADR-108 (E5a): a sample marked with semantic errors is refused by the first gate where the
-                            // language audit runs (the server); on Pages the audit is not-run, so the gate is inconclusive.
-                            if(item.semanticErrors?.length&&api.validationMode!=='local-demo'){
+                            // ADR-108 (E5a): a sample marked with semantic errors is refused by the first gate; since ADR-113
+                            // the Local Demo runs the same language audit, so Pages refuses it too.
+                            if(item.semanticErrors?.length){
                                 let refused='';try{await api.compileDraft({source,language:'typescript',title:item.title,description:item.description});}catch(error){refused=String(error.message);}posts++;
                                 if(!/nyelvi hibát tartalmaz/.test(refused)||!/TS2300/.test(refused))throw Error(item.id+' must be refused by the first gate: '+refused);
                                 continue;

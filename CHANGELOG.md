@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-11-08 teljes ellenőrzés a Local Demóban és a Forrás lépésben (ADR-113)
+
+- **A Local Demó ugyanúgy ellenőriz, mint a szerver:** a demó betölti a TypeScript szabványos könyvtárát. Így a nyelvi hibákat (például típushibát) a demó is felismeri, és minden elemzési beállítás választható, a „Tilt” is. Ha a könyvtár nem töltődik be, a demó a korábbi módon jelzi, mi érhető el csak szerveren.
+- **Forrás ellenőrzése:**
+  - új gomb a Forrás lépésben: a választott beállításokkal ellenőrzi a referenciát, modell készítése nélkül;
+  - a talált hibák sorszámmal és érthető magyarázattal jelennek meg, a sorszámra kattintva a szerkesztő a hibás sorra ugrik;
+  - ha nincs hiba, ezt is kiírja.
+
 ## Unreleased – 2026-11-08 javítás: egy behúzás a Forrásban, a Szabályokban és a Próbán (ADR-112)
 
 - **Javítva:** ugyanaz a kód a Forrás szerkesztőben, a Szabályok táblán és a Próba rendezőben háromféle behúzással jelent meg.
