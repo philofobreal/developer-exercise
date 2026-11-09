@@ -233,11 +233,13 @@ export function createInsertionDrag({ root, onInsert, onReturn, onPick }) {
                 pickRow(row);
             return;
         }
-        if (!target || target.closest('.drag-handle'))
+        // The event's own path, fixed at dispatch: a handler that redraws first (the action bar) leaves `target` detached.
+        const path = ev.composedPath().filter((node) => node instanceof Element), on = (selector) => path.some(node => node.matches(selector));
+        if (!target || on('.drag-handle'))
             return;
-        if (target.closest('[data-keep-pick]'))
+        if (on('[data-keep-pick]'))
             return;
-        if (target.closest('button,a,input,select,textarea,summary')) {
+        if (on('button,a,input,select,textarea,summary')) {
             unpick();
             return;
         }

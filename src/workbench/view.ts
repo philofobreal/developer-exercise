@@ -76,7 +76,13 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:Wor
   const id=ids[i],answer=pick.list==='answer';
   const moves=answer?tool(`data-up="${i}" data-keep-pick`,'','up',`class="icon-only" aria-label="${i+1}. sor feljebb" title="Feljebb"`)+tool(`data-down="${i}" data-keep-pick`,'','down',`class="icon-only" aria-label="${i+1}. sor lejjebb" title="Lejjebb"`)+tool(`data-remove="${i}"`,'Vissza a sorokhoz','back'):tool(`data-move="${i}"`,'Beszúrás','plus','title="Beszúrás az első szabad helyre"');
   const rules=rulesAvailable(state)&&typeof id==='number'?tool(`data-rule-line="${id}"`,'Sor szabályai','link'):'';
-  return `<div class="evaluation-bar pick-bar" role="toolbar" aria-label="A kijelölt sor műveletei"><p class="pick-status">${answer?`A megoldás ${i+1}. sora`:'Felhasználható sor'} kijelölve. Koppints a helyére, vagy:</p><div class="pick-actions">${moves}${rules}${tool('data-unpick','Kész','check','class="primary"')}</div></div>`;
+  // ADR-118 (amended): the row's connections, as the row's own circle on a pointer screen: mark them, hide them, or with
+  // another row's connections marked, add or remove the rule between the two (a rule edit, so it waits as one, ADR-120).
+  const anchor=state.ruleConnect;
+  const connect=!rulesAvailable(state)||typeof id!=='number'?'':anchor===undefined?tool(`data-rule-connect="${id}" data-keep-pick`,'Kapcsolatok','connect','aria-pressed="false" title="A sor kapcsolatainak megjelölése: kék előtte, borostyán utána"')
+   :anchor===id?tool(`data-rule-connect="${id}" data-keep-pick`,'Kapcsolatok elrejtése','connect','aria-pressed="true"')
+   :tool(`data-rule-connect="${id}"`,`Kapcsolat a(z) #${anchor} sorral`,'connect',disabledAttributes(availability(state,'rule-edit'))+` title="Szabály létrehozása vagy törlése a(z) #${anchor} és e sor között"`);
+  return `<div class="evaluation-bar pick-bar" role="toolbar" aria-label="A kijelölt sor műveletei"><p class="pick-status">${answer?`A megoldás ${i+1}. sora`:'Felhasználható sor'} kijelölve. Koppints a helyére, vagy:</p><div class="pick-actions">${moves}${rules}${connect}${tool('data-unpick','Kész','check','class="primary"')}</div></div>`;
  }
  function sortView(e:ExerciseSummary,a:AttemptSnapshot):string {
   const filled=a.answer.filter(id=>id!==null).length;

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-11-09 javítás: érintőképernyőn újra elérhetők a sor kapcsolatai (ADR-118 kiegészítés)
+
+- **Javítva:** az érintéses sávból kimaradt a sor kör alakú kapcsolat-vezérlője. Telefonon a Próba rendezőjében így nem lehetett megjelölni egy sor kapcsolatait, és két sor között szabályt felvenni sem.
+- **Most a kijelölt sor sávjában:**
+  - **Kapcsolatok:** megjelöli a sor kapcsolatait; kék, aminek előtte, borostyán, aminek utána kell állnia;
+  - **Kapcsolatok elrejtése**;
+  - egy másik sort kijelölve **Kapcsolat a(z) #N sorral:** szabály felvétele vagy törlése a két sor között.
+
 ## Unreleased – 2026-11-09 kódszerkesztő kiemeléssel és automatikus formázással (ADR-121)
 
 - **Színes kód mindenhol:**

@@ -26,6 +26,19 @@
 - **Érintés-elsődleges képernyőn egérrel** (például táblagép egérrel, `hover: none`) a kódra kattintás is kijelöl. Itt a sorvégi gombok rejtve vannak, és e nélkül az egér nem érné el a sor műveleteit. A böngészős mátrixteszt érintéses, 1500 px-es környezete éppen ezt az esetet mutatta ki.
 - **Egérrel és billentyűzettel semmi nem változik:** a sorvégi gombok és a billentyűzetes mozgatás ugyanúgy működik. Egérrel nem jön létre kijelölés, ezért a sávot nem kell töréspont szerint ki-be kapcsolni.
 
+## Kiegészítés (2026-11-09): a sor kapcsolatai is a sávban
+
+**A hiba:** az első változatból kimaradt a sor kör alakú kapcsolat-vezérlője. Érintőképernyőn a Próba rendezőjében így nem lehetett megjelölni egy sor kapcsolatait, és két sor között sem lehetett szabályt felvenni vagy törölni. A Szabályok tábláján megmaradt. A felhasználó vette észre.
+
+**A javítás:** a sávban a szerző Sor szabályai mellett ott van a kör is (ugyanaz a `data-rule-connect` kezelő):
+- **Kapcsolatok:** megjelöli a sor kapcsolatait; kék, aminek előtte, borostyán, aminek utána kell állnia.
+- **Kapcsolatok elrejtése.**
+- **Kapcsolat a(z) #N sorral:** ha egy másik sor kapcsolatai vannak megjelölve, a két sor közti szabályt veszi fel vagy törli. Ez szabályszerkesztés, ezért az ADR-120 szerint vár, ha alkalmazatlan piszkozat van.
+
+**Közben javított hiba:** a sáv gombjának kezelője újrarajzol, mielőtt a húzáskezelő kattintásfigyelője lefut, ezért a figyelő nem ismerte fel a gombot, és megszüntette a kijelölést. Most az esemény rögzített útvonalát (`composedPath`) nézi.
+
+A böngészős `pick_actions` teszt a megjelölést és az elrejtést is ellenőrzi.
+
 ## Két terv („design it twice”)
 
 1. **A húzáskezelő jelzi a kijelölést, a nézet rajzolja a sávot (választott).**

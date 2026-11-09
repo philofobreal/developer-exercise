@@ -101,14 +101,14 @@ try:
         case('TS three-level lexical ownership, ancestor bindings and scope escape',lambda:nested_witness(page,'typescript'))
 
 
-        def row_action(action,index):
+        def row_action(action,index,done=True):
             """ADR-118: the row's own button where the screen shows it; on a touch-first screen the picked row's action bar."""
             own=page.locator(f'.code-row [data-{action}="{index}"]')
             if own.is_visible():own.click();return
             listed='pool' if action=='move' else 'answer'
             page.locator(f'.code-row[data-list="{listed}"][data-index="{index}"] .code-text').click()
             page.locator(f'.pick-bar [data-{action}="{index}"]').click()
-            if page.locator('.pick-bar').count():page.locator('.pick-bar [data-unpick]').click()
+            if done and page.locator('.pick-bar').count():page.locator('.pick-bar [data-unpick]').click()
 
         def dependency():
             author(page);strict=model(page);strict['lines'][2]['dependencies']=[2];apply_model(page,strict)
@@ -173,12 +173,15 @@ try:
         def stale_report():
             author(page);page.locator('[data-all]').click()
             def delayed(route):
-                response=route.fetch();row_action('up',2);route.fulfill(response=response)
+                # inside the route handler only the move; the pick ends after the response (a click here races the route)
+                response=route.fetch();row_action('up',2,done=False);route.fulfill(response=response)
             page.route('**/api/author/preview',delayed)
             try:
                 page.locator('[data-check]').click();expect(page.locator('.solution-zone .code-row[data-index="1"] code')).to_contain_text('const b')
                 page.wait_for_function('() => !document.querySelector(".report.accepted")')
-            finally:page.unroute('**/api/author/preview',delayed)
+            finally:
+                page.unroute('**/api/author/preview',delayed)
+                if page.locator('.pick-bar').count():page.locator('.pick-bar [data-unpick]').click()
         case('an evaluation response cannot overwrite feedback after a new move',stale_report)
         def fixed():
             author(page);m=model(page);m['lines'][0]['fixed']=True;m['lines'][-1]['fixed']=True;apply_model(page,m);page.locator('[data-all]').click()

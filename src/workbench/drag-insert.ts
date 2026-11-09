@@ -165,9 +165,11 @@ export function createInsertionDrag({root,onInsert,onReturn,onPick}:InsertionOpt
       if(touchFirst&&row&&row.draggable===true&&!target!.closest('button,a,input,select,textarea,summary'))pickRow(row);
       return;
     }
-    if(!target||target.closest('.drag-handle'))return;
-    if(target.closest('[data-keep-pick]'))return;
-    if(target.closest('button,a,input,select,textarea,summary')){unpick();return;}
+    // The event's own path, fixed at dispatch: a handler that redraws first (the action bar) leaves `target` detached.
+    const path=ev.composedPath().filter((node):node is Element=>node instanceof Element),on=(selector:string):boolean=>path.some(node=>node.matches(selector));
+    if(!target||on('.drag-handle'))return;
+    if(on('[data-keep-pick]'))return;
+    if(on('button,a,input,select,textarea,summary')){unpick();return;}
     const zone=target.closest<HTMLElement>('.drop-zone[data-zone]');
     if(!zone){unpick();announce('Kijelölés megszüntetve.');return;}
     if(picked.exercise!==root.dataset.renderedExercise){unpick();return;}

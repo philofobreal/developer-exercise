@@ -469,6 +469,11 @@ def pick_actions(browser):
         # the author's Try: the row's rules open as a bottom sheet; the toolbar above it stays in view
         page.locator('[data-mode="author"]').click();page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill(rules_source)
         page.locator('[data-author-apply]').click();current(page,'rules');to_try(page)
+        # the row's connections are in the bar too (the board's circle): mark them, hide them
+        page.locator('.source-zone .code-row').nth(1).locator('.code-text').tap();connect=page.locator('.pick-bar [data-rule-connect]')
+        expect(connect).to_have_attribute('aria-pressed','false');connect.tap();expect(page.locator('.pick-bar [data-rule-connect]')).to_have_attribute('aria-pressed','true')
+        expect(page.locator('.board-connecting, .code-row.connect-source').first).to_be_visible()
+        page.locator('.pick-bar [data-rule-connect]').tap();expect(page.locator('.pick-bar [data-rule-connect]')).to_have_attribute('aria-pressed','false');page.locator('.pick-bar [data-unpick]').tap()
         page.locator('.source-zone .code-row').nth(1).locator('.code-text').tap();page.locator('.pick-bar [data-rule-line]').tap()
         sheet=page.locator('.rule-inspector');expect(sheet).to_be_visible();expect(page.locator('#rule-panel-title')).to_be_visible()
         box=sheet.bounding_box();assert box['y']>844*.2,f'the rule sheet leaves the top in view ({box["y"]})'
