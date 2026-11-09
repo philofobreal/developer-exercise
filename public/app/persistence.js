@@ -57,4 +57,11 @@ export function downloadJSON(value, name) {
 }
 const KEY = 'ngdynamic.author-session.v1';
 export function saveLocal(session) { localStorage.setItem(KEY, JSON.stringify(session)); }
+/** ADR-120: whether this browser holds a saved session (no storage, as in a private window, reads as none). */
+export function hasLocalSave() { try {
+    return localStorage.getItem(KEY) !== null;
+}
+catch {
+    return false;
+} }
 export function loadLocal() { const text = localStorage.getItem(KEY); return text ? parseImport(text) : null; }

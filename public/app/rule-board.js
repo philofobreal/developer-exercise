@@ -1,3 +1,14 @@
+/** Rule drawing and linking (ADR-022, ADR-024). The Rules step's board shows the reference lines
+ * in model order; the Try step's sorter shows the author's current arrangement. On both, a line's
+ * direct constraints are drawn as arcs. Every row has a link toggle (the circle): activating one
+ * makes its line the anchor, and every other row's toggle then shows its direct link with the
+ * anchor as a check in the colour of the relation (WAI-ARIA toggle button, `aria-pressed`).
+ * Activating a check removes that link, an empty circle creates one, so the same two activations
+ * also restore a removed link. A pointer drag from one circle onto another row is the same
+ * toggle. This presents the core's rule sheet and reports intent only; whether a link may be
+ * created or removed is a typed edit the core decides (ADR-018, ADR-021). Both surfaces exist
+ * only for the author's own draft. */
+import { availability, disabledAttributes } from './availability.js';
 import { createRuleMarks, ruleButton, rulesAvailable } from './rule-panel.js';
 import { icon } from './icons.js';
 import { escapeHtml as esc } from './ui-utilities.js';
@@ -11,7 +22,7 @@ export function linkWith(state, anchor, id) {
  * (blue: must stand before the anchor, amber: after it; a lock for a structural link) or an
  * empty circle for an unlinked one. */
 export function connectButton(state, id) {
-    const anchor = state.ruleConnect, button = (kind, pressed, label, title, content) => `<button type="button" class="board-connect${kind ? ' link-' + kind : ''}" data-rule-connect="${id}"${kind ? ` data-link="${kind.split(' ')[0]}"` : ''} aria-pressed="${pressed}" aria-label="${label}" title="${title}">${content}</button>`;
+    const anchor = state.ruleConnect, button = (kind, pressed, label, title, content) => `<button type="button"${disabledAttributes(availability(state, 'rule-edit'))} class="board-connect${kind ? ' link-' + kind : ''}" data-rule-connect="${id}"${kind ? ` data-link="${kind.split(' ')[0]}"` : ''} aria-pressed="${pressed}" aria-label="${label}" title="${title}">${content}</button>`;
     if (anchor === undefined)
         return button('', false, `A(z) #${id} sor kapcsolatai`, 'Kattints: kipipálja a sor kapcsolatait. Húzd egy másik sorra: létrehozza vagy megszünteti köztük a kapcsolatot.', '<span aria-hidden="true"></span>');
     if (anchor === id)
@@ -24,9 +35,9 @@ export function connectButton(state, id) {
 }
 /** A board row's pin (WAI-ARIA toggle button): a pinned line may stand only at its reference
  * position in a solution (`fixed`, ADR-002); the core applies it as a typed `set-fixed` edit. */
-export function pinButton(id, index, fixed) {
+export function pinButton(id, index, fixed, gate = '') {
     const place = `${index + 1}. helyen`;
-    return `<button type="button" class="pin-toggle" data-rule-pin="${id}" aria-pressed="${fixed}" aria-label="${fixed ? `A(z) #${id} sor rögzítésének feloldása (most a ${place} rögzített)` : `A(z) #${id} sor rögzítése a ${place}`}" title="${fixed ? `Rögzített: a megoldásban csak a ${place} állhat. Kattints a feloldáshoz.` : `Rögzítés: a sor a megoldásban csak a ${place} állhat.`}">${icon('pin')}</button>`;
+    return `<button type="button"${gate} class="pin-toggle" data-rule-pin="${id}" aria-pressed="${fixed}" aria-label="${fixed ? `A(z) #${id} sor rögzítésének feloldása (most a ${place} rögzített)` : `A(z) #${id} sor rögzítése a ${place}`}" title="${fixed ? `Rögzített: a megoldásban csak a ${place} állhat. Kattints a feloldáshoz.` : `Rögzítés: a sor a megoldásban csak a ${place} állhat.`}">${icon('pin')}</button>`;
 }
 // ADR-093: the colour keys stay in sight; the longer explanation of the controls folds away.
 const legend = '<div class="board-legend"><span class="board-legend-keys"><span class="rule-swatch before" aria-hidden="true"></span>előtte kell állnia <span class="rule-swatch selected" aria-hidden="true"></span>kijelölt <span class="rule-swatch after" aria-hidden="true"></span>utána kell állnia</span><details class="legend-help" data-memory="legend-help"><summary>Jelmagyarázat</summary><p>Láncszem: a sor szabályai. Kör: kipipálja a sor kapcsolatait; pipára kattintva megszünteted, üres körre kattintva létrehozod a kapcsolatot. Rajzszög: a sort a helyére rögzíted, vagy feloldod.</p></details></div>';
@@ -38,7 +49,7 @@ export function renderRuleBoard(state, highlight) {
         return '';
     // ADR-112: the reference rows as the sorter projects them (the formatted source's indentation), not block depth.
     const marks = createRuleMarks(state), reference = referenceLayout(model.lines), shown = formatForIDE(model.lines.map((line, i) => ({ code: line.code, normalization: line.normalization ?? 'indent', offset: reference.offsets[i] ?? 0 })), { indentSize: reference.indentSize });
-    const rows = model.lines.map((line, index) => `<li class="board-row${marks(line.id)}${state.ruleConnect === line.id ? ' connect-source' : ''}${line.fixed ? ' fixed-row' : ''}" data-board-line="${line.id}">${connectButton(state, line.id)}<span class="board-id">#${line.id}</span><span class="board-index">${index + 1}.</span><pre class="code-text"><code>${highlight(shown[index] ?? line.code)}</code></pre><span class="row-actions">${pinButton(line.id, index, line.fixed)}${ruleButton(state, line.id)}</span></li>`).join('');
+    const rows = model.lines.map((line, index) => `<li class="board-row${marks(line.id)}${state.ruleConnect === line.id ? ' connect-source' : ''}${line.fixed ? ' fixed-row' : ''}" data-board-line="${line.id}">${connectButton(state, line.id)}<span class="board-id">#${line.id}</span><span class="board-index">${index + 1}.</span><pre class="code-text"><code>${highlight(shown[index] ?? line.code)}</code></pre><span class="row-actions">${pinButton(line.id, index, line.fixed, disabledAttributes(availability(state, 'rule-edit')))}${ruleButton(state, line.id)}</span></li>`).join('');
     return `<section class="rule-board" aria-labelledby="rule-board-title"><div class="board-heading"><h3 id="rule-board-title">A referencia sorai és szabályai</h3>${toggle(state)}</div>${legend}${connecting(state)}<p class="board-status" role="status" aria-live="polite" data-board-status>${esc(state.boardStatus ?? '')}</p><div class="board-frame"><svg class="board-arcs" data-board-arcs aria-hidden="true" focusable="false"></svg><ol class="board-list" data-board-list aria-label="A referencia sorai">${rows}</ol></div></section>`;
 }
 /** The Try step's rule inspector head (ADR-107): the same legend and drawing switch as the board. */

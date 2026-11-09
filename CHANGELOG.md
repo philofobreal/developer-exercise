@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased – 2026-11-09 nem kattintható, amit most nem lehet, és megmondja, miért (ADR-120)
+
+- **Letiltva, okkal:** ami most nem lehetséges, az halványan, de elérhetően látszik. Ha rákattintasz, mellette megjelenik, miért nem, és mit tegyél. Eddig kattintás után jött a hibaüzenet.
+  - Modell készítése: forrás nélkül, illetve ha a modell naprakész.
+  - Forrás vizsgálata: forrás nélkül.
+  - Mentett munka megnyitása: ha ebben a böngészőben nincs mentés.
+  - Újrakezdés: üres megoldásnál.
+- **Egyszerre egy piszkozat:** amíg a CodeLine JSON-ban vagy a forrásban alkalmazatlan változtatás van, a szabályok vizuális szerkesztése szünetel. A felület kiírja, miért, és hogyan folytathatod (alkalmazás vagy elvetés).
+- **Billentyűzettel és képernyőolvasóval is:** a letiltott gomb fókuszálható marad, és az oka is elhangzik.
+
 ## Unreleased – 2026-11-09 egy fogalom, egy szó (ADR-119)
 
 - **Az Ellenőrzés mostantól csak a tanuló megoldásáé.**

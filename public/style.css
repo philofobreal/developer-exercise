@@ -537,3 +537,10 @@ button.btn.link-action:hover:not(:disabled) {background:var(--blue-pale);border-
  /* The rule panel is a bottom sheet on a phone: the toolbar and the lists above it stay in view, its own close stays on top. */
  .rule-inspector {top:auto;left:0;right:0;width:100%;max-height:75dvh;border-top:3px solid var(--blue);box-shadow:0 -16px 40px color-mix(in srgb,var(--shadow) 55%,transparent)}
 }
+/* ADR-120 (U3): a disabled control stays focusable and readable; its reason shows beside it on activation, and once above
+ * the rule editor while it waits for a single draft. */
+:is(button,summary)[aria-disabled="true"] {opacity:.5;cursor:not-allowed}
+:is(button,summary)[aria-disabled="true"]:hover {background:inherit}
+.disabled-hint {position:fixed;z-index:1200;padding:8px 10px;border:1px solid var(--yellow-line);border-left:4px solid var(--yellow);background:var(--yellow-pale);color:var(--text);font-size:12.5px;line-height:1.5;box-shadow:0 10px 24px color-mix(in srgb,var(--shadow) 40%,transparent)}
+.edit-paused {display:flex;gap:8px;align-items:flex-start;margin:0 0 12px;padding:8px 12px;border:1px solid var(--yellow-line);border-left:4px solid var(--yellow);background:var(--yellow-pale);color:var(--text);font-size:12.5px;line-height:1.5}
+.edit-paused .icon {flex:none;margin-top:2px}

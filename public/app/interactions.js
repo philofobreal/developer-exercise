@@ -26,6 +26,36 @@ export function adjacentMoveBoundary(position, direction, length, isFixed) {
     return position;
 }
 /** Header and step menus (ADR-105) are disclosure widgets: a click outside, Escape, or an action inside closes them. */
+/** ADR-120 (U3): a control the availability model disabled (aria-disabled with a reason) never runs: this capture-phase
+ * guard stops the click (or Enter/Space) before any handler and shows the reason beside the control, read out politely.
+ * Nothing failed, so there is no error message; the reason says what to do instead. */
+export function installDisabledGuard(root) {
+    let timer;
+    root.addEventListener('click', event => {
+        const control = event.target instanceof Element ? event.target.closest('[aria-disabled="true"][data-disabled-reason]') : null;
+        if (!control)
+            return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const reason = control.dataset.disabledReason ?? '';
+        let hint = root.querySelector('.disabled-hint');
+        if (!hint) {
+            hint = document.createElement('div');
+            hint.className = 'disabled-hint';
+            hint.setAttribute('role', 'status');
+            root.append(hint);
+        }
+        hint.textContent = reason;
+        const box = control.getBoundingClientRect(), width = Math.min(320, innerWidth - 24);
+        hint.style.width = `${width}px`;
+        hint.style.left = `${Math.max(12, Math.min(box.left, innerWidth - width - 12))}px`;
+        hint.style.top = `${box.bottom + 6 + 260 > innerHeight ? Math.max(12, box.top - 6 - hint.offsetHeight) : box.bottom + 6}px`;
+        hint.hidden = false;
+        window.clearTimeout(timer);
+        timer = window.setTimeout(() => { if (hint)
+            hint.hidden = true; }, 4500);
+    }, true);
+}
 export function installMenus(root) {
     const close = (except) => { for (const menu of root.querySelectorAll('details.menu[open]'))
         if (menu !== except)

@@ -11,7 +11,9 @@ import {generateCodeLineExercise} from '../src/author/generator.mjs';
 import {auditReference} from '../src/author/audit.mjs';
 import {authorRuleSheet,refreshAuthorModel} from '../dist/author/engine.js';
 import {explainConstraints,compileCodeLineExercise,validateSubmission,sourceTextDigest} from '../dist/index.js';
-import {createRuleMarks,readRuleKindEdits,recordRuleRefusal,renderModelInsight,renderRuleCause,renderRuleKinds,renderRulePanel,ruleEditBlocked,settleRuleKind,settleRuleSelection} from '../public/app/rule-panel.js';
+import {availability,reasonOf} from '../public/app/availability.js';
+const ruleEditBlocked=state=>reasonOf(availability(state,'rule-edit'));
+import {createRuleMarks,readRuleKindEdits,recordRuleRefusal,renderModelInsight,renderRuleCause,renderRuleKinds,renderRulePanel,settleRuleKind,settleRuleSelection} from '../public/app/rule-panel.js';
 import {reasonCode} from '../dist/author/reason-codes.js';
 import {authorRequest} from '../public/app/author-workspace.js';
 
@@ -124,7 +126,7 @@ test('panel state: refusals ask for the named acknowledgement; new drafts settle
  assert.deepEqual([selection.pending,selection.message],[undefined,'Kör']);
  const state=await panelState();settleRuleSelection(state,true);assert.match(state.ruleSelection.message,/érvényes/);
  state.ruleSelection.line=99;settleRuleSelection(state,false);assert.equal(state.ruleSelection,undefined);
- const dirty=await panelState();assert.equal(ruleEditBlocked(dirty),'');dirty.modelDraft+=' ';assert.match(ruleEditBlocked(dirty),/nem alkalmazott JSON/);
+ const dirty=await panelState();assert.equal(ruleEditBlocked(dirty),'');dirty.modelDraft+=' ';assert.match(ruleEditBlocked(dirty),/alkalmazatlan módosítás/);
 });
 
 test('insight: qualification, claims, audit and refresh report are shown and escaped',async()=>{

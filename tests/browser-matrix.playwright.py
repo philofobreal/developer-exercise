@@ -29,12 +29,18 @@ def case(name,fn):
     count+=1;print('PASS matrix: '+name,flush=True)
 def to_try(page):page.locator('[data-step="try"]').click();expect(page.locator('.solution-zone .code-row').first).to_be_visible()
 def rules_json(page):page.locator('[data-step="rules"]').click();page.locator('[data-rules-view="json"]').click();expect(page.locator('#model-editor')).to_be_visible()
+COMPILED={}
 def author(page,source=JS,language='javascript'):
     page.locator('[data-mode="author"]').click();page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click()
     page.locator('[data-author="language"]').select_option(language)
     page.locator('#author-editor').fill(source)
+    # ADR-120: a model already built from this source and these settings is up to date; its build is disabled, so reuse it.
+    if page.locator('[data-author-apply]').get_attribute('aria-disabled')=='true' and (source,language) in COMPILED:
+        to_try(page);restart=page.locator('[data-reset]')
+        if restart.count() and restart.get_attribute('aria-disabled')!='true':restart.click()
+        return COMPILED[(source,language)]
     with page.expect_response(lambda r:'/api/author/compile' in r.url) as response:page.locator('[data-author-apply]').click()
-    data=response.value.json();expect(page.locator('[data-step="rules"]')).to_have_attribute('aria-current','step');to_try(page);return data
+    data=response.value.json();COMPILED[(source,language)]=data;expect(page.locator('[data-step="rules"]')).to_have_attribute('aria-current','step');to_try(page);return data
 def model(page):
     rules_json(page);value=json.loads(page.locator('#model-editor').input_value());to_try(page);return value
 def apply_model(page,m):

@@ -374,12 +374,19 @@ def pending_reference_survives_rule_edit(page):
     page.locator('[data-step="source"]').click();page.locator('[data-author="language"]').select_option('typescript');analysis_options(page);expect(page.locator('[data-preflight="importEmit"]')).to_have_value('verbatim')
     unapplied='function f() {\n  const unapplied = 1;\n}'
     page.locator('#author-editor').fill(unapplied);page.locator('[data-step="rules"]').click();expect(page.locator('[data-stale-notice]')).to_be_visible()
-    page.locator('.board-row').first.locator('[data-rule-line]').click();page.locator('[data-rule-edit="fixed"]').click()
-    expect(page.locator('[data-rule-panel] .rule-status')).to_contain_text('érvényes');expect(page.locator('[data-stale-notice]')).to_be_visible()
+    # ADR-120: one draft at a time. With an unapplied reference the rule editor waits and says why; the draft is kept.
+    page.locator('.board-row').first.locator('[data-rule-line]').click();fixed=page.locator('[data-rule-edit="fixed"]')
+    expect(fixed).to_have_attribute('aria-disabled','true');fixed.click(force=True);expect(page.locator('.disabled-hint')).to_contain_text('forrás vagy az elemzési beállítás')
+    expect(page.locator('[data-edit-paused]')).to_be_visible();expect(page.locator('[data-stale-notice]')).to_be_visible()
     page.locator('[data-step="source"]').click();expect(page.locator('#author-editor')).to_have_value(unapplied);expect(page.locator('[data-author-status]')).to_contain_text('Nem alkalmazott')
-    # An unapplied JSON draft is never overwritten by a rule edit.
+    # Discarding the draft lets the editor work again.
+    page.locator('[data-step="rules"]').click();page.locator('[data-stale-notice] [data-author-revert]').click();expect(page.locator('[data-edit-paused]')).to_have_count(0)
+    page.locator('.board-row').first.locator('[data-rule-line]').click() if not page.locator('[data-rule-edit="fixed"]').count() else None
+    page.locator('[data-rule-edit="fixed"]').click();expect(page.locator('[data-rule-panel] .rule-status')).to_contain_text('érvényes')
+    # An unapplied JSON draft is never overwritten by a rule edit: the editor waits for it.
     rules_json(page);page.locator('#model-editor').fill('{unapplied JSON');page.locator('[data-rules-view="visual"]').click()
-    page.locator('[data-rule-edit="fixed"]').click();expect(page.locator('[data-rule-panel] .rule-status')).to_contain_text('nem alkalmazott JSON')
+    expect(page.locator('[data-rule-edit="fixed"]')).to_have_attribute('aria-disabled','true');page.locator('[data-rule-edit="fixed"]').click(force=True)
+    expect(page.locator('.disabled-hint')).to_contain_text('CodeLine JSON')
     page.locator('[data-rules-view="json"]').click();expect(page.locator('#model-editor')).to_have_value('{unapplied JSON')
 
 def input_contract(page):
@@ -466,6 +473,23 @@ def pick_actions(browser):
         box=sheet.bounding_box();assert box['y']>844*.2,f'the rule sheet leaves the top in view ({box["y"]})'
         close=page.locator('.inspector-head [data-rule-panel-toggle]');expect(close).to_be_visible();close.tap();expect(sheet).to_have_count(0)
     finally:mobile.close()
+
+# ADR-120 (U3): a control that cannot act now is disabled with its reason (still focusable); activating it runs nothing and
+# shows the reason beside it. One draft at a time: an unapplied JSON pauses the visual rule editor.
+def availability_rules(page):
+    page.locator('[data-mode="author"]').click();page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill('')
+    page.locator('#author-editor').dispatch_event('input');page.locator('[data-step="source"]').click()
+    build=page.locator('[data-author-apply]');expect(build).to_have_attribute('aria-disabled','true');expect(build).to_have_attribute('data-disabled-reason',re.compile('Nincs forrás'))
+    build.click(force=True);expect(page.locator('.disabled-hint')).to_be_visible();expect(page.locator('.disabled-hint')).to_contain_text('Nincs forrás');current(page,'source')
+    # a source no model was built from yet (earlier cases on this page built rules_source itself, which is up to date)
+    page.locator('#author-editor').fill(rules_source+'\n// U3');page.locator('#author-editor').dispatch_event('input')
+    expect(page.locator('[data-author-apply]')).not_to_have_attribute('aria-disabled','true');page.locator('[data-author-apply]').click();current(page,'rules')
+    page.locator('[data-step="source"]').click();expect(page.locator('[data-author-apply]')).to_have_attribute('data-disabled-reason',re.compile('naprakész'))
+    rules_json(page);editor=page.locator('#model-editor');original=editor.input_value();editor.fill(original+' ');page.locator('[data-rules-view="visual"]').click()
+    expect(page.locator('[data-edit-paused]')).to_contain_text('CodeLine JSON');pin=page.locator('.pin-toggle').first
+    expect(pin).to_have_attribute('aria-disabled','true');pin.click(force=True);expect(page.locator('.disabled-hint')).to_contain_text('CodeLine JSON')
+    expect(page.locator('.board-row.fixed-row')).to_have_count(0)
+    rules_json(page);editor.fill(original);page.locator('[data-rules-view="visual"]').click();expect(page.locator('[data-edit-paused]')).to_have_count(0)
 
 # ADR-101: the author chooses the level in the source step; the built model carries it.
 def author_level(page):
@@ -824,6 +848,7 @@ try:
             reset(page,BASE);case('node author chooses the exercise level',lambda:author_level(page))
             case('node tap to pick, tap to place on a touch screen',lambda:tap_to_place(browser))
             case('node picked row actions in the action bar, rule panel as a bottom sheet',lambda:pick_actions(browser))
+            case('node disabled controls carry their reason; one draft at a time',lambda:availability_rules(page))
             reset(page,BASE);case('node theme choice: system, light, dark, remembered before first paint',lambda:theme_choice(page))
             reset(page,BASE);case('node header and step menus open and close',lambda:menus(page))
             case('node forced dark browser keeps the chosen light theme white',lambda:forced_dark(p))

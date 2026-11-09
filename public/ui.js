@@ -2,7 +2,10 @@ import {markEditorDraft,markEditorApplied,reloadEditorFromArrangement,captureEdi
 import {refreshAuthorStatus,captureAuthorRequest,authorRequest,startFromExample,replaceDraft,undoReplace,revertAuthorDraft,admitAuthorModel} from './app/author-workspace.js';
 import {NEW_DRAFT_SETTINGS,setPreflightOption,settingsKey,settingsRequest} from './app/preflight-settings.js';
 import {revealLine} from './app/ui-utilities.js';
-import {readRuleEdit,readRuleKindEdits,recordRuleRefusal,ruleEditBlocked,settleRuleKind,settleRuleSelection} from './app/rule-panel.js';
+import {readRuleEdit,readRuleKindEdits,recordRuleRefusal,settleRuleKind,settleRuleSelection} from './app/rule-panel.js';
+import {availability,reasonOf,refreshAvailability} from './app/availability.js';
+/** ADR-120: the rule editor's own last check (the view and the guard already refused a disabled control). */
+const ruleEditBlocked=state=>reasonOf(availability(state,'rule-edit'));
 import {connection,installRuleBoard,linkWith} from './app/rule-board.js';
 import {authorPreviewId,blockedReason,enterMode,enterView,landAfterAdmission,tryAdmission} from './app/flow.js';
 /** App orchestration and event wiring; modes, steps and staleness live in the typed flow (ADR-022). */
@@ -89,7 +92,7 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  if(b.hasAttribute('data-import-model')){root.querySelector('[data-model-file]').click();return;}
  if(b.hasAttribute('data-export-session')){downloadJSON(snapshot(),'codeline-session.json');return;}
  if(b.hasAttribute('data-import-session')){root.querySelector('[data-session-file]').click();return;}
- if(b.hasAttribute('data-save-local')){try{saveLocal(snapshot());commit('Munkamenet helyben elmentve.');}catch(err){commit(err.message);}return;}
+ if(b.hasAttribute('data-save-local')){try{saveLocal(snapshot());refreshAvailability(root,state,at());commit('Munkamenet elmentve ebbe a böngészőbe.');}catch(err){commit(err.message);}return;}
  if(b.hasAttribute('data-load-local')){try{const session=loadLocal();if(!session)throw Error('Ebben a böngészőben nincs mentett munka.');await importSession(session);}catch(err){notify(err.message);}return;}
  if(b.hasAttribute('data-theme-cycle')){cycleTheme();render();root.querySelector('[data-theme-cycle]')?.focus({preventScroll:true});return;}
  // ADR-106: the whole workbench or only the code workspace on the full surface; the code view.
@@ -227,7 +230,7 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  }
 },error=>notify(error instanceof Error?error.message:'A művelet nem sikerült.')));
 root.addEventListener('keydown',ev=>{if(ev.key!=='Escape'||!state.rulePanelOpen||ev.defaultPrevented||!(ev.target instanceof Element)||!ev.target.closest('.rule-inspector,.inspector-toggle')||ev.target.closest('input,textarea,select'))return;ev.preventDefault();state.rulePanelOpen=false;render();root.querySelector('.inspector-toggle')?.focus({preventScroll:true});});
-root.addEventListener('input',ev=>{const el=ev.target; if(el.closest('.editor-frame'))updateGutters(root);if(el.id==='code-editor')markEditorDraft(at(),el.value);else if(el.id==='model-editor')state.modelDraft=el.value;else if(el.id==='author-editor')state.author.source=el.value;else if(el.dataset.author)state.author[el.dataset.author]=el.value;refreshAuthorStatus(root,state);});
+root.addEventListener('input',ev=>{const el=ev.target; if(el.closest('.editor-frame'))updateGutters(root);if(el.id==='code-editor')markEditorDraft(at(),el.value);else if(el.id==='model-editor')state.modelDraft=el.value;else if(el.id==='author-editor')state.author.source=el.value;else if(el.dataset.author)state.author[el.dataset.author]=el.value;refreshAuthorStatus(root,state);refreshAvailability(root,state,at());});
 root.addEventListener('scroll',ev=>{if(ev.target.matches('.editor-frame textarea'))updateGutters(root);},true);
 root.addEventListener('keydown',ev=>{if(ev.key==='Tab'&&ev.target.matches('.editor-frame textarea')){ev.preventDefault();const el=ev.target,i=el.selectionStart,j=el.selectionEnd;el.setRangeText('     ',i,j,'end');el.dispatchEvent(new Event('input',{bubbles:true}));}});
 root.addEventListener('change',ev=>{
