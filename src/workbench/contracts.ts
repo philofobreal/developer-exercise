@@ -47,7 +47,9 @@ export type RulesView='visual'|'json';
  * `modeViews`: the view each mode returns to. `ruleConnect`: a keyboard connection's first line. */
 export interface WorkbenchState {exercises:ExerciseSummary[];active:string|null;previews:Map<string,string>;view:ViewName;mode:Mode;modeViews?:Partial<Record<Mode,ViewName>>;practiceActive?:string|null;rulesView?:RulesView;sourceKind?:'code'|'json';boardAll?:boolean;ruleConnect?:number;boardStatus?:string;feedbackFocus?:number;learnerPreview?:boolean;author:AuthorDraft;authorBaseline?:AuthorDraft;
  /** The draft a load replaced and the loaded one; owned by author-workspace (`replaceDraft`, `undoReplace`). */
- authorReplaced?:{previous:AuthorDraft;loaded:AuthorDraft};authorRequestGeneration?:number;authorModel?:CodeLineExercise;authorInsight?:AuthorInsight;ruleSelection?:RuleSelection;rulePanelOpen?:boolean;ruleKind?:RuleKindSelection;modelDraft:string;modelMessage:string;
+ authorReplaced?:{previous:AuthorDraft;loaded:AuthorDraft};
+ /** ADR-118: the row picked by a touch or pen tap (drag-insert's onPick), by list and line id; its actions show in the action bar. */
+ rowPick?:{list:'pool'|'answer';id:string};authorRequestGeneration?:number;authorModel?:CodeLineExercise;authorInsight?:AuthorInsight;ruleSelection?:RuleSelection;rulePanelOpen?:boolean;ruleKind?:RuleKindSelection;modelDraft:string;modelMessage:string;
  /** ADR-108 (E7): the resolver's answer for the author's current request, and the last first-gate outcome. */
  authorPolicy?:PolicyResolution;sourceGate?:SourceGateRecord;settingsOrigin?:SettingsOrigin;}
 export interface AttemptPresentation {text:(id:LineId|null)=>string;fixed:(position:number)=>boolean;formattedAnswer:()=>string[];}

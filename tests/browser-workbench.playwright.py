@@ -435,6 +435,38 @@ def tap_to_place(browser):
         assert page.evaluate('document.documentElement.scrollWidth')<=390
     finally:mobile.close()
 
+# ADR-118 (M1b): on a touch screen a sorter row carries no controls over its code. A tap on the code picks the row as the
+# handle does; the picked row's actions (insert, up, down, back, its rules, done) show in the action bar, a move keeps the
+# pick on the same row, and the rule panel is a bottom sheet that leaves the toolbar in view.
+def pick_actions(browser):
+    mobile=watch(browser.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True));page=mobile.new_page()
+    try:
+        page.goto(BASE);practice(page)
+        page.locator('details.task-picker summary').click() if page.locator('details.task-picker').get_attribute('open') is not None else None
+        assert not page.locator('.source-zone .row-actions [data-move]').first.is_visible(),'no row control over the code on a touch screen'
+        first=page.locator('.source-zone .code-row').first;text=first.locator('.code-text').inner_text()
+        first.locator('.code-text').tap();expect(page.locator('.pick-bar')).to_be_visible();expect(page.locator('[data-check]')).to_have_count(0)
+        expect(page.locator('.pick-bar .pick-status')).to_contain_text('Felhasználható sor');page.locator('.pick-bar [data-move]').tap()
+        expect(page.locator('.pick-bar')).to_have_count(0);expect(page.locator('[data-check]')).to_be_visible()
+        placed=page.locator('.solution-zone .code-row:not(.blank-row)').first;expect(placed.locator('.code-text')).to_have_text(text);start=int(placed.get_attribute('data-index'))
+        placed.locator('.code-text').tap();expect(page.locator('.pick-bar .pick-status')).to_contain_text(f'A megoldás {start+1}. sora')
+        page.locator('.pick-bar [data-down]').tap()
+        moved=page.locator('.solution-zone .code-row.picked');expect(moved).to_have_count(1);expect(moved.locator('.code-text')).to_have_text(text)
+        assert int(moved.get_attribute('data-index'))>start,'down moves the picked row and keeps the pick on it'
+        page.locator('.pick-bar [data-remove]').tap();expect(page.locator('.pick-bar')).to_have_count(0)
+        assert text in [row.inner_text() for row in page.locator('.source-zone .code-row .code-text').all()]
+        page.locator('.source-zone .code-row').first.locator('.code-text').tap();page.locator('.pick-bar [data-unpick]').tap()
+        expect(page.locator('.code-row.picked')).to_have_count(0);expect(page.locator('.pick-bar')).to_have_count(0)
+        assert page.evaluate('document.documentElement.scrollWidth')<=390
+        # the author's Try: the row's rules open as a bottom sheet; the toolbar above it stays in view
+        page.locator('[data-mode="author"]').click();page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill(rules_source)
+        page.locator('[data-author-apply]').click();current(page,'rules');to_try(page)
+        page.locator('.source-zone .code-row').nth(1).locator('.code-text').tap();page.locator('.pick-bar [data-rule-line]').tap()
+        sheet=page.locator('.rule-inspector');expect(sheet).to_be_visible();expect(page.locator('#rule-panel-title')).to_be_visible()
+        box=sheet.bounding_box();assert box['y']>844*.2,f'the rule sheet leaves the top in view ({box["y"]})'
+        close=page.locator('.inspector-head [data-rule-panel-toggle]');expect(close).to_be_visible();close.tap();expect(sheet).to_have_count(0)
+    finally:mobile.close()
+
 # ADR-101: the author chooses the level in the source step; the built model carries it.
 def author_level(page):
     page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click()
@@ -791,6 +823,7 @@ try:
             reset(page,BASE);case('node one horizontal scroll per code list, row controls pinned',lambda:single_horizontal_scroll(page))
             reset(page,BASE);case('node author chooses the exercise level',lambda:author_level(page))
             case('node tap to pick, tap to place on a touch screen',lambda:tap_to_place(browser))
+            case('node picked row actions in the action bar, rule panel as a bottom sheet',lambda:pick_actions(browser))
             reset(page,BASE);case('node theme choice: system, light, dark, remembered before first paint',lambda:theme_choice(page))
             reset(page,BASE);case('node header and step menus open and close',lambda:menus(page))
             case('node forced dark browser keeps the chosen light theme white',lambda:forced_dark(p))

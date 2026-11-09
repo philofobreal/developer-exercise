@@ -1,4 +1,4 @@
-export function createInsertionDrag({ root, onInsert, onReturn }) {
+export function createInsertionDrag({ root, onInsert, onReturn, onPick }) {
     let drag = null, previewZone = null, previewBoundary = null;
     const clear = () => {
         root.querySelectorAll('.drop-zone .code-row').forEach(row => row.classList.remove('drop-shift', 'drop-prev'));
@@ -61,7 +61,19 @@ export function createInsertionDrag({ root, onInsert, onReturn }) {
         announce(row ? `Sor áthelyezve: ${Number(row.dataset.index) + 1}. pozíció.` : 'A sor nem mozgatható erre a helyre.');
     };
     let keyboard = null, pointer = null, animation = null, picked = null;
-    const unpick = () => { picked = null; root.querySelectorAll('.code-row.picked').forEach(row => row.classList.remove('picked')); root.querySelectorAll('.drop-zone.tap-target').forEach(zone => zone.classList.remove('tap-target')); };
+    const unpick = () => { const had = picked !== null; picked = null; root.querySelectorAll('.code-row.picked').forEach(row => row.classList.remove('picked')); root.querySelectorAll('.drop-zone.tap-target').forEach(zone => zone.classList.remove('tap-target')); if (had)
+        onPick?.(null); };
+    const pickRow = (node) => {
+        unpick();
+        picked = infoFor(node);
+        node.classList.add('picked');
+        root.querySelectorAll('.drop-zone[data-zone]').forEach(z => z.classList.add('tap-target'));
+        // The view redraws on a pick (its live region too), so the announcement follows it.
+        onPick?.(picked);
+        announce('Sor kijelölve. Koppints a helyére: egy üres helyre, egy sor elé vagy mögé, vagy válassz a lenti műveletekből. A fogantyúra újra koppintva megszünteted.');
+    };
+    /** The picked row where it is now: a move through the action bar changes its index, never its line id. */
+    const current = (info) => { const node = [...root.querySelectorAll('.code-row')].find(x => x.dataset.lineId === info.id && x.dataset.list === info.from); return node ? { ...info, index: Number(node.dataset.index) } : info; };
     const cancelPointer = () => {
         if (animation !== null)
             cancelAnimationFrame(animation);
@@ -72,7 +84,8 @@ export function createInsertionDrag({ root, onInsert, onReturn }) {
         clear();
     };
     /** ADR-095: the tapped place for the picked row: an empty slot is filled, a row splits at its midpoint, the pool takes a solution row back. */
-    const place = (info, zone, event, row) => {
+    const place = (picks, zone, event, row) => {
+        const info = current(picks);
         unpick();
         if (zone.dataset.zone === 'answer')
             finish(info, row?.classList.contains('blank-row') ? Number(row.dataset.index) : position(zone, event));
@@ -195,12 +208,9 @@ export function createInsertionDrag({ root, onInsert, onReturn }) {
                 place(picked, zone, ev, hit?.closest('.code-row') ?? null);
                 return;
             }
-            unpick();
             const node = root.querySelector(`.code-row[data-list="${CSS.escape(info.from ?? '')}"][data-index="${info.index}"]`);
-            picked = { from: info.from, index: info.index, id: info.id, exercise: info.exercise };
-            node?.classList.add('picked');
-            root.querySelectorAll('.drop-zone[data-zone]').forEach(z => z.classList.add('tap-target'));
-            announce('Sor kijelölve. Koppints a helyére: egy üres helyre, egy sor elé vagy mögé. A fogantyúra újra koppintva megszünteted.');
+            if (node)
+                pickRow(node);
             return;
         }
         if (!zone || boundary === null)
@@ -212,10 +222,20 @@ export function createInsertionDrag({ root, onInsert, onReturn }) {
     });
     // ADR-095: the place tap. Buttons keep their own action (and end the pick); the handle's own taps are handled on pointerup.
     root.addEventListener('click', ev => {
-        if (!picked)
-            return;
         const target = element(ev.target);
+        if (!picked) {
+            // ADR-118: a touch or pen tap on a movable row's code picks it, as a tap on its handle does. On a touch-first screen
+            // (hover: none, the stylesheet's condition for hiding the row controls) a mouse click picks it too, so a mouse on a
+            // tablet still reaches the row's actions.
+            const kind = ev.pointerType, row = target?.closest('.drop-zone[data-zone] .code-row');
+            const touchFirst = kind === 'touch' || kind === 'pen' || (typeof matchMedia === 'function' && matchMedia('(hover: none)').matches);
+            if (touchFirst && row && row.draggable === true && !target.closest('button,a,input,select,textarea,summary'))
+                pickRow(row);
+            return;
+        }
         if (!target || target.closest('.drag-handle'))
+            return;
+        if (target.closest('[data-keep-pick]'))
             return;
         if (target.closest('button,a,input,select,textarea,summary')) {
             unpick();

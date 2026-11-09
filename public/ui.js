@@ -239,7 +239,9 @@ root.addEventListener('change',ev=>{
 });
 createInsertionDrag({root,
   onInsert:(d,boundary)=>d.from==='pool'?movePoolToBoundary(d.index,boundary):moveAnswerToBoundary(d.index,boundary),
-  onReturn:index=>remove(index)
+  onReturn:index=>remove(index),
+  // ADR-118: a picked row's actions show in the action bar (view.ts pickBar).
+  onPick:info=>{state.rowPick=info&&(info.from==='pool'||info.from==='answer')&&info.id!==undefined?{list:info.from,id:info.id}:undefined;render();}
 });
 installRuleBoard(root,(from,to)=>{toggleLink(from,to).catch(err=>notify(err instanceof Error?err.message:'A kapcsolat módosítása nem sikerült.'));},()=>{delete state.ruleConnect;render();});
 

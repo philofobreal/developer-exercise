@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased – 2026-11-09 érintésen a sor műveletei alul, nem a kódon (ADR-118)
+
+- **Tiszta kódsorok érintőképernyőn:** a rendező soraiban már nincsenek gombok, amelyek eltakarnák a kód végét.
+- **Koppints a sorra:**
+  - a kódra vagy a fogantyúra koppintva kijelölöd a sort;
+  - alul megjelennek a műveletei: felhasználható sornál Beszúrás, megoldássornál Feljebb, Lejjebb és Vissza a sorokhoz;
+  - a szerzőnek a Sor szabályai is, mindkettőnél a Kész;
+  - a Feljebb és a Lejjebb után a kijelölés a soron marad, így többször is léptetheted.
+- **Koppintással áthelyezés:** a kijelölt sort továbbra is a helyére koppintva teheted le.
+- **A szabálypanel telefonon alsó lap:** az eszköztár fölötte látszik, és a fejlécéből bezárható.
+- **Egérrel és billentyűzettel minden marad a régiben.**
+
 ## Unreleased – 2026-11-09 egységes gombok (ADR-117)
 
 - **Minden akciógomb ugyanúgy néz ki:** egy betűméret és -súly, két magasság (alap és kicsi). Érintőképernyőn mindkettő nagyobb. Eddig 34-féle gombstílus volt a felületen.

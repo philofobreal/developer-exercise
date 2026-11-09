@@ -8,12 +8,16 @@
  * (touch and pen). A tap on a row's handle picks it; a tap on a solution row places it before or
  * after that row by the same midpoint rule as a drop, a tap on an empty slot fills that slot, a tap
  * on the pool returns a solution row there; a tap on the picked handle again or Escape cancels.
+ *
+ * ADR-118 (M1b): a tap on a row's code picks it as well, and `onPick` tells the view which row is picked, so it can show
+ * that row's actions in the action bar instead of over the code. The pick is by line id: a move through the bar
+ * (`data-keep-pick`) keeps it on the same row at its new place.
  */
 export interface InsertionInfo {from:string|undefined;index:number;id:string|undefined;exercise:string|undefined;}
-export interface InsertionOptions {root:HTMLElement;onInsert:(info:InsertionInfo,boundary:number)=>void;onReturn:(index:number)=>void;}
+export interface InsertionOptions {root:HTMLElement;onInsert:(info:InsertionInfo,boundary:number)=>void;onReturn:(index:number)=>void;onPick?:(info:InsertionInfo|null)=>void;}
 interface PointerGesture extends InsertionInfo {pointerId:number;pointerType:string;startX:number;startY:number;x:number;y:number;moving:boolean;}
 
-export function createInsertionDrag({root,onInsert,onReturn}:InsertionOptions):{clear:()=>void} {
+export function createInsertionDrag({root,onInsert,onReturn,onPick}:InsertionOptions):{clear:()=>void} {
   let drag:InsertionInfo|null=null,previewZone:HTMLElement|null=null,previewBoundary:number|null=null;
   const clear=():void=>{
     root.querySelectorAll('.drop-zone .code-row').forEach(row=>row.classList.remove('drop-shift','drop-prev'));
@@ -60,15 +64,24 @@ export function createInsertionDrag({root,onInsert,onReturn}:InsertionOptions):{
     announce(row?`Sor áthelyezve: ${Number(row.dataset.index)+1}. pozíció.`:'A sor nem mozgatható erre a helyre.');
   };
   let keyboard:(InsertionInfo&{boundary:number})|null=null,pointer:PointerGesture|null=null,animation:number|null=null,picked:InsertionInfo|null=null;
-  const unpick=():void=>{picked=null;root.querySelectorAll('.code-row.picked').forEach(row=>row.classList.remove('picked'));root.querySelectorAll('.drop-zone.tap-target').forEach(zone=>zone.classList.remove('tap-target'));};
+  const unpick=():void=>{const had=picked!==null;picked=null;root.querySelectorAll('.code-row.picked').forEach(row=>row.classList.remove('picked'));root.querySelectorAll('.drop-zone.tap-target').forEach(zone=>zone.classList.remove('tap-target'));if(had)onPick?.(null);};
+  const pickRow=(node:HTMLElement):void=>{
+    unpick();picked=infoFor(node);node.classList.add('picked');
+    root.querySelectorAll('.drop-zone[data-zone]').forEach(z=>z.classList.add('tap-target'));
+    // The view redraws on a pick (its live region too), so the announcement follows it.
+    onPick?.(picked);
+    announce('Sor kijelölve. Koppints a helyére: egy üres helyre, egy sor elé vagy mögé, vagy válassz a lenti műveletekből. A fogantyúra újra koppintva megszünteted.');
+  };
+  /** The picked row where it is now: a move through the action bar changes its index, never its line id. */
+  const current=(info:InsertionInfo):InsertionInfo=>{const node=[...root.querySelectorAll<HTMLElement>('.code-row')].find(x=>x.dataset.lineId===info.id&&x.dataset.list===info.from);return node?{...info,index:Number(node.dataset.index)}:info;};
   const cancelPointer=():void=>{
     if(animation!==null)cancelAnimationFrame(animation);animation=null;
     if(pointer&&drag===pointer)drag=null;
     pointer=null;clear();
   };
   /** ADR-095: the tapped place for the picked row: an empty slot is filled, a row splits at its midpoint, the pool takes a solution row back. */
-  const place=(info:InsertionInfo,zone:HTMLElement,event:{clientY:number},row:HTMLElement|null):void=>{
-    unpick();
+  const place=(picks:InsertionInfo,zone:HTMLElement,event:{clientY:number},row:HTMLElement|null):void=>{
+    const info=current(picks);unpick();
     if(zone.dataset.zone==='answer')finish(info,row?.classList.contains('blank-row')?Number(row.dataset.index):position(zone,event));
     else if(info.from==='answer')finish(info,0,true);
     else announce('A sor már a felhasználható sorok között van.');
@@ -132,11 +145,8 @@ export function createInsertionDrag({root,onInsert,onReturn}:InsertionOptions):{
       if(info.pointerType!=='touch'&&info.pointerType!=='pen')return;
       if(picked&&picked.id===info.id&&picked.from===info.from){unpick();announce('Kijelölés megszüntetve.');return;}
       if(picked&&zone&&!(zone.dataset.zone==='pool'&&picked.from==='pool')){place(picked,zone,ev,hit?.closest<HTMLElement>('.code-row')??null);return;}
-      unpick();
       const node=root.querySelector<HTMLElement>(`.code-row[data-list="${CSS.escape(info.from??'')}"][data-index="${info.index}"]`);
-      picked={from:info.from,index:info.index,id:info.id,exercise:info.exercise};node?.classList.add('picked');
-      root.querySelectorAll('.drop-zone[data-zone]').forEach(z=>z.classList.add('tap-target'));
-      announce('Sor kijelölve. Koppints a helyére: egy üres helyre, egy sor elé vagy mögé. A fogantyúra újra koppintva megszünteted.');
+      if(node)pickRow(node);
       return;
     }
     if(!zone||boundary===null)return;
@@ -145,9 +155,18 @@ export function createInsertionDrag({root,onInsert,onReturn}:InsertionOptions):{
   });
   // ADR-095: the place tap. Buttons keep their own action (and end the pick); the handle's own taps are handled on pointerup.
   root.addEventListener('click',ev=>{
-    if(!picked)return;
     const target=element(ev.target);
+    if(!picked){
+      // ADR-118: a touch or pen tap on a movable row's code picks it, as a tap on its handle does. On a touch-first screen
+      // (hover: none, the stylesheet's condition for hiding the row controls) a mouse click picks it too, so a mouse on a
+      // tablet still reaches the row's actions.
+      const kind=(ev as PointerEvent).pointerType,row=target?.closest<HTMLElement>('.drop-zone[data-zone] .code-row');
+      const touchFirst=kind==='touch'||kind==='pen'||(typeof matchMedia==='function'&&matchMedia('(hover: none)').matches);
+      if(touchFirst&&row&&row.draggable===true&&!target!.closest('button,a,input,select,textarea,summary'))pickRow(row);
+      return;
+    }
     if(!target||target.closest('.drag-handle'))return;
+    if(target.closest('[data-keep-pick]'))return;
     if(target.closest('button,a,input,select,textarea,summary')){unpick();return;}
     const zone=target.closest<HTMLElement>('.drop-zone[data-zone]');
     if(!zone){unpick();announce('Kijelölés megszüntetve.');return;}

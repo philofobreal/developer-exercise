@@ -95,9 +95,18 @@ try:
         case('TS three-level lexical ownership, ancestor bindings and scope escape',lambda:nested_witness(page,'typescript'))
 
 
+        def row_action(action,index):
+            """ADR-118: the row's own button where the screen shows it; on a touch-first screen the picked row's action bar."""
+            own=page.locator(f'.code-row [data-{action}="{index}"]')
+            if own.is_visible():own.click();return
+            listed='pool' if action=='move' else 'answer'
+            page.locator(f'.code-row[data-list="{listed}"][data-index="{index}"] .code-text').click()
+            page.locator(f'.pick-bar [data-{action}="{index}"]').click()
+            if page.locator('.pick-bar').count():page.locator('.pick-bar [data-unpick]').click()
+
         def dependency():
             author(page);strict=model(page);strict['lines'][2]['dependencies']=[2];apply_model(page,strict)
-            page.locator('[data-all]').click();page.locator('[data-up="2"]').click();before=values(page)
+            page.locator('[data-all]').click();row_action('up',2);before=values(page)
             page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Hibás')
             m=model(page);m['lines'][2]['dependencies']=[1];m['lines'][3]['dependencies']=[2,3];apply_model(page,m)
             expect(page.locator('.report')).to_contain_text('Elfogadva');assert values(page)==before
@@ -110,7 +119,7 @@ try:
         def braces():
             author(page,'function calc() {\n if (true) {\n const a = 1;\n run(a);\n }\n done();\n}')
             page.locator('[data-all]').click();old=page.locator('.solution-zone .code-row').evaluate_all('(rows)=>rows.map(r=>r.dataset.lineId)')
-            page.locator('[data-up="6"]').click();page.locator('[data-up="5"]').click();page.locator('[data-down="5"]').click()
+            row_action('up',6);row_action('up',5);row_action('down',5)
             new=page.locator('.solution-zone .code-row').evaluate_all('(rows)=>rows.map(r=>r.dataset.lineId)');assert old[4]==new[6] and old[6]==new[4]
             page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
         case('identical closing brace IDs can swap without false rejection',braces)
@@ -158,7 +167,7 @@ try:
         def stale_report():
             author(page);page.locator('[data-all]').click()
             def delayed(route):
-                response=route.fetch();page.locator('[data-up="2"]').click();route.fulfill(response=response)
+                response=route.fetch();row_action('up',2);route.fulfill(response=response)
             page.route('**/api/author/preview',delayed)
             try:
                 page.locator('[data-check]').click();expect(page.locator('.solution-zone .code-row[data-index="1"] code')).to_contain_text('const b')
@@ -167,7 +176,7 @@ try:
         case('an evaluation response cannot overwrite feedback after a new move',stale_report)
         def fixed():
             author(page);m=model(page);m['lines'][0]['fixed']=True;m['lines'][-1]['fixed']=True;apply_model(page,m);page.locator('[data-all]').click()
-            before=values(page);page.locator('[data-up="2"]').click();assert values(page)[0]==before[0] and values(page)[-1]==before[-1]
+            before=values(page);row_action('up',2);assert values(page)[0]==before[0] and values(page)[-1]==before[-1]
             assert page.locator('.solution-zone .code-row').first.get_attribute('draggable')=='false'
             page.locator('[data-view="edit"]').click();page.locator('#code-editor').fill('wrong\nconst a = 1;\nconst b = 2;\nreturn a+b;\n}');page.locator('[data-apply]').click();expect(page.locator('.note')).to_contain_text('Rögzített')
         case('fixed anchors survive movement and reject text changes',fixed)
@@ -244,7 +253,7 @@ try:
             page.locator('[data-author-format]').click();expect(page.locator('.author-status')).to_contain_text('Formázva');page.locator('[data-author-apply]').click();expect(page.locator('[data-board-line]')).to_have_count(439,timeout=20_000);to_try(page);expect(page.locator('.solution-zone .code-row')).to_have_count(439)
             page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
             m=model(page);assert len(m['blocks'])>20;assert len([x for x in m['lines'] if x['functionBlock']])>200
-            page.locator('.solution-zone').evaluate('(x)=>x.scrollTop=3000');saved=page.locator('.solution-zone').evaluate('(x)=>x.scrollTop');visible_index=page.locator('.solution-zone').evaluate('(zone)=>Math.floor(zone.scrollTop/zone.querySelector(".code-row").getBoundingClientRect().height)+3');page.locator(f'[data-down="{visible_index}"]').click();assert abs(page.locator('.solution-zone').evaluate('(x)=>x.scrollTop')-saved)<2
+            page.locator('.solution-zone').evaluate('(x)=>x.scrollTop=3000');saved=page.locator('.solution-zone').evaluate('(x)=>x.scrollTop');visible_index=page.locator('.solution-zone').evaluate('(zone)=>Math.floor(zone.scrollTop/zone.querySelector(".code-row").getBoundingClientRect().height)+3');row_action('down',visible_index);assert abs(page.locator('.solution-zone').evaluate('(x)=>x.scrollTop')-saved)<2
         case('full TS service, AST hierarchy and long-list scroll',full_ts)
         page.screenshot(path=str(ARTIFACTS/'matrix-node.png'))
         def pages():

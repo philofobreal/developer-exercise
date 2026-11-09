@@ -140,7 +140,7 @@ button:hover:not(:disabled) {background:var(--n-20);border-color:var(--n-46)}but
 /* ADR-091: the row controls rest faded and transparent, so the code of a long row shows through them; they come fully forward on hover, on keyboard focus, on a marked row, and always where there is no hover (touch). */
 .code-row .row-actions,.board-row .row-actions {background:transparent;box-shadow:none;opacity:.55;transition:opacity 120ms,background-color 120ms}.row-actions button {background:color-mix(in srgb,var(--n-20) 60%,transparent)}
 .code-row:is(:hover,:focus-within,.rule-selected,.rule-before,.rule-after,.connect-source,.connect-target,.diag-error,.diag-possible) .row-actions,.board-row:is(:hover,:focus-within,.rule-selected,.rule-before,.rule-after,.connect-source,.connect-target) .row-actions {opacity:1;background:inherit;box-shadow:-12px 0 10px -10px color-mix(in srgb,var(--shadow) 85%,transparent)}
-@media(hover:none),(pointer:coarse) {.code-row .row-actions,.board-row .row-actions {opacity:1;background:inherit;box-shadow:-12px 0 10px -10px color-mix(in srgb,var(--shadow) 85%,transparent)}}
+@media(hover:none),(pointer:coarse) {.board-row .row-actions {opacity:1;background:inherit;box-shadow:-12px 0 10px -10px color-mix(in srgb,var(--shadow) 85%,transparent)}}
 @media(prefers-reduced-motion:reduce) {.code-row .row-actions,.board-row .row-actions {transition:none}}
 .try-rules {padding:8px 12px;margin-bottom:12px}.try-rules .board-legend,.board-legend {display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 14px}.board-legend-keys {display:inline-flex;align-items:center;flex-wrap:wrap;gap:4px}.legend-help summary {cursor:pointer;color:var(--n-80)}.legend-help[open] {flex-basis:100%}.legend-help p {margin:6px 0 0;line-height:1.7}
 .blank-row .code-text {position:relative}.blank-row .code-text::before {content:'';position:absolute;inset:5px 10px 5px 6px;border:1px dashed color-mix(in srgb,var(--accent) 38%,var(--n-30));border-radius:var(--radius);pointer-events:none}.blank-row .code-text::after {content:'+  Sor beszúrása';padding-left:10px;font:11px/var(--row) var(--mono);color:var(--a-66)}
@@ -521,3 +521,19 @@ button.btn.link-action {border-color:transparent;background:transparent;color:va
 button.btn.link-action:hover:not(:disabled) {background:var(--blue-pale);border-color:transparent}
 .rule-panel,.rule-inspector,.task-heading {--control-h:var(--control-h-sm)}
 @media(pointer:coarse) {.task-heading {--control-h:36px}}
+/* ADR-118 (M1b): on a touch screen the sorter rows carry no controls over the code: a tap picks the row, and its actions
+ * (insert, up, down, back, the row's rules) show in the action bar where the check bar is. The fixed-row tag stays. */
+@media(hover:none) {
+ .code-row .row-actions>:not(.fixed-tag) {display:none}
+ .code-row .row-actions:not(:has(.fixed-tag)) {display:none}
+}
+.code-row.picked {background:var(--blue-pale);box-shadow:inset 3px 0 0 var(--blue)}
+.pick-bar {align-items:center;gap:8px;padding:6px 8px 6px 12px;border-color:var(--blue);background:var(--blue-pale)}
+.pick-status {flex:1;min-width:0;margin:0;font-size:13px;color:var(--text)}
+.pick-actions {display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+@media(max-width:650px) {
+ .pick-bar {flex-direction:column;align-items:stretch}
+ .pick-actions {justify-content:stretch}.pick-actions .btn:not(.icon-only) {flex:1}
+ /* The rule panel is a bottom sheet on a phone: the toolbar and the lists above it stay in view, its own close stays on top. */
+ .rule-inspector {top:auto;left:0;right:0;width:100%;max-height:75dvh;border-top:3px solid var(--blue);box-shadow:0 -16px 40px color-mix(in srgb,var(--shadow) 55%,transparent)}
+}
