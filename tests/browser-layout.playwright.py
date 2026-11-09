@@ -1,6 +1,6 @@
 """Layout gate (ADR-116, M1): the practice view and the author's Try step on desktop, laptop, tablet and phone (upright and on its side),
 in the light and the dark theme. It checks what a machine can measure, not taste: the page never scrolls sideways, no header control runs
-off the screen, every toolbar control in view has one height, a phone on its side keeps the header and the toolbar to one row and shows the
+off the screen, every toolbar control in view has one height, every action button (ADR-117) has one type style and at most three heights, a phone on its side keeps the header and the toolbar to one row and shows the
 lists on the first screen, focus gives the lists at least 40 % of the height, and a task list closed on a narrow screen is visible when the
 screen widens. Screenshots of every view land in test-results/layout-*.png."""
 import os,socket,subprocess,time,urllib.request
@@ -18,6 +18,8 @@ MEASURE="""()=>{const shown=s=>[...document.querySelectorAll(s)].filter(e=>e.off
   offscreen:shown('.header button,.header summary').filter(b=>box(b).right>innerWidth+1).map(b=>b.getAttribute('aria-label')||b.textContent.trim()),
   tools:shown('.toolbar button').map(b=>Math.round(box(b).height)),
   toolRows:new Set(shown('.toolbar button').map(b=>Math.round(box(b).top+box(b).height/2))).size,
+  // ADR-117 (U1): the action-button component and its relatives (segment, menu, mode switch)
+  controls:shown('button.btn,.segment button,.menu>summary,.mode-tabs button').map(b=>{const s=getComputedStyle(b);return [Math.round(box(b).height),s.fontSize,s.fontWeight];}),
   zoneTop:Math.round(box(document.querySelector('.drop-zone')).top),
   zones:shown('.drop-zone').map(z=>Math.round(box(z).height)),
   // the lists side by side share their height; stacked, their heights add up
@@ -28,6 +30,9 @@ def check(page,name,side,focused=False):
     assert m['scroll']<=m['width'],f"{name}: the page scrolls sideways ({m['scroll']} > {m['width']})"
     assert not m['offscreen'],f"{name}: header controls off the screen: {m['offscreen']}"
     assert m['tools'] and max(m['tools'])-min(m['tools'])<=1,f"{name}: toolbar controls of different heights {m['tools']}"
+    heights=sorted({h for h,_,_ in m['controls']});fonts=sorted({(f,w) for _,f,w in m['controls']})
+    assert len(heights)<=3,f"{name}: buttons in {len(heights)} heights {heights} (at most 3: default, small, header)"
+    assert len(fonts)==1,f"{name}: buttons in {len(fonts)} type styles {fonts} (one: 13 px, 600)"
     if side:
         assert m['toolRows']==1,f"{name}: the toolbar takes {m['toolRows']} rows on a phone on its side"
         if not focused:

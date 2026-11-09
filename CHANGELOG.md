@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-11-09 egységes gombok (ADR-117)
+
+- **Minden akciógomb ugyanúgy néz ki:** egy betűméret és -súly, két magasság (alap és kicsi). Érintőképernyőn mindkettő nagyobb. Eddig 34-féle gombstílus volt a felületen.
+- **Négy szerep, mindig ugyanazzal a formával:** fő (kék, lecsípett sarok), másodlagos (keretes), szöveges és veszélyes. A tanuló Ellenőrzés gombja sárga marad.
+- **Javítva:** asztalon nem vágódik le a téma gomb felirata.
+- **Az elrendezés-kapu ezt is méri:** egy nézetben legfeljebb három gombmagasság és egy betűstílus lehet.
+
 ## Unreleased – 2026-11-09 fekvő telefon és egységes gombok (ADR-116)
 
 - **Fekvő telefonon a kód az első képernyőn van:**

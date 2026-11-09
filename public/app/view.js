@@ -22,7 +22,14 @@ const demoNoticeSeen = () => { try {
 catch {
     return false;
 } };
-const tool = (attribute, label, name, extra = '') => `<button type="button" ${attribute} ${extra}>${icon(name)}<span>${label}</span></button>`;
+/** ADR-117 (U1): the one action-button maker. Every button it makes is a .btn; a role (primary, check, link-action, danger)
+ * or a shape (icon-only) comes in `extra` as its class and joins .btn, so the geometry has one owner (style.css). */
+/** A row's own controls (insert, up, down, return) are the code row's component, not action buttons: no .btn (ADR-117). */
+const rowTool = (attribute, name, extra) => `<button type="button" ${attribute} ${extra}>${icon(name)}<span></span></button>`;
+const tool = (attribute, label, name, extra = '') => {
+    const own = /class="([^"]*)"/.exec(extra);
+    return `<button type="button" class="btn${own ? ' ' + own[1] : ''}" ${attribute} ${own ? extra.replace(own[0], '') : extra}>${icon(name)}<span>${label}</span></button>`;
+};
 const languageName = (language) => language === 'typescript' ? 'TypeScript' : 'JavaScript';
 export function createWorkbenchView({ root, state, ex, at, attempt, scroll }) {
     const continuity = createViewContinuity(root);
@@ -74,8 +81,8 @@ export function createWorkbenchView({ root, state, ex, at, attempt, scroll }) {
         const rows = ids.map((id, i) => {
             const blank = id === null, pinned = !source && attempt.fixed(i), locked = pinned && !blank, raw = pretty[i] ?? '';
             const handle = locked ? icon('lock') : blank ? '·' : icon('grip');
-            const actions = tryRowRuleControls(state, id) + (locked ? '<span class="fixed-tag">Rögzített</span>' : blank ? '' : source ? tool(`data-move="${i}"`, '', 'plus', `aria-label="${i + 1}. sor beszúrása" title="Beszúrás az első szabad helyre"`) :
-                tool(`data-up="${i}"`, '', 'up', `aria-label="${i + 1}. sor feljebb helyezése" title="Egy hellyel feljebb"`) + tool(`data-down="${i}"`, '', 'down', `aria-label="${i + 1}. sor lejjebb helyezése" title="Egy hellyel lejjebb"`) + tool(`data-remove="${i}"`, '', 'back', `aria-label="${i + 1}. sor visszahelyezése a forráslistába" title="Vissza a felhasználható sorokhoz"`));
+            const actions = tryRowRuleControls(state, id) + (locked ? '<span class="fixed-tag">Rögzített</span>' : blank ? '' : source ? rowTool(`data-move="${i}"`, 'plus', `aria-label="${i + 1}. sor beszúrása" title="Beszúrás az első szabad helyre"`) :
+                rowTool(`data-up="${i}"`, 'up', `aria-label="${i + 1}. sor feljebb helyezése" title="Egy hellyel feljebb"`) + rowTool(`data-down="${i}"`, 'down', `aria-label="${i + 1}. sor lejjebb helyezése" title="Egy hellyel lejjebb"`) + rowTool(`data-remove="${i}"`, 'back', `aria-label="${i + 1}. sor visszahelyezése a forráslistába" title="Vissza a felhasználható sorokhoz"`));
             const mark = graded.get(i), diagnosis = mark ? ` diag-${mark.sure ? 'error' : 'possible'}${state.feedbackFocus !== undefined && mark.items.includes(state.feedbackFocus) ? ' diag-focus' : ''}` : '', described = mark ? ` aria-describedby="${mark.items.map(k => 'feedback-' + k).join(' ')}"` : '';
             return `<div class="code-row ${source ? 'source-row' : 'solution-row'} ${pinned ? 'fixed-row' : ''} ${blank ? 'blank-row' : ''}${blank ? '' : marks(id)}${state.ruleConnect !== undefined && state.ruleConnect === id ? ' connect-source' : ''}${diagnosis}" data-list="${list}" data-index="${i}" data-line-id="${esc(id ?? '')}"${described} role="listitem" draggable="${!blank && !locked}"><button type="button" class="drag-handle" tabindex="${blank || locked ? -1 : 0}" aria-disabled="${blank || locked}" ${blank || locked ? 'disabled' : ''} aria-label="${i + 1}. sor mozgatása" aria-describedby="move-help" title="${locked ? 'Rögzített sor' : blank ? 'Üres hely' : 'Húzd a beszúrás helyére'}">${handle}</button><div class="gutter"><span>${i + 1}</span></div><pre class="code-text"><code>${blank ? ' ' : syntax(raw)}</code></pre><div class="row-actions">${actions}</div></div>`;
         }).join('');
@@ -102,7 +109,7 @@ export function createWorkbenchView({ root, state, ex, at, attempt, scroll }) {
         const author = feedback.level === 'provenance', slots = a.report?.slots ?? [];
         const items = feedback.diagnostics.map((d, k) => {
             const rows = d.positions.flatMap(position => slots[position] === undefined ? [] : [slots[position] + 1]);
-            return `<li id="feedback-${k}" class="feedback-item severity-${d.severity} certainty-${d.certainty}" data-feedback-item="${k}"><p class="feedback-summary"><b>${esc(d.summary)}</b></p><p>${esc(d.detail)}</p>${d.reasons?.length ? `<p class="feedback-reasons">${esc(d.reasons.join(' '))}</p>` : ''}${d.fix ? `<p class="feedback-fix"><b>${fixLabel[d.fix.level]}:</b> ${esc(d.fix.text)}</p>` : ''}${author ? `<p class="feedback-evidence">Bizonyíték: ${esc(d.evidence)}${d.limits ? ` Korlát: ${esc(d.limits)}` : ''}</p>` : ''}${rows.length ? `<button type="button" class="link-action" data-feedback-goto="${k}">Ugrás: ${rows.map(row => row + '.').join(', ')} sor${d.positionScope === 'some' ? ' (ezek egyike)' : ''}</button>` : ''}</li>`;
+            return `<li id="feedback-${k}" class="feedback-item severity-${d.severity} certainty-${d.certainty}" data-feedback-item="${k}"><p class="feedback-summary"><b>${esc(d.summary)}</b></p><p>${esc(d.detail)}</p>${d.reasons?.length ? `<p class="feedback-reasons">${esc(d.reasons.join(' '))}</p>` : ''}${d.fix ? `<p class="feedback-fix"><b>${fixLabel[d.fix.level]}:</b> ${esc(d.fix.text)}</p>` : ''}${author ? `<p class="feedback-evidence">Bizonyíték: ${esc(d.evidence)}${d.limits ? ` Korlát: ${esc(d.limits)}` : ''}</p>` : ''}${rows.length ? `<button type="button" class="btn link-action" data-feedback-goto="${k}">Ugrás: ${rows.map(row => row + '.').join(', ')} sor${d.positionScope === 'some' ? ' (ezek egyike)' : ''}</button>` : ''}</li>`;
         }).join('');
         const withheld = feedback.withheld ? `<p class="feedback-withheld">${feedback.withheld} további részlet ebben a nézetben nem jelenik meg.</p>` : '';
         return `<details class="feedback-details" data-memory="feedback-details" data-feedback><summary>Részletes magyarázat (${feedback.diagnostics.length})</summary><ol class="feedback-list">${items}</ol>${withheld}</details>`;
