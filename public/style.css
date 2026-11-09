@@ -303,7 +303,8 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 .help-body p {margin:6px 0;font-size:12px;line-height:1.7;color:var(--muted);max-width:900px}
 .formatter-status {font-family:var(--mono);font-size:11px}
 @media(max-width:1200px) {main {padding:22px 20px}.header {padding-left:30px;gap:14px}.mode-tabs button {min-width:150px;padding:0 16px}.practice-shell {grid-template-columns:232px minmax(0,1fr)}.theme-toggle span,.menu>summary span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.theme-toggle,.menu>summary {width:38px;padding:0;justify-content:center}}
-@media(max-width:850px) {
+/* ADR-116: a phone on its side (740–930 × 340–430) takes the narrow layout too; the block after the last rule keeps it to one row per bar. */
+@media(max-width:850px),(max-height:500px) and (orientation:landscape) {
  .header {flex-wrap:wrap;padding:8px 14px 8px 22px;gap:8px 10px}.header::before {width:5px}
  .brand small {display:none}
  .mode-tabs {order:3;width:100%;margin:0;padding:0 6px;gap:6px}.mode-tabs button {flex:1;min-width:0;min-height:38px}
@@ -455,3 +456,57 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 .step.tone-blocked .step-text small {color:var(--d-82);opacity:1}
 .step.tone-warning .step-text small {color:var(--w-80);opacity:1}
 @media (max-width:640px){.diagnostic {grid-template-columns:auto minmax(0,1fr)}.diagnostic-message,.diagnostic-origin {grid-column:1 / -1}}
+/* ADR-116 (M1): the header never runs off the screen: below 1000 px the learner-view toggle keeps only its icon and the Studio label goes. */
+@media(max-width:1000px) {.brand small {display:none}.header-actions .preview-toggle {width:38px;min-width:38px;padding:0}.header-actions .preview-toggle>span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
+/* ADR-116 (M1): in the wide layout the exercise list is a sidebar, never a closed drop-down: a list closed on a narrow screen stays visible
+ * when the screen widens (it left an empty sidebar), and its heading does not toggle it. */
+@media(min-width:851px) and (not ((max-height:500px) and (orientation:landscape))) {
+ .task-picker::details-content {content-visibility:visible;display:block}
+ .task-picker>summary {pointer-events:none;cursor:default}
+}
+/* ADR-116 (M1): on a touch screen every toolbar control has the touch height, the segmented ones too (they were 34 px beside 44 px). */
+@media(pointer:coarse) {.toolbar button {height:44px;min-height:44px}}
+/* ADR-116 (M1): a phone on its side. Width-only breakpoints sent a 740–930 × 340–430 screen to the tablet layout, where the header, heading,
+ * steps and two toolbar rows used the whole height. Here every bar is one row of one height (36 px header controls, 40 px tools) and the
+ * lists take the rest of the screen. */
+@media(max-height:500px) and (orientation:landscape) {
+ .header {flex-wrap:nowrap;min-height:0;padding:5px 10px 5px 18px;gap:8px}.header::before {width:4px}
+ .brand strong {font-size:16px}.brand small {display:none}
+ .mode-tabs {order:0;width:auto;flex:0 1 auto;min-width:0;margin:0 auto 0 6px;padding:0 4px;gap:4px}
+ .mode-tabs button {flex:0 1 auto;min-width:0;height:36px;min-height:36px;padding:0 12px;white-space:nowrap}
+ .header-actions {gap:6px;flex:none}
+ :is(.header-actions>button,.header-actions .menu>summary,.header-actions .preview-toggle) {width:36px;min-width:36px;height:36px;min-height:36px;padding:0;justify-content:center}
+ :is(.header-actions .preview-toggle,.theme-toggle,.header-actions .menu>summary)>span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+ main,.learner-preview main {padding:8px 14px 12px}
+ .validation-notice {margin-bottom:8px;padding:3px 8px;gap:8px}.validation-notice>span {white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.validation-notice button {min-height:30px;height:30px}
+ .task-heading {display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin-bottom:8px}
+ .task-heading h1 {min-width:0;max-width:100%;margin:0;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .task-heading .description {flex-basis:100%;margin:0;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+ .stepper {margin-bottom:8px}.stepper ol {gap:3px}.stepper .step {min-height:36px;height:36px;padding:0 10px;gap:6px}.step-text small,.step-number {display:none}.step-text b {font-size:13px}
+ .author,.solution-editor {padding:12px}
+ .toolbar {flex-wrap:nowrap;gap:6px;margin-bottom:8px}.toolbar-start {display:flex;gap:6px;min-width:0}
+ .toolbar :is(button) {height:40px;min-height:40px}
+ .workspace-actions {width:auto;margin-left:auto;flex-wrap:nowrap}
+ :is(.workspace-actions,.code-view-switch) button {flex:0 0 auto;width:40px;padding:0;justify-content:center}
+ :is(.workspace-actions,.code-view-switch) button>span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+ .drop-zone {height:calc(100dvh - 100px);min-height:150px;max-height:none}
+ .task-heading h1 {order:1}.task-heading .task-meta {order:2}.task-heading .link-action {order:3;margin:0;min-height:30px}.task-heading .description {order:4}
+ .panel-title {min-height:30px;margin-bottom:6px}
+ /* Focus: only the code and its tools; the result keeps one line, the details stay behind it. */
+ #app[data-surface=focus] :is(.validation-notice,.note,.feedback-details,.dependency-details) {display:none}
+ #app[data-surface=focus] .task-heading {display:none}
+ #app[data-surface=focus] .toolbar {margin:0 0 6px}
+ #app[data-surface=focus] .evaluation-bar {max-height:64px;margin-top:6px}
+ #app[data-surface=focus] .evaluation-bar .report p {display:none}
+ #app[data-surface=focus] .drop-zone {height:auto;min-height:0}
+}
+/* ADR-116 (M1): an upright phone. The toolbar keeps one height per touch target (44 px), and the sticky result bar is one row: the
+ * result on the left (one line), the check button on the right, so it no longer covers a third of the lists. */
+@media(max-width:650px) {
+ .toolbar button {min-height:40px;height:40px}
+ @media(pointer:coarse) {.toolbar button {min-height:44px;height:44px}}
+ .evaluation-bar {flex-direction:row;align-items:stretch}
+ .evaluation-bar .report {flex:1;min-width:0;padding:6px 10px 6px 0}
+ .evaluation-bar .report p {-webkit-line-clamp:1}
+ .check-action {padding:6px}.check-action .primary {width:auto;white-space:nowrap}
+}

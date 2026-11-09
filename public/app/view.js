@@ -200,7 +200,8 @@ export function createWorkbenchView({ root, state, ex, at, attempt, scroll }) {
     function practiceShell() {
         const e = ex(), a = at(), trusted = state.exercises.filter(x => !state.previews.has(x.id));
         // ADR-105: on a narrow screen the task list folds into a picker above the task; wide, it is the side list.
-        const narrow = typeof matchMedia === 'function' && matchMedia('(max-width: 850px)').matches;
+        // ADR-116: a phone on its side is narrow too (the same query as the stylesheet); wide, the list shows even when closed.
+        const narrow = typeof matchMedia === 'function' && matchMedia('(max-width: 850px), (max-height: 500px) and (orientation: landscape)').matches;
         const library = `<aside class="library" aria-label="Gyakorlófeladatok"><details class="task-picker" data-memory="task-picker" ${narrow ? '' : 'open'}><summary><span>Feladatok</span><b>${esc(e?.title ?? '')}</b></summary><nav aria-label="Feladatok">${createFieldRenderer(trusted, esc, e?.id ?? '')}</nav></details></aside>`;
         const main = e && a ? `<main id="workbench-main" tabindex="-1">${heading(e.title, e.language, e.lines.length, `${e.description ? `<p class="description">${esc(e.description)}</p>` : ''}${tool('data-edit-example', 'Saját feladat ebből', 'plus', 'class="link-action"')}`)}${notice()}${tryPanel(e, a)}${help(e.language)}</main>` : '<main id="workbench-main"><p class="loading">Nincs gyakorlófeladat.</p></main>';
         return `<div class="shell practice-shell">${library}${main}</div>`;

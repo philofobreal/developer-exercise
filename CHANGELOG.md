@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased – 2026-11-09 fekvő telefon és egységes gombok (ADR-116)
+
+- **Fekvő telefonon a kód az első képernyőn van:**
+  - a fejléc, a cím, a lépéssor és az eszköztár egy-egy sor;
+  - a listák kitöltik a képernyőt.
+- **Fókusz mód fekvő telefonon:** a kódlisták eddig 16 px magasra zsugorodtak, most a képernyő nagy részét kapják. A cím, a Local Demo sáv és a részletek fókuszban rejtve maradnak.
+- **Javítva:**
+  - nem marad üres az oldalsáv, ha a feladatlistát keskeny nézetben becsuktad;
+  - a fejléc nem lóg ki a képernyőből 850 és 1000 px között.
+- **Egyforma gombok:** érintőképernyőn egy eszköztársor minden gombja egyforma magas.
+- **Álló telefonon** az eredménysáv egy sor, és nem takarja a listákat.
+- **Új elrendezés-kapu** (`npm run test:browser:layout`): hat képernyőméreten, két témában méri ezeket, minden futáskor.
+
 ## Unreleased – 2026-11-09 a példa kiválasztáskor betöltődik (ADR-115)
 
 - **Egy lépéssel kevesebb:** a Forrás lépés Megnyitás menüjében a példa a listából kiválasztva azonnal betöltődik. A „Példa betöltése” gomb megszűnt.
