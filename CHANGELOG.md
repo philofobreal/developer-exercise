@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased – 2026-11-09 kódszerkesztő kiemeléssel és automatikus formázással (ADR-121)
+
+- **Színes kód mindenhol:**
+  - a forrás, a CodeLine JSON és a megoldáskód szerkesztője is kiemeli a kódot;
+  - a szabálypanel, a függőségi tábla és a soronkénti megfeleltetés kódrészletei is színesek.
+- **Kényelmesebb gépelés:**
+  - Enter után a következő sor ugyanott kezdődik, és nyitó zárójel után beljebb;
+  - egy `}` a megfelelő szintre lép vissza;
+  - a Tab és a Shift+Tab kijelölt sorokat is beljebb vagy kijjebb tol.
+- **Automatikus formázás betöltéskor:**
+  - az egysoros vagy rosszul tördelt forrás (fájlból, a TypeScript mintából vagy üres szerkesztőbe beillesztve) formázva érkezik; a Visszavonás visszahozza az előzőt;
+  - a már rendesen tördelt forrás megtartja a saját behúzását;
+  - a beillesztett JSON tördelve jelenik meg.
+- **A tanuló kódját soha nem formázzuk automatikusan:** a kiértékelés pontosan azt kapja, amit beírt. A Formázás gomb megmarad.
+
 ## Unreleased – 2026-11-09 nem kattintható, amit most nem lehet, és megmondja, miért (ADR-120)
 
 - **Letiltva, okkal:** ami most nem lehetséges, az halványan, de elérhetően látszik. Ha rákattintasz, mellette megjelenik, miért nem, és mit tegyél. Eddig kattintás után jött a hibaüzenet.

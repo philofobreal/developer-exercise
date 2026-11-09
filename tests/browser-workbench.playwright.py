@@ -201,6 +201,7 @@ def model_first(page):
 def source_file(page):
     with page.expect_file_chooser() as chooser:open_menu(page,'open');page.locator('[data-import-source]').click()
     chooser.value.set_files({'name':'typed.ts','mimeType':'text/plain','buffer':source.encode()})
+    # ADR-121: a file already broken into lines keeps the author's own indentation.
     expect(page.locator('#author-editor')).to_have_value(source);expect(page.locator('[data-author="language"]')).to_have_value('typescript');expect(page.locator('.author-status')).to_contain_text('még nincs alkalmazva')
     for step in ['rules','try']:expect(page.locator(f'[data-step="{step}"]')).to_be_disabled()
     page.locator('[data-author-apply]').click();current(page,'rules');to_try(page);expect(page.locator('.source-zone .code-row')).to_have_count(5)
@@ -490,6 +491,23 @@ def availability_rules(page):
     expect(pin).to_have_attribute('aria-disabled','true');pin.click(force=True);expect(page.locator('.disabled-hint')).to_contain_text('CodeLine JSON')
     expect(page.locator('.board-row.fixed-row')).to_have_count(0)
     rules_json(page);editor.fill(original);page.locator('[data-rules-view="visual"]').click();expect(page.locator('[data-edit-paused]')).to_have_count(0)
+
+# ADR-121 (M4): one code editor. Typing keeps the indentation (5 spaces, a closing brace steps back), the highlighted layer
+# shows exactly the text; a loaded source arrives formatted and one Undo brings back the previous draft; the learner's code
+# editor is highlighted too, and rule snippets are highlighted like the sorter.
+def code_editor(page):
+    page.locator('[data-mode="author"]').click();page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click()
+    editor=page.locator('#author-editor');editor.fill('function g(x) {');editor.press('End');editor.press('Enter');editor.type('return x;');editor.press('Enter');editor.type('}')
+    typed='function g(x) {\n     return x;\n}';expect(editor).to_have_value(typed)
+    layer=page.locator('.editor-frame:has(#author-editor) .editor-highlight code');expect(layer.locator('.token.keyword').first).to_be_visible()
+    assert layer.text_content().rstrip('\n')==typed,'the highlighted layer shows exactly the text'
+    page.locator('[data-source-file]').set_input_files({'name':'one-line.js','mimeType':'text/plain','buffer':b'function h(y){const z=y+1;return z;}'})
+    expect(page.locator('.author-status')).to_contain_text('automatikusan formáztuk');assert len(editor.input_value().split('\n'))>=4,'a one-line file is laid out'
+    page.locator('[data-author-undo]').click();expect(editor).to_have_value(typed)
+    editor.fill(rules_source+'\n// M4');editor.dispatch_event('input');page.locator('[data-author-apply]').click();current(page,'rules')
+    page.locator('.board-row').nth(1).locator('[data-rule-line]').click();expect(page.locator('[data-rule-panel] code .token').first).to_be_attached()
+    practice(page);page.locator('[data-view="edit"]').click();page.locator('#code-editor').fill('const a = 1;')
+    expect(page.locator('.editor-frame:has(#code-editor) .editor-highlight code .token').first).to_be_attached();page.locator('[data-editor-reload]').click()
 
 # ADR-101: the author chooses the level in the source step; the built model carries it.
 def author_level(page):
@@ -849,6 +867,7 @@ try:
             case('node tap to pick, tap to place on a touch screen',lambda:tap_to_place(browser))
             case('node picked row actions in the action bar, rule panel as a bottom sheet',lambda:pick_actions(browser))
             case('node disabled controls carry their reason; one draft at a time',lambda:availability_rules(page))
+            case('node one code editor: highlight, indentation, formatted load, snippets',lambda:code_editor(page))
             reset(page,BASE);case('node theme choice: system, light, dark, remembered before first paint',lambda:theme_choice(page))
             reset(page,BASE);case('node header and step menus open and close',lambda:menus(page))
             case('node forced dark browser keeps the chosen light theme white',lambda:forced_dark(p))

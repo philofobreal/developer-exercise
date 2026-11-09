@@ -5,7 +5,7 @@ import { renderDependencyTable, renderWitness } from './dependency-view.js';
 import { createFieldRenderer } from './fields.js';
 import { beautifier } from '../formatter.js';
 import { validationMode } from './api.js';
-import { escapeHtml as esc, editorShell, updateGutters } from './ui-utilities.js';
+import { escapeHtml as esc, editorShell, highlight, syncEditors } from './ui-utilities.js';
 import { icon } from './icons.js';
 import { createViewContinuity } from './continuity.js';
 import { installWorkbenchKeyboard, installAuthoringFlows, installMenus, installDisabledGuard } from './interactions.js';
@@ -36,7 +36,7 @@ const tool = (attribute, label, name, extra = '') => {
     return `<button type="button" class="btn${own ? ' ' + own[1] : ''}" ${attribute} ${own ? extra.replace(own[0], '') : extra}>${icon(name)}<span>${label}</span></button>`;
 };
 const languageName = (language) => language === 'typescript' ? 'TypeScript' : 'JavaScript';
-export function createWorkbenchView({ root, state, ex, at, attempt, scroll }) {
+export function createWorkbenchView({ root, state, ex, at, attempt, scroll, format }) {
     const continuity = createViewContinuity(root);
     root.addEventListener('click', event => { if (!(event.target instanceof Element) || !event.target.closest('[data-dismiss-notice]'))
         return; try {
@@ -50,18 +50,13 @@ export function createWorkbenchView({ root, state, ex, at, attempt, scroll }) {
     codeView(root);
     paneSplit(root);
     installPaneSplit(root, () => drawRuleArcs(root, state));
-    installAuthoringFlows(root, state, render);
-    addEventListener('resize', () => { drawRuleArcs(root, state); updateGutters(root); });
+    installAuthoringFlows(root, state, render, format);
+    addEventListener('resize', () => { drawRuleArcs(root, state); syncEditors(root); });
     // ADR-090: a code list scrolls sideways as one; its rule arcs follow the row controls pinned at its right edge.
     let arcFrame = 0;
     root.addEventListener('scroll', event => { if (arcFrame || !(event.target instanceof HTMLElement) || !event.target.matches('.drop-zone[data-zone]') || !event.target.querySelector(':scope > svg.zone-arcs'))
         return; arcFrame = requestAnimationFrame(() => { arcFrame = 0; drawRuleArcs(root, state); }); }, { capture: true, passive: true });
-    function syntax(code, language = ex()?.language ?? state.author.language) { try {
-        const prism = window.Prism, grammar = prism?.languages[language];
-        if (prism && grammar)
-            return prism.highlight(code, grammar, language);
-    }
-    catch { } return esc(code); }
+    function syntax(code, language = ex()?.language ?? state.author.language) { return highlight(code, language); }
     // ── Try: the learner's sorter and solution editor (author step 3, practice, learner preview) ──
     /** The feedback this view may show: the learner's in practice and in the learner preview, else the author's. */
     const feedbackOf = (report) => report?.feedback ? (state.learnerPreview || !report.feedback.author ? report.feedback.learner : report.feedback.author) : undefined;
@@ -122,7 +117,7 @@ export function createWorkbenchView({ root, state, ex, at, attempt, scroll }) {
     }
     function editView(e, a) {
         const stale = a.editorDirty && a.editorGeneration !== a.generation;
-        return `<section class="solution-editor" aria-labelledby="editor-title"><div class="editor-heading"><h2 id="editor-title">Megoldáskód</h2><span data-editor-status class="context-label ${a.editorDirty ? 'pending' : ''}">${a.editorDirty ? 'Nem alkalmazott változat' : 'A rendező aktuális állapota'}</span><div class="editor-tools">${tool('data-copy-editor', '', 'copy', 'class="icon-only" aria-label="Másolás: a szerkesztett megoldás a vágólapra" title="Másolás"')}${tool('data-paste-editor', '', 'paste', 'class="icon-only" aria-label="Beillesztés: megoldás a vágólapról a szerkesztőbe" title="Beillesztés"')}</div></div>${stale ? '<p class="draft-notice" role="note">A rendező a szerkesztés óta módosult. Az Alkalmazás ezt a szerkesztett változatot helyezi át a rendezőbe.</p>' : ''}<div class="ide-pane">${editorShell('code-editor')}</div><div class="editor-actions">${tool('data-format', 'Formázás', 'code')}${tool('data-editor-reload', 'Kód frissítése a rendezőből', 'reset', 'title="A szerkesztett megoldás elvetése és az aktuális rendező betöltése"')}${tool('data-apply', 'Megoldás alkalmazása', 'arrow', 'class="primary"')}</div></section>`;
+        return `<section class="solution-editor" aria-labelledby="editor-title"><div class="editor-heading"><h2 id="editor-title">Megoldáskód</h2><span data-editor-status class="context-label ${a.editorDirty ? 'pending' : ''}">${a.editorDirty ? 'Nem alkalmazott változat' : 'A rendező aktuális állapota'}</span><div class="editor-tools">${tool('data-copy-editor', '', 'copy', 'class="icon-only" aria-label="Másolás: a szerkesztett megoldás a vágólapra" title="Másolás"')}${tool('data-paste-editor', '', 'paste', 'class="icon-only" aria-label="Beillesztés: megoldás a vágólapról a szerkesztőbe" title="Beillesztés"')}</div></div>${stale ? '<p class="draft-notice" role="note">A rendező a szerkesztés óta módosult. Az Alkalmazás ezt a szerkesztett változatot helyezi át a rendezőbe.</p>' : ''}<div class="ide-pane">${editorShell('code-editor', 'code', e.language)}</div><div class="editor-actions">${tool('data-format', 'Formázás', 'code')}${tool('data-editor-reload', 'Kód frissítése a rendezőből', 'reset', 'title="A szerkesztett megoldás elvetése és az aktuális rendező betöltése"')}${tool('data-apply', 'Megoldás alkalmazása', 'arrow', 'class="primary"')}</div></section>`;
     }
     const fixLabel = { verified: 'Ellenőrzött javítás', partial: 'Részleges javítás', guidance: 'Útmutatás' };
     /** The detailed explanation (ADR-026): every disclosed diagnostic, its fix at its own certainty,
@@ -176,7 +171,7 @@ export function createWorkbenchView({ root, state, ex, at, attempt, scroll }) {
         const option = (value, current, label) => `<option value="${value}" ${current ? 'selected' : ''}>${label}</option>`;
         const open = `<details class="menu open-menu"><summary>${icon('folder')}<span>Megnyitás</span></summary><div class="menu-panel" role="group" aria-label="Forrás megnyitása"><label>Példa<select data-start-example title="A választott példa azonnal betöltődik; a Visszavonás visszahozza a korábbi forrást."><option value="">Válassz példát…</option>${trusted.map(e => `<option value="${esc(e.id)}">${esc(e.title)} · ${languageName(e.language)}</option>`).join('')}</select></label>${tool('data-import-source', 'Forrásfájl megnyitása…', 'upload')}${tool('data-author-sample', 'TypeScript minta (436 sor)', 'file')}<a class="menu-link" data-typescript-catalog href="./samples/typescript/index.html" target="_blank" rel="noopener">TypeScript példatár ↗</a></div></details>`;
         const settings = renderPreflightSettings(a, state.authorPolicy, state.settingsOrigin);
-        const code = `<div class="form-grid"><label class="span-2">Cím<input data-author="title" value="${esc(a.title)}" maxlength="140" autocomplete="off"></label><label>Nyelv<select data-author="language">${option('javascript', a.language === 'javascript', 'JavaScript')}${option('typescript', a.language === 'typescript', 'TypeScript')}</select></label><label>Szint<select data-author="level">${option('', !a.level, 'Nincs megadva')}${option('beginner', a.level === 'beginner', 'Kezdő')}${option('intermediate', a.level === 'intermediate', 'Közepes')}${option('advanced', a.level === 'advanced', 'Haladó')}</select></label><label class="span-all">Feladatleírás<input data-author="description" value="${esc(a.description)}" maxlength="500"></label></div>${settings}<input type="file" data-source-file accept=".js,.mjs,.ts,.txt,text/plain" hidden><div class="editor-heading"><h3>Referenciaforrás</h3><span data-author-status class="context-label ${authorDraftPending(state) ? 'pending' : ''}"></span><div class="editor-tools">${tool('data-author-format', 'Formázás', 'code', 'class="labeled-tool" title="Formázás: 5 szóközös behúzás, a szintaxis ellenőrzésével"')}${tool('data-copy-author', '', 'copy', 'class="icon-only" aria-label="Másolás: a forráskód a vágólapra" title="Másolás"')}${tool('data-paste-author', '', 'paste', 'class="icon-only" aria-label="Beillesztés: forráskód a vágólapról" title="Beillesztés"')}</div></div><div class="ide-pane">${editorShell('author-editor')}</div><div class="editor-actions">${authorDraftPending(state) ? tool('data-author-revert', 'Változtatások elvetése', 'reset', 'title="Vissza ahhoz a forráshoz, amelyből az aktív modell készült"') : ''}${tool('data-author-check', 'Forrás vizsgálata', 'check', availabilityAttributes(state, 'author-check'))}${tool('data-author-apply', 'Modell készítése', 'arrow', availabilityAttributes(state, 'author-apply') + ' class="primary"')}</div><p class="author-status" role="status" aria-live="polite">${esc(a.message || 'A Modell készítése ellenőrzi a szintaxist és a szerkezetet, majd elkészíti a sorokat és a szabályokat.')}${canUndoReplace(state) ? tool('data-author-undo', 'Visszavonás', 'back', 'class="link-action" title="A betöltés előtti forrás visszaállítása"') : ''}</p>${renderSourceDiagnostics(state.sourceGate?.gate, !!state.sourceGate && state.sourceGate.source !== a.source)}`;
+        const code = `<div class="form-grid"><label class="span-2">Cím<input data-author="title" value="${esc(a.title)}" maxlength="140" autocomplete="off"></label><label>Nyelv<select data-author="language">${option('javascript', a.language === 'javascript', 'JavaScript')}${option('typescript', a.language === 'typescript', 'TypeScript')}</select></label><label>Szint<select data-author="level">${option('', !a.level, 'Nincs megadva')}${option('beginner', a.level === 'beginner', 'Kezdő')}${option('intermediate', a.level === 'intermediate', 'Közepes')}${option('advanced', a.level === 'advanced', 'Haladó')}</select></label><label class="span-all">Feladatleírás<input data-author="description" value="${esc(a.description)}" maxlength="500"></label></div>${settings}<input type="file" data-source-file accept=".js,.mjs,.ts,.txt,text/plain" hidden><div class="editor-heading"><h3>Referenciaforrás</h3><span data-author-status class="context-label ${authorDraftPending(state) ? 'pending' : ''}"></span><div class="editor-tools">${tool('data-author-format', 'Formázás', 'code', 'class="labeled-tool" title="Formázás: 5 szóközös behúzás, a szintaxis ellenőrzésével"')}${tool('data-copy-author', '', 'copy', 'class="icon-only" aria-label="Másolás: a forráskód a vágólapra" title="Másolás"')}${tool('data-paste-author', '', 'paste', 'class="icon-only" aria-label="Beillesztés: forráskód a vágólapról" title="Beillesztés"')}</div></div><div class="ide-pane">${editorShell('author-editor', 'code', a.language)}</div><div class="editor-actions">${authorDraftPending(state) ? tool('data-author-revert', 'Változtatások elvetése', 'reset', 'title="Vissza ahhoz a forráshoz, amelyből az aktív modell készült"') : ''}${tool('data-author-check', 'Forrás vizsgálata', 'check', availabilityAttributes(state, 'author-check'))}${tool('data-author-apply', 'Modell készítése', 'arrow', availabilityAttributes(state, 'author-apply') + ' class="primary"')}</div><p class="author-status" role="status" aria-live="polite">${esc(a.message || 'A Modell készítése ellenőrzi a szintaxist és a szerkezetet, majd elkészíti a sorokat és a szabályokat.')}${canUndoReplace(state) ? tool('data-author-undo', 'Visszavonás', 'back', 'class="link-action" title="A betöltés előtti forrás visszaállítása"') : ''}</p>${renderSourceDiagnostics(state.sourceGate?.gate, !!state.sourceGate && state.sourceGate.source !== a.source)}`;
         return `<section class="author step-panel" aria-labelledby="step-title"><div class="section-bar"><h2 id="step-title">Forrás</h2><div class="section-actions"><div class="segment source-kind" role="group" aria-label="A forrás fajtája">${kindTab('code', 'Forráskód')}${kindTab('json', 'CodeLine JSON')}</div>${kind === 'code' ? open : ''}</div></div>${kind === 'json' ? jsonBlock('source') : code}</section>`;
     }
     // ── Author step 2: rules (visual board with the rule panel, or the JSON) ──
@@ -256,7 +251,7 @@ export function createWorkbenchView({ root, state, ex, at, attempt, scroll }) {
         fill('#model-editor', state.modelDraft);
         fill('#code-editor', at()?.draft ?? '');
         refreshAuthorStatus(root, state);
-        updateGutters(root);
+        syncEditors(root);
         drawRuleArcs(root, state);
         root.dataset.renderedExercise = state.active ?? '';
         root.dataset.renderedView = v;

@@ -1,5 +1,5 @@
 import {markEditorDraft,markEditorApplied,reloadEditorFromArrangement,captureEditorRequest,adjacentMoveBoundary,dispatchWorkbenchAction} from './app/interactions.js';
-import {refreshAuthorStatus,captureAuthorRequest,authorRequest,startFromExample,replaceDraft,undoReplace,revertAuthorDraft,admitAuthorModel} from './app/author-workspace.js';
+import {refreshAuthorStatus,captureAuthorRequest,authorRequest,startFromExample,replaceDraft,formatLoaded,undoReplace,revertAuthorDraft,admitAuthorModel} from './app/author-workspace.js';
 import {NEW_DRAFT_SETTINGS,setPreflightOption,settingsKey,settingsRequest} from './app/preflight-settings.js';
 import {revealLine} from './app/ui-utilities.js';
 import {readRuleEdit,readRuleKindEdits,recordRuleRefusal,settleRuleKind,settleRuleSelection} from './app/rule-panel.js';
@@ -19,7 +19,7 @@ import {createAttempt,createAttemptController} from './app/attempt.js';
 import {createWorkbenchView} from './app/view.js';
 import {practiceOrder} from './app/fields.js';
 import {createInsertionDrag} from './app/drag-insert.js';
-import {createScrollMemory,updateGutters,copyToClipboard,escapeHtml} from './app/ui-utilities.js';
+import {createScrollMemory,syncEditors,handleEditorKey,copyToClipboard,escapeHtml} from './app/ui-utilities.js';
 import {formatSource,getExercises,compileDraft,checkSource,editRules,previewDraft,resolvePolicy,evaluate,loadTypeScriptFixture} from './app/api.js';
 const root=document.querySelector('#app');
 const state={exercises:[],active:null,attempts:new Map(),previews:new Map(),drag:null,mode:'author',view:'author',practiceActive:null,author:{...NEW_DRAFT_SETTINGS,title:'Saját kódrendezős feladat',description:'Rendezd sorba a kódsorokat.',language:'javascript',source:`function calculate() {\n     const a = 10;\n     const b = 20;\n     return a + b;\n}`,message:''},modelDraft:'',modelMessage:''};
@@ -27,7 +27,7 @@ const ex=()=>state.exercises.find(x=>x.id===state.active);
 const at=()=>state.attempts.get(state.active);
 const attempt=createAttemptController(ex,at);
 const {text,formattedAnswer}=attempt;
-const view=createWorkbenchView({root,state,ex,at,attempt,scroll:createScrollMemory(root)});
+const view=createWorkbenchView({root,state,ex,at,attempt,scroll:createScrollMemory(root),format:formatSource});
 const render=()=>{view.render();ensurePolicy();};
 function commit(msg=''){at().generation=(at().generation??0)+1;at().report=null;at().feedback=msg;delete state.feedbackFocus;render();}
 /** The graded lines and the sorter slot of each, so a diagnostic position marks its row (ADR-026). */
@@ -143,7 +143,7 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  }
  if(b.hasAttribute('data-author-sample')){
   const current=captureAuthorRequest(state);
-  try{const source=await loadTypeScriptFixture();if(!current())return;replaceDraft(state,{...state.author,source,language:'typescript',title:'CopyFieldUtilityService',description:'Mellékelt TypeScript service, 31 osztálytag',message:'A 31 metódusos TypeScript minta betöltve.'});render();}catch(err){if(current()){state.author.message=err.message;render();}}return;
+  try{const source=await loadTypeScriptFixture();if(!current())return;const next=await formatLoaded({...state.author,source,language:'typescript',title:'CopyFieldUtilityService',description:'Mellékelt TypeScript service, 31 osztálytag',message:'A 31 metódusos TypeScript minta betöltve.'},formatSource);if(!current())return;replaceDraft(state,next);render();}catch(err){if(current()){state.author.message=err.message;render();}}return;
  }
  if(b.dataset.mode){enterMode(state,b.dataset.mode);render();root.querySelector(`[data-mode="${state.mode}"]`)?.focus({preventScroll:true});return;}
  if(b.dataset.step||b.dataset.goto){await go(steps[b.dataset.step??b.dataset.goto]);root.querySelector('#step-title')?.focus?.({preventScroll:true});return;}
@@ -230,9 +230,22 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  }
 },error=>notify(error instanceof Error?error.message:'A művelet nem sikerült.')));
 root.addEventListener('keydown',ev=>{if(ev.key!=='Escape'||!state.rulePanelOpen||ev.defaultPrevented||!(ev.target instanceof Element)||!ev.target.closest('.rule-inspector,.inspector-toggle')||ev.target.closest('input,textarea,select'))return;ev.preventDefault();state.rulePanelOpen=false;render();root.querySelector('.inspector-toggle')?.focus({preventScroll:true});});
-root.addEventListener('input',ev=>{const el=ev.target; if(el.closest('.editor-frame'))updateGutters(root);if(el.id==='code-editor')markEditorDraft(at(),el.value);else if(el.id==='model-editor')state.modelDraft=el.value;else if(el.id==='author-editor')state.author.source=el.value;else if(el.dataset.author)state.author[el.dataset.author]=el.value;refreshAuthorStatus(root,state);refreshAvailability(root,state,at());});
-root.addEventListener('scroll',ev=>{if(ev.target.matches('.editor-frame textarea'))updateGutters(root);},true);
-root.addEventListener('keydown',ev=>{if(ev.key==='Tab'&&ev.target.matches('.editor-frame textarea')){ev.preventDefault();const el=ev.target,i=el.selectionStart,j=el.selectionEnd;el.setRangeText('     ',i,j,'end');el.dispatchEvent(new Event('input',{bubbles:true}));}});
+root.addEventListener('input',ev=>{const el=ev.target; if(el.closest('.editor-frame'))syncEditors(root);if(el.id==='code-editor')markEditorDraft(at(),el.value);else if(el.id==='model-editor')state.modelDraft=el.value;else if(el.id==='author-editor')state.author.source=el.value;else if(el.dataset.author)state.author[el.dataset.author]=el.value;refreshAuthorStatus(root,state);refreshAvailability(root,state,at());});
+root.addEventListener('scroll',ev=>{if(ev.target.matches('.editor-frame textarea'))syncEditors(root);},true);
+// ADR-121 (M4): the editors' keys (Tab/Shift+Tab on lines, Enter keeps the indentation, } steps back) in one place.
+root.addEventListener('keydown',handleEditorKey);
+// ADR-121 (M4): a whole source or CodeLine JSON pasted into an empty (or fully selected) editor is laid out at once; the
+// source through the formatter (undoable as a load), the JSON by its own structure. The learner's code is never reformatted.
+root.addEventListener('paste',ev=>{
+ const el=ev.target;if(!(el instanceof HTMLTextAreaElement)||(el.id!=='author-editor'&&el.id!=='model-editor'))return;
+ const whole=el.value.trim()===''||(el.selectionStart===0&&el.selectionEnd===el.value.length);if(!whole)return;
+ setTimeout(async()=>{
+  if(el.id==='model-editor'){try{const pretty=JSON.stringify(JSON.parse(el.value),null,2);if(pretty!==el.value){el.value=pretty;state.modelDraft=pretty;syncEditors(root);}}catch{}return;}
+  const current=captureAuthorRequest(state);state.author.source=el.value;
+  const next=await formatLoaded({...state.author,message:'Beillesztve.'},formatSource);
+  if(current()&&next.source!==state.author.source){replaceDraft(state,next);render();}
+ });
+});
 root.addEventListener('change',ev=>{
  // M2: choosing an example loads it at once (undoable); there is no separate load button.
  if(ev.target.matches('[data-start-example]')){const e=state.exercises.find(x=>x.id===ev.target.value);if(!e)return;startFromExample(state,e);state.sourceKind='code';render();root.querySelector('.open-menu > summary')?.focus({preventScroll:true});return;}

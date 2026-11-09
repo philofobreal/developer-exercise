@@ -24,7 +24,7 @@ button:hover:not(:disabled) {background:var(--n-20);border-color:var(--n-46)}but
 #app .code-text .token {background:transparent;box-shadow:none;text-shadow:none;border:0;padding:0;border-radius:0}#app .token.keyword {color:var(--i-78)}#app .token.string {color:var(--w-72)}#app .token.number,#app .token.boolean {color:var(--v-78)}#app .token.function {color:var(--a-68)}#app .token.operator,#app .token.punctuation {color:var(--n-88)}#app .token.entity {color:var(--a-66)}.sr-only {position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}.learner-preview main {width:100%;padding-left:clamp(20px,4vw,70px);padding-right:clamp(20px,4vw,70px)}.loading {min-height:60dvh;display:grid;place-items:center;color:var(--n-82)}
 @keyframes spin {to{transform:rotate(360deg)}}
 @media(min-width:1750px) {.drop-zone {height:clamp(420px,calc(100dvh - 430px),720px);max-height:720px}}
-@media(max-width:650px) {h1 {font-size:21px}.panes {grid-template-columns:minmax(0,1fr);gap:16px}.drop-zone {height:auto;min-height:180px;max-height:300px}.source-zone {padding:7px}.empty {min-height:170px}.row-actions {gap:2px;padding:3px 2px}.fixed-tag {font-size:11px;padding:0 3px}.form-grid {grid-template-columns:1fr}.editor-frame {grid-template-columns:35px minmax(0,1fr)}.editor-frame textarea,.editor-gutter {font-size:11px}.editor-actions {align-items:stretch;gap:10px}.editor-actions .primary {width:100%;margin-left:0}.model-overview {gap:12px;padding:12px}.model-overview>span {font-size:11px}.model-overview b {font-size:14px}.dependency-details {padding:10px}}
+@media(max-width:650px) {h1 {font-size:21px}.panes {grid-template-columns:minmax(0,1fr);gap:16px}.drop-zone {height:auto;min-height:180px;max-height:300px}.source-zone {padding:7px}.empty {min-height:170px}.row-actions {gap:2px;padding:3px 2px}.fixed-tag {font-size:11px;padding:0 3px}.form-grid {grid-template-columns:1fr}.editor-frame {grid-template-columns:35px minmax(0,1fr)}.editor-frame textarea,.editor-gutter,.editor-highlight {font-size:11px}.editor-actions {align-items:stretch;gap:10px}.editor-actions .primary {width:100%;margin-left:0}.model-overview {gap:12px;padding:12px}.model-overview>span {font-size:11px}.model-overview b {font-size:14px}.dependency-details {padding:10px}}
 @media(pointer:coarse) {button,summary {min-height:44px}:root {--row:44px}.drag-handle {flex-basis:44px;width:44px;height:44px}.row-actions button {height:36px;min-height:36px;width:32px}.source-row .gutter {width:27px;flex-basis:27px}}
 @media(prefers-reduced-motion:reduce) {*,*::before,*::after {animation:none;transition:none;scroll-behavior:auto}}
 
@@ -421,6 +421,7 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 #app[data-surface=focus] .solution-editor .ide-pane {flex:1}
 #app[data-surface=focus] .editor-frame {flex:1;min-height:0;max-height:none;height:auto}
 #app[data-surface=focus] .editor-frame textarea {height:100%;min-height:0;max-height:none;resize:none}
+#app[data-surface=focus] .editor-surface {display:flex;flex-direction:column;height:100%}
 #app[data-surface=focus] .editor-actions {margin-top:8px}
 @media(max-width:650px) {
  #app[data-surface=focus] .task-meta>span:not(.mode-badge,.language-badge) {display:none}
@@ -544,3 +545,13 @@ button.btn.link-action:hover:not(:disabled) {background:var(--blue-pale);border-
 .disabled-hint {position:fixed;z-index:1200;padding:8px 10px;border:1px solid var(--yellow-line);border-left:4px solid var(--yellow);background:var(--yellow-pale);color:var(--text);font-size:12.5px;line-height:1.5;box-shadow:0 10px 24px color-mix(in srgb,var(--shadow) 40%,transparent)}
 .edit-paused {display:flex;gap:8px;align-items:flex-start;margin:0 0 12px;padding:8px 12px;border:1px solid var(--yellow-line);border-left:4px solid var(--yellow);background:var(--yellow-pale);color:var(--text);font-size:12.5px;line-height:1.5}
 .edit-paused .icon {flex:none;margin-top:2px}
+/* ADR-121 (M4): one code editor. The highlighted layer lies under a transparent textarea with the same font, line height,
+ * padding and tab size; the textarea keeps native editing (undo, selection, IME, paste) and draws the caret and selection. */
+.editor-surface {position:relative;min-width:0;min-height:0}
+/* the textarea sets the size; the layer lies exactly over it and scrolls with it */
+.editor-highlight {position:absolute;inset:0;margin:0;padding:0 14px;min-width:0;overflow:hidden;pointer-events:none;white-space:pre;tab-size:5;font:12px/23px var(--mono);color:var(--n-92);background:repeating-linear-gradient(to bottom,var(--n-10) 0 23px,var(--n-14) 23px 46px);background-attachment:local}
+.editor-highlight code {display:block;font:inherit;background:none;padding:0;color:inherit;white-space:inherit}
+.editor-frame textarea {position:relative;z-index:1;background:transparent;color:transparent;-webkit-text-fill-color:transparent;caret-color:var(--n-92)}
+.editor-frame textarea::selection {background:color-mix(in srgb,var(--blue) 32%,transparent)}
+.editor-frame textarea::placeholder {-webkit-text-fill-color:var(--muted)}
+@media (forced-colors:active) {.editor-highlight {display:none}.editor-frame textarea {color:CanvasText;-webkit-text-fill-color:CanvasText}}

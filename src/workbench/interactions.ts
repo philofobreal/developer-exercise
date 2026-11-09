@@ -1,6 +1,6 @@
 /** Accessible navigation, draft continuity and action feedback share one UI policy. */
 import type {AttemptSnapshot,ViewName,WorkbenchState} from './contracts.js';
-import {captureAuthorRequest,replaceDraft} from './author-workspace.js';
+import {captureAuthorRequest,formatLoaded,replaceDraft} from './author-workspace.js';
 const views:readonly ViewName[]=['sort','edit','author','model'];
 export function activateView(state:WorkbenchState,attempt:AttemptSnapshot|undefined,formatted:string[],next:ViewName):void {
  if(!views.includes(next))return;
@@ -76,7 +76,7 @@ export async function dispatchWorkbenchAction(event:MouseEvent,handler:(button:H
 }
 
 /** Two author inputs converge on the same compiled preview; learner mode is UI isolation, not authorization. */
-export function installAuthoringFlows(root:HTMLElement,state:WorkbenchState,render:()=>void):void {
+export function installAuthoringFlows(root:HTMLElement,state:WorkbenchState,render:()=>void,format?:(source:string,language:string)=>Promise<{code:string}>):void {
  let returnView:ViewName='sort';
  root.addEventListener('input',event=>{
   const editor=event.target;if(!(editor instanceof HTMLTextAreaElement))return;
@@ -104,7 +104,8 @@ export function installAuthoringFlows(root:HTMLElement,state:WorkbenchState,rend
    if(source.length>50000)throw Error('Legfeljebb 50000 karakteres forrás tölthető be.');
    if(!current())return;
    const language=/\.ts$/i.test(file.name)?'typescript':/\.(mjs|js)$/i.test(file.name)?'javascript':state.author.language;
-   replaceDraft(state,{...state.author,source,language,message:`${file.name} betöltve. A forrás még nincs alkalmazva. A cím és leírás nem változik automatikusan; ellenőrizd őket.`});
+   const next=await formatLoaded({...state.author,source,language,message:`${file.name} betöltve. A forrás még nincs alkalmazva. A cím és leírás nem változik automatikusan; ellenőrizd őket.`},format);
+   if(!current())return;replaceDraft(state,next);
   }catch(error){if(!current())return;state.author.message=error instanceof Error?error.message:'A forrásfájl nem olvasható.';}
   if(!state.learnerPreview&&state.view==='author')render();
  });

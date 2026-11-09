@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {NEW_DRAFT_SETTINGS} from '../public/app/preflight-settings.js';
-import {authorDraftPending,authorRequest,captureAuthorAdmission,captureAuthorRequest,startFromExample,revertAuthorDraft,admitAuthorModel,replaceDraft,canUndoReplace,undoReplace} from '../public/app/author-workspace.js';
+import {authorDraftPending,authorRequest,captureAuthorAdmission,captureAuthorRequest,startFromExample,revertAuthorDraft,admitAuthorModel,replaceDraft,canUndoReplace,undoReplace,formatLoaded} from '../public/app/author-workspace.js';
 import {reloadEditorFromArrangement,markEditorDraft} from '../public/app/interactions.js';
 const first={id:'first',revision:1,title:'First',description:'First task',language:'javascript',lines:[{id:1,code:'const a = 1;'}]};
 const second={...first,id:'second',title:'Second',language:'typescript',lines:[{id:1,code:'const b: number = 2;'}]};
@@ -71,4 +71,14 @@ test('M2: a load replaces the draft without asking, and brings the previous one 
  undoReplace(state);assert.match(state.author.source,/edited/,'undo is a no-op then');
  replaceDraft(state,{...state.author,source:'from a file',message:''});const newer=captureAuthorRequest(state);
  undoReplace(state);assert.equal(newer(),false,'an undo is newer work: a late response for the load is dropped');
+});
+
+test('M4: a loaded source arrives formatted when the formatter lays it out, else as it is with a note',async()=>{
+ const draft={title:'',description:'',language:'javascript',source:'a();b();',message:'Betöltve.'};
+ const formatted=await formatLoaded(draft,async source=>({code:source.replace(';',';\n')}));
+ assert.equal(formatted.source,'a();\nb();');assert.match(formatted.message,/automatikusan formáztuk/);
+ const failed=await formatLoaded(draft,async()=>{throw Error('syntax');});
+ assert.equal(failed.source,draft.source);assert.match(failed.message,/nem formázható/);
+ assert.equal(await formatLoaded(draft),draft,'no formatter: as it is');
+ const tidy={...draft,source:'a();\n  b();'};assert.equal(await formatLoaded(tidy,async()=>({code:'a();\n     b();'})),tidy,'already broken into lines: the author\'s indentation stays');
 });

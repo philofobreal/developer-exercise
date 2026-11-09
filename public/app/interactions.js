@@ -1,4 +1,4 @@
-import { captureAuthorRequest, replaceDraft } from './author-workspace.js';
+import { captureAuthorRequest, formatLoaded, replaceDraft } from './author-workspace.js';
 const views = ['sort', 'edit', 'author', 'model'];
 export function activateView(state, attempt, formatted, next) {
     if (!views.includes(next))
@@ -122,7 +122,7 @@ export async function dispatchWorkbenchAction(event, handler, onError) {
     }
 }
 /** Two author inputs converge on the same compiled preview; learner mode is UI isolation, not authorization. */
-export function installAuthoringFlows(root, state, render) {
+export function installAuthoringFlows(root, state, render, format) {
     let returnView = 'sort';
     root.addEventListener('input', event => {
         const editor = event.target;
@@ -184,7 +184,10 @@ export function installAuthoringFlows(root, state, render) {
             if (!current())
                 return;
             const language = /\.ts$/i.test(file.name) ? 'typescript' : /\.(mjs|js)$/i.test(file.name) ? 'javascript' : state.author.language;
-            replaceDraft(state, { ...state.author, source, language, message: `${file.name} betöltve. A forrás még nincs alkalmazva. A cím és leírás nem változik automatikusan; ellenőrizd őket.` });
+            const next = await formatLoaded({ ...state.author, source, language, message: `${file.name} betöltve. A forrás még nincs alkalmazva. A cím és leírás nem változik automatikusan; ellenőrizd őket.` }, format);
+            if (!current())
+                return;
+            replaceDraft(state, next);
         }
         catch (error) {
             if (!current())

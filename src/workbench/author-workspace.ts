@@ -56,6 +56,18 @@ export function replaceDraft(state:WorkbenchState,next:AuthorDraft):void {
 export function canUndoReplace(state:WorkbenchState):boolean {
  return !!state.authorReplaced&&same(state.author,state.authorReplaced.loaded);
 }
+/** ADR-121 (M4): a loaded starting point arrives formatted when its lines need laying out (one-line or badly broken code);
+ * a source already broken into the formatter's lines keeps the author's own indentation. A source the formatter cannot read
+ * arrives as it is, and the message says so. The caller then replaces the draft with it (replaceDraft), so one Undo brings
+ * back what was there. */
+export async function formatLoaded(next:AuthorDraft,format?:(source:string,language:string)=>Promise<{code:string}>):Promise<AuthorDraft> {
+ if(!format||!next.source.trim())return next;
+ try{
+  const {code}=await format(next.source,next.language),lines=(text:string):string=>text.split('\n').map(line=>line.trim()).filter(Boolean).join('\n');
+  return lines(code)===lines(next.source)?next:{...next,source:code,message:`${next.message} A forrást automatikusan formáztuk.`};
+ }
+ catch{return {...next,message:`${next.message} A forrás nem formázható (például szintaktikai hiba miatt), ezért változatlanul töltöttük be.`};}
+}
 /** Brings back the draft the last load replaced; a no-op once the loaded draft was changed. */
 export function undoReplace(state:WorkbenchState):void {
  if(!canUndoReplace(state))return;
