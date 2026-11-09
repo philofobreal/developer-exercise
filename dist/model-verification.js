@@ -96,6 +96,8 @@ export function verifyModel(model, input = {}) {
     if (checks.analyzer === 'outdated')
         limits.push('A modell régebbi szabályverzióval készült.');
     findings.push(...limits);
+    if (checks.rederivation === 'narrower')
+        findings.push('A szabályok eltérnek a forrás újragenerálásától, de bizonyítottan csak szűkítenek: minden generált sorrendi kötést tartalmaznak, a blokkszerkezet azonos.');
     if (checks.authorRules)
         findings.push(`${checks.authorRules} szerzői szabály szűkíti a generált modellt.`);
     if (checks.fixed)
@@ -106,7 +108,7 @@ export function verifyModel(model, input = {}) {
         findings.push('A referencia nyelvi helyessége projektkontextus nélkül nem ellenőrizhető.');
     if (checks.audit === 'not-run')
         findings.push('A referencia nyelvi auditja nem futott.');
-    const status = unverified.length ? 'unverified' : checks.authorRules || checks.fixed || checks.profiles ? 'author-modified' : limits.length ? 'conservative' : 'analysis-verified';
+    const status = unverified.length ? 'unverified' : checks.authorRules || checks.fixed || checks.profiles || checks.rederivation === 'narrower' ? 'author-modified' : limits.length ? 'conservative' : 'analysis-verified';
     const analysed = status !== 'unverified';
     const claims = [
         { claim: 'A modell befogadható, és elfogadja a saját referenciáját.', basis: checks.reference === 'accepted' ? 'checked' : 'refuted' },

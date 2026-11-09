@@ -3,8 +3,9 @@ export type VerificationStatus = 'analysis-verified' | 'conservative' | 'author-
 export interface VerificationInput {
     /** The admitting party's language audit of the reference (ADR-016). */
     audit?: 'ok' | 'errors' | 'unverifiable' | 'not-run';
-    /** Whether the generated constraints equal a fresh regeneration of the source. */
-    rederivation?: 'match' | 'differs';
+    /** Whether the generated constraints equal a fresh regeneration of the source, or provably only
+     * narrow it (ADR-114: same blocks, every regenerated ordering implied, no reason the analysis lacks). */
+    rederivation?: 'match' | 'narrower' | 'differs';
     /** The analyser version of that regeneration. */
     currentAnalyzer?: DependencyPolicy;
     /** Projection loss of that regeneration; otherwise the bound evidence's own figure. */
@@ -31,7 +32,7 @@ export interface ModelVerification {
             maxStates: number;
         };
         provenance: 'complete' | 'partial' | 'absent' | 'unbound';
-        rederivation: 'match' | 'differs' | 'not-run';
+        rederivation: 'match' | 'narrower' | 'differs' | 'not-run';
         analyzer: 'current' | 'outdated' | 'unknown';
         audit: 'ok' | 'errors' | 'unverifiable' | 'not-run';
         /** Constraints whose strongest reason is a conservative fallback, by reason code. */

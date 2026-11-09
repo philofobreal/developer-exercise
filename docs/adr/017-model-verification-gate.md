@@ -63,8 +63,8 @@ A `verifyModel(model, input)` ([model-verification.ts](../../src/core/model-veri
 | --- | --- |
 | `analysis-verified` | minden kényszer újralevezetett; nincs fallback, projekciós veszteség és szerzői szabály; az elemző aktuális |
 | `conservative` | mint fent, de fallback, projekciós veszteség vagy elavult elemző miatt érvényes sorrendet is elutasíthat |
-| `author-modified` | szerzői szabályok, `fixed` sorok vagy OR-profilok szándékosan szűkítik a generált modellt (a generátor egyiket sem állítja elő) |
-| `unverified` | hiányzó, részleges vagy kötetlen proveniencia; nincs újralevezetés vagy eltér; nyelvi hiba a referenciában |
+| `author-modified` | szerzői szabályok, `fixed` sorok vagy OR-profilok szándékosan szűkítik a generált modellt (a generátor egyiket sem állítja elő); vagy a szabályok eltérnek az újragenerálástól, de bizonyítottan csak szűkítenek (`rederivation: narrower`, [ADR-114](114-proven-narrowing-verification.md)) |
+| `unverified` | hiányzó, részleges vagy kötetlen proveniencia; nincs újralevezetés, vagy nem csak szűkítő módon eltér; nyelvi hiba a referenciában |
 
 **`publishable`:** a referencia elfogadott, és egyetlen vizsgált szomszéd sem `indeterminate`. Ez a formális szerződés élesítési feltétele.
 

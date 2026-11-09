@@ -328,7 +328,7 @@ Következtetés:
     - a második kapu „nem eldönthető”, mert a minősítés „nem igazolt”: 15 szerzői szabály szűkíti a generált modellt;
     - „figyelmeztet” mellett figyelmeztetéssel nyílik, „tilt” mellett zárva marad.
 
-    Itt a szerző csak szigorított. Hogy a szűkítés is „nem igazolt” legyen-e a kapu számára, pedagógiai döntés, és nyitva marad. Ma a meglévő minősítő ítéletét követjük.
+    Itt a szerző csak szigorított. A döntés 2026-11-09-én megszületett ([ADR-114](114-proven-narrowing-verification.md)): a bizonyítottan csak szűkítő modell „szerzői módosítás”. Azóta ez a minta is átmegy mindkét kapun mindhárom beállítással (40 modell).
   - **Élesítés:** nincs kapcsoló. A kapuk az E5a óta élesek, és a kezdőérték mellett egyetlen szállított modellt sem blokkolnak váratlanul. A visszagörgetés a commitok visszavonása.
 - **Az első kapu költsége** (nyelvi ellenőrzés + futási biztonság + döntés, TypeScript, 15 futás, p50/p95 ms):
 

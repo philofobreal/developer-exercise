@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-11-09 a kézzel szűkített modell „Szerzői módosítás” (ADR-114)
+
+- **Ugyanaz a szigorítás, ugyanaz a minősítés:** ha a modell JSON-ját kézzel szigorítod, és a szabályaid minden generált sorrendi kötést tartalmaznak (akár közvetve), a minősítés „Szerzői módosítás”, nem „Nem igazolt”. Eddig ezt csak a Szabályok panelen hozzáadott szabály kapta meg.
+  - Az ilyen modell „Tilt” mellett is megnyitja a Próbát, és publikálható.
+  - A lelet kiírja, hogy a szabályok eltérnek az újragenerálástól, de bizonyítottan csak szűkítenek.
+- **Változatlanul „Nem igazolt”:** ha egy generált kötés nem következik a szabályaidból (lazítás), ha a blokkszerkezet más, vagy ha egy szerzői kötést elemzői okkal jelölsz.
+- **Érintett minta:** `01-user-account.values-only` („csak name/id érték szerinti” változat).
+
 ## Unreleased – 2026-11-08 teljes ellenőrzés a Local Demóban és a Forrás lépésben (ADR-113)
 
 - **A Local Demó ugyanúgy ellenőriz, mint a szerver:** a demó betölti a TypeScript szabványos könyvtárát. Így a nyelvi hibákat (például típushibát) a demó is felismeri, és minden elemzési beállítás választható, a „Tilt” is. Ha a könyvtár nem töltődik be, a demó a korábbi módon jelzi, mi érhető el csak szerveren.

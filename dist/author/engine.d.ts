@@ -79,6 +79,10 @@ export declare function authorRuleSheet(model: CodeLineExercise): AuthorRuleShee
  * the regeneration, less the recorded relaxations (ADR-018), exactly (dependencies per line,
  * non-author edges and reasons), so neither a hand
  * edit nor forged provenance passes as analysis. The regeneration also supplies the
- * current analyser version and the projection loss; the core gate does the rest. */
+ * current analyser version and the projection loss; the core gate does the rest.
+ * ADR-114: a model that differs only by narrowing is `narrower`, not `differs`: the same block
+ * structure, every regenerated ordering implied by the model's own (dependencies and edges, at any
+ * distance), and every analysis reason it records one the regeneration also gives. Its accepted
+ * orders are then a subset of the regenerated model's, so nothing the analysis rejects is accepted. */
 export declare function verifyAuthorModel(model: CodeLineExercise, ports: Pick<LegacyJSTSPorts, 'generate'>, input?: Pick<VerificationInput, 'audit' | 'maxStates' | 'neighbours'>): Promise<ModelVerification>;
 export declare function createLegacyJSTSBridge(language: 'javascript' | 'typescript', ports: LegacyJSTSPorts): LanguagePlugin;

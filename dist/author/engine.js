@@ -122,7 +122,11 @@ export function authorRuleSheet(model) {
  * the regeneration, less the recorded relaxations (ADR-018), exactly (dependencies per line,
  * non-author edges and reasons), so neither a hand
  * edit nor forged provenance passes as analysis. The regeneration also supplies the
- * current analyser version and the projection loss; the core gate does the rest. */
+ * current analyser version and the projection loss; the core gate does the rest.
+ * ADR-114: a model that differs only by narrowing is `narrower`, not `differs`: the same block
+ * structure, every regenerated ordering implied by the model's own (dependencies and edges, at any
+ * distance), and every analysis reason it records one the regeneration also gives. Its accepted
+ * orders are then a subset of the regenerated model's, so nothing the analysis rejects is accepted. */
 export async function verifyAuthorModel(model, ports, input = {}) {
     let rederivation = 'differs', currentAnalyzer, projectionLoss;
     try {
@@ -140,15 +144,47 @@ export async function verifyAuthorModel(model, ports, input = {}) {
         const pairs = (edges) => edges.map(edge => edge.before + ':' + edge.after).sort().join();
         const sameDependencies = generated.lines.every((line, index) => pairs(line.dependencies.map(before => ({ before: id(before), after: model.lines[index].id })).filter(kept)) === pairs(model.lines[index].dependencies.map(before => ({ before, after: model.lines[index].id }))));
         const sameEdges = pairs((generated.edges ?? []).map(edge => ({ before: id(edge.before), after: id(edge.after) })).filter(kept)) === pairs((model.edges ?? []).filter(edge => !author.has(edge.before + ':' + edge.after)));
-        const reasons = (entries) => entries.map(entry => [entry.before, entry.after, entry.category, entry.code].join(':')).sort().join();
-        const sameProvenance = reasons((generated.authoring?.provenance ?? []).map(entry => ({ ...entry, before: id(entry.before), after: id(entry.after) })).filter(kept)) === reasons((model.authoring?.provenance ?? []).filter(entry => entry.category !== 'author'));
+        const reasonKey = (entry) => [entry.before, entry.after, entry.category, entry.code].join(':');
+        const analysed = (generated.authoring?.provenance ?? []).map(entry => ({ ...entry, before: id(entry.before), after: id(entry.after) })).filter(kept).map(reasonKey);
+        const recorded = (model.authoring?.provenance ?? []).filter(entry => entry.category !== 'author').map(reasonKey);
+        const sameProvenance = [...analysed].sort().join() === [...recorded].sort().join();
         if (sameStructure && sameDependencies && sameEdges && sameProvenance)
             rederivation = 'match';
+        else if (sameStructure) {
+            const regenerated = [...generated.lines.flatMap((line, index) => line.dependencies.map(before => ({ before: id(before), after: model.lines[index].id }))), ...(generated.edges ?? []).map(edge => ({ before: id(edge.before), after: id(edge.after) }))].filter(kept);
+            const fromAnalysis = new Set(analysed);
+            if (recorded.every(key => fromAnalysis.has(key)) && impliesAll(model, regenerated))
+                rederivation = 'narrower';
+        }
     }
     catch {
         rederivation = 'differs';
     }
     return verifyModel(model, { ...input, rederivation, ...(currentAnalyzer ? { currentAnalyzer } : {}), ...(projectionLoss === undefined ? {} : { projectionLoss }) });
+}
+/** Whether the model's own ordering (line dependencies and shared edges, transitively) puts every
+ * `before` of `required` earlier than its `after` (ADR-114). */
+function impliesAll(model, required) {
+    const predecessors = new Map(model.lines.map(line => [line.id, [...line.dependencies]]));
+    for (const edge of model.edges ?? [])
+        predecessors.get(edge.after)?.push(edge.before);
+    const earlier = new Map();
+    const ancestors = (id) => {
+        const known = earlier.get(id);
+        if (known)
+            return known;
+        const found = new Set(), stack = [...(predecessors.get(id) ?? [])];
+        while (stack.length) {
+            const next = stack.pop();
+            if (found.has(next))
+                continue;
+            found.add(next);
+            stack.push(...(predecessors.get(next) ?? []));
+        }
+        earlier.set(id, found);
+        return found;
+    };
+    return required.every(edge => ancestors(edge.after).has(edge.before));
 }
 export function createLegacyJSTSBridge(language, ports) {
     if (!['javascript', 'typescript'].includes(language) || !ports || ['generate', 'audit', 'format'].some(method => typeof ports[method] !== 'function'))

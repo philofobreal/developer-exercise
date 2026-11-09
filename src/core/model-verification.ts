@@ -31,8 +31,9 @@ export type VerificationStatus = 'analysis-verified' | 'conservative' | 'author-
 export interface VerificationInput {
   /** The admitting party's language audit of the reference (ADR-016). */
   audit?: 'ok' | 'errors' | 'unverifiable' | 'not-run';
-  /** Whether the generated constraints equal a fresh regeneration of the source. */
-  rederivation?: 'match' | 'differs';
+  /** Whether the generated constraints equal a fresh regeneration of the source, or provably only
+   * narrow it (ADR-114: same blocks, every regenerated ordering implied, no reason the analysis lacks). */
+  rederivation?: 'match' | 'narrower' | 'differs';
   /** The analyser version of that regeneration. */
   currentAnalyzer?: DependencyPolicy;
   /** Projection loss of that regeneration; otherwise the bound evidence's own figure. */
@@ -52,7 +53,7 @@ export interface ModelVerification {
     /** Gate probes graded, and 1 when one stayed undecided (the gate stops there, ADR-036). */
     budget: { probed: number; indeterminate: number; maxStates: number };
     provenance: 'complete' | 'partial' | 'absent' | 'unbound';
-    rederivation: 'match' | 'differs' | 'not-run';
+    rederivation: 'match' | 'narrower' | 'differs' | 'not-run';
     analyzer: 'current' | 'outdated' | 'unknown';
     audit: 'ok' | 'errors' | 'unverifiable' | 'not-run';
     /** Constraints whose strongest reason is a conservative fallback, by reason code. */
@@ -120,12 +121,13 @@ export function verifyModel(model: CodeLineExercise, input: VerificationInput = 
   if (checks.projectionLoss === null) limits.push('A projekciós veszteség nem ismert.');
   if (checks.analyzer === 'outdated') limits.push('A modell régebbi szabályverzióval készült.');
   findings.push(...limits);
+  if (checks.rederivation === 'narrower') findings.push('A szabályok eltérnek a forrás újragenerálásától, de bizonyítottan csak szűkítenek: minden generált sorrendi kötést tartalmaznak, a blokkszerkezet azonos.');
   if (checks.authorRules) findings.push(`${checks.authorRules} szerzői szabály szűkíti a generált modellt.`);
   if (checks.fixed) findings.push(`${checks.fixed} sor rögzített pozíciójú (szerzői döntés).`);
   if (checks.profiles) findings.push(`${checks.profiles} szerzői OR-profil határozza meg az elfogadott sorrendeket.`);
   if (checks.audit === 'unverifiable') findings.push('A referencia nyelvi helyessége projektkontextus nélkül nem ellenőrizhető.');
   if (checks.audit === 'not-run') findings.push('A referencia nyelvi auditja nem futott.');
-  const status: VerificationStatus = unverified.length ? 'unverified' : checks.authorRules || checks.fixed || checks.profiles ? 'author-modified' : limits.length ? 'conservative' : 'analysis-verified';
+  const status: VerificationStatus = unverified.length ? 'unverified' : checks.authorRules || checks.fixed || checks.profiles || checks.rederivation === 'narrower' ? 'author-modified' : limits.length ? 'conservative' : 'analysis-verified';
 
   const analysed = status !== 'unverified';
   const claims: VerificationClaim[] = [
