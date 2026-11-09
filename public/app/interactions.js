@@ -1,4 +1,4 @@
-import { captureAuthorRequest } from './author-workspace.js';
+import { captureAuthorRequest, replaceDraft } from './author-workspace.js';
 const views = ['sort', 'edit', 'author', 'model'];
 export function activateView(state, attempt, formatted, next) {
     if (!views.includes(next))
@@ -153,12 +153,8 @@ export function installAuthoringFlows(root, state, render) {
                 throw Error('Legfeljebb 50000 karakteres forrás tölthető be.');
             if (!current())
                 return;
-            state.author.source = source;
-            if (/\.ts$/i.test(file.name))
-                state.author.language = 'typescript';
-            else if (/\.(mjs|js)$/i.test(file.name))
-                state.author.language = 'javascript';
-            state.author.message = `${file.name} betöltve. A forrás még nincs alkalmazva. A cím és leírás nem változik automatikusan; ellenőrizd őket.`;
+            const language = /\.ts$/i.test(file.name) ? 'typescript' : /\.(mjs|js)$/i.test(file.name) ? 'javascript' : state.author.language;
+            replaceDraft(state, { ...state.author, source, language, message: `${file.name} betöltve. A forrás még nincs alkalmazva. A cím és leírás nem változik automatikusan; ellenőrizd őket.` });
         }
         catch (error) {
             if (!current())

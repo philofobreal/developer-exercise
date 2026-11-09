@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-11-09 a példa kiválasztáskor betöltődik (ADR-115)
+
+- **Egy lépéssel kevesebb:** a Forrás lépés Megnyitás menüjében a példa a listából kiválasztva azonnal betöltődik. A „Példa betöltése” gomb megszűnt.
+- **Visszavonás:**
+  - a betöltés üzenete mellett megjelenik a Visszavonás gomb, amely visszahozza a korábbi forrást;
+  - addig használható, amíg a betöltött forrást nem szerkeszted;
+  - ugyanez érvényes a TS tesztfájlra, a forrásfájlra és a „Saját feladat ebből” műveletre is.
+
 ## Unreleased – 2026-11-09 a kézzel szűkített modell „Szerzői módosítás” (ADR-114)
 
 - **Ugyanaz a szigorítás, ugyanaz a minősítés:** ha a modell JSON-ját kézzel szigorítod, és a szabályaid minden generált sorrendi kötést tartalmaznak (akár közvetve), a minősítés „Szerzői módosítás”, nem „Nem igazolt”. Eddig ezt csak a Szabályok panelen hozzáadott szabály kapta meg.

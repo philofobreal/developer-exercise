@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {NEW_DRAFT_SETTINGS} from '../public/app/preflight-settings.js';
-import {authorDraftPending,authorRequest,captureAuthorAdmission,captureAuthorRequest,startFromExample,revertAuthorDraft,admitAuthorModel} from '../public/app/author-workspace.js';
+import {authorDraftPending,authorRequest,captureAuthorAdmission,captureAuthorRequest,startFromExample,revertAuthorDraft,admitAuthorModel,replaceDraft,canUndoReplace,undoReplace} from '../public/app/author-workspace.js';
 import {reloadEditorFromArrangement,markEditorDraft} from '../public/app/interactions.js';
 const first={id:'first',revision:1,title:'First',description:'First task',language:'javascript',lines:[{id:1,code:'const a = 1;'}]};
 const second={...first,id:'second',title:'Second',language:'typescript',lines:[{id:1,code:'const b: number = 2;'}]};
@@ -57,4 +57,18 @@ test('ADR-050: the input contract travels with the request, survives admission a
  const model=modelOf(first);model.authoring={evidence:{environment:{inputs:'valid'}}};
  admitAuthorModel(state,model);assert.equal(state.author.inputs,'valid');assert.equal(authorDraftPending(state),false);
  state.author.inputs='any';assert.equal(authorDraftPending(state),true,'switching the contract needs a rebuild');
+});
+
+test('M2: a load replaces the draft without asking, and brings the previous one back until the loaded one is changed',()=>{
+ const state=make();state.author.source='typed by the author';
+ startFromExample(state,first);
+ assert.equal(state.author.source,first.lines[0].code);assert.equal(canUndoReplace(state),true);
+ undoReplace(state);
+ assert.equal(state.author.source,'typed by the author','the replaced draft comes back as it was');assert.equal(state.author.title,'unrelated');
+ assert.equal(canUndoReplace(state),false,'one undo per load');
+ startFromExample(state,second);state.author.source+='\n// edited';
+ assert.equal(canUndoReplace(state),false,'an edited load is the author\'s work now: no undo');
+ undoReplace(state);assert.match(state.author.source,/edited/,'undo is a no-op then');
+ replaceDraft(state,{...state.author,source:'from a file',message:''});const newer=captureAuthorRequest(state);
+ undoReplace(state);assert.equal(newer(),false,'an undo is newer work: a late response for the load is dropped');
 });

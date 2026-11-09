@@ -26,6 +26,8 @@ export function authorDraftPending(state:WorkbenchState):boolean {
 }
 export function refreshAuthorStatus(root:HTMLElement,state:WorkbenchState):void {
  const pending=authorDraftPending(state),status=root.querySelector<HTMLElement>('[data-author-status]');
+ // A load can be undone only while the loaded draft is untouched (`canUndoReplace`).
+ root.querySelector<HTMLElement>('[data-author-undo]')?.toggleAttribute('hidden',!canUndoReplace(state));
  if(status){status.textContent=!state.authorBaseline?'Még nem készült modell':pending?'Nem alkalmazott referencia':'A modell ebből a forrásból készült';status.classList.toggle('pending',pending);}
  const step=root.querySelector<HTMLElement>('[data-step="source"]');
  if(pending&&step&&!step.querySelector('.dirty-dot')){const dot=document.createElement('span');dot.className='dirty-dot';dot.setAttribute('aria-label','Nem alkalmazott referencia');step.append(dot);}
@@ -43,10 +45,25 @@ export function captureAuthorAdmission(state:WorkbenchState):()=>boolean {
  const preview=previewId(state),author={...state.author},modelDraft=state.modelDraft;
  return ()=>previewId(state)===preview&&same(author,state.author)&&state.modelDraft===modelDraft;
 }
-/** An example is a starting point: its reference becomes the unapplied draft. */
-export function startFromExample(state:WorkbenchState,exercise:ExerciseSummary):void {
+/** Replaces the whole draft with a loaded starting point (an example, the TypeScript sample, a file), never
+ * asking first: the draft it replaces can be brought back with `undoReplace` for as long as the author has not
+ * changed the loaded one. The module keeps that point; callers only ask `canUndoReplace`. */
+export function replaceDraft(state:WorkbenchState,next:AuthorDraft):void {
  nextRequest(state);
- state.author={...NEW_DRAFT_SETTINGS,title:exercise.title,description:exercise.description,...(exercise.level?{level:exercise.level}:{}),language:exercise.language,source:exercise.lines.map(line=>line.code).join('\n'),message:`A(z) „${exercise.title}” példa referenciája betöltve. A modell a Modell készítése gombbal készül el belőle.`};
+ const previous={...state.author};state.author=next;state.authorReplaced={previous,loaded:{...next}};
+}
+/** Whether the loaded draft is still untouched, so the one it replaced can come back. */
+export function canUndoReplace(state:WorkbenchState):boolean {
+ return !!state.authorReplaced&&same(state.author,state.authorReplaced.loaded);
+}
+/** Brings back the draft the last load replaced; a no-op once the loaded draft was changed. */
+export function undoReplace(state:WorkbenchState):void {
+ if(!canUndoReplace(state))return;
+ nextRequest(state);state.author={...state.authorReplaced!.previous,message:'Visszaállítottuk a betöltés előtti forrást.'};delete state.authorReplaced;
+}
+/** An example is a starting point: its reference becomes the unapplied draft (undoable, `replaceDraft`). */
+export function startFromExample(state:WorkbenchState,exercise:ExerciseSummary):void {
+ replaceDraft(state,{...NEW_DRAFT_SETTINGS,title:exercise.title,description:exercise.description,...(exercise.level?{level:exercise.level}:{}),language:exercise.language,source:exercise.lines.map(line=>line.code).join('\n'),message:`A(z) „${exercise.title}” példa betöltve. A modell a Modell készítése gombbal készül el belőle.`});
 }
 /** Discards unapplied reference edits: the draft returns to what the applied model was built from. */
 export function revertAuthorDraft(state:WorkbenchState):void {

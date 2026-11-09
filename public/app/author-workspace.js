@@ -19,6 +19,8 @@ export function authorDraftPending(state) {
 }
 export function refreshAuthorStatus(root, state) {
     const pending = authorDraftPending(state), status = root.querySelector('[data-author-status]');
+    // A load can be undone only while the loaded draft is untouched (`canUndoReplace`).
+    root.querySelector('[data-author-undo]')?.toggleAttribute('hidden', !canUndoReplace(state));
     if (status) {
         status.textContent = !state.authorBaseline ? 'Még nem készült modell' : pending ? 'Nem alkalmazott referencia' : 'A modell ebből a forrásból készült';
         status.classList.toggle('pending', pending);
@@ -45,10 +47,30 @@ export function captureAuthorAdmission(state) {
     const preview = previewId(state), author = { ...state.author }, modelDraft = state.modelDraft;
     return () => previewId(state) === preview && same(author, state.author) && state.modelDraft === modelDraft;
 }
-/** An example is a starting point: its reference becomes the unapplied draft. */
-export function startFromExample(state, exercise) {
+/** Replaces the whole draft with a loaded starting point (an example, the TypeScript sample, a file), never
+ * asking first: the draft it replaces can be brought back with `undoReplace` for as long as the author has not
+ * changed the loaded one. The module keeps that point; callers only ask `canUndoReplace`. */
+export function replaceDraft(state, next) {
     nextRequest(state);
-    state.author = { ...NEW_DRAFT_SETTINGS, title: exercise.title, description: exercise.description, ...(exercise.level ? { level: exercise.level } : {}), language: exercise.language, source: exercise.lines.map(line => line.code).join('\n'), message: `A(z) „${exercise.title}” példa referenciája betöltve. A modell a Modell készítése gombbal készül el belőle.` };
+    const previous = { ...state.author };
+    state.author = next;
+    state.authorReplaced = { previous, loaded: { ...next } };
+}
+/** Whether the loaded draft is still untouched, so the one it replaced can come back. */
+export function canUndoReplace(state) {
+    return !!state.authorReplaced && same(state.author, state.authorReplaced.loaded);
+}
+/** Brings back the draft the last load replaced; a no-op once the loaded draft was changed. */
+export function undoReplace(state) {
+    if (!canUndoReplace(state))
+        return;
+    nextRequest(state);
+    state.author = { ...state.authorReplaced.previous, message: 'Visszaállítottuk a betöltés előtti forrást.' };
+    delete state.authorReplaced;
+}
+/** An example is a starting point: its reference becomes the unapplied draft (undoable, `replaceDraft`). */
+export function startFromExample(state, exercise) {
+    replaceDraft(state, { ...NEW_DRAFT_SETTINGS, title: exercise.title, description: exercise.description, ...(exercise.level ? { level: exercise.level } : {}), language: exercise.language, source: exercise.lines.map(line => line.code).join('\n'), message: `A(z) „${exercise.title}” példa betöltve. A modell a Modell készítése gombbal készül el belőle.` });
 }
 /** Discards unapplied reference edits: the draft returns to what the applied model was built from. */
 export function revertAuthorDraft(state) {

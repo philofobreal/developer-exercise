@@ -260,7 +260,12 @@ def reference_continuity(page):
     practice(page);expect(page.locator('h1')).to_have_text(examples[second]['title']);expect(page.locator('[data-arrangement-progress]')).to_have_attribute('value',str(len(examples[second]['lines'])))
     # An example loaded as a starting point makes the applied model stale until rebuilt or discarded.
     page.locator('[data-mode="author"]').click();current(page,'try');page.locator('[data-step="source"]').click()
-    open_menu(page,'open');page.locator('[data-start-example]').select_option(second);page.locator('[data-start-load]').click();expect(page.locator('#author-editor')).to_have_value('\n'.join(l['code'] for l in examples[second]['lines']))
+    # M2: choosing an example loads it at once; there is no load button, and Undo brings the previous source back.
+    open_menu(page,'open');expect(page.locator('[data-start-load]')).to_have_count(0);before=page.locator('#author-editor').input_value()
+    page.locator('[data-start-example]').select_option(second);expect(page.locator('#author-editor')).to_have_value('\n'.join(l['code'] for l in examples[second]['lines']))
+    page.locator('[data-author-undo]').click();expect(page.locator('#author-editor')).to_have_value(before);expect(page.locator('[data-author-undo]')).to_have_count(0)
+    open_menu(page,'open');page.locator('[data-start-example]').select_option(second);expect(page.locator('#author-editor')).to_have_value('\n'.join(l['code'] for l in examples[second]['lines']))
+    page.locator('#author-editor').press('End');page.locator('#author-editor').type(' ');expect(page.locator('[data-author-undo]')).to_be_hidden();page.locator('#author-editor').press('Backspace')
     expect(page.locator('[data-author-status]')).to_contain_text('Nem alkalmazott referencia');expect(page.locator('[data-step="source"] .dirty-dot')).to_have_count(1)
     page.locator('[data-step="rules"]').click();expect(page.locator('[data-stale-notice]')).to_contain_text('referenciaforrás');expect(page.locator('[data-step="try"]')).to_contain_text('Elavult')
     page.locator('[data-stale-notice] [data-author-revert]').click();expect(page.locator('[data-stale-notice]')).to_have_count(0)

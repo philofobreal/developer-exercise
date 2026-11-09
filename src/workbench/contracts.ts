@@ -45,7 +45,9 @@ export type Mode='author'|'practice';
 export type RulesView='visual'|'json';
 /** `active`: the exercise whose attempt is shown — the author's preview or the practice exercise.
  * `modeViews`: the view each mode returns to. `ruleConnect`: a keyboard connection's first line. */
-export interface WorkbenchState {exercises:ExerciseSummary[];active:string|null;previews:Map<string,string>;view:ViewName;mode:Mode;modeViews?:Partial<Record<Mode,ViewName>>;practiceActive?:string|null;rulesView?:RulesView;sourceKind?:'code'|'json';boardAll?:boolean;ruleConnect?:number;boardStatus?:string;feedbackFocus?:number;learnerPreview?:boolean;author:AuthorDraft;authorBaseline?:AuthorDraft;authorRequestGeneration?:number;authorModel?:CodeLineExercise;authorInsight?:AuthorInsight;ruleSelection?:RuleSelection;rulePanelOpen?:boolean;ruleKind?:RuleKindSelection;modelDraft:string;modelMessage:string;
+export interface WorkbenchState {exercises:ExerciseSummary[];active:string|null;previews:Map<string,string>;view:ViewName;mode:Mode;modeViews?:Partial<Record<Mode,ViewName>>;practiceActive?:string|null;rulesView?:RulesView;sourceKind?:'code'|'json';boardAll?:boolean;ruleConnect?:number;boardStatus?:string;feedbackFocus?:number;learnerPreview?:boolean;author:AuthorDraft;authorBaseline?:AuthorDraft;
+ /** The draft a load replaced and the loaded one; owned by author-workspace (`replaceDraft`, `undoReplace`). */
+ authorReplaced?:{previous:AuthorDraft;loaded:AuthorDraft};authorRequestGeneration?:number;authorModel?:CodeLineExercise;authorInsight?:AuthorInsight;ruleSelection?:RuleSelection;rulePanelOpen?:boolean;ruleKind?:RuleKindSelection;modelDraft:string;modelMessage:string;
  /** ADR-108 (E7): the resolver's answer for the author's current request, and the last first-gate outcome. */
  authorPolicy?:PolicyResolution;sourceGate?:SourceGateRecord;settingsOrigin?:SettingsOrigin;}
 export interface AttemptPresentation {text:(id:LineId|null)=>string;fixed:(position:number)=>boolean;formattedAnswer:()=>string[];}

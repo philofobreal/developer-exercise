@@ -1,5 +1,5 @@
 import {markEditorDraft,markEditorApplied,reloadEditorFromArrangement,captureEditorRequest,adjacentMoveBoundary,dispatchWorkbenchAction} from './app/interactions.js';
-import {refreshAuthorStatus,captureAuthorRequest,authorRequest,startFromExample,revertAuthorDraft,admitAuthorModel} from './app/author-workspace.js';
+import {refreshAuthorStatus,captureAuthorRequest,authorRequest,startFromExample,replaceDraft,undoReplace,revertAuthorDraft,admitAuthorModel} from './app/author-workspace.js';
 import {NEW_DRAFT_SETTINGS,setPreflightOption,settingsKey,settingsRequest} from './app/preflight-settings.js';
 import {revealLine} from './app/ui-utilities.js';
 import {readRuleEdit,readRuleKindEdits,recordRuleRefusal,ruleEditBlocked,settleRuleKind,settleRuleSelection} from './app/rule-panel.js';
@@ -140,14 +140,14 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  }
  if(b.hasAttribute('data-author-sample')){
   const current=captureAuthorRequest(state);
-  try{const source=await loadTypeScriptFixture();if(!current())return;state.author.source=source;state.author.language='typescript';state.author.title='CopyFieldUtilityService';state.author.description='Mellékelt TypeScript service, 31 osztálytag';state.author.message='A 31 metódusos TypeScript minta betöltve.';render();}catch(err){if(current()){state.author.message=err.message;render();}}return;
+  try{const source=await loadTypeScriptFixture();if(!current())return;replaceDraft(state,{...state.author,source,language:'typescript',title:'CopyFieldUtilityService',description:'Mellékelt TypeScript service, 31 osztálytag',message:'A 31 metódusos TypeScript minta betöltve.'});render();}catch(err){if(current()){state.author.message=err.message;render();}}return;
  }
  if(b.dataset.mode){enterMode(state,b.dataset.mode);render();root.querySelector(`[data-mode="${state.mode}"]`)?.focus({preventScroll:true});return;}
  if(b.dataset.step||b.dataset.goto){await go(steps[b.dataset.step??b.dataset.goto]);root.querySelector('#step-title')?.focus?.({preventScroll:true});return;}
  if(b.dataset.rulesView){state.rulesView=b.dataset.rulesView;render();return;}
  if(b.hasAttribute('data-open-json')){state.rulesView='json';await go('model');return;}
  if(b.dataset.sourceKind){state.sourceKind=b.dataset.sourceKind;render();return;}
- if(b.hasAttribute('data-start-load')){const e=state.exercises.find(x=>x.id===root.querySelector('[data-start-example]')?.value);if(!e){state.author.message='Válassz egy példát a listából.';render();return;}startFromExample(state,e);state.sourceKind='code';render();return;}
+ if(b.hasAttribute('data-author-undo')){undoReplace(state);render();root.querySelector('#author-editor')?.focus({preventScroll:true});return;}
  if(b.hasAttribute('data-edit-example')){const e=ex();if(!e)return;startFromExample(state,e);enterMode(state,'author');state.view='author';state.sourceKind='code';render();return;}
  if(b.hasAttribute('data-author-revert')){revertAuthorDraft(state);render();return;}
  if(b.hasAttribute('data-goto-line')){const editor=root.querySelector('#author-editor');if(editor)revealLine(editor,Number(b.dataset.gotoLine));return;}
@@ -231,6 +231,8 @@ root.addEventListener('input',ev=>{const el=ev.target; if(el.closest('.editor-fr
 root.addEventListener('scroll',ev=>{if(ev.target.matches('.editor-frame textarea'))updateGutters(root);},true);
 root.addEventListener('keydown',ev=>{if(ev.key==='Tab'&&ev.target.matches('.editor-frame textarea')){ev.preventDefault();const el=ev.target,i=el.selectionStart,j=el.selectionEnd;el.setRangeText('     ',i,j,'end');el.dispatchEvent(new Event('input',{bubbles:true}));}});
 root.addEventListener('change',ev=>{
+ // M2: choosing an example loads it at once (undoable); there is no separate load button.
+ if(ev.target.matches('[data-start-example]')){const e=state.exercises.find(x=>x.id===ev.target.value);if(!e)return;startFromExample(state,e);state.sourceKind='code';render();root.querySelector('.open-menu > summary')?.focus({preventScroll:true});return;}
  if(ev.target.dataset.author){state.author[ev.target.dataset.author]=ev.target.value;refreshAuthorStatus(root,state);if(ev.target.dataset.author==='language')render();}
  if(ev.target.dataset.preflight&&setPreflightOption(state.author,ev.target.dataset.preflight,ev.target.value)){refreshAuthorStatus(root,state);render();}
  if(ev.target.matches('[data-board-all]')){state.boardAll=ev.target.checked;render();root.querySelector('[data-board-all]')?.focus({preventScroll:true});}
