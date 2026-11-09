@@ -15,7 +15,7 @@ A szerzői lépések:
 
 | Lépés | Mit csinál | Mikor érhető el |
 | --- | --- | --- |
-| **1 · Forrás** | A helyes program (forráskód) vagy egy kész CodeLine JSON. Indulás üresen, példából, forrásfájlból, a TS tesztfájlból vagy mentett munkamenetből. A „Modell készítése” után a folyamat a Szabályok lépésre lép. | mindig |
+| **1 · Forrás** | A helyes program (forráskód) vagy egy kész CodeLine JSON. Indulás üresen, példából, forrásfájlból, a TypeScript mintából vagy mentett munkamenetből. A „Modell készítése” után a folyamat a Szabályok lépésre lép. | mindig |
 | **2 · Szabályok** | Vizuális szabálytábla: a referencia sorai modellsorrendben, a szabályok ívekkel rajzolva, a sorok összeköthetők. Mellette a kijelölt sor szabálypanelje (ADR-021), alatta a minősítés. Haladó eszközként a CodeLine JSON, a függőségtábla és az újraszámítás. | ha van alkalmazott modell |
 | **3 · Próba** | Rendező és Megoldáskód, ellenőrzés, tanúsorrend, munkamenet-kezelés, valamint a „Tanulói nézet”. | ha van alkalmazott modell |
 
@@ -59,7 +59,7 @@ A **Sorfüggőségek újraszámítása** az aktuális JSON generált sorfüggős
 
 A **Próba** a rendezőt és a megoldás kódszerkesztőjét kínálja. A szerző mintát tölthet ki, újrakezdhet, másolhat, beilleszthet, és ugyanazzal a kiértékeléssel vizsgálhatja a megengedett és a tiltott elrendezéseket.
 
-A kódszerkesztő külön, még nem alkalmazott munkaváltozat. Más nézetre vagy lépésre váltás nem dobja el. Ha közben a rendező módosul, visszatéréskor jelzés figyelmeztet a két változatra. A „Rendezőből újratöltés” explicit módon elveti a szerkesztő piszkozatát.
+A kódszerkesztő külön, még nem alkalmazott munkaváltozat. Más nézetre vagy lépésre váltás nem dobja el. Ha közben a rendező módosul, visszatéréskor jelzés figyelmeztet a két változatra. A „Kód frissítése a rendezőből” kifejezetten elveti a szerkesztő piszkozatát.
 
 **Visszajelzés ([ADR-026](adr/026-learner-feedback-and-row-marks.md)):** ellenőrzés után az értékelősáv a legfontosabb bizonyított okot mondja ki, alatta a „Részletes magyarázat” minden tételt felsorol a javítással (ellenőrzött, részleges vagy útmutatás), a szerzőnek a bizonyítékkal. Az érintett sorok a rendezőben jelölést kapnak (piros: biztosan érintett, borostyán: ezek egyike), és a tételek „Ugrás” gombja oda viszi a fókuszt. Bármely mozgatás azonnal törli a jelölést. A gyakorló mód és a Tanulói nézet csak azt mutatja, amit az API a tanulónak kiad.
 

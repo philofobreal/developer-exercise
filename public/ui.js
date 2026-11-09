@@ -90,7 +90,7 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  if(b.hasAttribute('data-export-session')){downloadJSON(snapshot(),'codeline-session.json');return;}
  if(b.hasAttribute('data-import-session')){root.querySelector('[data-session-file]').click();return;}
  if(b.hasAttribute('data-save-local')){try{saveLocal(snapshot());commit('Munkamenet helyben elmentve.');}catch(err){commit(err.message);}return;}
- if(b.hasAttribute('data-load-local')){try{const session=loadLocal();if(!session)throw Error('Nincs helyi mentés.');await importSession(session);}catch(err){notify(err.message);}return;}
+ if(b.hasAttribute('data-load-local')){try{const session=loadLocal();if(!session)throw Error('Ebben a böngészőben nincs mentett munka.');await importSession(session);}catch(err){notify(err.message);}return;}
  if(b.hasAttribute('data-theme-cycle')){cycleTheme();render();root.querySelector('[data-theme-cycle]')?.focus({preventScroll:true});return;}
  // ADR-106: the whole workbench or only the code workspace on the full surface; the code view.
  if(b.hasAttribute('data-fullscreen')||b.hasAttribute('data-focus')){const action=b.hasAttribute('data-focus')?'data-focus':'data-fullscreen';await toggleSurface(root,action==='data-focus'?'focus':'app',render);root.querySelector('['+action+']')?.focus({preventScroll:true});return;}
@@ -211,7 +211,7 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
   const editor=root.querySelector('#author-editor');if(editor)state.author.source=editor.value;
   const source=state.author.source,current=captureAuthorRequest(state);b.disabled=true;
   try{const {gate}=await checkSource(authorRequest(state.author));if(!current())return;state.sourceGate={gate,source};
-   state.author.message=gate.verdict==='passed'?'A forrás ellenőrzése: nem találtam hibát a bekapcsolt ellenőrzésekkel. A Modell készítése ugyanezt az ellenőrzést futtatja.':gate.message;}
+   state.author.message=gate.verdict==='passed'?'A forrás vizsgálata: nem találtam hibát a bekapcsolt vizsgálatokkal. A Modell készítése ugyanezt a vizsgálatot futtatja.':gate.message;}
   catch(err){if(!current())return;if(err?.details?.gate)state.sourceGate={gate:err.details.gate,source};state.author.message=err.message;}
   render();return;}
  if(b.hasAttribute('data-author-apply')){const editor=root.querySelector('#author-editor');if(editor)state.author.source=editor.value;b.disabled=true;try{await authorApply(authorRequest(state.author),{land:'rules'});}catch(err){state.author.message=err.message;if(state.view!=='author')state.modelMessage=err.message;render();}return;}

@@ -156,7 +156,7 @@ const ORIGIN = { compiler: 'fordító', 'runtime-order': 'futási sorrend', 'run
 export function renderSourceDiagnostics(gate, stale) {
     if (!gate || !gate.diagnostics.length)
         return '';
-    const title = gate.verdict === 'blocked' ? 'A modell nem készült el: a forrás hibás' : gate.verdict === 'inconclusive' ? 'A forrás ellenőrzése nem dőlt el teljesen' : 'Megjegyzések a forráshoz';
+    const title = gate.verdict === 'blocked' ? 'A modell nem készült el: a forrás hibás' : gate.verdict === 'inconclusive' ? 'A forrás vizsgálata nem dőlt el teljesen' : 'Megjegyzések a forráshoz';
     const items = gate.diagnostics.map(item => `<li class="diagnostic certainty-${item.certainty}" data-diagnostic="${esc(item.code)}"><span class="diagnostic-kind">${esc(CERTAINTY[item.certainty])}</span><button type="button" class="diagnostic-line" data-goto-line="${item.line}" aria-label="Ugrás a(z) ${item.line}. sorra a forrásban">${item.line}. sor</button><span class="diagnostic-message">${esc(item.message)}</span><small class="diagnostic-origin">${esc(ORIGIN[item.origin])} · ${esc(item.code)}</small></li>`).join('');
     return `<section class="source-diagnostics verdict-${gate.verdict}" data-source-diagnostics aria-labelledby="source-diagnostics-title"><h3 id="source-diagnostics-title">${esc(title)}</h3>${stale ? '<p class="inline-hint" data-diagnostics-stale>A forrás azóta változott; a lista a legutóbbi ellenőrzéshez tartozik.</p>' : ''}<ol>${items}</ol></section>`;
 }

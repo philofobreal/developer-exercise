@@ -49,7 +49,7 @@ A forráskód-, megoldás- és JSON-szerkesztőben másolás és beillesztés go
 
 - Az **Adatmodell** nézetből **JSON export/import** érhető el; új feladat közvetlenül JSON-ból is indítható.
 - **Munkamenet export/import**: a kitöltés és saját feladat esetén a szerzői modell is menthető.
-- **Helyi mentés/visszatöltés**: kifejezett felhasználói művelet, az adott böngésző localStorage tárhelyén. Újratöltés után a visszatöltés gombbal állítható helyre.
+- **Mentés a böngészőbe / Mentett munka megnyitása**: kifejezett felhasználói művelet, az adott böngésző localStorage tárhelyén. Újratöltés után a Mentett munka megnyitása gombbal állítható helyre.
 - Hiteles szerverfeladat importja csak a szerver által kiadott azonosítóhoz és verzióhoz tartozó próbálkozást állítja vissza. Kliensoldali szabályt vagy korábbi értékelési jelentést nem emel hiteles forrássá.
 
 ## Ellenőrzések
@@ -76,7 +76,7 @@ A `npm run test:browser:a11y` az axe-core-ral átvizsgálja a fő nézeteket asz
 
 ## Feladatkészítés, próba és preview
 
-A könyvtárban a meglévő minták és a saját előnézeted érhető el. A **Referenciaforrás** nézetbe JS/TS fájlt tölthetsz be vagy kódot illeszthetsz; az **Adatmodell** nézetből közvetlen JSON-nal is indulhatsz. Alkalmazás után ugyanaz a rendező és kiértékelés teszteli a feladatot. A **Tanulói preview** a megoldói eszközöket mutatja, szerzői szabályok és mintakitöltés nélkül. A draftok nézetváltáskor megmaradnak. [Részletes UI/UX munkafolyamat](docs/ui-ux-workflows.md).
+A könyvtárban a meglévő minták és a saját előnézeted érhető el. A **Referenciaforrás** nézetbe JS/TS fájlt tölthetsz be vagy kódot illeszthetsz; az **Adatmodell** nézetből közvetlen JSON-nal is indulhatsz. Alkalmazás után ugyanaz a rendező és kiértékelés teszteli a feladatot. A **Tanulói preview** a megoldói eszközöket mutatja, szerzői szabályok és mintakitöltés nélkül. A draftok nézetváltáskor megmaradnak. [Részletes UI/UX munkafolyamat](docs/ui-ux-workflows.md). A felület szavait a [szótár és íráskönyv](docs/szotar.md) rögzíti.
 
 Az új felület és governance-ellenőrzés strict TypeScriptben készült. A régi JS/MJS modulok további migrációja külön, rögzített lépéssor: [AI governance](docs/ai-governance.md), [architekturális döntés és prioritások](docs/adr/001-typescript-workbench-and-boundaries.md). `npm run check:all` az architektúrakaput is futtatja; az új UI-kör külön: `npm run test:browser:workbench`.
 

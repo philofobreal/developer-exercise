@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased – 2026-11-09 egy fogalom, egy szó (ADR-119)
+
+- **Az Ellenőrzés mostantól csak a tanuló megoldásáé.**
+  - A forrás vizsgálatának gombja: **Forrás vizsgálata**.
+  - A modell besorolása: **Minősítés**.
+- **Megnyitás és alkalmazás szétválik:**
+  - ami kívülről hoz be tartalmat, az **Megnyitás…** (JSON megnyitása…, Forrásfájl megnyitása…);
+  - ami élessé teszi a piszkozatot, az **Alkalmazás** (JSON alkalmazása).
+- **Munkamenet:** Mentés a böngészőbe, Mentett munka megnyitása, Exportálás fájlba…, Importálás fájlból….
+- **Más új nevek:**
+  - **Újrakezdés** (eddig Visszaállítás, pedig a megoldást üríti);
+  - **Sor szabályai** (eddig Szabályok, mint a lépés neve);
+  - **Kód frissítése a rendezőből**;
+  - **Mintamegoldás kitöltése**;
+  - **Változtatások elvetése**;
+  - **TypeScript minta (436 sor)**.
+- **Szótár és íráskönyv:** a `docs/szotar.md` rögzíti őket. Egy teszt tiltja, hogy a régi szavak visszakerüljenek a felületre.
+
 ## Unreleased – 2026-11-09 érintésen a sor műveletei alul, nem a kódon (ADR-118)
 
 - **Tiszta kódsorok érintőképernyőn:** a rendező soraiban már nincsenek gombok, amelyek eltakarnák a kód végét.

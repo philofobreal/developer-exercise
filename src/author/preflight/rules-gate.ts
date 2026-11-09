@@ -57,7 +57,7 @@ export function tryReadiness(input: Omit<RulesGateInput, 'current' | 'snapshot'>
  if (!snapshot.gate.admitted) return blocked(['Az első kapu nem engedte tovább a forrást.']);
  if (!verification || verification.checks.reference === 'rejected') return blocked(['A modell nem fogadja el a saját referenciasorrendjét.']);
  const unknown: string[] = [];
- if (snapshot.gate.verdict === 'inconclusive') unknown.push('A forrás ellenőrzése nem volt teljes (első kapu).');
+ if (snapshot.gate.verdict === 'inconclusive') unknown.push('A forrás vizsgálata nem volt teljes (első kapu).');
  if (verification.checks.reference !== 'accepted') unknown.push('A referenciasorrend elfogadása nem dőlt el.');
  if (verification.status === 'unverified') unknown.push(`A modell minősítése: nem igazolt${verification.findings?.length ? ` (${verification.findings.slice(0, 2).join(' ')})` : ''}.`);
  const proof: RulesProof = {sourceFingerprint: snapshot.sourceFingerprint, policyFingerprint: snapshot.policy.fingerprint, modelFingerprint: modelFingerprint(input.model), analyzer: input.analyzer, verification: verification.status};

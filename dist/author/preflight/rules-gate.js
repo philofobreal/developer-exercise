@@ -27,7 +27,7 @@ export function tryReadiness(input) {
         return blocked(['A modell nem fogadja el a saját referenciasorrendjét.']);
     const unknown = [];
     if (snapshot.gate.verdict === 'inconclusive')
-        unknown.push('A forrás ellenőrzése nem volt teljes (első kapu).');
+        unknown.push('A forrás vizsgálata nem volt teljes (első kapu).');
     if (verification.checks.reference !== 'accepted')
         unknown.push('A referenciasorrend elfogadása nem dőlt el.');
     if (verification.status === 'unverified')
