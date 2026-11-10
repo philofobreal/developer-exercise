@@ -16,7 +16,23 @@
  * The rows stay inside the literal: each follows the opening row and precedes the closing row, explicitly, beside
  * the block the structure gives the literal. Only a literal whose opening and closing rows hold no other brace
  * qualifies (a shared boundary row would cost the literal its block), and only when every non-empty row between
- * them is a property row (a comment row keeps the literal conservative). Anything else stays as before. */
+ * them is a property row (a comment row keeps the literal conservative). Anything else stays as before.
+ *
+ * v55 (NY-35): a value may also read a variable (`start: origin`, the shorthand `{ name }`, inside an inert array or
+ * object too) when the read provably runs no code and cannot throw, in a file without `eval` or `with`:
+ *  - the read resolves to the innermost declaration of the name whose scope holds it (a destructured name included);
+ *    a `var`, a parameter (whose scope is the body) or a function declaration at the top of a function or the file
+ *    has no temporal dead zone;
+ *  - a `let`, `const` or class ends before the read, in the same function, and is not declared in a `switch` clause
+ *    (a loop head's binding counts only in the loop body): control cannot reach the read without passing the
+ *    initialisation, so the read cannot meet the temporal dead zone. Any other lexical binding still runs no code
+ *    when read, it may only throw its ReferenceError: a literal may read one such binding (in any number of rows,
+ *    the error is the same), never two, whose order would decide which error is thrown;
+ *  - or the file declares no such name and it is `undefined`, `NaN` or `Infinity` (non-writable, non-configurable
+ *    globals).
+ * A name the file also binds any other way (an import, a catch parameter, a function or class expression's own name,
+ * an enum, a namespace, a block-level function, `using`) and an undeclared global (possibly an accessor of the global
+ * object) keep the row conservative. */
 import type ts from 'typescript';
 import { type OrderingEntry } from './ordering-relations.js';
 export declare function objectLiteralOrdering(file: ts.SourceFile, compiler: typeof ts, options?: {

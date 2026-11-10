@@ -98,3 +98,44 @@ test('NY-34: runtimeText blanks comments and type syntax at their own positions 
  for(const gone of ['Proxy','interface','Symbol','implements','Reflect','x: Function','eval','number'])assert.ok(!text.includes(gone),gone);
  for(const kept of ['class B extends A','f = () => 1','function g(','y = 1','const h = Function;'])assert.ok(text.replace(/ +/g,' ').includes(kept),kept);
 });
+
+// v55 (NY-35, ADR-129): a value may read a variable the analysis proves to run no code and not to throw, and a literal
+// may read one lexical binding not proven initialised. Each fixture: the oracle finds no unsound order, the pinned
+// accepted neighbours, and under „Nem számít” the named pair of rows is free (true) or stays ordered (false).
+const reads=[
+ ['params','javascript','make(1, 2)',['function make(a, b) {',...literal(['    x: a,','    y: b,']),'  return p.x + p.y;','}'],[1,1],[3,4],true],
+ ['shorthand-ts','typescript','make("Ada", 36)',['function make(name: string, age: number): string {',...literal(['    name,','    age,','    ok: true,']),'  return p.name + p.age;','}'],[5,5],[3,4],true],
+ ['var-before-assignment','javascript','make()',['function make() {',...literal(['    a: v,','    b: 1,']),'  var v = 2;','  return [p.a, p.b];','}'],[1,1],[3,4],true],
+ ['const-in-block','javascript','make(true)',['function make(flag) {','  const base = 5;','  const list = [1, 2];','  if (flag) {',...literal(['    x: base,','    y: [base, list],','    z: undefined,']).map(row=>'  '+row),'    return p.x + p.y[0];','  }','  return 0;','}'],[7,7],[6,7],true],
+ ['destructured','javascript','make()',['function make() {','  const { q } = { q: 1 };',...literal(['    a: q,','    b: 1,']),'  return p.a + p.b;','}'],[1,1],[4,5],true],
+ ['shadowed','javascript','make(3)',['const k = 1;','function make(k) {',...literal(['    a: k,','    b: 2,']),'  return p.a + p.b;','}'],[2,2],[4,5],true],
+ // One binding that may meet its temporal dead zone: the same ReferenceError whatever the order.
+ ['switch-zone','javascript','(() => { try { return make(2); } catch (e) { return e.name; } })()',['function make(n) {','  switch (n) {','    case 1:','      const a = 1;','    case 2:','      const p = {','        x: a,','        y: 2,','      };','      return p.x;','  }','}'],[2,2],[7,8],true],
+ ['closure-one-zone','javascript','make()',['function make() {','  const get = () => ({','    a: x,','    b: 1,','    c: x,','  });','  let message = "";','  try {','    get();','  } catch (e) {','    message = e.message;','  }','  const x = 1;','  return [message, get().a];','}'],[2,7],[3,4],true],
+ // Two such bindings: the order decides which error is thrown, and the oracle's run tells them apart.
+ ['closure-two-zones','javascript','make()',['function make() {','  const get = () => ({','    a: x,','    b: y,','  });','  let message = "";','  try {','    get();','  } catch (e) {','    message = e.message;','  }','  const x = 1;','  const y = 2;','  return [message, get().a];','}'],[3,3],[3,4],false],
+ // An undeclared name may be an accessor of the global object, whose getter runs.
+ ['global-getter','javascript','make()',['Object.defineProperty(globalThis, "g1", { get() { record("g1"); return 1; }, configurable: true });','Object.defineProperty(globalThis, "g2", { get() { record("g2"); return 2; }, configurable: true });','function make() {',...literal(['    a: g1,','    b: g2,']),'  return p.a + p.b;','}'],[1,1],[5,6],false],
+];
+for(const [id,language,probe,source,[observed,ignored],[first,second],free] of reads)test(`NY-35 oracle: ${id} — rows ${first} and ${second} ${free?'free':'stay ordered'}, no unsound order`,()=>{
+ for(const [keyOrder,expected] of [['observed',observed],['ignored',ignored]]){
+  const fixture={id,language,source,probe,keyOrder},built=generate(fixture),row=measureFixture(fixture,{model:built,repeats:0});
+  assert.equal(row.unsound,0,`${keyOrder}: ${JSON.stringify(row.counterexamples)}`);
+  assert.equal(row.accepted,expected,`${keyOrder}: accepted neighbours`);
+  if(keyOrder==='ignored')assert.equal(grade(built,swapped(built.lines.length,first,second)),free?'accepted':'rejected');
+ }
+});
+
+test('NY-35: what still keeps the rows: an import, a catch parameter, a loop head read in its own head, eval, a block-level function',()=>{
+ const cases=[
+  ['import {v} from "./m.js";\nfunction f() {\n  const p = {\n    a: v,\n    b: 1,\n  };\n  return p.a;\n}',3,4],
+  ['function f() {\n  try {\n    g();\n  } catch (e) {\n    const p = {\n      a: e,\n      b: 1,\n    };\n    return p.b;\n  }\n}',6,7],
+  ['function f() {\n  for (const x of [{\n    a: x,\n    b: 1,\n  }]) {\n    return x;\n  }\n}',3,4],
+  ['function f(s) {\n  const v = 1;\n  eval(s);\n  const p = {\n    a: v,\n    b: 1,\n  };\n  return p.a;\n}',5,6],
+  ['function f() {\n  {\n    function h() {}\n  }\n  const p = {\n    a: h,\n    b: 1,\n  };\n  return p.b;\n}',6,7],
+ ];
+ for(const [source,first,second] of cases){
+  const m=model(source,'javascript','ignored');
+  assert.equal(grade(m,swapped(m.lines.length,first,second)),'rejected',source);
+ }
+});

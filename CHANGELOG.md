@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased – 2026-11-10 v55: változót olvasó objektumtulajdonságok (ADR-129, NY-35)
+
+- **A `start: origin` és a rövidített `{ name, age }` tulajdonságsor is felcserélhető,** ha az olvasott név egy paraméter, egy `var`, vagy egy már bizonyítottan inicializált `let`/`const`.
+- **Ami kötve marad, mert dobhat vagy kódot futtathat:**
+  - két olyan kötés, amelynek olvasása az inicializálás előtt történhet (a sorrend dönti el, melyik hiba jön);
+  - nem deklarált globális név, import, `catch` paraméter, `eval`.
+- **Talált régi hiba (NY-36, döntésre vár):** „Számít” mellett egy visszaadott osztálypéldány mezősorrendje szabad volt, holott a hívó kiírhatja a kulcsokat.
+- A szállított példák és minták szabályai nem változtak.
+
 ## Unreleased – 2026-11-10 v54: objektumliterál sorai és horog csak a futó kódban (ADR-128)
 
 - **Javítva: egy többsoros objektumliterál tulajdonságsorai felcserélhetők, ha az értékük literál.**

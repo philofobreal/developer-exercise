@@ -9,6 +9,88 @@ export function objectLiteralOrdering(file, compiler, options = {}) {
         references.set(node.text, [...references.get(node.text) ?? [], node]); compiler.forEachChild(node, collect); };
     collect(file);
     const evaluates = /\beval\b|\bwith\s*\(/.test(file.text);
+    const declared = new Map();
+    /** The function (or class field, static block, file) whose evaluation runs `node`. */
+    const runner = (node) => {
+        let current = node.parent;
+        while (current && !(compiler.isFunctionLike(current) || compiler.isClassStaticBlockDeclaration(current) || compiler.isPropertyDeclaration(current) || compiler.isSourceFile(current)))
+            current = current.parent;
+        return current ?? file;
+    };
+    const declare = (name, binding) => {
+        if (!name)
+            return;
+        if (compiler.isIdentifier(name)) {
+            declared.set(name.text, [...declared.get(name.text) ?? [], binding]);
+            return;
+        }
+        // A destructured binding: every name in it is initialised with the whole declaration, like a plain one.
+        if (compiler.isObjectBindingPattern(name) || compiler.isArrayBindingPattern(name))
+            for (const element of name.elements)
+                if (compiler.isBindingElement(element))
+                    declare(element.name, binding);
+    };
+    const bindings = (node) => {
+        if (compiler.isVariableDeclaration(node)) {
+            const list = node.parent, holder = list.parent;
+            // `await using` is `const | using` in the flags: compare the block-scoped bits as a whole.
+            const scoped = compiler.isVariableDeclarationList(list) ? list.flags & compiler.NodeFlags.BlockScoped : -1;
+            if (scoped === -1 || scoped === compiler.NodeFlags.Using || scoped === compiler.NodeFlags.AwaitUsing)
+                declare(node.name, { kind: 'other', node, scope: file });
+            else if (!scoped)
+                declare(node.name, { kind: 'var', node, scope: runner(node) });
+            // A loop head's binding is read safely only in the loop body (`for (const x of {a: x})` reads it in its zone).
+            else if (compiler.isForStatement(holder) || compiler.isForOfStatement(holder) || compiler.isForInStatement(holder))
+                declare(node.name, { kind: 'let', node, scope: holder.statement });
+            // A switch clause's binding lives in the whole switch body, which control may enter past its initialisation.
+            else
+                declare(node.name, compiler.isCaseClause(holder.parent) || compiler.isDefaultClause(holder.parent) ? { kind: 'let', node, scope: holder.parent.parent, clause: true } : { kind: 'let', node, scope: holder.parent });
+        }
+        else if (compiler.isParameter(node)) {
+            const owner = node.parent;
+            declare(node.name, compiler.isFunctionLike(owner) && 'body' in owner && owner.body ? { kind: 'param', node, scope: owner.body } : { kind: 'other', node, scope: file });
+        }
+        else if (compiler.isFunctionDeclaration(node)) {
+            const owner = node.parent, top = compiler.isSourceFile(owner) || compiler.isBlock(owner) && compiler.isFunctionLike(owner.parent);
+            declare(node.name, top ? { kind: 'function', node, scope: owner } : { kind: 'other', node, scope: file });
+        }
+        else if (compiler.isClassDeclaration(node))
+            declare(node.name, compiler.isCaseClause(node.parent) || compiler.isDefaultClause(node.parent) ? { kind: 'let', node, scope: node.parent.parent, clause: true } : { kind: 'let', node, scope: node.parent });
+        else if (compiler.isFunctionExpression(node) || compiler.isClassExpression(node) || compiler.isEnumDeclaration(node) || compiler.isImportEqualsDeclaration(node) || compiler.isImportClause(node) || compiler.isNamespaceImport(node) || compiler.isImportSpecifier(node) || compiler.isModuleDeclaration(node) && compiler.isIdentifier(node.name))
+            declare(node.name, { kind: 'other', node, scope: file });
+        else if (compiler.isCatchClause(node) && node.variableDeclaration) {
+            declare(node.variableDeclaration.name, { kind: 'other', node, scope: file });
+            compiler.forEachChild(node.block, bindings);
+            return;
+        }
+        compiler.forEachChild(node, bindings);
+    };
+    bindings(file);
+    const within = (inner, outer) => inner.getStart(file) >= outer.getStart(file) && inner.end <= outer.end;
+    /** A read of `name` (an identifier used as a value) that runs no code and cannot throw: it resolves to the innermost
+     *  declaration whose scope holds it; a var, parameter or function declaration has no temporal dead zone, a let, const
+     *  or class is passed before the read in the same function (not in a switch clause). */
+    let risky;
+    const safeRead = (name) => {
+        const found = declared.get(name.text) ?? [];
+        if (evaluates || found.some(binding => binding.kind === 'other'))
+            return false;
+        const holding = found.filter(binding => within(name, binding.scope));
+        if (!holding.length)
+            return !found.length && ['undefined', 'NaN', 'Infinity'].includes(name.text);
+        const size = (binding) => binding.scope.end - binding.scope.getStart(file);
+        const smallest = Math.min(...holding.map(size)), innermost = holding.filter(binding => size(binding) === smallest);
+        if (innermost.every(binding => binding.kind === 'var' || binding.kind === 'param' || binding.kind === 'function'))
+            return true;
+        if (innermost.length !== 1)
+            return false;
+        const binding = innermost[0];
+        if (!binding.clause && binding.node.end <= name.getStart(file) && runner(binding.node) === runner(name))
+            return true;
+        // Not proven initialised: reading a lexical binding still runs no code, it may only throw its ReferenceError.
+        risky?.add(binding);
+        return !!risky;
+    };
     /** The literal stays in its variable: each other occurrence of the name is the object of a member access, not called. */
     const contained = (node) => {
         const declaration = node.parent;
@@ -32,12 +114,18 @@ export function objectLiteralOrdering(file, compiler, options = {}) {
     /** The literal's property rows, or undefined when the literal does not qualify. */
     const propertyRows = (node, open, close) => {
         const rows = [], keys = new Set(), last = node.properties.length - 1;
+        // A lexical binding not proven initialised may throw where it is read; with one such binding the order of the
+        // rows decides nothing (the same error, or none), with two it decides which error is thrown.
+        risky = new Set();
         for (const [i, property] of node.properties.entries()) {
-            if (!compiler.isPropertyAssignment(property))
+            // NY-35: the shorthand `{ name }` is `name: name`; one with a default (`{ a = 1 }`) is only a pattern.
+            const shorthand = compiler.isShorthandPropertyAssignment(property) && !property.objectAssignmentInitializer;
+            if (!compiler.isPropertyAssignment(property) && !shorthand)
                 return undefined;
             const name = property.name;
             const key = compiler.isIdentifier(name) || compiler.isStringLiteral(name) ? name.text : compiler.isNumericLiteral(name) ? String(Number(name.text)) : undefined;
-            if (key === undefined || key === '__proto__' || keys.has(key) || !inertValue(property.initializer, compiler))
+            const inert = compiler.isPropertyAssignment(property) ? inertValue(property.initializer, compiler, safeRead) : compiler.isIdentifier(name) && safeRead(name);
+            if (key === undefined || key === '__proto__' || keys.has(key) || !inert)
                 return undefined;
             keys.add(key);
             const row = rowOf(property.getStart(file)), comma = i < last || node.properties.hasTrailingComma;
@@ -45,6 +133,8 @@ export function objectLiteralOrdering(file, compiler, options = {}) {
                 return undefined;
             rows.push({ row, key, comma });
         }
+        if (risky.size > 1)
+            return undefined;
         const owned = new Set(rows.map(entry => entry.row));
         for (let row = open + 1; row < close; row++)
             if (physical[row]?.trim() && !owned.has(row))
