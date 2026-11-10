@@ -1,5 +1,6 @@
 import { mergeOrderingEntries } from './ordering-relations.js';
 import { freeCommentRows } from './comment-rows.js';
+import { inertValue } from './inert-value.js';
 /** `reflectedKeys` (ADR-020): the program may list non-enumerable keys, so the ADR-010 key chain applies.
  * `enumeratedKeys` (ADR-029): the program may list enumerable keys, so instance fields keep their order. */
 export function typeMemberOrdering(file, compiler, options = {}) {
@@ -30,19 +31,8 @@ export function typeMemberOrdering(file, compiler, options = {}) {
     /** v44 (ADR-078): a member name that is known without evaluating code. */
     const plainNamed = (member) => !!member.name && (!compiler.isComputedPropertyName(member.name) || name(member) !== undefined);
     const arrayIndex = (key) => /^(0|[1-9]\d*)$/.test(key) && Number(key) < 4294967295;
-    /** ADR-029: an initialiser that evaluates no code: a literal, or a fresh array/object of such literals. */
-    const inert = (raw) => {
-        const expr = compiler.isParenthesizedExpression(raw) || compiler.isAsExpression(raw) || compiler.isSatisfiesExpression(raw) ? raw.expression : raw;
-        if (compiler.isStringLiteral(expr) || compiler.isNoSubstitutionTemplateLiteral(expr) || compiler.isNumericLiteral(expr) || compiler.isBigIntLiteral(expr) || [compiler.SyntaxKind.TrueKeyword, compiler.SyntaxKind.FalseKeyword, compiler.SyntaxKind.NullKeyword].includes(expr.kind))
-            return true;
-        if (compiler.isPrefixUnaryExpression(expr))
-            return (expr.operator === compiler.SyntaxKind.MinusToken || expr.operator === compiler.SyntaxKind.PlusToken) && compiler.isNumericLiteral(expr.operand);
-        if (compiler.isArrayLiteralExpression(expr))
-            return expr.elements.every(element => !compiler.isSpreadElement(element) && !compiler.isOmittedExpression(element) && inert(element));
-        if (compiler.isObjectLiteralExpression(expr))
-            return expr.properties.every(property => compiler.isPropertyAssignment(property) && (compiler.isIdentifier(property.name) || compiler.isStringLiteral(property.name)) && property.name.text !== '__proto__' && inert(property.initializer));
-        return false;
-    };
+    /** ADR-029: an initialiser that evaluates no code (inert-value.ts). */
+    const inert = (raw) => inertValue(raw, compiler);
     const definitionModifiers = new Set([compiler.SyntaxKind.PublicKeyword, compiler.SyntaxKind.ProtectedKeyword, compiler.SyntaxKind.PrivateKeyword, compiler.SyntaxKind.StaticKeyword, compiler.SyntaxKind.OverrideKeyword, compiler.SyntaxKind.AbstractKeyword, compiler.SyntaxKind.AsyncKeyword]);
     /** A whole method/accessor/constructor that owns its rows: one row, or `{` on the first and `}` on the last row. */
     const definitionRows = (member) => {

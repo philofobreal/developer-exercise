@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased – 2026-11-10 v54: objektumliterál sorai és horog csak a futó kódban (ADR-128)
+
+- **Javítva: egy többsoros objektumliterál tulajdonságsorai felcserélhetők, ha az értékük literál.**
+  - Eddig egy utasítás „folytatósorai” voltak, a kulcssorrend-beállítástól függetlenül kötve.
+  - Most „Nem számít” mellett szabadok.
+  - „Számít” mellett is szabadok, ha az objektum egy függvényen belüli változóban áll, és a program csak a tagjain keresztül használja.
+  - Ha kiírja, visszaadja vagy átadja az objektumot, a sorrend marad. Az ok ilyenkor a kulcssorrend, és a szerző feloldhatja.
+- **A vessző nélküli utolsó tulajdonság a végén marad** (új okkód: `list-tail`).
+- **NY-34:** a típusban vagy megjegyzésben álló `Function`, `Symbol.`, `Proxy` nem teszi többé szigorúvá az „érvényes adat” elemzést.
+- A szállított példák és minták szabályai nem változtak. Új nyitott tétel: NY-35, a változó értékű tulajdonságsorok (`start: origin`).
+
 ## Unreleased – 2026-11-10 egy folyamatjelző a háttérmunkára; a fordító csak szerzői műveletnél töltődik (ADR-127)
 
 - **Ha egy művelet 0,4 másodpercnél tovább tart, a képernyő alján, a műveletsáv fölött egy címke mutatja a nevét:** Modell készítése, Forrás vizsgálata, Ellenőrzés, szabálymódosítás, Formázás, JSON alkalmazása, fájl, minta vagy mentett munka megnyitása.

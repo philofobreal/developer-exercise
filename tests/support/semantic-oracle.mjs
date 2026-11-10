@@ -42,9 +42,12 @@ const jsEffect=new Set(['CallExpression','NewExpression','AssignmentExpression',
 /* Shapes are injective encodings compared for equality. Only the atoms are JSON-escaped and the
  * nesting is written around already encoded children, so the length grows linearly with the
  * tree; re-escaping every level grew it exponentially with depth. */
+/* v54 (ADR-128): the properties of an object literal are a free list here too, like statements and class
+   members; what their order changes (evaluation, key order) is left to P2 and the P3 run, which compares
+   key order unless the fixture ignores it (P4). */
 function jsShape(value,key=''){
- if(Array.isArray(value)){const items=value.map(item=>jsShape(item));return '['+(key==='body'?items.sort():items).join(',')+']';}
- if(value&&typeof value==='object')return '{'+Object.entries(value).filter(([name])=>!['start','end','raw','loc','range'].includes(name)).map(([name,item])=>JSON.stringify(name)+':'+jsShape(item,name)).join(',')+'}';
+ if(Array.isArray(value)){const items=value.map(item=>jsShape(item));return '['+(key==='body'||key==='object-properties'?items.sort():items).join(',')+']';}
+ if(value&&typeof value==='object')return '{'+Object.entries(value).filter(([name])=>!['start','end','raw','loc','range'].includes(name)).map(([name,item])=>JSON.stringify(name)+':'+jsShape(item,value.type==='ObjectExpression'&&name==='properties'?'object-properties':name)).join(',')+'}';
  return typeof value==='bigint'?value+'n':JSON.stringify(value)??'null';
 }
 function jsHasEffect(node){
@@ -123,7 +126,9 @@ const callbackCount=(name,count)=>name.startsWith('reduce')?count===2:count===1;
 const builtinMethods=new Set(['join','slice','indexOf','lastIndexOf','includes','at','concat','flat','charAt','charCodeAt','codePointAt','startsWith','endsWith','trim','trimStart','trimEnd','toUpperCase','toLowerCase','padStart','padEnd','repeat','split','substring','toFixed','has','get']);
 /** The program facts the contract depends on, or null when it does not apply. */
 function readWorld(code,language,inputs){
- if(inputs!=='valid'||contractHooks.test(code))return null;
+ // v54 (NY-34): a hook counts only in code that runs, read here from the TypeScript emit without comments (the
+ // generator blanks comments and type syntax in the source instead: two independent ways to one answer).
+ if(inputs!=='valid'||contractHooks.test(ts.transpileModule(code,{fileName:language==='typescript'?'world.ts':'world.js',compilerOptions:{removeComments:true,target:ts.ScriptTarget.ES2022}}).outputText))return null;
  const world={accessors:new Set(),defined:new Set(),declared:new Set(),generators:false};let computed=false;
  const key=node=>node&&(node.type==='Identifier'||node.type==='PrivateIdentifier'?node.name:node.type==='Literal'?String(node.value):null);
  if(language==='typescript'){
@@ -356,7 +361,7 @@ function tsShape(node){
  if(ts.isPrefixUnaryExpression(node)||ts.isPostfixUnaryExpression(node))head.push(node.operator);
  const parts=[JSON.stringify(head)];
  ts.forEachChild(node,child=>{parts.push(tsShape(child));},list=>{
-  const items=list.map(tsShape),free=list===node.statements||list===node.members&&!ts.isEnumDeclaration(node);
+  const items=list.map(tsShape),free=list===node.statements||list===node.members&&!ts.isEnumDeclaration(node)||ts.isObjectLiteralExpression(node)&&list===node.properties;
   parts.push('['+(free?items.sort():items).join(',')+']');
  });
  return '('+parts.join(',')+')';

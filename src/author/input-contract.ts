@@ -59,11 +59,41 @@ const BUILTIN_METHODS = new Set(['join', 'slice', 'indexOf', 'lastIndexOf', 'inc
 const HOOKS = /\bProxy\b|\bReflect\b|defineProperty|defineProperties|setPrototypeOf|__proto__|__define[GS]etter__|\.prototype\b|\bSymbol\.|\beval\b|\bFunction\b|\bwith\s*\(/;
 const CONVERSIONS = /\b(?:valueOf|toString|toPrimitive|toJSON)\b/;
 
-/** The first thing that keeps `valid` from applying: a hook spelled in the text, else a computed accessor name, else a
- *  name the program reaches without spelling it out (no single place to point at). */
-function blockerOf(file: ts.SourceFile, computedAccessorAt: ts.Node | undefined): InputBlocker {
+/** v54 (ADR-128, NY-34): the text of what can run, at its own positions: comments and type-only syntax (type
+ *  annotations and arguments, interfaces, type aliases, `declare` and type-only imports and exports, `implements`)
+ *  become spaces, newlines kept. A hook named only there (`f: Function`, `typeof Symbol.iterator`, a comment about a
+ *  Proxy) changes nothing at run time. A class's `extends` stays: it runs. */
+export function runtimeText(file: ts.SourceFile, compiler: Compiler): string {
+ const text = file.text, out = text.split(''), seen = new Set<number>();
+ const blank = (start: number, end: number): void => {for (let i = start; i < end; i++) if (out[i] !== '\n') out[i] = ' ';};
+ const comments = (position: number): void => {
+  for (const range of [...compiler.getLeadingCommentRanges(text, position) ?? [], ...compiler.getTrailingCommentRanges(text, position) ?? []]) if (!seen.has(range.pos)) {seen.add(range.pos); blank(range.pos, range.end);}
+ };
+ const typeOnly = (node: ts.Node): boolean => {
+  if (compiler.isInterfaceDeclaration(node) || compiler.isTypeAliasDeclaration(node) || compiler.isTypeParameterDeclaration(node)) return true;
+  if (compiler.canHaveModifiers(node) && (compiler.getModifiers(node) ?? []).some(modifier => modifier.kind === compiler.SyntaxKind.DeclareKeyword)) return true;
+  if (compiler.isImportDeclaration(node) && node.importClause?.isTypeOnly || compiler.isExportDeclaration(node) && node.isTypeOnly) return true;
+  if (compiler.isHeritageClause(node)) return node.token === compiler.SyntaxKind.ImplementsKeyword;
+  if (compiler.isExpressionWithTypeArguments(node)) return compiler.isHeritageClause(node.parent) && (node.parent.token === compiler.SyntaxKind.ImplementsKeyword || compiler.isInterfaceDeclaration(node.parent.parent));
+  return compiler.isTypeNode(node);
+ };
+ const visit = (node: ts.Node): void => {
+  // The node's own leading comments too: its blanked range starts after them.
+  if (!compiler.isSourceFile(node) && typeOnly(node)) {comments(node.pos); blank(node.getStart(file), node.end); return;}
+  const children = node.getChildren(file);
+  if (!children.length) {comments(node.pos); return;}
+  for (const child of children) visit(child);
+ };
+ visit(file);
+ comments(file.endOfFileToken.pos);
+ return out.join('');
+}
+
+/** The first thing that keeps `valid` from applying: a hook in the code that runs, else a computed accessor name, else
+ *  a name the program reaches without spelling it out (no single place to point at). */
+function blockerOf(file: ts.SourceFile, code: string, computedAccessorAt: ts.Node | undefined): InputBlocker {
  const lineOf = (position: number): number => file.getLineAndCharacterOfPosition(position).line + 1;
- const hook = HOOKS.exec(file.text);
+ const hook = HOOKS.exec(code);
  if (hook) return {reason: 'hook', line: lineOf(hook.index), text: hook[0].replace(/\s+/g, ' ').trim().slice(0, 40)};
  if (computedAccessorAt) return {reason: 'computed-accessor', line: lineOf(computedAccessorAt.getStart(file))};
  return {reason: 'computed-name'};
@@ -86,10 +116,11 @@ export function inputFacts(file: ts.SourceFile, compiler: Compiler, inputs: Inpu
  };
  const asked = inputs === 'valid';
  if (asked) visit(file);
- // ADR-052, ADR-053: names the program reaches without spelling them out count as named.
- const applies = asked && !computedAccessor && !namesMatch(file, unspelledNames(file, compiler), HOOKS);
+ // ADR-052, ADR-053: names the program reaches without spelling them out count as named. NY-34: only code that runs.
+ const code = asked ? runtimeText(file, compiler) : file.text;
+ const applies = asked && !computedAccessor && !namesMatch(file, unspelledNames(file, compiler), HOOKS, code);
  return {
-  applies, unavailable: asked && !applies, ...(asked && !applies ? {blocker: blockerOf(file, computedAccessorAt)} : {}), conversions: applies && !CONVERSIONS.test(file.text),
+  applies, unavailable: asked && !applies, ...(asked && !applies ? {blocker: blockerOf(file, code, computedAccessorAt)} : {}), conversions: applies && !CONVERSIONS.test(file.text),
   accessor: name => accessors.has(name), anyAccessor: accessors.size > 0, generators,
   builtinFunction: name => GLOBAL_FUNCTIONS.has(name),
   // Array.from calls a second argument back and iterates a generator.

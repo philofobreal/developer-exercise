@@ -233,9 +233,9 @@
  "ch-multiline-object": {
   "neighbours": 92,
   "accepted": 2,
-  "completenessGaps": 0,
+  "completenessGaps": 1,
   "intentRejections": 0,
-  "justifiedRejections": 90
+  "justifiedRejections": 89
  },
  "ch-template-coercion": {
   "neighbours": 176,

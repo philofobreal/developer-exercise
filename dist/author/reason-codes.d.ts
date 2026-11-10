@@ -139,6 +139,11 @@ declare const entries: readonly [{
     readonly meaning: "a következő klauzula a határ után";
     readonly adr: "ADR-013";
 }, {
+    readonly code: "list-tail";
+    readonly category: "structure";
+    readonly meaning: "a vessző nélküli utolsó elem a lista végén marad";
+    readonly adr: "ADR-128";
+}, {
     readonly code: "overload-group";
     readonly category: "structure";
     readonly meaning: "TS overload-szignatúrák és megvalósításuk egymás mellett";

@@ -5,6 +5,7 @@
 import type ts from 'typescript';
 import {statementOrdering, type OrderingOptions} from './statement-ordering.js';
 import {typeMemberOrdering} from './type-member-ordering.js';
+import {objectLiteralOrdering} from './object-literal-ordering.js';
 import {namesMatch, unspelledNames} from './property-names.js';
 import {combineOrderingRelations, type OrderingRelations} from './ordering-relations.js';
 import type {StructureBlock} from './code-line-projection.js';
@@ -189,6 +190,8 @@ export function jsTsOrderingRelations(file: ts.SourceFile, compiler: typeof ts, 
  const unavailable = statements.inputsBlocked ? 'Az érvényes bemenet szerződése nem alkalmazható: a program módosíthatja az olvasást (Proxy, prototípus, eval, képzett név), ezért szigorú.' : '';
  return combineOrderingRelations([
   {entries: statements.entries, protectedInputs: statements.protectedInputs, spans: statements.units.map(({first, last, header}) => ({first, last, ...(header ? {header} : {})})), note: unavailable, ...(statements.inputsBlocked ? {environment: {inputsOverride: {effective: 'any', ...statements.inputsBlocked}}} : {})},
-  {entries: members.entries, protectedInputs: new Map(), spans: members.spans, note: members.note}
+  {entries: members.entries, protectedInputs: new Map(), spans: members.spans, note: members.note},
+  // v54 (ADR-128): the property rows of a multi-row object literal of inert values.
+  {entries: objectLiteralOrdering(file, compiler, {keyOrder: observed ? 'observed' : 'ignored'}).entries, protectedInputs: new Map(), spans: [], note: ''}
  ]);
 }

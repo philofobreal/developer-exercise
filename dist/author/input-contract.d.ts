@@ -46,5 +46,10 @@ export interface InputFacts {
     /** `new name(…)` of an undeclared global is a listed built-in constructor with this many arguments. */
     builtinConstructor(name: string, count: number): boolean;
 }
+/** v54 (ADR-128, NY-34): the text of what can run, at its own positions: comments and type-only syntax (type
+ *  annotations and arguments, interfaces, type aliases, `declare` and type-only imports and exports, `implements`)
+ *  become spaces, newlines kept. A hook named only there (`f: Function`, `typeof Symbol.iterator`, a comment about a
+ *  Proxy) changes nothing at run time. A class's `extends` stays: it runs. */
+export declare function runtimeText(file: ts.SourceFile, compiler: Compiler): string;
 export declare function inputFacts(file: ts.SourceFile, compiler: Compiler, inputs?: InputContract): InputFacts;
 export {};

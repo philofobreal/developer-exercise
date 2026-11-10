@@ -33,11 +33,17 @@ test('the rules do not change: the override only explains the strict analysis it
  assert.ok('status' in compileCodeLineExercise(forged),'and nothing more in it');
 });
 
-test('the 436-line TypeScript sample: the contract is taken back by the type name `Function` (NY-34 records the imprecision)',()=>{
+test('NY-34 (v54, ADR-128): a hook only in a type or a comment keeps the contract; the 436-line TypeScript sample applies it',()=>{
  const source=readFileSync(new URL('../public/samples/copy-field-utility.service.ts',import.meta.url),'utf8');
- const found=override(source,'valid','typescript');
- assert.equal(found.reason,'hook');assert.equal(found.text,'Function');
- assert.match(source.split('\n')[found.line-1],/func: Function/);
+ assert.match(source,/func: Function/,'the type name that took the contract back until v53 is still there');
+ assert.equal(override(source,'valid','typescript'),undefined);
+ const reads='\nfunction pair(point: { x: number }): number {\n  const x = point.x;\n  return x;\n}';
+ for(const head of ['type F = Function;','type I = typeof Symbol.iterator;','// a Proxy would break this','/* never eval the input */','interface P { make: Function; }','class Q implements R {}\ninterface R {}'])
+  assert.equal(override(head+reads,'valid','typescript'),undefined,head);
+ for(const [head,text,line] of [['const make = Function;','Function',1],['class B {}\nclass Q extends (Reflect.has ? B : B) {}','Reflect',2],['const o = { f: 1 } as unknown;\nObject.setPrototypeOf(o, null);','setPrototypeOf',2]]){
+  const found=override(head+reads,'valid','typescript');
+  assert.deepEqual([found?.reason,found?.text,found?.line],['hook',text,line],head);
+ }
 });
 
 test('the Rules step says asked → effective, why, and links the line; without an override only the value',()=>{

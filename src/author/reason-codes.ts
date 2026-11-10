@@ -48,6 +48,7 @@ const entries = [
   { code: 'clause-boundary', category: 'structure', meaning: 'klauzulalánc határa (`} else {`, `case`)', adr: 'ADR-013' },
   { code: 'clause-segment', category: 'structure', meaning: 'a klauzula sorai a határa után', adr: 'ADR-013' },
   { code: 'clause-separator', category: 'structure', meaning: 'a következő klauzula a határ után', adr: 'ADR-013' },
+  { code: 'list-tail', category: 'structure', meaning: 'a vessző nélküli utolsó elem a lista végén marad', adr: 'ADR-128' },
   { code: 'overload-group', category: 'structure', meaning: 'TS overload-szignatúrák és megvalósításuk egymás mellett', adr: 'ADR-009', unobservable: 'type' },
   { code: 'continued-row', category: 'unit', meaning: 'egy többsoros utasítás folytató sora', adr: 'ADR-009' },
   { code: 'sealed-unit', category: 'unit', meaning: 'lezárt többsoros egység a v2-projekcióban', adr: 'ADR-009' },
