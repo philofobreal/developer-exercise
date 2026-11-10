@@ -13,11 +13,19 @@
 import type ts from 'typescript';
 type Compiler = typeof ts;
 export type InputContract = 'any' | 'valid';
+/** ADR-126 (NY-29): what in the source keeps the `valid` contract from applying, and where, when it is known. */
+export interface InputBlocker {
+    readonly reason: 'hook' | 'computed-accessor' | 'computed-name';
+    readonly line?: number;
+    readonly text?: string;
+}
 export interface InputFacts {
     /** `valid` was asked for and nothing in the source can change what a read does. */
     readonly applies: boolean;
     /** `valid` was asked for but the program can change what a read does, so the analysis stays strict. */
     readonly unavailable: boolean;
+    /** Why it is unavailable (the first cause found: a hook in the text, a computed accessor, a name reached unspelled). */
+    readonly blocker?: InputBlocker;
     /** Converting an object runs only built-in code: the program names no conversion method. */
     readonly conversions: boolean;
     /** Reading this property name may run the program's own accessor. */

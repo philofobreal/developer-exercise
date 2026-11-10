@@ -19,7 +19,8 @@ export function combineOrderingRelations(parts) {
             inputs.forEach(input => set.add(input));
             protectedInputs.set(row, set);
         }
-    return { entries: mergeOrderingEntries(parts.flatMap(part => part.entries)), protectedInputs, spans: parts.flatMap(part => part.spans), note: parts.map(part => part.note).filter(Boolean).join(' ') };
+    const override = parts.find(part => part.environment?.inputsOverride)?.environment?.inputsOverride;
+    return { entries: mergeOrderingEntries(parts.flatMap(part => part.entries)), protectedInputs, spans: parts.flatMap(part => part.spans), note: parts.map(part => part.note).filter(Boolean).join(' '), ...(override ? { environment: { inputsOverride: override } } : {}) };
 }
 /** The validator admits a row wherever the open scope equals its scopeId. Inside a
  * multi-row unit that holds only at continuation rows and at shared `} else {`

@@ -12,9 +12,20 @@ const BUILTIN_METHODS = new Set(['join', 'slice', 'indexOf', 'lastIndexOf', 'inc
 /** Source text that lets a program change what property access, iteration or conversion does. */
 const HOOKS = /\bProxy\b|\bReflect\b|defineProperty|defineProperties|setPrototypeOf|__proto__|__define[GS]etter__|\.prototype\b|\bSymbol\.|\beval\b|\bFunction\b|\bwith\s*\(/;
 const CONVERSIONS = /\b(?:valueOf|toString|toPrimitive|toJSON)\b/;
+/** The first thing that keeps `valid` from applying: a hook spelled in the text, else a computed accessor name, else a
+ *  name the program reaches without spelling it out (no single place to point at). */
+function blockerOf(file, computedAccessorAt) {
+    const lineOf = (position) => file.getLineAndCharacterOfPosition(position).line + 1;
+    const hook = HOOKS.exec(file.text);
+    if (hook)
+        return { reason: 'hook', line: lineOf(hook.index), text: hook[0].replace(/\s+/g, ' ').trim().slice(0, 40) };
+    if (computedAccessorAt)
+        return { reason: 'computed-accessor', line: lineOf(computedAccessorAt.getStart(file)) };
+    return { reason: 'computed-name' };
+}
 export function inputFacts(file, compiler, inputs = 'any') {
     const accessors = new Set(), defined = new Set();
-    let computedAccessor = false, generators = false;
+    let computedAccessor = false, generators = false, computedAccessorAt;
     const plain = (name) => !!name && (compiler.isIdentifier(name) || compiler.isPrivateIdentifier(name) || compiler.isStringLiteral(name) || compiler.isNumericLiteral(name));
     const auto = (node) => compiler.isPropertyDeclaration(node) && (compiler.getModifiers(node) ?? []).some(modifier => modifier.kind === compiler.SyntaxKind.AccessorKeyword);
     const visit = (node) => {
@@ -27,8 +38,10 @@ export function inputFacts(file, compiler, inputs = 'any') {
             const name = node.name;
             if (plain(name))
                 accessors.add(name.text);
-            else
+            else {
                 computedAccessor = true;
+                computedAccessorAt ??= node;
+            }
         }
         if ((compiler.isFunctionDeclaration(node) || compiler.isFunctionExpression(node) || compiler.isMethodDeclaration(node)) && node.asteriskToken)
             generators = true;
@@ -40,7 +53,7 @@ export function inputFacts(file, compiler, inputs = 'any') {
     // ADR-052, ADR-053: names the program reaches without spelling them out count as named.
     const applies = asked && !computedAccessor && !namesMatch(file, unspelledNames(file, compiler), HOOKS);
     return {
-        applies, unavailable: asked && !applies, conversions: applies && !CONVERSIONS.test(file.text),
+        applies, unavailable: asked && !applies, ...(asked && !applies ? { blocker: blockerOf(file, computedAccessorAt) } : {}), conversions: applies && !CONVERSIONS.test(file.text),
         accessor: name => accessors.has(name), anyAccessor: accessors.size > 0, generators,
         builtinFunction: name => GLOBAL_FUNCTIONS.has(name),
         // Array.from calls a second argument back and iterates a generator.

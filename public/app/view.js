@@ -10,7 +10,7 @@ import { icon } from './icons.js';
 import { createViewContinuity } from './continuity.js';
 import { installWorkbenchKeyboard, installAuthoringFlows, installMenus, installDisabledGuard, installToggletips } from './interactions.js';
 import { authorDraftPending, canUndoReplace, refreshAuthorStatus } from './author-workspace.js';
-import { renderPreflightSettings, renderSettingsOrigin, renderSourceDiagnostics } from './preflight-settings.js';
+import { renderInputsContract, renderPreflightSettings, renderSettingsOrigin, renderSourceDiagnostics } from './preflight-settings.js';
 import { authorDecisions, createRuleMarks, renderModelInsight, ruleCount, renderRuleCause, renderRuleKinds, renderRulePanel, rulesAvailable } from './rule-panel.js';
 import { drawRuleArcs, renderRuleBoard, renderTryConnecting, renderTryRules, tryRowRuleControls } from './rule-board.js';
 import { installPaneSplit, paneSplit } from './pane-split.js';
@@ -198,7 +198,7 @@ export function createWorkbenchView({ root, state, ex, at, attempt, scroll, form
         const environment = m?.authoring?.evidence?.environment;
         if (!environment)
             return '';
-        return `<p class="analysis-settings" data-analysis-settings><span>Bemenetek: <b>${environment.inputs === 'valid' ? 'érvényes egyszerű adat' : 'szigorú'}</b></span><span>Objektumkulcsok sorrendje: <b>${environment.keyOrder === 'ignored' ? 'nem számít' : 'számít'}</b></span><span>Osztálymezők: <b>${environment.classFields === 'define' ? 'csak szabványos' : 'mindkét mód'}</b></span><span class="inline-hint">A modell ezzel a környezettel készült.</span></p>`;
+        return `<p class="analysis-settings" data-analysis-settings>${renderInputsContract(environment)}<span>Objektumkulcsok sorrendje: <b>${environment.keyOrder === 'ignored' ? 'nem számít' : 'számít'}</b></span><span>Osztálymezők: <b>${environment.classFields === 'define' ? 'csak szabványos' : 'mindkét mód'}</b></span><span class="inline-hint">A modell ezzel a környezettel készült.</span></p>`;
     }
     function rulesStep() {
         const m = state.authorModel, v = state.rulesView === 'json' ? 'json' : 'visual', verification = state.authorInsight?.verification;

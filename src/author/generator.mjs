@@ -36,7 +36,7 @@ function generate({source,language='javascript',title='Saját feladat',descripti
  const ast=adapter.parse(normalized,ts),physical=normalized.split('\n'),exact=adapter.whitespace(ast,ts);
  const rows=projectedRows(physical,exact);
  if(rows.length>500||rows.some(x=>x.code.length>2048))throw new AuthoringError('Legfeljebb 500 sor és soronként 2048 karakter támogatott.');
- const ordering=adapter.orderingRelations?.(ast,ts,{imports:importEmit,inputs,keyOrder,classFields}),environment=adapter.environment?.(ast,ts,{imports:importEmit,inputs,keyOrder,classFields})??{};
+ const ordering=adapter.orderingRelations?.(ast,ts,{imports:importEmit,inputs,keyOrder,classFields}),environment={...(adapter.environment?.(ast,ts,{imports:importEmit,inputs,keyOrder,classFields})??{}),...ordering?.environment};
  const {lines,blocks,edges,omittedBlocks,provenance,sourceDigest,projectionLoss}=projectCodeLine({physical,exact,structure:adapter.structure(ast,ts),ordering});
  return {schemaVersion:2,id:'draft',revision:1,language,title:String(title).slice(0,140)||'Saját feladat',description:String(description).slice(0,500),...(level?{level}:{}),lines,blocks,edges,profiles:[],authoring:{strategy:'ast-hierarchy',reason:omittedBlocks?'shared-physical-boundaries':'',omittedBlocks,semanticEquivalenceProven:false,dependencyPolicy:POLICY,...(provenance.length<=10_000?{provenance}:{}),evidence:{sourceDigest,analyzer:POLICY,environment,projectionLoss},...(ordering?.note?{note:ordering.note}:{}),dependencyHints:adapter.analyzeDependencies?.(ast,ts)??[]}};
 }

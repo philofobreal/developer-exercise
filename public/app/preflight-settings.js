@@ -158,6 +158,18 @@ export function renderPreflightSettings(author, resolution, scope = 'source') {
     const groups = mine.map(group => { const settings = group.settings.filter(setting => applies(setting, author.language)); return settings.length ? `<fieldset class="preflight-group"><legend>${esc(group.title)}</legend><p class="inline-hint">${esc(group.intro)}</p><div class="options-grid">${settings.map(setting => control(setting, author, current, environment)).join('')}</div></fieldset>` : ''; }).join('');
     return `<details class="analysis-options" data-memory="analysis-options-${scope}" data-settings-scope="${scope}"><summary><b>${SCOPE_TITLE[scope]}</b><span data-preflight-summary>${esc(summary(author, current, scope))}</span></summary>${conflicts.length ? `<ul class="preflight-conflicts" role="alert">${conflicts.map(conflict => `<li>${esc(conflict.message)}</li>`).join('')}</ul>` : ''}${groups}</details>`;
 }
+/** ADR-126 (NY-29): the input contract as asked and as the analysis applied it. `valid` that the program itself took back
+ *  says so, with what did it and a link to its line; otherwise only the value. */
+export function renderInputsContract(environment) {
+    const asked = environment.inputs === 'valid' ? 'érvényes egyszerű adat' : 'szigorú', override = environment.inputsOverride;
+    if (!override)
+        return `<span data-inputs-contract>Bemenetek: <b>${asked}</b></span>`;
+    const at = override.line ? `<button type="button" class="diagnostic-line" data-goto-line="${override.line}" aria-label="Ugrás a(z) ${override.line}. sorra a forrásban">${override.line}. sor</button>` : '';
+    const why = override.reason === 'hook' ? `${at} ${override.text ? `„${esc(override.text)}”` : ''}: ezzel a program megváltoztathatja, mit csinál egy tulajdonság olvasása`
+        : override.reason === 'computed-accessor' ? `${at}: számított nevű accessor, amely bármely olvasáskor lefuthat`
+            : 'a program nem kiírt néven ér el beépített API-t';
+    return `<span class="inputs-override" data-inputs-contract data-inputs-override="${override.reason}">Bemenetek: <b>érvényes egyszerű adat → szigorú lett</b>, mert ${why.trim()}.${renderInfo('inputs', 'Bemenetek')}</span>`;
+}
 const CERTAINTY = { definite: 'Biztos hiba', possible: 'Lehetséges hiba', unknown: 'Nem eldönthető' };
 const ORIGIN = { compiler: 'fordító', 'runtime-order': 'futási sorrend', 'runtime-value': 'futási érték', environment: 'környezet' };
 const RANK = { definite: 0, possible: 1, unknown: 2 };

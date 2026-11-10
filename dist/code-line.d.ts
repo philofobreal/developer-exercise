@@ -42,6 +42,16 @@ export type DependencyPolicy = 'primitive-const-islands-v1' | 'scoped-primitive-
  * ([[Define]]: native class fields, TypeScript useDefineForClassFields). */
 /** `inputs` (ADR-050): the input contract the analysis assumed; absent means `any`.
  * `keyOrder` (ADR-055): whether the creation order of object keys is part of the exercise; absent means `observed`. */
+/** ADR-126 (NY-29): the `valid` input contract was asked for, but the program itself can change what a read does, so
+ * the analysis stayed strict (`effective: 'any'`). `reason`: what in the source did it (a hook such as `Proxy` or
+ * `.prototype`, a computed accessor name, or a name the program reaches without spelling it out); `line` (1-based, of
+ * the analysed source) and `text` point at it where it is known. Explanation only, never a grading input. */
+export interface InputsOverride {
+    effective: 'any';
+    reason: 'hook' | 'computed-accessor' | 'computed-name';
+    line?: number;
+    text?: string;
+}
 export interface AnalysisEnvironment {
     typescript?: string;
     importEmit?: 'verbatim' | 'elide-unused';
@@ -49,6 +59,7 @@ export interface AnalysisEnvironment {
     classFields?: 'either' | 'define';
     inputs?: 'any' | 'valid';
     keyOrder?: 'observed' | 'ignored';
+    inputsOverride?: InputsOverride;
 }
 /** Binds the explanation metadata to the lines it was derived from and to the analysis that
  * derived it (ADR-015). A digest mismatch makes the provenance unbound, never a grading input.

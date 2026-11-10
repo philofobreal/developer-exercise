@@ -8,6 +8,7 @@
  * Rows are 0-based physical rows of the normalised reference source.
  */
 import type { ReasonCodeName } from './reason-codes.js';
+import type { AnalysisEnvironment } from '../../dist/index.js';
 /** Why `before` must precede the entry's row (ADR-014): explanation only, never a grading rule. */
 /** `code` is a registered reason code; its category is the register's (reason-codes.ts, ADR-038). */
 export interface OrderingReason {
@@ -36,6 +37,8 @@ export interface OrderingRelations {
     }[];
     /** Human explanation for authors, never a grading rule; '' when there is nothing to say. */
     note: string;
+    /** ADR-126: what the analysis found about its own environment, recorded with the evidence (explanation only). */
+    environment?: Pick<AnalysisEnvironment, 'inputsOverride'>;
 }
 /** Merges entries per row: predecessor sets and (deduplicated) reasons are unions. */
 export declare function mergeOrderingEntries(entries: Iterable<OrderingEntry>): OrderingEntry[];

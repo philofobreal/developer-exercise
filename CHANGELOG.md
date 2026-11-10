@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-11-10 „érvényes adat → szigorú lett”: a bemeneti szerződés oka és sora (ADR-126)
+
+- **Az Elemzés és szabályok lépés megmondja, ha a kód miatt nem érvényesült az „érvényes egyszerű adat” beállítás.** Például: „Bemenetek: érvényes egyszerű adat → szigorú lett, mert a 7. sor „Proxy”: ezzel a program megváltoztathatja, mit csinál egy tulajdonság olvasása.”
+  - A sorszámra kattintva a Kód lépés ott nyílik meg.
+- **A modell rögzíti az okot és a sort,** így munkamenet- és JSON-betöltés után is látszik. A szabályok nem változtak.
+- **Kiderült:** a 436 soros TypeScript-mintánál a `func: Function` típusnév teszi szigorúvá az elemzést, holott a típus nem fut. Ez új nyitott tétel (NY-34).
+
 ## Unreleased – 2026-11-10 a Local Demo nem áll meg modellkészítés közben (ADR-125)
 
 - **A Pages-en a modellkészítés háttérszálon fut.** A 436 soros TypeScript minta elemzése alatt a felület eddig kb. 2,4 másodpercig nem reagált; most a leghosszabb megakadás kb. 0,14 másodperc.

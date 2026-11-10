@@ -12,6 +12,7 @@
  * which `tests/preflight-settings.test.mjs` holds equal.
  */
 import type {AuthorDraft,PreflightOptions,SettingsOrigin} from './contracts.js';
+import type {AnalysisEnvironment} from '../../dist/index.js';
 import type {PolicyPath,PolicyResolution,PolicyUnavailable} from '../../dist/author/preflight/config-resolver.js';
 import type {GateDiagnostic,SourceGate} from '../../dist/author/preflight/source-gate.js';
 import {escapeHtml as esc} from './ui-utilities.js';
@@ -167,6 +168,17 @@ export function renderPreflightSettings(author:AuthorDraft,resolution:PolicyReso
  return `<details class="analysis-options" data-memory="analysis-options-${scope}" data-settings-scope="${scope}"><summary><b>${SCOPE_TITLE[scope]}</b><span data-preflight-summary>${esc(summary(author,current,scope))}</span></summary>${conflicts.length?`<ul class="preflight-conflicts" role="alert">${conflicts.map(conflict=>`<li>${esc(conflict.message)}</li>`).join('')}</ul>`:''}${groups}</details>`;
 }
 
+/** ADR-126 (NY-29): the input contract as asked and as the analysis applied it. `valid` that the program itself took back
+ *  says so, with what did it and a link to its line; otherwise only the value. */
+export function renderInputsContract(environment:AnalysisEnvironment):string {
+ const asked=environment.inputs==='valid'?'érvényes egyszerű adat':'szigorú',override=environment.inputsOverride;
+ if(!override)return `<span data-inputs-contract>Bemenetek: <b>${asked}</b></span>`;
+ const at=override.line?`<button type="button" class="diagnostic-line" data-goto-line="${override.line}" aria-label="Ugrás a(z) ${override.line}. sorra a forrásban">${override.line}. sor</button>`:'';
+ const why=override.reason==='hook'?`${at} ${override.text?`„${esc(override.text)}”`:''}: ezzel a program megváltoztathatja, mit csinál egy tulajdonság olvasása`
+  :override.reason==='computed-accessor'?`${at}: számított nevű accessor, amely bármely olvasáskor lefuthat`
+  :'a program nem kiírt néven ér el beépített API-t';
+ return `<span class="inputs-override" data-inputs-contract data-inputs-override="${override.reason}">Bemenetek: <b>érvényes egyszerű adat → szigorú lett</b>, mert ${why.trim()}.${renderInfo('inputs','Bemenetek')}</span>`;
+}
 const CERTAINTY:Readonly<Record<GateDiagnostic['certainty'],string>>={definite:'Biztos hiba',possible:'Lehetséges hiba',unknown:'Nem eldönthető'};
 const ORIGIN:Readonly<Record<GateDiagnostic['origin'],string>>={compiler:'fordító','runtime-order':'futási sorrend','runtime-value':'futási érték',environment:'környezet'};
 const RANK:Readonly<Record<GateDiagnostic['certainty'],number>>={definite:0,possible:1,unknown:2};

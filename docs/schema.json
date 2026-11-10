@@ -257,6 +257,18 @@
                     "observed",
                     "ignored"
                   ]
+                },
+                "inputsOverride": {
+                  "description": "ADR-126 (NY-29): the valid input contract was asked for, but the program can change what a read does, so the analysis stayed strict. Explanation only, never a grading input.",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["effective", "reason"],
+                  "properties": {
+                    "effective": {"type": "string", "enum": ["any"]},
+                    "reason": {"type": "string", "enum": ["hook", "computed-accessor", "computed-name"]},
+                    "line": {"type": "integer", "minimum": 1, "maximum": 100000},
+                    "text": {"type": "string", "maxLength": 40}
+                  }
                 }
               }
             },

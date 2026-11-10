@@ -61,7 +61,8 @@ const GROUPS:readonly HelpGroup[]=[
     {settings:{jsCheck:'on',unknownPolicy:'block'},label:'Tilt (checkJs be)',verdict:'inconclusive',admitted:false,finding:'TS2339'}]}}]},
  {id:'elemzes',title:'Elemzési beállítások (Elemzés és szabályok lépés)',intro:'Milyen környezetben fut a referencia: ettől függ, mely sorok cserélhetők fel. Módosítás után a modellt újra kell készíteni; a kézi szabálydöntések ekkor elvesznek, ezt a felület előre jelzi.',topics:[
   {id:'inputs',title:'Bemenetek',summary:'Érvényes adatnál a bemenetek olvasása és a beépített, nem módosító műveletek (például join, Math.max) egymáshoz képest szabadok; a hibás vagy trükkös bemenetet ekkor nem vizsgáljuk. Ha a program maga módosíthatja a tulajdonságolvasást (Proxy, prototípus), az elemzés szigorú marad.',body:[
-   'Szigorú bemenetnél egy tulajdonság olvasása is futtathat kódot (getter, Proxy), ezért két olvasás sorrendje számít.'],
+   'Szigorú bemenetnél egy tulajdonság olvasása is futtathat kódot (getter, Proxy), ezért két olvasás sorrendje számít.',
+   'Ha a kód maga veszi vissza az érvényes adat feltevését, az Elemzés és szabályok lépés kiírja: „érvényes egyszerű adat → szigorú lett”, az okkal és a sorral, amelyre kattintva a Kód lépés ott nyílik meg.'],
    example:{kind:'order',language:'javascript',source:'function measure(grid) {\n  const rows = grid.length;\n  const cols = grid[0].length;\n  return rows * cols;\n}',swap:[2,3],outcomes:[
     {settings:{inputs:'any'},label:'Szigorú',accepted:false},{settings:{inputs:'valid'},label:'Érvényes egyszerű adat',accepted:true}]}},
   {id:'keyOrder',title:'Objektumkulcsok sorrendje',summary:'Object.keys, JSON.stringify, for…in. Nem számít esetén a kulcsokat létrehozó sorok egymáshoz képest cserélhetők, mint a toEqual vagy deepStrictEqual összehasonlításnál. Ne válaszd, ha a program a kulcsok sorrendjéből számol.',body:[

@@ -1002,6 +1002,6 @@ export function statementOrdering(file, compiler, options = {}) {
         compiler.forEachChild(node, visit);
     }
     visit(file);
-    return { entries: [...entries].map(([row, after]) => ({ row, after: [...after], reasons: reasons.get(row) ?? [] })), protectedInputs, units, ...(facts.unavailable ? { inputsUnavailable: true } : {}) };
+    return { entries: [...entries].map(([row, after]) => ({ row, after: [...after], reasons: reasons.get(row) ?? [] })), protectedInputs, units, ...(facts.blocker ? { inputsBlocked: facts.blocker } : {}) };
 }
 //# sourceMappingURL=statement-ordering.js.map

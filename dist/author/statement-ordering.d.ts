@@ -32,7 +32,7 @@
  */
 import type ts from 'typescript';
 import type { OrderingEntry } from './ordering-relations.js';
-import { type InputContract } from './input-contract.js';
+import { type InputBlocker, type InputContract } from './input-contract.js';
 type Compiler = typeof ts;
 export type UnitKind = 'pure' | 'local-write' | 'read' | 'position-free' | 'barrier' | 'opaque';
 /** Evidence for one unit: why it may move, or why it may not. */
@@ -44,12 +44,12 @@ export interface StatementUnit {
     reason: string;
     header?: 'overload-group';
 }
-/** `inputsUnavailable` (ADR-050): the `valid` input contract was asked for, but the program itself can make property access or conversion run code, so the analysis stayed strict. */
+/** `inputsBlocked` (ADR-050, ADR-126): the `valid` input contract was asked for, but the program itself can make property access or conversion run code, so the analysis stayed strict; what did it, and where. */
 export interface StatementOrdering {
     entries: OrderingEntry[];
     protectedInputs: Map<number, Set<number>>;
     units: StatementUnit[];
-    inputsUnavailable?: boolean;
+    inputsBlocked?: InputBlocker;
 }
 /** Separate, browser-safe checker host: only the reference file is visible. */
 export declare function bindingChecker(file: ts.SourceFile, compiler: Compiler): ts.TypeChecker;

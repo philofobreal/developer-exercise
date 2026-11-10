@@ -35,15 +35,15 @@ import type {OrderingEntry, OrderingReason} from './ordering-relations.js';
 import {footprintConflicts, objectFootprints, type Footprint} from './object-footprints.js';
 import {freeCommentRows} from './comment-rows.js';
 import {categoryOf, type ReasonCodeName, type SyntaxKindName} from './reason-codes.js';
-import {inputFacts, type InputContract} from './input-contract.js';
+import {inputFacts, type InputBlocker, type InputContract} from './input-contract.js';
 type Compiler = typeof ts;
 
 export type UnitKind = 'pure' | 'local-write' | 'read' | 'position-free' | 'barrier' | 'opaque';
 /** Evidence for one unit: why it may move, or why it may not. */
 /** `header` (ADR-079): the unit's rows before the block its last row closes are that block's header. */
 export interface StatementUnit {first: number; last: number; kind: UnitKind; reason: string; header?: 'overload-group';}
-/** `inputsUnavailable` (ADR-050): the `valid` input contract was asked for, but the program itself can make property access or conversion run code, so the analysis stayed strict. */
-export interface StatementOrdering {entries: OrderingEntry[]; protectedInputs: Map<number, Set<number>>; units: StatementUnit[]; inputsUnavailable?: boolean;}
+/** `inputsBlocked` (ADR-050, ADR-126): the `valid` input contract was asked for, but the program itself can make property access or conversion run code, so the analysis stayed strict; what did it, and where. */
+export interface StatementOrdering {entries: OrderingEntry[]; protectedInputs: Map<number, Set<number>>; units: StatementUnit[]; inputsBlocked?: InputBlocker;}
 /** `readSet`/`writeSet`: bindings a pure or local-write unit reads or writes when it runs
  * (may-sets, unions over branches); two such units conflict on RAW, WAR or WAW. */
 /** `code`: a barrier's registered reason code (ADR-038). */
@@ -826,5 +826,5 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
   compiler.forEachChild(node, visit);
  }
  visit(file);
- return {entries: [...entries].map(([row, after]) => ({row, after: [...after], reasons: reasons.get(row) ?? []})), protectedInputs, units, ...(facts.unavailable ? {inputsUnavailable: true} : {})};
+ return {entries: [...entries].map(([row, after]) => ({row, after: [...after], reasons: reasons.get(row) ?? []})), protectedInputs, units, ...(facts.blocker ? {inputsBlocked: facts.blocker} : {})};
 }

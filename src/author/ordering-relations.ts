@@ -8,6 +8,7 @@
  * Rows are 0-based physical rows of the normalised reference source.
  */
 import type {ReasonCodeName} from './reason-codes.js';
+import type {AnalysisEnvironment} from '../../dist/index.js';
 /** Why `before` must precede the entry's row (ADR-014): explanation only, never a grading rule. */
 /** `code` is a registered reason code; its category is the register's (reason-codes.ts, ADR-038). */
 export interface OrderingReason {before: number; code: ReasonCodeName;}
@@ -25,6 +26,8 @@ export interface OrderingRelations {
  spans: {first: number; last: number; header?: ReasonCodeName}[];
  /** Human explanation for authors, never a grading rule; '' when there is nothing to say. */
  note: string;
+ /** ADR-126: what the analysis found about its own environment, recorded with the evidence (explanation only). */
+ environment?: Pick<AnalysisEnvironment, 'inputsOverride'>;
 }
 
 /** Merges entries per row: predecessor sets and (deduplicated) reasons are unions. */
@@ -43,7 +46,8 @@ export function mergeOrderingEntries(entries: Iterable<OrderingEntry>): Ordering
 export function combineOrderingRelations(parts: OrderingRelations[]): OrderingRelations {
  const protectedInputs = new Map<number, Set<number>>();
  for (const part of parts) for (const [row, inputs] of part.protectedInputs) {const set = protectedInputs.get(row) ?? new Set<number>(); inputs.forEach(input => set.add(input)); protectedInputs.set(row, set);}
- return {entries: mergeOrderingEntries(parts.flatMap(part => part.entries)), protectedInputs, spans: parts.flatMap(part => part.spans), note: parts.map(part => part.note).filter(Boolean).join(' ')};
+ const override = parts.find(part => part.environment?.inputsOverride)?.environment?.inputsOverride;
+ return {entries: mergeOrderingEntries(parts.flatMap(part => part.entries)), protectedInputs, spans: parts.flatMap(part => part.spans), note: parts.map(part => part.note).filter(Boolean).join(' '), ...(override ? {environment: {inputsOverride: override}} : {})};
 }
 
 /** CodeLine v2 line as the projection sees it: IDs are 1-based and contiguous in reference order. */
