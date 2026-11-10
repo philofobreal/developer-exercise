@@ -45,7 +45,7 @@ const GROUPS:readonly Group[]=[
   {path:'inputs',label:'Bemenetek',start:NEW_DRAFT_SETTINGS.inputs,legacy:'any',choices:[
    {value:'any',label:'Szigorú · bármilyen érték, trükkös objektumok is',short:'szigorú bemenet'},{value:'valid',label:'Érvényes egyszerű adat · számok, szövegek, tömbök, sima objektumok',short:'érvényes adat'}]},
   {path:'keyOrder',label:'Objektumkulcsok sorrendje',start:NEW_DRAFT_SETTINGS.keyOrder,legacy:'observed',choices:[
-   {value:'observed',label:'Számít · a kulcsok létrehozási sorrendje a megoldás része',short:'kulcssorrend számít'},{value:'ignored',label:'Nem számít · a kulcsokat sorrendjüktől függetlenül hasonlítjuk',short:'kulcssorrend nem számít'}]},
+   {value:'observed',label:'Számít · a kulcsok létrehozási sorrendje a megoldás része, a hívó felől is',short:'kulcssorrend számít'},{value:'ignored',label:'Nem számít · a kulcsokat sorrendjüktől függetlenül hasonlítjuk',short:'kulcssorrend nem számít'}]},
   {path:'classFields',label:'Osztálymezők létrehozása',start:NEW_DRAFT_SETTINGS.classFields,legacy:'either',choices:[
    {value:'either',label:'Mindkét mód · szabványos definíció és régi értékadás is',short:'mindkét mezőmód'},{value:'define',label:'Csak szabványos · natív osztálymezők, useDefineForClassFields: true',short:'szabványos mezők'}]}]},
  {title:'Forrás biztonságossága',intro:'Mit keres a Forrás vizsgálata és a Modell készítése, mielőtt a forrásból sorok és szabályok lesznek.',scope:'source',settings:[

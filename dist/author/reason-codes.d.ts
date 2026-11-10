@@ -109,6 +109,11 @@ declare const entries: readonly [{
     readonly meaning: "a program felsorolja a kulcsokat, ezért a létrehozás sorrendje megfigyelhető";
     readonly adr: "ADR-010";
 }, {
+    readonly code: "key-creation-order";
+    readonly category: "policy";
+    readonly meaning: "a kulcsok létrehozási sorrendje: a program vagy a hívó felsorolhatja őket („Számít”); a „Nem számít” beállítás feloldja";
+    readonly adr: "ADR-131";
+}, {
     readonly code: "script-global-order";
     readonly category: "policy";
     readonly meaning: "szkriptszintű globális kötések létrehozási sorrendje";

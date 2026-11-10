@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-10 v57: a kulcssorrend miatti szabály megmondja az okát (ADR-131)
+
+- **A szabálypanel a kulcssorrend miatti kötésnél a valódi okot mutatja:** `key-creation-order`, és jelzi, hogy a „Nem számít” beállítás feloldja. Eddig ugyanez „kiértékelési fázis” vagy „objektumírás” okkal jelent meg.
+- **A súgó és a beállítás szövege** megnevezi, hogy „Számít” mellett a hívó (például egy teszt) felsorolása is számít.
+- Az elfogadott sorrendek nem változtak.
+
 ## Unreleased – 2026-11-10 v56: „Számít” a hívó felől is (ADR-130, NY-36)
 
 - **Javítva egy helyességi hiba:** „Számít” kulcssorrendnél eddig szabad volt egy objektum kulcsainak sorrendje, ha a program maga nem írta ki őket, akkor is, ha az objektumot visszaadta vagy a hívó maga is létrehozhatta.

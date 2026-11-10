@@ -33,7 +33,7 @@ test('the reported source: „Nem számít” frees name and age; the comma-less
 test('the reported source: „Számít” with console.log keeps the order for the key order, a rule the author may lift',()=>{
  const m=model([...reported,'console.log(emp);'].join('\n'),'typescript','observed');
  assert.equal(grade(m,swapped(14,10,11)),'rejected');
- assert.ok(rules(m,11).includes('#10->#11 reflected-key-order policy-override'),rules(m,11).join('; '));
+ assert.ok(rules(m,11).includes('#10->#11 key-creation-order policy-override'),rules(m,11).join('; '));
 });
 
 test('the reported source: with „Számít” the order is free only when the object never leaves its variable',()=>{

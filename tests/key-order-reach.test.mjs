@@ -52,3 +52,17 @@ test('objectReach: a type annotation is not a reference; a literal stays only in
  assert.equal(literal('function f() { const o = {\n a: 1,\n b: 2,\n }; return o; }'),false);
  assert.equal(literal('const o = {\n a: 1,\n b: 2,\n};'),false,'a top-level binding');
 });
+
+// v57 (ADR-131): a constraint that exists only because key order is „Számít” names that as its reason, one the author
+// may lift with „Nem számít”; a constraint the program's data imposes keeps its own reason.
+test('a key-order constraint says so: key-creation-order, a policy the author may lift',async()=>{
+ const {generateCodeLineExercise}=await import('../src/author/generator.mjs');
+ const {authorRuleSheet}=await import('../dist/author/engine.js');
+ const reasons=(source,before,after)=>authorRuleSheet(generateCodeLineExercise({source,language:'javascript'},ts)).constraints.find(rule=>rule.before===before&&rule.after===after)?.reasons.map(reason=>`${reason.category}:${reason.code}`)??[];
+ assert.deepEqual(reasons('class Point {\n  x = 1;\n  y = 2;\n}',2,3),['policy:key-creation-order'],'two fields of a global class');
+ assert.deepEqual(reasons('class Point {\n  constructor() {\n    this.x = 1;\n    this.y = 2;\n  }\n}',3,4),['policy:key-creation-order'],'two constructor writes');
+ assert.deepEqual(reasons('function make() {\n  const o = {};\n  o.a = 1;\n  o.b = 2;\n  return o;\n}',3,4),['policy:key-creation-order'],'two keys added to a returned object');
+ assert.deepEqual(reasons("const emp = {\n  name: 'A',\n  age: 2,\n};\nconsole.log(emp);",2,3),['policy:key-creation-order'],'two rows of a printed literal');
+ assert.deepEqual(reasons('class P {\n  x = 1;\n  y = this.x + 1;\n}',2,3),['effect:class-evaluation-order'],'a field that reads another keeps its own reason');
+ assert.deepEqual(reasons('function make() {\n  const o = {};\n  o.a = 1;\n  o.a = 2;\n  return o;\n}',3,4).filter(reason=>reason.endsWith('key-creation-order')),[],'two writes of one key are data, not key order');
+});

@@ -42,6 +42,7 @@ const entries = [
   { code: 'external-call-order', category: 'effect', meaning: 'programon kívüli kódot hívó művelet egy másikkal, vagy egy általa írható kötés olvasásával', adr: 'ADR-040' },
   { code: 'early-exit-order', category: 'policy', meaning: 'tiszta deklaráció és egy korán kiléphető (return, throw, break) utasítás: a deklaráció nem kerül a kilépés mögé (pedagógiai döntés)', adr: 'ADR-019', unobservable: 'policy' },
   { code: 'reflected-key-order', category: 'policy', meaning: 'a program felsorolja a kulcsokat, ezért a létrehozás sorrendje megfigyelhető', adr: 'ADR-010' },
+  { code: 'key-creation-order', category: 'policy', meaning: 'a kulcsok létrehozási sorrendje: a program vagy a hívó felsorolhatja őket („Számít”); a „Nem számít” beállítás feloldja', adr: 'ADR-131' },
   { code: 'script-global-order', category: 'policy', meaning: 'szkriptszintű globális kötések létrehozási sorrendje', adr: 'ADR-010' },
   { code: 'block-open', category: 'structure', meaning: 'a sor a blokk nyitó sora után áll', adr: 'ADR-014' },
   { code: 'block-close', category: 'structure', meaning: 'a sor a blokk záró sora előtt áll', adr: 'ADR-014' },

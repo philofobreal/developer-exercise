@@ -3,6 +3,7 @@ import { typeMemberOrdering } from './type-member-ordering.js';
 import { objectLiteralOrdering } from './object-literal-ordering.js';
 import { namesMatch, unspelledNames } from './property-names.js';
 import { combineOrderingRelations } from './ordering-relations.js';
+import { categoryOf } from './reason-codes.js';
 /** Brace-delimited blocks (a switch body included) as 0-based row intervals. A block of an if/else, try,
  * catch or finally clause is marked `clause`: its boundary row may be shared with
  * the next clause (`} else {`), which the projection represents as a separator. */
@@ -215,6 +216,26 @@ export function enumeratesKeys(file, compiler, reached = unspelledNames(file, co
  * `options.inputs` is the input contract (ADR-050) of either language. `options.keyOrder` (ADR-055):
  * when the author declares key order `ignored`, no constraint protects the creation order of keys. */
 export function jsTsOrderingRelations(file, compiler, options = {}) {
+    const result = relationsFor(file, compiler, options);
+    if (options.keyOrder === 'ignored')
+        return result;
+    // v57 (ADR-131): a constraint that exists only because key order is „Számít” says so. The same analysis with key
+    // order „Nem számít” is the measure: a predecessor the row has there keeps its reasons; one it lacks is there for
+    // the creation order of keys, whatever analysis produced it (a class field's phase, a whole-object write), and the
+    // author may lift it with „Nem számít”. A reason that is already a policy (the reflected key chain) stays; a row
+    // the free analysis leaves unlisted keeps its reasons.
+    const free = new Map(relationsFor(file, compiler, { ...options, keyOrder: 'ignored' }).entries.map(entry => [entry.row, new Set(entry.after)]));
+    return { ...result, entries: result.entries.map(entry => {
+            const kept = free.get(entry.row);
+            if (!kept)
+                return entry;
+            const reasons = entry.reasons ?? [], keyed = new Set(entry.after.filter(before => !kept.has(before) && !(reasons.some(reason => reason.before === before) && reasons.filter(reason => reason.before === before).every(reason => categoryOf(reason.code) === 'policy'))));
+            if (!keyed.size)
+                return entry;
+            return { ...entry, reasons: [...reasons.filter(reason => !keyed.has(reason.before)), ...[...keyed].map(before => ({ before, code: 'key-creation-order' }))] };
+        }) };
+}
+function relationsFor(file, compiler, options) {
     const observed = options.keyOrder !== 'ignored', reached = unspelledNames(file, compiler), text = observed ? keyObservationText(file, compiler, reached) : '';
     const reflectedKeys = observed && observesKeyOrder(file, compiler, reached, text), enumeratedKeys = observed && enumeratesKeys(file, compiler, reached, text);
     const { imports, inputs, classFields } = options;

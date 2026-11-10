@@ -191,7 +191,7 @@
     "reason": "",
     "omittedBlocks": 0,
     "semanticEquivalenceProven": false,
-    "dependencyPolicy": "scoped-effect-analysis-v56",
+    "dependencyPolicy": "scoped-effect-analysis-v57",
     "provenance": [
       {
         "before": 1,
@@ -226,8 +226,8 @@
       {
         "before": 6,
         "after": 7,
-        "category": "effect",
-        "code": "class-evaluation-order"
+        "category": "policy",
+        "code": "key-creation-order"
       },
       {
         "before": 5,
@@ -244,8 +244,8 @@
       {
         "before": 9,
         "after": 10,
-        "category": "data",
-        "code": "object-write-after-write"
+        "category": "policy",
+        "code": "key-creation-order"
       },
       {
         "before": 10,
@@ -268,7 +268,7 @@
     ],
     "evidence": {
       "sourceDigest": "b3adab2637be05fd",
-      "analyzer": "scoped-effect-analysis-v56",
+      "analyzer": "scoped-effect-analysis-v57",
       "environment": {
         "typescript": "5.8.3",
         "importEmit": "verbatim",

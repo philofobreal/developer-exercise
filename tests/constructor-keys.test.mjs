@@ -59,5 +59,6 @@ for(const [fixture,row,anchor,why] of [
 ])test(`still ordered: ${why}`,()=>{
  const result=moveBefore(fixture,row,anchor);
  assert.ok(['gap','justified'].includes(result.kind),JSON.stringify(result));
- assert.ok(result.causes.some(code=>code.startsWith('object-')),JSON.stringify(result));
+ // v57 (ADR-131): the write may add a key, and the probe lists the keys: the reason is the key order.
+ assert.ok(result.causes.includes('key-creation-order'),JSON.stringify(result));
 });

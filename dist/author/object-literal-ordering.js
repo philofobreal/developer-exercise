@@ -132,7 +132,7 @@ export function objectLiteralOrdering(file, compiler, options = {}) {
                     const reasons = [{ before: open, code: 'block-open' }];
                     if (keyed && !arrayIndex(property.key)) {
                         if (previousKey)
-                            reasons.push({ before: previousKey.row, code: 'reflected-key-order' });
+                            reasons.push({ before: previousKey.row, code: 'key-creation-order' });
                         previousKey = property;
                     }
                     if (property === tail)

@@ -61,8 +61,9 @@ const GROUPS = [
                 example: { kind: 'order', language: 'javascript', source: 'function measure(grid) {\n  const rows = grid.length;\n  const cols = grid[0].length;\n  return rows * cols;\n}', swap: [2, 3], outcomes: [
                         { settings: { inputs: 'any' }, label: 'Szigorú', accepted: false }, { settings: { inputs: 'valid' }, label: 'Érvényes egyszerű adat', accepted: true }
                     ] } },
-            { id: 'keyOrder', title: 'Objektumkulcsok sorrendje', summary: 'Object.keys, JSON.stringify, for…in. Nem számít esetén a kulcsokat létrehozó sorok egymáshoz képest cserélhetők, mint a toEqual vagy deepStrictEqual összehasonlításnál. Ne válaszd, ha a program a kulcsok sorrendjéből számol.', body: [
-                    'Ha a program felsorolja a kulcsokat, a létrehozásuk sorrendje a kimenet része. A „Nem számít” a szerző döntése, hogy ez a feladatban nem lényeges.'
+            { id: 'keyOrder', title: 'Objektumkulcsok sorrendje', summary: 'Object.keys, JSON.stringify, for…in: a programban vagy a hívónál. Nem számít esetén a kulcsokat létrehozó sorok cserélhetők, mint a toEqual vagy deepStrictEqual összehasonlításnál. Ne válaszd, ha a kulcsok sorrendje bárhol számít.', body: [
+                    'Számít esetén a kulcsok létrehozási sorrendje kötött, ha valaki felsorolhatja őket: maga a program, vagy a hívó, amely megkapja az objektumot (visszaadott vagy átadott objektum, egy szkript felső szintjén álló vagy exportált osztály példánya, amelyet a hívó maga is létrehozhat). Ami bizonyítottan a programon belül marad (egy függvény helyi objektuma, amelyet csak a tagjain keresztül használ), az szabad.',
+                    'Az ilyen szabály oka a szabálypanelen „key-creation-order”; a „Nem számít” beállítás feloldja. A „Nem számít” a szerző döntése, hogy a kulcsok sorrendje a feladatban nem lényeges.'
                 ],
                 example: { kind: 'order', language: 'javascript', source: KEY_ORDER_SOURCE, swap: [3, 4], outcomes: [
                         { settings: { keyOrder: 'observed' }, label: 'Számít', accepted: false }, { settings: { keyOrder: 'ignored' }, label: 'Nem számít', accepted: true }

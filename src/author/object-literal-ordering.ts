@@ -4,7 +4,7 @@
  * meaning has:
  *  - evaluating the properties runs no code and cannot throw, so their order changes nothing but the key order;
  *  - the key order is the creation order of string keys (OrdinaryOwnPropertyKeys). Under the author's key-order
- *    setting „Számít” (ADR-055) the other rows keep their order (`reflected-key-order`, freed by „Nem számít”)
+ *    setting „Számít” (ADR-055) the other rows keep their order (`key-creation-order` since v57, ADR-131; freed by „Nem számít”)
  *    unless the object provably never leaves its variable: a `const`/`let`/`var` inside a function or block (a
  *    top-level binding is reachable from outside: an export, another script, the caller of a probe), initialised with
  *    the literal, whose every reference in the file is a member access (`v.x`, `v[k]`, not a call), in a file without
@@ -142,7 +142,7 @@ export function objectLiteralOrdering(file: ts.SourceFile, compiler: typeof ts, 
     for (const property of rows) {
      const reasons: OrderingReason[] = [{before: open, code: 'block-open'}];
      if (keyed && !arrayIndex(property.key)) {
-      if (previousKey) reasons.push({before: previousKey.row, code: 'reflected-key-order'});
+      if (previousKey) reasons.push({before: previousKey.row, code: 'key-creation-order'});
       previousKey = property;
      }
      if (property === tail) for (const other of rows) if (other !== tail) reasons.push({before: other.row, code: 'list-tail'});
