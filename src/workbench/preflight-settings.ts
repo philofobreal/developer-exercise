@@ -2,7 +2,8 @@
  *
  * Hidden here: which options exist for which language and in which group, how each value is named, which value
  * a new exercise starts from and which one an old model is read with, how a locked control explains itself
- * ("Miért?" and how to lift it), the one-line summary, and how a gate finding points at its line. What the
+ * ("Miért?" and how to lift it), the one-line summary, and how a gate finding points at its line and groups with
+ * findings of the same cause (ADR-122). What the
  * analysis does with a setting, which preset locks what and which request is refused stay with the policy
  * resolver: this module only shows the resolution it is given and never recomputes it. A resolution made for
  * another request than the author's current one is not shown (the caller asks again; `settingsKey`).
@@ -157,10 +158,31 @@ export function renderPreflightSettings(author:AuthorDraft,resolution:PolicyReso
 
 const CERTAINTY:Readonly<Record<GateDiagnostic['certainty'],string>>={definite:'Biztos hiba',possible:'Lehetséges hiba',unknown:'Nem eldönthető'};
 const ORIGIN:Readonly<Record<GateDiagnostic['origin'],string>>={compiler:'fordító','runtime-order':'futási sorrend','runtime-value':'futási érték',environment:'környezet'};
+const RANK:Readonly<Record<GateDiagnostic['certainty'],number>>={definite:0,possible:1,unknown:2};
+/** ADR-122 (M3): findings of one cause (certainty, origin and code) as one group, the surest first; eleven unresolved
+ * imports read as one line, not eleven. */
+export function groupFindings(findings:readonly GateDiagnostic[]):GateDiagnostic[][] {
+ const groups=new Map<string,GateDiagnostic[]>();
+ for(const item of findings){const key=`${item.certainty}|${item.origin}|${item.code}`;const group=groups.get(key);if(group)group.push(item);else groups.set(key,[item]);}
+ return [...groups.values()].sort((a,b)=>RANK[a[0]!.certainty]-RANK[b[0]!.certainty]||a[0]!.line-b[0]!.line);
+}
+const lineButton=(line:number):string=>`<button type="button" class="diagnostic-line" data-goto-line="${line}" aria-label="Ugrás a(z) ${line}. sorra a forrásban">${line}. sor</button>`;
+/** What a group of findings has in common, in one sentence: missing project context has one meaning whatever the name. */
+const cause=(group:readonly GateDiagnostic[]):string=>group[0]!.origin==='environment'?'Hiányzó projektkontextus: a projekten kívüli modul vagy név típusai itt nem ellenőrizhetők. A sorrend elemzését ez nem érinti.':`${group[0]!.message} (és még ${group.length-1} hasonló)`;
+/** The findings grouped by cause; one finding is one row with its line, a group one row with its lines folded. Line
+ * numbers are those of the source editor, and each one jumps there. */
+export function renderFindingGroups(findings:readonly GateDiagnostic[]):string {
+ const row=(group:readonly GateDiagnostic[]):string=>{
+  const first=group[0]!,head=`<span class="diagnostic-kind">${esc(CERTAINTY[first.certainty])}</span>`,origin=`<small class="diagnostic-origin">${esc(ORIGIN[first.origin])} · ${esc(first.code)}</small>`;
+  if(group.length===1)return `<li class="diagnostic certainty-${first.certainty}" data-diagnostic="${esc(first.code)}">${head}${lineButton(first.line)}<span class="diagnostic-message">${esc(first.message)}</span>${origin}</li>`;
+  const lines=group.map(item=>`<li>${lineButton(item.line)}<span class="diagnostic-message">${esc(item.message)}</span></li>`).join('');
+  return `<li class="diagnostic diagnostic-group certainty-${first.certainty}" data-diagnostic="${esc(first.code)}" data-diagnostic-count="${group.length}">${head}<span class="diagnostic-count">${group.length} sor</span><span class="diagnostic-message">${esc(cause(group))}</span>${origin}<details class="diagnostic-lines"><summary>A ${group.length} sor</summary><ol>${lines}</ol></details></li>`;
+ };
+ return `<ol class="diagnostic-list">${groupFindings(findings).map(row).join('')}</ol>`;
+}
 /** The first gate's findings for the source they were made from; for another text, a note that they may be out of date. */
 export function renderSourceDiagnostics(gate:SourceGate|undefined,stale:boolean):string {
  if(!gate||!gate.diagnostics.length)return '';
  const title=gate.verdict==='blocked'?'A modell nem készült el: a forrás hibás':gate.verdict==='inconclusive'?'A forrás vizsgálata nem dőlt el teljesen':'Megjegyzések a forráshoz';
- const items=gate.diagnostics.map(item=>`<li class="diagnostic certainty-${item.certainty}" data-diagnostic="${esc(item.code)}"><span class="diagnostic-kind">${esc(CERTAINTY[item.certainty])}</span><button type="button" class="diagnostic-line" data-goto-line="${item.line}" aria-label="Ugrás a(z) ${item.line}. sorra a forrásban">${item.line}. sor</button><span class="diagnostic-message">${esc(item.message)}</span><small class="diagnostic-origin">${esc(ORIGIN[item.origin])} · ${esc(item.code)}</small></li>`).join('');
- return `<section class="source-diagnostics verdict-${gate.verdict}" data-source-diagnostics aria-labelledby="source-diagnostics-title"><h3 id="source-diagnostics-title">${esc(title)}</h3>${stale?'<p class="inline-hint" data-diagnostics-stale>A forrás azóta változott; a lista a legutóbbi ellenőrzéshez tartozik.</p>':''}<ol>${items}</ol></section>`;
+ return `<section class="source-diagnostics verdict-${gate.verdict}" data-source-diagnostics aria-labelledby="source-diagnostics-title"><h3 id="source-diagnostics-title">${esc(title)}</h3>${stale?'<p class="inline-hint" data-diagnostics-stale>A forrás azóta változott; a lista a legutóbbi ellenőrzéshez tartozik.</p>':''}${renderFindingGroups(gate.diagnostics)}</section>`;
 }

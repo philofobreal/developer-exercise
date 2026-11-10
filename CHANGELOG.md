@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased – 2026-11-10 a feladat állapota a tanárnak: három kérdés, egy következő lépés (ADR-122)
+
+- **Állapotkártya a Szabályok lépés tetején.** Három kérdés, mindegyikre egy szó (Igen / Részben / Nem), egy mondat és legfeljebb egy gomb:
+  - **Kitölthető?** Elfogadott-e a referencia, eldőlt-e a forrás vizsgálata, és nem hosszabb-e 100 sornál.
+  - **Ellenőrizhető?** Minden tanulói sorrendre eldönthető-e a válasz (publikálható-e).
+  - **Igazságos?** Nem utasít-e el helyes sorrendet. Ha igen, megmondja, mely óvatos szabályok miatt, és a **Megmutatom** gomb megnyitja őket.
+- **Következő lépés:** a kártya alján egy teendő egy gombbal. Hibánál „Vissza a forráshoz”, egyébként „Tovább a próbához”.
+- **Leletek okonként:** a 11 feloldatlan import egy sor („Nem eldönthető · 11 sor · Hiányzó projektkontextus…”). A sorok lenyitva elérhetők, és mindegyik a forrásba ugrik.
+- **Egy sorszámozás:**
+  - a Minősítés is a forrásszerkesztő sorszámát mutatja (eddig ugyanaz a sor „2.” volt ott, a Forrásban „3.”);
+  - más lépésből kattintva a Forrás nyílik meg a sornál.
+- **A lépéssor egy szókészlete:** Kész, Figyelem, Hiba, Zárolt, Elavult.
+  - A „Hibás forrás”, a „Figyelmeztetéssel” és a „Zárva” megszűnt.
+  - A forrás szava gépelés közben azonnal frissül.
+
 ## Unreleased – 2026-11-09 javítás: érintőképernyőn újra elérhetők a sor kapcsolatai (ADR-118 kiegészítés)
 
 - **Javítva:** az érintéses sávból kimaradt a sor kör alakú kapcsolat-vezérlője. Telefonon a Próba rendezőjében így nem lehetett megjelölni egy sor kapcsolatait, és két sor között szabályt felvenni sem.

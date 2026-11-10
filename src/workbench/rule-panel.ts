@@ -11,6 +11,7 @@ import type {CodeLineExercise,ConstraintCategory,DirectConstraint,Editability,Ed
 import type {AuthorInsight,RuleKindSelection,RuleSelection,WorkbenchState} from './contracts.js';
 import {escapeHtml as esc} from './ui-utilities.js';
 import {icon} from './icons.js';
+import {renderFindingGroups} from './preflight-settings.js';
 
 const editabilityLabel:Record<Editability,string>={hard:'Szerkezeti',proven:'Bizonyított',conservative:'Konzervatív',pedagogical:'Szerzői',legacy:'Ismeretlen eredetű'};
 const categoryLabel:Record<ConstraintCategory,string>={structure:'szerkezet',unit:'egység',data:'adatfüggés',effect:'hatás',policy:'sorrendpolitika',conservative:'konzervatív becslés',author:'szerzői szabály',unknown:'ismeretlen eredet'};
@@ -167,12 +168,14 @@ export function settleRuleSelection(state:WorkbenchState,edited:boolean):void {
  delete selection.pending;selection.message=edited?'A szabálymódosítás érvényes; a modell újraminősítve.':'';
 }
 
-export function renderModelInsight(insight:AuthorInsight|undefined):string {
+/** `model`: the applied model, whose rows carry their source line; the audit numbers the model's rows, the author reads source lines (ADR-122). */
+export function renderModelInsight(insight:AuthorInsight|undefined,model?:CodeLineExercise):string {
  const verification=insight?.verification;if(!verification)return '';
+ const sourceLine=(row:number):number=>model?.lines[row-1]?.sourceLine??row;
  const {audit,refresh,rules}=insight;
  const findings=verification.findings.length?`<ul class="insight-findings">${verification.findings.map(finding=>`<li>${esc(finding)}</li>`).join('')}</ul>`:'';
  const claims=`<div class="dependency-scroll"><table class="insight-claims"><thead><tr><th>Állítás</th><th>Alap</th></tr></thead><tbody>${verification.claims.map(claim=>`<tr><td>${esc(claim.claim)}</td><td class="basis-${claim.basis}">${basisLabel[claim.basis]}</td></tr>`).join('')}</tbody></table></div>`;
- const auditView=audit?`<div class="insight-block" data-insight-audit><h4>A referencia nyelvi auditja</h4><p>${auditLabel[audit.semantics]}</p>${audit.diagnostics.length?`<ul>${audit.diagnostics.slice(0,5).map(item=>`<li>${item.line}. sor · TS${item.code}: ${esc(item.message)}${item.context?' (hiányzó projektkontextus)':''}</li>`).join('')}</ul>`:''}${audit.unresolved.length?`<p>Feloldatlan modulok: ${audit.unresolved.map(name=>`<code>${esc(name)}</code>`).join(', ')}</p>`:''}</div>`:'';
+ const auditView=audit?`<div class="insight-block" data-insight-audit><h4>A referencia nyelvi auditja</h4><p>${auditLabel[audit.semantics]}</p>${audit.diagnostics.length?renderFindingGroups(audit.diagnostics.map(item=>({line:sourceLine(item.line),code:`TS${item.code}`,message:item.message,certainty:item.certainty,origin:item.context?'environment':'compiler'}))):''}${audit.unresolved.length?`<p>Feloldatlan modulok: ${audit.unresolved.map(name=>`<code>${esc(name)}</code>`).join(', ')}</p>`:''}</div>`:'';
  const relaxations=rules?.relaxations.length?`<div class="insight-block" data-insight-relaxations><h4>Szerzői lazítások</h4><ul>${rules.relaxations.map(entry=>`<li>#${entry.before} → #${entry.after} · ${editabilityLabel[entry.editability]}${entry.note?` · ${esc(entry.note)}`:''}</li>`).join('')}</ul></div>`:'';
  const refreshView=refresh?`<div class="insight-block" data-insight-refresh><h4>Az újraszámítás jelentése</h4><ul><li>${refresh.authorRules} szerzői szabály megmaradt</li><li>${refresh.legacyEdges} ismeretlen eredetű él megmaradt</li><li>${refresh.supersededEdges} korábbi generált él lecserélve</li>${refresh.relaxations.map(entry=>`<li>#${entry.before} → #${entry.after} lazítás: ${refreshOutcome[entry.outcome]}${entry.note?` · ${esc(entry.note)}`:''}</li>`).join('')}${refresh.droppedNotes?`<li>${refresh.droppedNotes} megjegyzés elveszett, mert a szabálya megszűnt</li>`:''}</ul></div>`:'';
  return `<section class="model-insight" data-model-insight aria-labelledby="model-insight-title"><div class="insight-heading"><h3 id="model-insight-title">Minősítés</h3>${badge(verification.status)}<span class="publish-badge ${verification.publishable?'ok':'blocked'}">${verification.publishable?'Publikálható':'Nem publikálható'}</span></div>${findings}<details data-memory="verification-claims"><summary>Állítások és alapjuk</summary>${claims}</details>${auditView}${relaxations}${refreshView}</section>`;

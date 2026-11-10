@@ -126,7 +126,7 @@ test('ADR-108 (E6): Try opens on the draft’s own second-gate decision, without
  delete state.author.policy;
  state.authorInsight={tryGate:{...passed,verdict:'inconclusive',message:'Továbbléphetsz a Próbára, de…'}};
  assert.deepEqual(tryAdmission(state),{ok:true,message:'Továbbléphetsz a Próbára, de…'});
- assert.equal(flowSteps(state).find(step=>step.step==='try').status,'Figyelmeztetéssel');
+ assert.equal(flowSteps(state).find(step=>step.step==='try').status,'Figyelem');
  state.authorInsight={tryGate:{...passed,verdict:'inconclusive',admitted:false,message:'A Próba lépés nem nyitható meg a „tilt” beállítás miatt'}};
- assert.equal(tryAdmission(state).ok,false);assert.equal(flowSteps(state).find(step=>step.step==='try').status,'Zárva');
+ assert.equal(tryAdmission(state).ok,false);assert.equal(flowSteps(state).find(step=>step.step==='try').status,'Zárolt');
 });

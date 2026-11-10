@@ -13,7 +13,9 @@ const RETIRED={
  'Helyi mentés':'Mentés a böngészőbe','Visszatöltés':'Mentett munka megnyitása','Fájl export':'Exportálás fájlba…','Fájl import':'Importálás fájlból…',
  'JSON betöltése':'JSON megnyitása…','Modell betöltése':'JSON alkalmazása','Rendezőből újratöltés':'Kód frissítése a rendezőből',
  'TS tesztfájl':'TypeScript minta (436 sor)','Minta kitöltés':'Mintamegoldás kitöltése','Visszaállítás':'Újrakezdés',
- 'Forrásváltozás elvetése':'Változtatások elvetése','Változások elvetése':'Változtatások elvetése'
+ 'Forrásváltozás elvetése':'Változtatások elvetése','Változások elvetése':'Változtatások elvetése',
+ // ADR-122: the stepper's one vocabulary.
+ 'Hibás forrás':'Hiba','Figyelmeztetéssel':'Figyelem',"'Figyelmeztetés'":"'Figyelem'",'Zárva':'Zárolt'
 };
 
 test('no retired label in the interface sources',()=>{

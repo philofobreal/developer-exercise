@@ -7,7 +7,7 @@ import {availability,reasonOf,refreshAvailability} from './app/availability.js';
 /** ADR-120: the rule editor's own last check (the view and the guard already refused a disabled control). */
 const ruleEditBlocked=state=>reasonOf(availability(state,'rule-edit'));
 import {connection,installRuleBoard,linkWith} from './app/rule-board.js';
-import {authorPreviewId,blockedReason,enterMode,enterView,landAfterAdmission,tryAdmission} from './app/flow.js';
+import {authorPreviewId,blockedReason,enterMode,enterView,landAfterAdmission,refreshStepper,tryAdmission} from './app/flow.js';
 /** App orchestration and event wiring; modes, steps and staleness live in the typed flow (ADR-022). */
 import {readClipboard} from './app/clipboard.js';
 import {cycleTheme} from './app/theme.js';
@@ -146,14 +146,17 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
   try{const source=await loadTypeScriptFixture();if(!current())return;const next=await formatLoaded({...state.author,source,language:'typescript',title:'CopyFieldUtilityService',description:'Mellékelt TypeScript service, 31 osztálytag',message:'A 31 metódusos TypeScript minta betöltve.'},formatSource);if(!current())return;replaceDraft(state,next);render();}catch(err){if(current()){state.author.message=err.message;render();}}return;
  }
  if(b.dataset.mode){enterMode(state,b.dataset.mode);render();root.querySelector(`[data-mode="${state.mode}"]`)?.focus({preventScroll:true});return;}
- if(b.dataset.step||b.dataset.goto){await go(steps[b.dataset.step??b.dataset.goto]);root.querySelector('#step-title')?.focus?.({preventScroll:true});return;}
+ if(b.dataset.step||b.dataset.goto||b.dataset.nextStep){await go(steps[b.dataset.step??b.dataset.goto??b.dataset.nextStep]);root.querySelector('#step-title')?.focus?.({preventScroll:true});return;}
  if(b.dataset.rulesView){state.rulesView=b.dataset.rulesView;render();return;}
  if(b.hasAttribute('data-open-json')){state.rulesView='json';await go('model');return;}
  if(b.dataset.sourceKind){state.sourceKind=b.dataset.sourceKind;render();return;}
  if(b.hasAttribute('data-author-undo')){undoReplace(state);render();root.querySelector('#author-editor')?.focus({preventScroll:true});return;}
  if(b.hasAttribute('data-edit-example')){const e=ex();if(!e)return;startFromExample(state,e);enterMode(state,'author');state.view='author';state.sourceKind='code';render();return;}
  if(b.hasAttribute('data-author-revert')){revertAuthorDraft(state);render();return;}
- if(b.hasAttribute('data-goto-line')){const editor=root.querySelector('#author-editor');if(editor)revealLine(editor,Number(b.dataset.gotoLine));return;}
+ // ADR-122: a finding's line is a source line wherever it is shown; from another step it opens the source there.
+ if(b.hasAttribute('data-goto-line')){if(!root.querySelector('#author-editor')){state.sourceKind='code';await go(steps.source);}const editor=root.querySelector('#author-editor');if(editor)revealLine(editor,Number(b.dataset.gotoLine));return;}
+ // ADR-122: „Megmutatom” on the fairness answer opens the rule kinds, where the conservative rules are listed and can be lifted.
+ if(b.hasAttribute('data-show-rule-kinds')){if(state.rulesView==='json'){state.rulesView='visual';render();}const kinds=root.querySelector('[data-rule-kinds]');if(kinds){kinds.open=true;kinds.scrollIntoView({block:'start'});kinds.querySelector('summary')?.focus({preventScroll:true});}return;}
  if(b.dataset.feedbackGoto!==undefined){
   // Move to the rows a diagnostic names; the marks come from the graded report, not from a search here.
   state.feedbackFocus=+b.dataset.feedbackGoto;render();
@@ -230,7 +233,7 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  }
 },error=>notify(error instanceof Error?error.message:'A művelet nem sikerült.')));
 root.addEventListener('keydown',ev=>{if(ev.key!=='Escape'||!state.rulePanelOpen||ev.defaultPrevented||!(ev.target instanceof Element)||!ev.target.closest('.rule-inspector,.inspector-toggle')||ev.target.closest('input,textarea,select'))return;ev.preventDefault();state.rulePanelOpen=false;render();root.querySelector('.inspector-toggle')?.focus({preventScroll:true});});
-root.addEventListener('input',ev=>{const el=ev.target; if(el.closest('.editor-frame'))syncEditors(root);if(el.id==='code-editor')markEditorDraft(at(),el.value);else if(el.id==='model-editor')state.modelDraft=el.value;else if(el.id==='author-editor')state.author.source=el.value;else if(el.dataset.author)state.author[el.dataset.author]=el.value;refreshAuthorStatus(root,state);refreshAvailability(root,state,at());});
+root.addEventListener('input',ev=>{const el=ev.target; if(el.closest('.editor-frame'))syncEditors(root);if(el.id==='code-editor')markEditorDraft(at(),el.value);else if(el.id==='model-editor')state.modelDraft=el.value;else if(el.id==='author-editor')state.author.source=el.value;else if(el.dataset.author)state.author[el.dataset.author]=el.value;refreshAuthorStatus(root,state);refreshStepper(root,state);refreshAvailability(root,state,at());});
 root.addEventListener('scroll',ev=>{if(ev.target.matches('.editor-frame textarea'))syncEditors(root);},true);
 // ADR-121 (M4): the editors' keys (Tab/Shift+Tab on lines, Enter keeps the indentation, } steps back) in one place.
 root.addEventListener('keydown',handleEditorKey);

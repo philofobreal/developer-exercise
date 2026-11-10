@@ -153,13 +153,29 @@ def preflight_ui(page):
     page.locator('[data-preflight="unknownPolicy"]').select_option('warn')
     page.locator('#author-editor').fill('function f() {\n  const a = b;\n  const b = 1;\n  return a;\n}');page.locator('[data-author-apply]').click();current(page,'source')
     findings=page.locator('[data-source-diagnostics]');expect(findings).to_contain_text('Biztos hiba');expect(findings).to_contain_text('BS001')
-    expect(page.locator('[data-step="source"]')).to_contain_text('Hibás forrás')
+    expect(page.locator('[data-step="source"] [data-step-status]')).to_have_text('Hiba')
     findings.locator('[data-goto-line="2"]').click();expect(page.locator('#author-editor')).to_be_focused()
     assert page.evaluate("()=>{const e=document.querySelector('#author-editor');return e.value.slice(e.selectionStart,e.selectionEnd)}")=='  const a = b;'
     page.locator('#author-editor').fill('function f() {\n  const b = 1;\n  const a = b;\n  return a;\n}')
-    page.locator('[data-preflight="objectState"]').select_option('off');expect(page.locator('[data-diagnostics-stale]')).to_be_visible();expect(page.locator('[data-step="source"]')).not_to_contain_text('Hibás forrás')
+    # ADR-122: the step's word is for the text the gate checked; typing clears it at once, without a redraw.
+    expect(page.locator('[data-step="source"] [data-step-status]')).to_have_text('')
+    page.locator('[data-preflight="objectState"]').select_option('off');expect(page.locator('[data-diagnostics-stale]')).to_be_visible();expect(page.locator('[data-step="source"] [data-step-status]')).to_have_text('')
     page.locator('[data-author-apply]').click();current(page,'rules');page.locator('[data-step="source"]').click()
     expect(page.locator('[data-source-diagnostics]')).to_have_count(0);analysis_options(page);expect(page.locator('[data-preflight="objectState"]')).to_have_value('off')
+def task_status(page):
+    """ADR-122 (M3): the Rules step answers three questions in one card (a word and a colour each), gives one next step
+    and names the step's state in the stepper's one vocabulary; a conservative model shows its rule kinds on request,
+    the next step opens the Try step."""
+    build(page,'const a = 1;\n/* egy\n   megjegyzés */\nconst b = 2;\nconsole.log(a, b);')
+    card=page.locator('[data-task-status]');expect(card.locator('[data-task-answer]')).to_have_count(3)
+    fair=card.locator('[data-task-answer="fair"]');expect(fair).to_have_class(re.compile('tone-warning'));expect(fair).to_contain_text('Részben');expect(fair).to_contain_text('óvatos szabály')
+    expect(card.locator('[data-task-answer="checkable"]')).to_have_class(re.compile('tone-ok'));expect(card.locator('[data-task-answer="fillable"]')).to_contain_text('A referencia elfogadott; 5 sor.')
+    expect(page.locator('[data-step="rules"] [data-step-status]')).to_have_text('Figyelem')
+    fair.locator('[data-show-rule-kinds]').click();expect(page.locator('[data-rule-kinds]')).to_have_attribute('open','');expect(page.locator('[data-rule-kinds] > summary')).to_be_focused()
+    card.locator('[data-next-step="try"]').click();current(page,'try')
+    build(page,'const a = 1;\nconst b = 2;\nconsole.log(a, b);')
+    card=page.locator('[data-task-status]');expect(card).to_have_class(re.compile('tone-ok'));expect(card.locator('.tone-ok')).to_have_count(3)
+    expect(page.locator('[data-step="rules"] [data-step-status]')).to_have_text('Kész');expect(card.locator('[data-task-next]')).to_contain_text('Próbáld ki tanulóként.')
 def session_settings(page):
     """ADR-108 (E8): a saved session records the analysis settings the model was made under and brings them back
     (recorded); an older version-1 file restores the model with the start values and says the origin is partial."""
@@ -547,10 +563,10 @@ def source_check(page):
     page.locator('#author-editor').fill('function f() {\n  const a = b;\n  const b = 1;\n  return a;\n}')
     page.locator('[data-author-check]').click()
     findings=page.locator('[data-source-diagnostics]');expect(findings).to_contain_text('BS001');expect(findings).to_contain_text('Biztos hiba')
-    expect(page.locator('[data-step="source"]')).to_contain_text('Hibás forrás');expect(page.locator('[data-step="rules"]')).to_be_disabled()
+    expect(page.locator('[data-step="source"] [data-step-status]')).to_have_text('Hiba');expect(page.locator('[data-step="rules"]')).to_be_disabled()
     page.locator('#author-editor').fill('function f() {\n  const b = 1;\n  const a = b;\n  return a;\n}');page.locator('[data-author-check]').click()
     expect(page.locator('.author-status')).to_contain_text('nem találtam hibát');expect(page.locator('[data-source-diagnostics]')).to_have_count(0)
-    expect(page.locator('[data-step="rules"]')).to_be_disabled()
+    expect(page.locator('[data-step="source"] [data-step-status]')).to_have_text('Kész');expect(page.locator('[data-step="rules"]')).to_be_disabled()
 def focus_bar_and_full_screen_return(page):
     """ADR-110: Focus has a slim bar with the logo; entered from the full-screen page it returns there (the
     browser's full screen stays), entered from the page it leaves the full screen it opened."""
@@ -857,7 +873,7 @@ try:
         watch(context)
         try:
             for mode,url in [('node',BASE),('pages',f'http://127.0.0.1:{static.server_port}/developer-exercise/')]:
-                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('preflight settings, locks and findings',preflight_ui),('one indentation in source, board and sorter',indentation_single_owner),('the source is checked without a model',source_check),('session v2 records the analysis settings; v1 is partial',session_settings),('model-first creation',model_first),('a rejected order names its rule and how to lift it',rule_cause_lifts),('key order setting and rule kinds',key_order_and_rule_kinds),('class-field mode setting',class_fields_setting),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('the input contract is chosen, recorded and restored',input_contract),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll),('circles toggle links: checks, removal and exact restore',link_toggle),('pins fix and release a line on the board',pin_lines),('feedback marks graded rows, invalidates on a move and respects the learner view',learner_feedback)]:
+                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('preflight settings, locks and findings',preflight_ui),('one indentation in source, board and sorter',indentation_single_owner),('the source is checked without a model',source_check),('the Rules step answers three questions and names one next step',task_status),('session v2 records the analysis settings; v1 is partial',session_settings),('model-first creation',model_first),('a rejected order names its rule and how to lift it',rule_cause_lifts),('key order setting and rule kinds',key_order_and_rule_kinds),('class-field mode setting',class_fields_setting),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('the input contract is chosen, recorded and restored',input_contract),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll),('circles toggle links: checks, removal and exact restore',link_toggle),('pins fix and release a line on the board',pin_lines),('feedback marks graded rows, invalidates on a move and respects the learner view',learner_feedback)]:
                     reset(page,url);case(mode+' '+name,lambda:action(page))
                 reset(page,url);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-author.png')),full_page=True)
                 practice(page);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-practice.png')),full_page=True)

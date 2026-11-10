@@ -1,5 +1,8 @@
 import { authorDraftPending, evidenceStale } from './author-workspace.js';
 import { activateView } from './interactions.js';
+import { taskStatus } from './task-status.js';
+import { escapeHtml as esc } from './ui-utilities.js';
+import { icon } from './icons.js';
 export const stepOf = (view) => view === 'author' ? 'source' : view === 'model' ? 'rules' : 'try';
 const NEEDS_MODEL = 'Előbb készíts modellt a Forrás lépésben.';
 /** The applied author model's preview exercise id; there is at most one. */
@@ -20,17 +23,22 @@ export function staleReason(state) {
         return 'A referenciaforrás az utolsó modellkészítés óta módosult; a szabályok és a próba még a korábbi modellt mutatják.';
     return jsonPending(state) ? 'A Szabályok lépés JSON-jában nem alkalmazott módosítás van; a próba még az aktív modellt használja.' : '';
 }
-/** The first gate's word on the source: refused, or admitted with an undecided finding; only for the text it checked. */
+/** The first gate's word on the source; only for the text it checked, so typing clears it. */
 function sourceStatus(state) {
     const record = state.sourceGate;
     if (!record || record.source !== state.author.source)
         return { status: '', tone: '' };
-    return record.gate.verdict === 'blocked' ? { status: 'Hibás forrás', tone: 'blocked' } : record.gate.verdict === 'inconclusive' ? { status: 'Figyelmeztetés', tone: 'warning' } : { status: '', tone: '' };
+    return record.gate.verdict === 'blocked' ? { status: 'Hiba', tone: 'blocked' } : record.gate.verdict === 'inconclusive' ? { status: 'Figyelem', tone: 'warning' } : { status: 'Kész', tone: '' };
+}
+/** The task status card's word on the applied model (ADR-122). */
+function rulesStatus(state) {
+    const tone = taskStatus(state)?.tone;
+    return tone === 'error' ? { status: 'Hiba', tone: 'blocked' } : tone === 'warning' ? { status: 'Figyelem', tone: 'warning' } : tone === 'ok' ? { status: 'Kész', tone: '' } : { status: '', tone: '' };
 }
 /** The second gate's word on the applied draft: admitted with a warning (an unverified model, an undecided check). */
 function tryStatus(state) {
     const gate = state.authorInsight?.tryGate;
-    return gate?.verdict === 'inconclusive' && gate.admitted ? { status: 'Figyelmeztetéssel', tone: 'warning' } : gate && !gate.admitted ? { status: 'Zárva', tone: 'blocked' } : { status: '', tone: '' };
+    return gate?.verdict === 'inconclusive' && gate.admitted ? { status: 'Figyelem', tone: 'warning' } : gate && !gate.admitted ? { status: 'Zárolt', tone: 'blocked' } : { status: '', tone: '' };
 }
 const STALE_EVIDENCE = 'A Próba lépés nem nyitható meg: a forrás vagy az elemzési beállítások a modell készítése óta változott; készítsd újra a modellt, vagy vesd el a változtatást.';
 /** ADR-108 (E6): whether the author's Try step opens now. The draft brings the second gate's decision for the
@@ -48,12 +56,28 @@ export function tryAdmission(state) {
 }
 export function flowSteps(state) {
     const current = stepOf(state.view), locked = authorPreviewId(state) ? '' : NEEDS_MODEL, stale = !!staleReason(state);
-    const later = (step) => locked ? { status: 'Zárolt', tone: 'locked' } : stale ? { status: 'Elavult', tone: 'stale' } : step === 'try' ? tryStatus(state) : { status: '', tone: '' };
+    const later = (step) => locked ? { status: 'Zárolt', tone: 'locked' } : stale ? { status: 'Elavult', tone: 'stale' } : step === 'try' ? tryStatus(state) : rulesStatus(state);
     return [
         { step: 'source', view: 'author', number: 1, label: 'Forrás', hint: 'A helyes referenciakód', current: current === 'source', locked: '', stale: false, ...sourceStatus(state) },
-        { step: 'rules', view: 'model', number: 2, label: 'Szabályok', hint: 'Függőségek és minősítés', current: current === 'rules', locked, stale, ...later('') },
+        { step: 'rules', view: 'model', number: 2, label: 'Szabályok', hint: 'Függőségek és minősítés', current: current === 'rules', locked, stale, ...later('rules') },
         { step: 'try', view: 'sort', number: 3, label: 'Próba', hint: 'Rendezés és ellenőrzés', current: current === 'try', locked, stale, ...later('try') }
     ];
+}
+/** The author's stepper. `done`: a step behind the current one that is neither locked, stale nor refused. */
+export function renderStepper(state) {
+    const steps = flowSteps(state), here = steps.findIndex(s => s.current);
+    return `<nav class="stepper" aria-label="A feladatkészítés lépései"><ol>${steps.map((s, i) => { const done = i < here && !s.locked && !s.stale && s.tone !== 'blocked'; return `<li><button type="button" data-step="${s.step}" class="step ${s.current ? 'current' : ''} ${done ? 'done' : ''} ${s.locked ? 'locked' : ''} ${s.stale ? 'stale' : ''} ${s.tone ? 'tone-' + s.tone : ''}" ${s.current ? 'aria-current="step"' : ''} ${s.locked ? `disabled aria-disabled="true" title="${esc(s.locked)}"` : `title="${esc(s.hint)}"`}><span class="step-number" aria-hidden="true">${done ? icon('check') : String(s.number).padStart(2, '0')}</span><span class="step-text"><b>${s.label}</b><small data-step-status>${s.status}</small></span></button></li>`; }).join('')}</ol></nav>`;
+}
+/** Brings each step's word and tone up to date in place, after an input that does not redraw (typing in the source). */
+export function refreshStepper(root, state) {
+    for (const s of flowSteps(state)) {
+        const button = root.querySelector(`[data-step="${s.step}"]`), word = button?.querySelector('[data-step-status]');
+        if (!button || !word)
+            continue;
+        word.textContent = s.status;
+        for (const tone of ['locked', 'stale', 'blocked', 'warning'])
+            button.classList.toggle('tone-' + tone, s.tone === tone);
+    }
 }
 /** Why a view cannot be entered now, or ''. */
 export function blockedReason(state, view) {

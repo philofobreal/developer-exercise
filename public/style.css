@@ -446,7 +446,6 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 .source-diagnostics {margin:10px 0 0;padding:10px 12px;border:1px solid var(--border);border-left:4px solid var(--w-40);background:var(--n-12)}
 .source-diagnostics.verdict-blocked {border-left-color:var(--d-48)}
 .source-diagnostics>h3 {margin:0 0 6px;font-size:13px}
-.source-diagnostics>ol {margin:0;padding:0;list-style:none;display:grid;gap:8px}
 .diagnostic {display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:2px 10px;align-items:baseline;font-size:12px;line-height:1.5}
 .diagnostic-kind {font-weight:700;white-space:nowrap}
 .diagnostic.certainty-definite .diagnostic-kind {color:var(--d-82)}
@@ -455,6 +454,30 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 .diagnostic-message {min-width:0;overflow-wrap:anywhere}
 .diagnostic-origin {grid-column:3;color:var(--muted)}
 .step.tone-blocked .step-text small {color:var(--d-82);opacity:1}
+.step-text small:empty {display:none}
+.diagnostic-list {margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.diagnostic-count {padding:0 6px;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:600}
+.diagnostic-lines {grid-column:1 / -1;font-size:12px}
+.diagnostic-lines>summary {display:inline-flex;min-height:24px;align-items:center;cursor:pointer;color:var(--accent-text)}
+.diagnostic-lines>ol {margin:4px 0 0;padding:0;list-style:none;display:grid;gap:4px}
+.diagnostic-lines li {display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:baseline}
+/* ADR-122 (M3): the task status card. One tone per answer, as a word and a colour; the card's edge carries the worst. */
+.task-status {margin:0 0 14px;padding:12px 14px;border:1px solid var(--border);border-left:4px solid var(--ok-line);background:var(--n-12);font-size:13px}
+.task-status.tone-warning {border-left-color:var(--w-40)}.task-status.tone-error {border-left-color:var(--d-48)}
+.task-status>h3 {margin:0 0 8px;font-size:13px}
+.task-answers {margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.task-answer {display:grid;grid-template-columns:8.5em 6.5em minmax(0,1fr) auto;gap:4px 10px;align-items:center;line-height:1.5}
+.task-verdict {display:inline-flex;align-items:center;gap:6px;font-weight:700}
+.task-verdict .status-dot {width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.task-answer.tone-ok .task-verdict {color:var(--ok-text)}
+.task-answer.tone-warning .task-verdict {color:var(--w-80)}.task-answer.tone-warning .status-dot {background:var(--w-40)}
+.task-answer.tone-error .task-verdict {color:var(--d-82)}.task-answer.tone-error .status-dot {background:var(--d-48)}
+.task-text {min-width:0;overflow-wrap:anywhere}
+.task-next {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;margin:10px 0 0;padding-top:10px;border-top:1px solid var(--border)}
+.task-findings {margin-top:10px;font-size:12px}
+.task-findings>summary {display:inline-flex;min-height:24px;align-items:center;cursor:pointer;color:var(--accent-text)}
+.task-findings>.diagnostic-list {margin-top:8px}
+@media (max-width:640px){.task-answer {grid-template-columns:auto auto minmax(0,1fr)}.task-text {grid-column:1 / -1}.task-answer>.btn {grid-column:1 / -1;justify-self:start}}
 .step.tone-warning .step-text small {color:var(--w-80);opacity:1}
 @media (max-width:640px){.diagnostic {grid-template-columns:auto minmax(0,1fr)}.diagnostic-message,.diagnostic-origin {grid-column:1 / -1}}
 /* ADR-116 (M1): the header never runs off the screen: below 1000 px the learner-view toggle keeps only its icon and the Studio label goes. */

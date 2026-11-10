@@ -130,7 +130,7 @@ test('panel state: refusals ask for the named acknowledgement; new drafts settle
 });
 
 test('insight: qualification, claims, audit and refresh report are shown and escaped',async()=>{
- const state=await panelState(),html=renderModelInsight({...state.authorInsight,audit:{semantics:'unverifiable',diagnostics:[{line:1,code:2307,message:"Cannot find module '<x>'",context:true}],unresolved:['<x>'],assumptions:[]},refresh:{authorRules:1,legacyEdges:0,supersededEdges:2,relaxations:[{before:2,after:4,outcome:'revoked'}],droppedNotes:1}});
+ const state=await panelState(),html=renderModelInsight({...state.authorInsight,audit:{semantics:'unverifiable',diagnostics:[{line:1,code:2307,message:"Cannot find module '<x>'",context:true,certainty:'unknown'}],unresolved:['<x>'],assumptions:[]},refresh:{authorRules:1,legacyEdges:0,supersededEdges:2,relaxations:[{before:2,after:4,outcome:'revoked'}],droppedNotes:1}});
  assert.match(html,/data-verification-status>Szerzői döntéssel módosított/);assert.match(html,/Publikálható/);
  assert.match(html,/projektkontextus/i);assert.ok(!html.includes("'<x>'")&&html.includes('&lt;x&gt;'));
  assert.match(html,/visszavonva/);assert.match(html,/1 megjegyzés elveszett/);
