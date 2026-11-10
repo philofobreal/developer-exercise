@@ -10,6 +10,7 @@ import {connection,installRuleBoard,linkWith} from './app/rule-board.js';
 import {authorPreviewId,blockedReason,enterMode,enterView,landAfterAdmission,refreshStepper,tryAdmission} from './app/flow.js';
 /** App orchestration and event wiring; modes, steps and staleness live in the typed flow (ADR-022). */
 import {readClipboard} from './app/clipboard.js';
+import {trackActivity} from './app/activity.js';
 import {cycleTheme} from './app/theme.js';
 import {toggleSurface} from './app/surface.js';
 import {setCodeView} from './app/code-view.js';
@@ -267,7 +268,7 @@ createInsertionDrag({root,
   // ADR-118: a picked row's actions show in the action bar (view.ts pickBar).
   onPick:info=>{state.rowPick=info&&(info.from==='pool'||info.from==='answer')&&info.id!==undefined?{list:info.from,id:info.id}:undefined;render();}
 });
-installRuleBoard(root,(from,to)=>{toggleLink(from,to).catch(err=>notify(err instanceof Error?err.message:'A kapcsolat módosítása nem sikerült.'));},()=>{delete state.ruleConnect;render();});
+installRuleBoard(root,(from,to)=>{trackActivity('Szabály módosítása',toggleLink(from,to)).catch(err=>notify(err instanceof Error?err.message:'A kapcsolat módosítása nem sikerült.'));},()=>{delete state.ruleConnect;render();});
 
 /** ADR-108 (E8): a model does not record the preflight options; the author's own JSON edit sends them along. */
 const ownSettings=()=>{const policy=settingsRequest(state.author).policy;return policy?{policy}:{};};
@@ -288,10 +289,11 @@ root.addEventListener('change',async ev=>{
  const current=captureAuthorRequest(state);
  try{const file=input.files[0];if(!file)return;if(file.size>1024*1024)throw Error('Legfeljebb 1 MiB importálható.');const data=parseImport(await file.text());
   if(!current())return;
-  if(input.hasAttribute('data-model-file'))await authorApply({model:data},{current,land:'rules',settingsOrigin:'partial'});else await importSession(data,{current});
+  const model=input.hasAttribute('data-model-file');
+  await trackActivity(model?'CodeLine JSON megnyitása':'Munkamenet megnyitása',model?authorApply({model:data},{current,land:'rules',settingsOrigin:'partial'}):importSession(data,{current}));
  }catch(err){if(current())notify(err.message);}
  finally{input.value='';}
 });
 
-async function init(){try{state.exercises=practiceOrder(await getExercises());for(const e of state.exercises)state.attempts.set(e.id,createAttempt(e));if(!state.exercises.length)throw Error('Üres feladatlista.');state.practiceActive=state.exercises[0].id;render();}catch(err){root.innerHTML=`<div class="loading">${escapeHtml(err.message)}</div>`;}}
+async function init(){try{state.exercises=practiceOrder(await getExercises());for(const e of state.exercises)state.attempts.set(e.id,createAttempt(e));if(!state.exercises.length)throw Error('Üres feladatlista.');state.practiceActive=state.exercises[0].id;render();}catch(err){root.innerHTML=`<div class="loading" role="alert">${escapeHtml(err.message)}</div>`;}}
 init();

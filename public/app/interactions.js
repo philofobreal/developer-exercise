@@ -1,4 +1,5 @@
 import { captureAuthorRequest, formatLoaded, replaceDraft } from './author-workspace.js';
+import { trackActivity } from './activity.js';
 const views = ['sort', 'edit', 'author', 'model'];
 export function activateView(state, attempt, formatted, next) {
     if (!views.includes(next))
@@ -103,22 +104,31 @@ export function installWorkbenchKeyboard(root) {
     });
 }
 const running = new WeakSet();
+/** ADR-127 (P1): the actions that wait for work (the engine, the formatter, a fetch), by their control, with the name the
+ *  progress indicator shows. A busy control is disabled and `aria-busy`; its icon turns into a spinner only when the
+ *  indicator appears (activity.ts), so quick work does not flash. */
+const BUSY = [
+    ['data-check', 'Ellenőrzés'], ['data-author-apply', 'Modell készítése'], ['data-author-check', 'Forrás vizsgálata'],
+    ['data-model-apply', 'JSON alkalmazása'], ['data-model-refresh', 'Sorfüggőségek újraszámítása'],
+    ['data-format', 'Formázás'], ['data-author-format', 'Formázás'], ['data-author-sample', 'TypeScript minta betöltése'],
+    ['data-load-local', 'Mentett munka megnyitása'],
+    ['data-rule-edit', 'Szabály módosítása'], ['data-rule-kind-confirm', 'Szabály módosítása'], ['data-rule-connect', 'Szabály módosítása'], ['data-rule-pin', 'Szabály módosítása'],
+];
 export async function dispatchWorkbenchAction(event, handler, onError) {
     const button = event.target instanceof Element ? event.target.closest('button') : null;
     if (!button || running.has(button))
         return;
-    const busy = button.matches('[data-check],[data-author-apply],[data-model-apply],[data-model-refresh],[data-format],[data-author-format],[data-author-sample],[data-rule-edit],[data-rule-kind-confirm],[data-rule-connect],[data-rule-pin]');
-    const original = button.innerHTML, disabled = button.disabled, hadFocus = document.activeElement === button, owner = button.closest('#app');
+    const busy = BUSY.find(([attribute]) => button.hasAttribute(attribute))?.[1];
+    const disabled = button.disabled, hadFocus = document.activeElement === button, owner = button.closest('#app');
     const context = owner ? { exercise: owner.dataset.renderedExercise, view: owner.dataset.renderedView } : undefined;
     const action = button.getAttributeNames().find(name => name.startsWith('data-'));
     if (busy) {
         running.add(button);
         button.disabled = true;
         button.setAttribute('aria-busy', 'true');
-        button.textContent = button.hasAttribute('data-check') ? 'Ellenőrzés…' : button.hasAttribute('data-author-apply') ? 'Előnézet készül…' : 'Feldolgozás…';
     }
     try {
-        await handler(button);
+        await (busy ? trackActivity(busy, handler(button), button) : handler(button));
     }
     catch (error) {
         if (onError)
@@ -132,7 +142,6 @@ export async function dispatchWorkbenchAction(event, handler, onError) {
             if (button.isConnected) {
                 button.disabled = disabled;
                 button.removeAttribute('aria-busy');
-                button.innerHTML = original;
             }
             if (hadFocus && action && owner && context && context.exercise === owner.dataset.renderedExercise && context.view === owner.dataset.renderedView && document.activeElement === document.body)
                 owner.querySelector('[' + action + ']')?.focus({ preventScroll: true });
@@ -196,13 +205,13 @@ export function installAuthoringFlows(root, state, render, format) {
         try {
             if (file.size > 200000)
                 throw Error('A forrásfájl legfeljebb 200 KB lehet.');
-            const source = (await file.text()).replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
-            if (source.length > 50000)
-                throw Error('Legfeljebb 50000 karakteres forrás tölthető be.');
-            if (!current())
-                return;
-            const language = /\.ts$/i.test(file.name) ? 'typescript' : /\.(mjs|js)$/i.test(file.name) ? 'javascript' : state.author.language;
-            const next = await formatLoaded({ ...state.author, source, language, message: `${file.name} betöltve. A forrás még nincs alkalmazva. A cím és leírás nem változik automatikusan; ellenőrizd őket.` }, format);
+            const next = await trackActivity('Forrásfájl megnyitása', (async () => {
+                const source = (await file.text()).replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+                if (source.length > 50000)
+                    throw Error('Legfeljebb 50000 karakteres forrás tölthető be.');
+                const language = /\.ts$/i.test(file.name) ? 'typescript' : /\.(mjs|js)$/i.test(file.name) ? 'javascript' : state.author.language;
+                return formatLoaded({ ...state.author, source, language, message: `${file.name} betöltve. A forrás még nincs alkalmazva. A cím és leírás nem változik automatikusan; ellenőrizd őket.` }, format);
+            })());
             if (!current())
                 return;
             replaceDraft(state, next);

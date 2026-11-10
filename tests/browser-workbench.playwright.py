@@ -898,6 +898,48 @@ def busy(page):
         page.locator('[data-check]').click();expect(page.locator('[data-check]')).to_be_disabled();expect(page.locator('[data-check]')).to_have_attribute('aria-busy','true');page.keyboard.press('Control+Enter');assert len(pending)==1
         route=pending.pop();route.fulfill(response=route.fetch());expect(page.locator('.report')).to_contain_text('Elfogadva');expect(page.locator('[data-check]')).to_be_enabled();expect(page.locator('[data-check]')).to_be_focused()
     finally:page.unroute('**/api/author/preview',intercept)
+RECORD_ACTIVITY="""()=>{window.__activity=[];new MutationObserver(records=>{for(const record of records){const phase=record.target.dataset?.phase;if(record.attributeName==='data-phase'&&phase&&window.__activity.at(-1)!==phase)window.__activity.push(phase);}}).observe(document.body,{subtree:true,attributes:true,attributeFilter:['data-phase']});}"""
+def activity_indicator(browser):
+    """ADR-127 (P1): work a user waits for shows one indicator: after 400 ms a chip above the sticky action bar names it,
+    a screen reader hears it once, the button's icon turns into a spinner; when the work ends the line fills and the chip
+    fades, and nothing stays behind. On a phone the chip stands above the stuck action bar and inside the screen."""
+    for width,height in [(1280,800),(390,600)]:
+        context=watch(browser.new_context(viewport={'width':width,'height':height},**({'is_mobile':True,'has_touch':True} if width<500 else {})));page=context.new_page()
+        try:
+            reset(page,BASE);page.locator('[data-source-kind="code"]').click()
+            page.locator('#author-editor').fill('function long() {\n'+''.join(f'  const v{i} = {i};\n' for i in range(60))+'  return v0;\n}')
+            page.evaluate('window.scrollTo(0,0)');page.evaluate(RECORD_ACTIVITY);held=[]
+            page.route('**/api/author/compile',lambda route:held.append(route))
+            try:
+                bar=page.locator('.step-panel .action-bar');apply=page.locator('[data-author-apply]')
+                apply.click();expect(apply).to_have_attribute('aria-busy','true')
+                chip=page.locator('[data-activity]');expect(chip).to_be_visible();expect(chip).to_have_attribute('data-phase','running')
+                expect(chip).to_contain_text('Modell készítése…');expect(page.locator('[data-activity-live]')).to_have_text('Modell készítése folyamatban.')
+                expect(apply).to_have_attribute('data-busy-shown','');expect(apply).to_contain_text('Modell készítése')
+                assert chip.get_attribute('aria-hidden')=='true','the live line speaks; the chip does not repeat it'
+                box,stuck=chip.bounding_box(),bar.bounding_box()
+                assert stuck['y']+stuck['height']>=height-2,f'{width}px: the action bar is stuck at the bottom ({stuck})'
+                assert box['y']+box['height']<=stuck['y']+1,f'{width}px: the chip covers the action bar ({box} over {stuck})'
+                assert box['x']>=15 and box['x']+box['width']<=width-15,f'{width}px: the chip leaves the screen ({box})'
+                assert page.evaluate('document.documentElement.scrollWidth')<=width
+                expect(chip).to_contain_text('3 s',timeout=5000)
+                route=held.pop();route.fulfill(response=route.fetch())
+                current(page,'rules');expect(chip).to_be_hidden(timeout=3000)
+                assert page.evaluate('window.__activity')==['running','settling','leaving','hidden'],page.evaluate('window.__activity')
+                assert page.locator('[data-busy-shown]').count()==0 and page.locator('[data-activity-live]').text_content()==''
+            finally:page.unroute('**/api/author/compile')
+        finally:context.close()
+def lazy_compiler(page,url):
+    """ADR-127 (P1): on the Local Demo the TypeScript compiler (9 MB) loads with the first action that reads source, not
+    with the page: a learner who only practises never downloads it."""
+    requests=[];listen=lambda request:requests.append(request.url)
+    page.on('request',listen)
+    try:
+        reset(page,url);practice(page);page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).not_to_have_class(re.compile(r'\bidle\b'))
+        assert not [u for u in requests if u.endswith('/vendor/typescript.mjs')],'the compiler loaded without an author action'
+        page.locator('[data-mode="author"]').click();build(page,rules_source)
+        assert len([u for u in requests if u.endswith('/vendor/typescript.mjs')])==1,'the first author action loads the compiler once'
+    finally:page.remove_listener('request',listen)
 def stale_format(page,author):
     if author:selector='#author-editor';action='[data-author-format]'
     else:
@@ -961,6 +1003,8 @@ try:
             reset(page,BASE);case('node first gate: a definite language error stays on the source step',lambda:source_gate(page))
             reset(page,BASE);case('node second gate: stale source keeps the Try step closed',lambda:second_gate(page))
             reset(page,BASE);case('node duplicate-check prevention and async feedback',lambda:busy(page))
+            case('node one progress indicator: delayed, docked above the action bar, winds down',lambda:activity_indicator(browser))
+            case('pages the compiler loads with the first author action, not with the page',lambda:lazy_compiler(page,f'http://127.0.0.1:{static.server_port}/developer-exercise/'))
             reset(page,BASE);case('node admission preserves newer reference edits',lambda:stale_author_admission(page))
             reset(page,BASE);case('node sample loading preserves newer reference edits',lambda:stale_source_sample(page))
             for name,action in [('author format preserves newer edits',lambda:stale_format(page,True)),('solution format preserves newer edits',lambda:stale_format(page,False)),('stale check failure cannot replace newer attempt',lambda:stale_check_failure(page))]:

@@ -14,7 +14,7 @@
 *,::before,::after {font-feature-settings:'liga' 0,'calt' 0 !important}
 * {box-sizing:border-box}html,body,#app {width:100%;max-width:none;min-width:0;margin:0}body {overflow-x:clip}#app {min-height:100dvh;background:var(--bg)}
 button,input,select,textarea {font:inherit}button {display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:34px;padding:7px 11px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);cursor:pointer;line-height:1.3;font-size:12px;transition:background 120ms,border-color 120ms}
-button:hover:not(:disabled) {background:var(--n-20);border-color:var(--n-46)}button:disabled {opacity:.55;cursor:default}button[aria-busy=true] {opacity:.8;cursor:progress}button[aria-busy=true]::before {content:'';width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+button:hover:not(:disabled) {background:var(--n-20);border-color:var(--n-46)}button:disabled {opacity:.55;cursor:default}button[aria-busy=true],button[aria-busy=true]:disabled {opacity:1;cursor:progress}button[data-busy-shown] .icon {display:none}button[data-busy-shown]::before {content:'';flex-shrink:0;width:14px;height:14px;margin:1.5px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
 :where(button,a,input,select,textarea,summary,[tabindex]):focus-visible {outline:3px solid var(--a-68);outline-offset:3px}input,select {accent-color:var(--accent)}[hidden],.author input[hidden] {display:none !important}.icon {width:17px;height:17px;flex-shrink:0;vertical-align:middle}h1,h2,h3,p {margin-top:0}h1 {font-size:27px;line-height:1.25;letter-spacing:-.7px;margin-bottom:10px;color:var(--n-96)}h2 {font-size:20px;line-height:1.3;letter-spacing:-.3px}h3 {font-size:14px}small {font-size:11px}.subtle,.inline-hint {color:var(--muted)}.eyebrow {display:block;color:var(--n-72);letter-spacing:1.6px;font:600 11px var(--mono);text-transform:uppercase}.skip-link {position:fixed;top:8px;left:12px;width:1px;height:1px;clip-path:inset(50%);overflow:hidden;white-space:nowrap;z-index:100;background:var(--accent);color:var(--accent-ink);border-radius:var(--radius)}.skip-link:focus {width:auto;height:auto;clip-path:none;padding:10px 16px}
 .draft-notice {color:var(--n-82);background:var(--n-16);border-color:var(--n-32)}
 .dirty-dot {height:6px;width:6px;background:var(--w-72);border-radius:50%;display:inline-block}summary {cursor:pointer;color:var(--n-78);list-style-position:inside;min-height:26px;line-height:26px;font-size:11px}summary .icon {width:14px;margin-right:5px}
@@ -673,3 +673,19 @@ button.btn.link-action:hover:not(:disabled) {background:var(--blue-pale);border-
 /* NY-27: the picked row whole in the action bar; it wraps instead of scrolling, so a long row reads on a phone. */
 .pick-code {display:block;flex-basis:100%;margin:0 0 6px;padding:4px 8px;border-left:3px solid var(--a-52);background:var(--n-10);font:12px/1.5 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text)}
 .pick-bar {flex-wrap:wrap}
+/* ADR-127 (P1): one progress indicator for the work a user waits for. A chip in the top layer, centred above the sticky
+   action bar (activity.ts docks it), never under a phone's keyboard or over the main action; it does not take clicks.
+   Its 3 px line runs while the work runs, fills when it ends, then the chip fades. */
+.activity {position:fixed;inset:auto 16px calc(var(--activity-dock,0px) + 12px + env(safe-area-inset-bottom,0px)) 16px;margin:0 auto;width:fit-content;height:auto;max-width:min(440px,calc(100vw - 32px));overflow:hidden;z-index:1150;padding:9px 14px 12px;border:1px solid var(--n-30);border-radius:var(--radius);background:var(--n-16);color:var(--text);font:12.5px/1.4 var(--ui);box-shadow:0 10px 28px color-mix(in srgb,var(--shadow) 45%,transparent);pointer-events:none;transition:opacity .25s ease,translate .25s ease}
+.activity-text {display:flex;align-items:baseline;gap:10px;white-space:nowrap;min-width:0}.activity-label {overflow:hidden;text-overflow:ellipsis;font-weight:600}.activity-seconds {color:var(--muted);font-variant-numeric:tabular-nums}.activity-seconds:empty {display:none}
+.activity-line {position:absolute;left:0;right:0;bottom:0;height:3px;overflow:hidden;background:color-mix(in srgb,var(--accent) 22%,transparent)}
+.activity-line::after {content:'';position:absolute;top:0;bottom:0;left:0;width:40%;background:var(--accent);animation:activity-slide 1.2s cubic-bezier(.4,0,.2,1) infinite}
+.activity:is([data-phase=settling],[data-phase=leaving]) .activity-line::after {animation:none;width:100%;transition:width .15s ease-out}
+.activity[data-phase=leaving] {opacity:0;translate:0 6px}
+@keyframes activity-slide {from {translate:-100% 0}to {translate:250% 0}}
+@keyframes activity-appear {from {opacity:0}to {opacity:1}}
+/* The start of the app shows the same line, and only if loading lasts (the same 400 ms). */
+.loading[data-busy] {align-content:center;gap:14px;animation:activity-appear 1ms .4s both}
+.loading[data-busy]::after {content:'';width:min(240px,60vw);height:3px;background:linear-gradient(90deg,var(--accent),var(--accent)) no-repeat,color-mix(in srgb,var(--accent) 22%,transparent);background-size:40% 100%,100% 100%;animation:activity-sweep 1.2s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes activity-sweep {from {background-position:-67% 0,0 0}to {background-position:167% 0,0 0}}
+@media(prefers-reduced-motion:reduce) {.activity-line::after {left:0;width:100%;opacity:.55}.activity:is([data-phase=settling],[data-phase=leaving]) .activity-line::after {opacity:1}.loading[data-busy]::after {background-size:100% 100%,100% 100%;opacity:.55}}

@@ -11,7 +11,8 @@ test('Pages artifact has relative entrypoints and a local compiler for the worke
  assert.doesNotMatch(html,/src="\/|href="\//);
  assert.ok((await stat(file('vendor/typescript.mjs'))).size>1000000);
  assert.match(await readFile(file('vendor/typescript.mjs'),'utf8'),/\nglobalThis\.ts = ts;\n$/);
- assert.match(await readFile(file('app/pages-worker.js'),'utf8'),/import '\.\.\/vendor\/typescript\.mjs';\s*import \* as engine from '\.\/pages-api\.js';/);
+ // ADR-127: the worker loads the compiler on demand, with the first operation that reads source, never at its start.
+ {const worker=await readFile(file('app/pages-worker.js'),'utf8');assert.doesNotMatch(worker,/^import '\.\.\/vendor\/typescript\.mjs'/m);assert.match(worker,/import\('\.\.\/vendor\/typescript\.mjs'\)/);assert.match(worker,/import \* as engine from '\.\/pages-api\.js';/);}
  assert.ok((await stat(file('dist/validator.js'))).size>1000);
  assert.ok((await stat(file('author/generator.mjs'))).size>1000);
  // ADR-011/013 wiring, re-rooted for the one-level-shallower static author folder.

@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased – 2026-11-10 egy folyamatjelző a háttérmunkára; a fordító csak szerzői műveletnél töltődik (ADR-127)
+
+- **Ha egy művelet 0,4 másodpercnél tovább tart, a képernyő alján, a műveletsáv fölött egy címke mutatja a nevét:** Modell készítése, Forrás vizsgálata, Ellenőrzés, szabálymódosítás, Formázás, JSON alkalmazása, fájl, minta vagy mentett munka megnyitása.
+  - 3 másodperctől a címke számolja a másodperceket.
+  - Ha megjelent, legalább 0,6 másodpercig látszik, így nem villan.
+  - A munka végén a vonala kitelik, és fél másodpercen belül eltűnik.
+  - A gomb felirata nem változik; az ikonja ilyenkor pörgettyű.
+  - A képernyőolvasó egyszer mondja ki, hogy a művelet folyamatban van.
+- **Az indulás ugyanígy jelez:** a „Feladatmodell betöltése…” felirat csak akkor jelenik meg, ha a betöltés tart.
+- **A Local Demo a TypeScript-fordítót (9 MB) csak az első szerzői műveletnél tölti le.** Aki csak gyakorol, nem tölti le.
+
 ## Unreleased – 2026-11-10 „érvényes adat → szigorú lett”: a bemeneti szerződés oka és sora (ADR-126)
 
 - **Az Elemzés és szabályok lépés megmondja, ha a kód miatt nem érvényesült az „érvényes egyszerű adat” beállítás.** Például: „Bemenetek: érvényes egyszerű adat → szigorú lett, mert a 7. sor „Proxy”: ezzel a program megváltoztathatja, mit csinál egy tulajdonság olvasása.”
