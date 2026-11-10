@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased – 2026-11-10 súgó egy forrásból, ellenőrzött példákkal (ADR-124)
+
+- **Súgóoldal** (`help/index.html`):
+  - a beállítások, a feladat állapota, a minősítés, a leletek, az okkódok és a nehéz helyzetek;
+  - tartalomjegyzék és keresés, témánként állandó hivatkozás;
+  - ugyanaz a megjelenés, világos és sötét témában.
+- **Minden példa egyben teszt:** a kilenc beállítás mindegyikéhez van egy kódpélda („a 3. és 4. sor cseréje: elfogadva / elutasítva”), és a teszt a valódi elemzővel és kiértékelővel futtatja. Ha a viselkedés változik, a súgó tesztje jelez.
+- **ⓘ a címkék mellett:**
+  - a beállításoknál, a három állapotkérdésnél, a minősítésnél, a szabálytípusoknál és a leleteknél;
+  - kattintásra buborék nyílik egy-két mondattal, a példával és a „Részletek a súgóban” hivatkozással, amely új lapon nyit;
+  - Escape-re vagy máshová kattintva bezárul.
+- **Egy szöveg:** a beállítás alatti rövid leírás, a buborék és a súgóoldal ugyanabból a forrásból készül.
+
+## Unreleased – 2026-11-10 a lazító kézi szabály megnevezése (ADR-114 kiegészítés, B2)
+
+- **A minősítés megnevezi a lazítást.** Ha egy kézzel írt modell egy generált sorrendi kötést nem tartalmaz, és az a saját szabályaiból sem következik, a lelet felsorolja, melyik kötésről van szó (például „#1 → #3”). Az általános „eltérnek az újragenerálástól” helyett áll.
+- **Ha a modell egyszerre szűkít is,** a szűkítő szerzői szabályok leletje mellette marad.
+
 ## Unreleased – 2026-11-10 három lépés új feladatkiosztással, egy csontváz (ADR-123)
 
 - **Új lépések:** Kód → Elemzés és szabályok → Próba és kiadás.

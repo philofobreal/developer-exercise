@@ -48,7 +48,7 @@ def open_menu(page,name):
 def analysis_options(page):
     """ADR-105: the author's analysis settings fold away in the source step; unfold them before choosing one."""
     box=page.locator('details.analysis-options')
-    if box.get_attribute('open') is None:box.locator('summary').click()
+    if box.get_attribute('open') is None:box.locator(':scope > summary').click()
     return box
 
 

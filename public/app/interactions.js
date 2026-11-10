@@ -66,6 +66,24 @@ export function installMenus(root) {
         return; const menu = event.target instanceof Element ? event.target.closest('details.menu[open]') : null; if (!menu)
         return; menu.open = false; menu.querySelector('summary')?.focus(); });
 }
+/** ADR-124 (H3): an opened ⓘ bubble stays on the screen: it opens under its button and, near an edge, shifts back
+ *  inside the viewport (a 16 px margin), so it never widens the page. */
+export function installToggletips(root) {
+    root.addEventListener('toggle', event => {
+        const tip = event.target;
+        if (!(tip instanceof HTMLDetailsElement) || !tip.matches('details.toggletip') || !tip.open)
+            return;
+        const panel = tip.querySelector('.toggletip-panel');
+        if (!panel)
+            return;
+        // Moved by its offset, not a transform: a transformed box still widens the page at its untransformed place.
+        panel.style.left = '0px';
+        const box = panel.getBoundingClientRect(), limit = document.documentElement.clientWidth - 16;
+        const shift = box.right > limit ? limit - box.right : box.left < 16 ? 16 - box.left : 0;
+        if (shift)
+            panel.style.left = `${Math.round(shift)}px`;
+    }, true);
+}
 export function installWorkbenchKeyboard(root) {
     root.addEventListener('keydown', event => {
         const target = event.target instanceof Element ? event.target : null, tab = target?.closest('[role="tab"]');

@@ -18,6 +18,7 @@ import {evidenceStale} from './author-workspace.js';
 import {renderFindingGroups} from './preflight-settings.js';
 import {escapeHtml as esc} from './ui-utilities.js';
 import {icon} from './icons.js';
+import {renderInfo} from './help-topics.js';
 
 export type Tone='ok'|'warning'|'error';
 /** Where the next step sends the teacher: back to the code, or on to the try (the step's action bar makes it primary). */
@@ -102,7 +103,7 @@ const SHOW_RULE_KINDS=`<button type="button" class="btn" data-show-rule-kinds>${
  * step's action bar (ADR-123), which reads `taskStatus` too. */
 export function renderTaskStatus(state:WorkbenchState):string {
  const status=taskStatus(state);if(!status)return '';
- const answers=status.answers.map(answer=>`<li class="task-answer tone-${answer.tone}" data-task-answer="${answer.id}"><b class="task-question">${answer.question}</b><span class="task-verdict"><span class="status-dot" aria-hidden="true"></span>${VERDICT[answer.tone]}</span><span class="task-text">${esc(answer.text)}</span>${answer.action?SHOW_RULE_KINDS:''}</li>`).join('');
+ const answers=status.answers.map(answer=>`<li class="task-answer tone-${answer.tone}" data-task-answer="${answer.id}"><div class="task-question"><b>${answer.question}</b>${renderInfo(answer.id,answer.question)}</div><span class="task-verdict"><span class="status-dot" aria-hidden="true"></span>${VERDICT[answer.tone]}</span><span class="task-text">${esc(answer.text)}</span>${answer.action?SHOW_RULE_KINDS:''}</li>`).join('');
  const findings=modelSourceFindings(state);
  const details=findings.length?`<details class="task-findings" data-memory="task-findings"><summary>Részletek: a forrás leletei okonként</summary>${renderFindingGroups(findings)}</details>`:'';
  return `<section class="task-status tone-${status.tone}" data-task-status aria-labelledby="task-status-title"><h3 id="task-status-title">A feladat állapota</h3><ul class="task-answers">${answers}</ul>${details}</section>`;

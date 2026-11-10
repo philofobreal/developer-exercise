@@ -620,3 +620,53 @@ button.btn.link-action:hover:not(:disabled) {background:var(--blue-pale);border-
 /* ADR-123: the focus surface is the code: the learner data panel stays out, and the context bar only holds the compact heading. */
 #app[data-surface=focus] .learner-data {display:none}
 #app[data-surface=focus] .context-bar {display:block;flex:none;margin:0}
+/* ADR-124 (H3): the ⓘ toggletip. A quiet 28 px icon button after its label; the bubble is a floating surface with the
+ * topic's sentences, its example and the link to the help page (a new tab). */
+.toggletip {display:inline-block;flex:none;vertical-align:middle}
+.menu.toggletip>summary.info-button {width:28px;min-width:28px;height:28px;min-height:28px;padding:0;border:0;background:transparent;color:var(--accent-text);justify-content:center}
+.menu.toggletip>summary.info-button:hover,.menu.toggletip[open]>summary.info-button {background:var(--blue-pale)}
+.menu.toggletip>summary .icon {width:16px;height:16px}
+.toggletip-panel {left:0;right:auto;width:min(380px,calc(100vw - 32px));min-width:0;gap:8px;padding:12px;font-size:12px;font-weight:400;line-height:1.55;letter-spacing:0;text-transform:none;white-space:normal;color:var(--text);text-align:left}
+.toggletip-panel>p {margin:0}
+/* The code example scrolls inside the bubble: a grid item may not grow the bubble to its longest line. */
+.toggletip-panel {grid-template-columns:minmax(0,1fr)}
+.help-example {min-width:0}
+.help-link {display:inline-flex;align-items:center;gap:4px;font-weight:600;color:var(--accent-text)}
+.help-link .icon {width:14px;height:14px}
+.help-example {margin:0}
+.help-code {margin:0;padding:6px 0;max-height:220px;overflow:auto;border:1px solid var(--border);background:var(--n-10);font:12px/1.6 var(--mono)}
+.help-line {display:block;padding-right:10px;white-space:pre}
+.help-ln {display:inline-block;width:2.6em;padding-right:10px;text-align:right;color:var(--muted);user-select:none}
+.help-example figcaption {margin-top:6px}
+.help-example ul {margin:4px 0 0;padding-left:18px}
+.setting-head,.task-question,.diagnostics-head,.insight-heading {display:flex;align-items:center;gap:2px}
+.setting-head>label {margin:0}
+.diagnostics-head>h3 {margin:0}
+.diagnostic-message .toggletip {margin-left:2px}
+/* ADR-124 (H2): the help page, with the workbench's tokens and type: a contents list with search beside the text. */
+.help-page {background:var(--bg);color:var(--text)}
+.help-header {display:flex;align-items:center;gap:14px;padding:12px 24px;border-bottom:1px solid var(--border)}
+.help-header .brand {text-decoration:none}
+.help-title {font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.help-layout {display:grid;grid-template-columns:280px minmax(0,1fr);gap:32px;max-width:1180px;margin:0 auto;padding:24px}
+.help-toc {position:sticky;top:16px;align-self:start;max-height:calc(100dvh - 32px);overflow:auto;font-size:13px}
+.help-toc ol {margin:0;padding-left:16px}.help-toc>ol {padding-left:0;list-style:none}
+.help-toc li {margin:0}.help-toc>ol>li>a {font-weight:700}
+/* WCAG 2.5.8: every contents link is a 24 px high target of its own. */
+.help-toc a {display:block;min-height:24px;padding:2px 0;line-height:20px}
+.help-search {display:grid;gap:4px;margin:0 0 6px;font-size:12px;font-weight:600}
+.help-search input {min-height:40px;padding:8px 10px;border:1px solid var(--n-36);background:var(--n-10);color:var(--text);font-size:13px}
+.help-count {min-height:1.5em;margin:0 0 8px;font-size:12px;color:var(--muted)}
+.help-main {max-width:760px;line-height:1.65}
+.help-main h1 {margin:0 0 8px;font-size:26px}
+.help-lead {color:var(--muted)}
+.help-group {margin:32px 0 0}
+.help-group>h2 {margin:0 0 6px;font-size:20px;scroll-margin-top:16px}
+.help-topic {margin:18px 0 0;padding:14px 16px;border:1px solid var(--border);background:var(--n-12);scroll-margin-top:16px}
+.help-topic>h3 {margin:0 0 6px;font-size:15px}.help-topic>h3 a {color:inherit;text-decoration:none}
+.help-topic:target {border-left:4px solid var(--a-52)}
+.help-summary {font-weight:600}
+.help-table {overflow:auto;margin-top:10px}
+.help-table table {border-collapse:collapse;width:100%;font-size:12px}
+.help-table th,.help-table td {padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+@media(max-width:800px) {.help-layout {grid-template-columns:minmax(0,1fr);padding:16px;gap:16px}.help-toc {position:static;max-height:none}.help-header {padding:10px 16px}}

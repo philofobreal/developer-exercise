@@ -38,6 +38,8 @@ def check(page,name,side,focused=False):
         if not focused:
             assert m['header']<=52,f"{name}: the header is {m['header']} px high on a phone on its side"
             assert m['zoneTop']<m['height']-60,f"{name}: the lists start at {m['zoneTop']} px, below the first screen ({m['height']} px)"
+    # ADR-123 (UI4): an upright phone keeps the app bar to one row (one 44 px touch control and its padding; two rows were ~110 px).
+    if not side and not focused and m['width']<=650:assert m['header']<=66,f"{name}: the header is {m['header']} px high: more than one row on an upright phone"
     if focused:assert m['lists']>=.4*m['height'],f"{name}: focus leaves the lists {m['lists']} px of {m['height']}"
     print(f"PASS layout: {name} {m['width']}x{m['height']} header {m['header']} tools {sorted(set(m['tools']))} rows {m['toolRows']} lists {m['zones']}",flush=True)
 def focus(page,name,side):

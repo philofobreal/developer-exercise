@@ -197,6 +197,23 @@ def task_status(page):
     build(page,'const a = 1;\nconst b = 2;\nconsole.log(a, b);')
     card=page.locator('[data-task-status]');expect(card).to_have_class(re.compile('tone-ok'));expect(card.locator('.tone-ok')).to_have_count(3)
     expect(page.locator('[data-step="rules"] [data-step-status]')).to_have_text('Kész');expect(page.locator('[data-task-next]')).to_contain_text('Próbáld ki tanulóként.')
+def help_toggletips(page):
+    """ADR-124 (H1–H3): an ⓘ beside a setting opens a bubble with the help's example and a link to the help page at the
+    topic in a new tab; Escape closes it and returns the focus. The help page holds every topic at its anchor, and the
+    search narrows it to the topics holding every word."""
+    build(page,rules_source);analysis_options(page)
+    tip=page.locator('details.toggletip[data-help="keyOrder"]');tip.locator('summary').click();expect(tip).to_have_attribute('open','')
+    panel=tip.locator('.toggletip-panel');expect(panel).to_contain_text('3. és 4. sor cseréje');expect(panel).to_contain_text('elfogadva')
+    link=panel.locator('a.help-link');expect(link).to_have_attribute('target','_blank');expect(link).to_have_attribute('href','./help/index.html#keyOrder')
+    box=panel.bounding_box();width=page.viewport_size['width'];assert box['x']>=0 and box['x']+box['width']<=width,(box,width)
+    page.keyboard.press('Escape');expect(tip).not_to_have_attribute('open','');expect(tip.locator('summary')).to_be_focused()
+    expect(page.locator('details.toggletip[data-help="fillable"]')).to_have_count(1);expect(page.locator('details.toggletip[data-help="qualification"]')).to_have_count(1)
+    with page.expect_popup() as popup:
+        tip.locator('summary').click();link.click()
+    help_page=popup.value;expect(help_page.locator('#keyOrder')).to_be_visible();expect(help_page.locator('#keyOrder')).to_contain_text('Nem számít')
+    help_page.locator('[data-help-search]').fill('osztálymező');expect(help_page.locator('[data-help-count]')).to_contain_text('találat')
+    expect(help_page.locator('#classFields')).to_be_visible();expect(help_page.locator('#keyOrder')).to_be_hidden()
+    help_page.locator('[data-help-search]').fill('');expect(help_page.locator('#keyOrder')).to_be_visible();help_page.close()
 def session_settings(page):
     """ADR-108 (E8): a saved session records the analysis settings the model was made under and brings them back
     (recorded); an older version-1 file restores the model with the start values and says the origin is partial."""
@@ -222,7 +239,7 @@ def menus(page):
     page.keyboard.press('Escape');expect(menu).not_to_have_attribute('open','');expect(menu.locator('summary')).to_be_focused()
     menu.locator('summary').click();page.locator('h1').click();expect(menu).not_to_have_attribute('open','')
     opener=page.locator('details.open-menu');opener.locator('summary').click();expect(page.locator('[data-start-example]')).to_be_visible()
-    page.locator('details.analysis-options summary').click();expect(opener).not_to_have_attribute('open','');expect(page.locator('[data-preflight="objectState"]')).to_be_visible()
+    page.locator('details.analysis-options > summary').click();expect(opener).not_to_have_attribute('open','');expect(page.locator('[data-preflight="objectState"]')).to_be_visible()
 
 def steps_locked_until_model(page):
     for step in ['rules','try']:expect(page.locator(f'[data-step="{step}"]')).to_be_disabled()
@@ -434,7 +451,7 @@ def input_contract(page):
     folded summary follows every change."""
     build(page,'function measure(grid) {\n  const rows = grid.length;\n  const cols = grid[0].length;\n  return rows * cols;\n}')
     # ADR-123 (M5): the environment is set in Elemzés és szabályok, where the rules it frees are seen.
-    summary=page.locator('details.analysis-options summary');expect(summary).to_contain_text('érvényes adat · kulcssorrend nem számít · szabványos mezők')
+    summary=page.locator('details.analysis-options > summary');expect(summary).to_contain_text('érvényes adat · kulcssorrend nem számít · szabványos mezők')
     analysis_options(page);expect(page.locator('[data-preflight="inputs"]')).to_have_value('valid');expect(page.locator('[data-preflight="keyOrder"]')).to_have_value('ignored');expect(page.locator('[data-preflight="classFields"]')).to_have_value('define')
     page.locator('[data-preflight="inputs"]').focus();page.locator('[data-preflight="inputs"]').select_option('any');expect(summary).to_contain_text('szigorú bemenet');expect(page.locator('[data-preflight="inputs"]')).to_be_focused()
     expect(page.locator('[data-stale-notice]')).to_be_visible()
@@ -705,7 +722,7 @@ def key_order_and_rule_kinds(page):
     make('ignored');expect(page.locator('[data-analysis-settings]')).to_contain_text('nem számít');expect(page.locator('[data-step-verification]')).to_have_text('Elemzéssel igazolt')
     expect(swapped_verdict()).to_contain_text('Elfogadva')
     make('observed');expect(page.locator('[data-analysis-settings]')).to_contain_text('számít')
-    kinds=page.locator('[data-rule-kinds]');kinds.locator('summary').click();kinds.locator('[data-rule-kind="object-write-after-write"]').click()
+    kinds=page.locator('[data-rule-kinds]');kinds.locator(':scope > summary').click();kinds.locator('[data-rule-kind="object-write-after-write"]').click()
     kinds.locator('[data-rule-kind-note]').fill('A kulcsok sorrendje itt nem számít.');kinds.locator('[data-rule-kind-confirm]').click()
     expect(kinds.locator('.rule-status')).to_contain_text('1 szabály feloldva');expect(page.locator('[data-step-verification]')).to_have_text('Nem igazolt')
     expect(swapped_verdict()).to_contain_text('Elfogadva')
@@ -894,7 +911,7 @@ try:
         watch(context)
         try:
             for mode,url in [('node',BASE),('pages',f'http://127.0.0.1:{static.server_port}/developer-exercise/')]:
-                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('preflight settings, locks and findings',preflight_ui),('one indentation in source, board and sorter',indentation_single_owner),('the source is checked without a model',source_check),('the Rules step answers three questions and names one next step',task_status),('session v2 records the analysis settings; v1 is partial',session_settings),('model-first creation',model_first),('a rejected order names its rule and how to lift it',rule_cause_lifts),('key order setting and rule kinds',key_order_and_rule_kinds),('class-field mode setting',class_fields_setting),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('the input contract is chosen, recorded and restored',input_contract),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll),('circles toggle links: checks, removal and exact restore',link_toggle),('pins fix and release a line on the board',pin_lines),('feedback marks graded rows, invalidates on a move and respects the learner view',learner_feedback)]:
+                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('preflight settings, locks and findings',preflight_ui),('one indentation in source, board and sorter',indentation_single_owner),('the source is checked without a model',source_check),('the Rules step answers three questions and names one next step',task_status),('the help: bubbles beside the settings and the searchable help page',help_toggletips),('session v2 records the analysis settings; v1 is partial',session_settings),('model-first creation',model_first),('a rejected order names its rule and how to lift it',rule_cause_lifts),('key order setting and rule kinds',key_order_and_rule_kinds),('class-field mode setting',class_fields_setting),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('the input contract is chosen, recorded and restored',input_contract),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll),('circles toggle links: checks, removal and exact restore',link_toggle),('pins fix and release a line on the board',pin_lines),('feedback marks graded rows, invalidates on a move and respects the learner view',learner_feedback)]:
                     reset(page,url);case(mode+' '+name,lambda:action(page))
                 reset(page,url);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-author.png')),full_page=True)
                 practice(page);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-practice.png')),full_page=True)
@@ -934,6 +951,11 @@ try:
                     handle=target.locator('.solution-zone .drag-handle[tabindex="0"]').first;assert handle.bounding_box()['width']>=44 and handle.bounding_box()['height']>=44
                     target.locator('[data-mode="author"]').click();build(target,rules_source);assert target.evaluate('document.documentElement.scrollWidth')<=width
                     connector=target.locator('[data-rule-connect="3"]').bounding_box();assert connector['width']>=28 and connector['height']>=28
+                    # ADR-124: an open ⓘ bubble shifts back inside the screen by its offset; a transform had widened the page to 559 px.
+                    analysis_options(target);target.locator('details.toggletip[data-help="keyOrder"] > summary').click();expect(target.locator('details.toggletip[data-help="keyOrder"]')).to_have_attribute('open','')
+                    target.wait_for_function('()=>(document.querySelector("details.toggletip[open] .toggletip-panel")?.style.left??"")!==""')
+                    assert target.evaluate('document.documentElement.scrollWidth')<=width,f"{width}px: an open bubble widens the page to {target.evaluate('document.documentElement.scrollWidth')}"
+                    target.keyboard.press('Escape')
                     target.screenshot(path=str(ARTIFACTS/f'ux-mobile-{width}.png'),full_page=True);count+=1;print(f'PASS workbench: {width}px touch practice and author layout',flush=True)
                 finally:mobile.close()
             # Each server process stays under 120 POSTs in total (the server's per-minute limit), whatever the machine speed.

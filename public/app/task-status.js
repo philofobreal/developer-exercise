@@ -2,6 +2,7 @@ import { evidenceStale } from './author-workspace.js';
 import { renderFindingGroups } from './preflight-settings.js';
 import { escapeHtml as esc } from './ui-utilities.js';
 import { icon } from './icons.js';
+import { renderInfo } from './help-topics.js';
 /** Above this many rows a task is long for a learner to sort (the author's decision of 2026-11-09). */
 export const LONG_TASK_ROWS = 100;
 const RANK = { ok: 0, warning: 1, error: 2 };
@@ -82,7 +83,7 @@ export function renderTaskStatus(state) {
     const status = taskStatus(state);
     if (!status)
         return '';
-    const answers = status.answers.map(answer => `<li class="task-answer tone-${answer.tone}" data-task-answer="${answer.id}"><b class="task-question">${answer.question}</b><span class="task-verdict"><span class="status-dot" aria-hidden="true"></span>${VERDICT[answer.tone]}</span><span class="task-text">${esc(answer.text)}</span>${answer.action ? SHOW_RULE_KINDS : ''}</li>`).join('');
+    const answers = status.answers.map(answer => `<li class="task-answer tone-${answer.tone}" data-task-answer="${answer.id}"><div class="task-question"><b>${answer.question}</b>${renderInfo(answer.id, answer.question)}</div><span class="task-verdict"><span class="status-dot" aria-hidden="true"></span>${VERDICT[answer.tone]}</span><span class="task-text">${esc(answer.text)}</span>${answer.action ? SHOW_RULE_KINDS : ''}</li>`).join('');
     const findings = modelSourceFindings(state);
     const details = findings.length ? `<details class="task-findings" data-memory="task-findings"><summary>Részletek: a forrás leletei okonként</summary>${renderFindingGroups(findings)}</details>` : '';
     return `<section class="task-status tone-${status.tone}" data-task-status aria-labelledby="task-status-title"><h3 id="task-status-title">A feladat állapota</h3><ul class="task-answers">${answers}</ul>${details}</section>`;

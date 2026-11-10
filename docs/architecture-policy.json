@@ -43,6 +43,8 @@
     "src/workbench/code-view.ts": "public/app/code-view.js",
     "src/workbench/pane-split.ts": "public/app/pane-split.js",
     "src/workbench/preflight-settings.ts": "public/app/preflight-settings.js",
-    "src/workbench/task-status.ts": "public/app/task-status.js"
+    "src/workbench/task-status.ts": "public/app/task-status.js",
+    "src/workbench/help-topics.ts": "public/app/help-topics.js",
+    "src/workbench/help-search.ts": "public/app/help-search.js"
   }
 }

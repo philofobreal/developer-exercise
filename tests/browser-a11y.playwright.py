@@ -29,6 +29,9 @@ def author_flow(page,prefix):
     scan(page,prefix+'-author-source')
     page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill(SOURCE);page.locator('[data-author-apply]').click()
     expect(page.locator('[data-step="rules"]')).to_have_attribute('aria-current','step');scan(page,prefix+'-author-rules')
+    # ADR-124 (H3): an open ⓘ bubble, with its example and link.
+    box=page.locator('details.analysis-options');box.locator(':scope > summary').click();page.locator('details.toggletip[data-help="keyOrder"] > summary').click()
+    expect(page.locator('details.toggletip[data-help="keyOrder"] .help-link')).to_be_visible();scan(page,prefix+'-author-rules-help');page.keyboard.press('Escape')
     page.locator('[data-step="try"]').click();expect(page.locator('.solution-zone')).to_be_visible();page.locator('[data-all]').click();scan(page,prefix+'-author-try')
     page.locator('[data-check]').click();expect(page.locator('.report')).not_to_have_class('report idle');scan(page,prefix+'-author-try-checked')
     page.locator('[data-preview-toggle]').click();expect(page.locator('.learner-preview, #app.learner-preview')).to_have_count(1);scan(page,prefix+'-learner-preview')
@@ -38,6 +41,9 @@ def author_flow(page,prefix):
     if picker.get_attribute('open') is None:picker.locator('summary').click();expect(page.locator('[data-task]').first).to_be_visible();scan(page,prefix+'-practice-picker')
     page.locator('details.session-menu summary').click();expect(page.locator('[data-save-local]')).to_be_visible();scan(page,prefix+'-session-menu');page.keyboard.press('Escape')
     page.locator('[data-view="edit"]').click();expect(page.locator('#code-editor')).to_be_visible();scan(page,prefix+'-practice-code')
+    # ADR-124 (H2): the help page, whole and narrowed by the search.
+    page.goto(BASE+'/help/index.html');expect(page.locator('[data-help-topic]').first).to_be_visible();scan(page,prefix+'-help')
+    page.locator('[data-help-search]').fill('kulcssorrend');expect(page.locator('[data-help-count]')).to_contain_text('találat');scan(page,prefix+'-help-search')
 try:
     for _ in range(100):
         try:urllib.request.urlopen(BASE+'/api/exercises',timeout=.5);break

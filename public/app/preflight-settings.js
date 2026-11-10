@@ -1,39 +1,40 @@
 import { escapeHtml as esc } from './ui-utilities.js';
+import { helpSummary, renderInfo } from './help-topics.js';
 /** ADR-106: the environment a new reference starts from (the author's choice): plain valid inputs, key order not
  * observed, standard class fields. A model brought in by JSON, a session or an admission keeps its own settings. */
 export const NEW_DRAFT_SETTINGS = { inputs: 'valid', keyOrder: 'ignored', classFields: 'define' };
 /** The groups of the plan (§6); the pedagogical ordering group waits for its analyzer (ADR-108, deviation 2). */
 const GROUPS = [
     { title: 'Elemzési környezet', intro: 'Milyen környezetben fut a referencia: ettől függ, mely sorok cserélhetők fel.', scope: 'analysis', settings: [
-            { path: 'importEmit', label: 'Importok kibocsátása', language: 'typescript', start: 'verbatim', hint: 'A buildbeállításod szerint: verbatimModuleSyntax / preserveValueImports esetén verbatim. Az import-sorok szabadsága ettől függ.', choices: [
+            { path: 'importEmit', label: 'Importok kibocsátása', language: 'typescript', start: 'verbatim', choices: [
                     { value: 'verbatim', label: 'verbatim · minden import megmarad', short: 'verbatim' }, { value: 'elide-unused', label: 'elide-unused · a csak típusként használt import kimarad', short: 'elide-unused' }
                 ] },
-            { path: 'inputs', label: 'Bemenetek', start: NEW_DRAFT_SETTINGS.inputs, legacy: 'any', hint: 'Érvényes adatnál a bemenetek olvasása és a beépített, nem módosító műveletek (például join, Math.max) egymáshoz képest szabadok; a hibás vagy trükkös bemenetet ekkor nem vizsgáljuk. Ha a program maga módosíthatja a tulajdonságolvasást (Proxy, prototípus), az elemzés szigorú marad.', choices: [
+            { path: 'inputs', label: 'Bemenetek', start: NEW_DRAFT_SETTINGS.inputs, legacy: 'any', choices: [
                     { value: 'any', label: 'Szigorú · bármilyen érték, trükkös objektumok is', short: 'szigorú bemenet' }, { value: 'valid', label: 'Érvényes egyszerű adat · számok, szövegek, tömbök, sima objektumok', short: 'érvényes adat' }
                 ] },
-            { path: 'keyOrder', label: 'Objektumkulcsok sorrendje', start: NEW_DRAFT_SETTINGS.keyOrder, legacy: 'observed', hint: 'Object.keys, JSON.stringify, for…in. Nem számít esetén a kulcsokat létrehozó sorok egymáshoz képest cserélhetők, mint a toEqual vagy deepStrictEqual összehasonlításnál. Ne válaszd, ha a program a kulcsok sorrendjéből számol.', choices: [
+            { path: 'keyOrder', label: 'Objektumkulcsok sorrendje', start: NEW_DRAFT_SETTINGS.keyOrder, legacy: 'observed', choices: [
                     { value: 'observed', label: 'Számít · a kulcsok létrehozási sorrendje a megoldás része', short: 'kulcssorrend számít' }, { value: 'ignored', label: 'Nem számít · a kulcsokat sorrendjüktől függetlenül hasonlítjuk', short: 'kulcssorrend nem számít' }
                 ] },
-            { path: 'classFields', label: 'Osztálymezők létrehozása', start: NEW_DRAFT_SETTINGS.classFields, legacy: 'either', hint: 'A régi értékadásos módban egy mező létrehozása lefuttatja az ős azonos nevű setterét, ezért az ilyen mezők sorrendje kötött. Ne válaszd, ha a kódot régebbi célra fordítják.', choices: [
+            { path: 'classFields', label: 'Osztálymezők létrehozása', start: NEW_DRAFT_SETTINGS.classFields, legacy: 'either', choices: [
                     { value: 'either', label: 'Mindkét mód · szabványos definíció és régi értékadás is', short: 'mindkét mezőmód' }, { value: 'define', label: 'Csak szabványos · natív osztálymezők, useDefineForClassFields: true', short: 'szabványos mezők' }
                 ] }
         ] },
     { title: 'Forrás biztonságossága', intro: 'Mit keres a Forrás vizsgálata és a Modell készítése, mielőtt a forrásból sorok és szabályok lesznek.', scope: 'source', settings: [
-            { path: 'tsDiagnostics', label: 'TypeScript-diagnosztika', language: 'typescript', start: 'baseline', hint: 'A szigorú mód a strict fordítóbeállításokkal ellenőriz; a hibái biztos fordítási hibák, és megállítják a modellkészítést.', choices: [
+            { path: 'tsDiagnostics', label: 'TypeScript-diagnosztika', language: 'typescript', start: 'baseline', choices: [
                     { value: 'baseline', label: 'Alap · a fordító alapbeállításai' }, { value: 'strict', label: 'Szigorú · strict fordítóbeállítások' }
                 ] },
-            { path: 'jsCheck', label: 'JavaScript típusellenőrzés', language: 'javascript', start: 'off', hint: 'Bekapcsolva a TypeScript fordító checkJs módban is átnézi a forrást. Amit csak ez talál, lehetséges hiba: figyelmeztet, vagy a „Nem eldönthető eredmények” beállítás szerint megállít.', choices: [
+            { path: 'jsCheck', label: 'JavaScript típusellenőrzés', language: 'javascript', start: 'off', choices: [
                     { value: 'off', label: 'Ki' }, { value: 'on', label: 'Be · checkJs' }
                 ] },
-            { path: 'objectState', label: 'Helyi objektumállapot', start: 'local', hint: 'Biztos TypeError, amelyet egy helyi változó deklarált értéke okoz: tagelérés null vagy undefined értéken, vagy egy nem függvény meghívása.', choices: [
+            { path: 'objectState', label: 'Helyi objektumállapot', start: 'local', choices: [
                     { value: 'local', label: 'Ellenőrzi · biztos null/undefined elérés és nem függvény hívása' }, { value: 'off', label: 'Ki' }
                 ] },
-            { path: 'unknownPolicy', label: 'Nem eldönthető eredmények', start: 'warn', hint: 'Ha egy ellenőrzés nem tud dönteni (lehetséges hiba, kimerült keret, hiányzó könyvtár), az nem „hibás program”. Figyelmeztetésnél továbbléphetsz, tiltásnál nem. A biztos hiba mindig megállít.', choices: [
+            { path: 'unknownPolicy', label: 'Nem eldönthető eredmények', start: 'warn', choices: [
                     { value: 'warn', label: 'Figyelmeztet · továbbléphetsz' }, { value: 'block', label: 'Tilt · csak eldöntött eredménnyel lehet továbblépni' }
                 ] }
         ] },
     { title: 'Haladó profil', intro: 'Előre beállított, együtt mozgó értékek: a konzervatív profil a fenti környezetet a legszigorúbb értékére zárja.', scope: 'analysis', settings: [
-            { path: 'portability', label: 'Hordozhatóság', start: 'configured', hint: 'A konzervatív profil a környezeti beállításokat a legszigorúbb értékükre zárja: a megoldásnak minden környezetben helyes sorrendet kell adnia. A választásaid megmaradnak, és a profil kikapcsolásakor visszaállnak.', choices: [
+            { path: 'portability', label: 'Hordozhatóság', start: 'configured', choices: [
                     { value: 'configured', label: 'Beállított környezet · a fenti választások szerint' }, { value: 'conservative', label: 'Konzervatív · minden környezeti beállítás a legszigorúbb értéken' }
                 ] }
         ] }
@@ -129,7 +130,7 @@ function control(setting, author, resolution, environment) {
     const hintId = `${controlId(setting.path)}-hint`, whyId = `${controlId(setting.path)}-why`;
     const notes = [inactive?.reason, ...off.filter(item => item.value !== shown || !inactive).map(item => item.reason)].filter((note, index, all) => !!note && all.indexOf(note) === index);
     const why = lock ? `<details class="lock-why" data-lock-why="${esc(setting.path)}"><summary>Miért?</summary><p id="${whyId}">${esc(lock.reason)} Feloldás: állítsd a Hordozhatóságot „Beállított környezet” értékre${asked !== lock.effective ? `; ekkor a választásod („${esc(choiceLabel(setting, asked))}”) visszaáll` : ''}.</p></details>` : '';
-    return `<div class="preflight-setting${lock ? ' locked' : ''}" data-preflight-setting="${esc(setting.path)}"><label for="${controlId(setting.path)}">${esc(setting.label)}${lock ? ' <span class="lock-label">zárolva</span>' : ''}</label><select id="${controlId(setting.path)}" data-preflight="${esc(setting.path)}" aria-describedby="${lock ? whyId + ' ' : ''}${hintId}" ${lock ? 'disabled' : ''}>${options}</select>${why}<small class="inline-hint" id="${hintId}">${esc(setting.hint)}</small>${notes.map(note => `<small class="inline-hint server-only" data-server-only="${esc(setting.path)}">${esc(note)}</small>`).join('')}</div>`;
+    return `<div class="preflight-setting${lock ? ' locked' : ''}" data-preflight-setting="${esc(setting.path)}"><div class="setting-head"><label for="${controlId(setting.path)}">${esc(setting.label)}${lock ? ' <span class="lock-label">zárolva</span>' : ''}</label>${renderInfo(setting.path, setting.label, { withSummary: false })}</div><select id="${controlId(setting.path)}" data-preflight="${esc(setting.path)}" aria-describedby="${lock ? whyId + ' ' : ''}${hintId}" ${lock ? 'disabled' : ''}>${options}</select>${why}<small class="inline-hint" id="${hintId}">${esc(helpSummary(setting.path))}</small>${notes.map(note => `<small class="inline-hint server-only" data-server-only="${esc(setting.path)}">${esc(note)}</small>`).join('')}</div>`;
 }
 /** One line per scope: for the source check, what it looks for and how undecided findings count; for the analysis,
  * the environment as it will run, the profile and the locks. */
@@ -185,7 +186,7 @@ export function renderFindingGroups(findings) {
         if (group.length === 1)
             return `<li class="diagnostic certainty-${first.certainty}" data-diagnostic="${esc(first.code)}">${head}${lineButton(first.line)}<span class="diagnostic-message">${esc(first.message)}</span>${origin}</li>`;
         const lines = group.map(item => `<li>${lineButton(item.line)}<span class="diagnostic-message">${esc(item.message)}</span></li>`).join('');
-        return `<li class="diagnostic diagnostic-group certainty-${first.certainty}" data-diagnostic="${esc(first.code)}" data-diagnostic-count="${group.length}">${head}<span class="diagnostic-count">${group.length} sor</span><span class="diagnostic-message">${esc(cause(group))}</span>${origin}<details class="diagnostic-lines"><summary>A ${group.length} sor</summary><ol>${lines}</ol></details></li>`;
+        return `<li class="diagnostic diagnostic-group certainty-${first.certainty}" data-diagnostic="${esc(first.code)}" data-diagnostic-count="${group.length}">${head}<span class="diagnostic-count">${group.length} sor</span><div class="diagnostic-message">${esc(cause(group))}${first.origin === 'environment' ? renderInfo('project-context', 'Hiányzó projektkontextus') : ''}</div>${origin}<details class="diagnostic-lines"><summary>A ${group.length} sor</summary><ol>${lines}</ol></details></li>`;
     };
     return `<ol class="diagnostic-list">${groupFindings(findings).map(row).join('')}</ol>`;
 }
@@ -194,5 +195,5 @@ export function renderSourceDiagnostics(gate, stale) {
     if (!gate || !gate.diagnostics.length)
         return '';
     const title = gate.verdict === 'blocked' ? 'A modell nem készült el: a forrás hibás' : gate.verdict === 'inconclusive' ? 'A forrás vizsgálata nem dőlt el teljesen' : 'Megjegyzések a forráshoz';
-    return `<section class="source-diagnostics verdict-${gate.verdict}" data-source-diagnostics aria-labelledby="source-diagnostics-title"><h3 id="source-diagnostics-title">${esc(title)}</h3>${stale ? '<p class="inline-hint" data-diagnostics-stale>A forrás azóta változott; a lista a legutóbbi ellenőrzéshez tartozik.</p>' : ''}${renderFindingGroups(gate.diagnostics)}</section>`;
+    return `<section class="source-diagnostics verdict-${gate.verdict}" data-source-diagnostics aria-labelledby="source-diagnostics-title"><div class="diagnostics-head"><h3 id="source-diagnostics-title">${esc(title)}</h3>${renderInfo('findings', 'Leletek')}</div>${stale ? '<p class="inline-hint" data-diagnostics-stale>A forrás azóta változott; a lista a legutóbbi ellenőrzéshez tartozik.</p>' : ''}${renderFindingGroups(gate.diagnostics)}</section>`;
 }

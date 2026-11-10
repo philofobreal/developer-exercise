@@ -24,6 +24,7 @@ Egy fogalom, egy szó (ADR-119). A felület minden felirata ezt követi. A [glos
 | **Vizsgálati beállítások / Elemzési beállítások** | a forrás vizsgálatának beállításai (Kód lépés) / az elemzési környezet és a profil (Elemzés és szabályok lépés) | beállításblokkok | |
 | **Tanulói adatok és kiadás** | a feladat címe, leírása, szintje és az exportálás | Próba és kiadás lépés | |
 | **Vissza a kódhoz** | visszalépés a Kód lépésbe | műveletsáv | „Vissza a forráshoz” |
+| **ⓘ (Súgó: …) / Részletek a súgóban** | a címke utáni buborék: egy-két mondat, egy ellenőrzött példa, és a súgóoldal a témánál, új lapon (ADR-124) | beállítások, állapotkérdések, minősítés, leletek | „info”, „Tudj meg többet” |
 | **Kész / Figyelem / Hiba / Zárolt / Elavult** | a lépéssor egyetlen szókészlete: rendben; továbbengedve, de figyelj; javítani kell; még nem nyitható meg; a modell óta változott a forrás (ADR-122) | lépéssor | „Hibás forrás”, „Figyelmeztetés”, „Figyelmeztetéssel”, „Zárva” |
 | **A feladat állapota** | a tanári állapotkártya: Kitölthető? Ellenőrizhető? Igazságos? – Igen / Részben / Nem, és a következő lépés | Szabályok lépés | |
 | **Következő lépés** | az egyetlen javasolt teendő az állapotkártya alján | Szabályok lépés | |

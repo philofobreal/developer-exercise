@@ -8,7 +8,7 @@ import { validationMode } from './api.js';
 import { escapeHtml as esc, editorShell, highlight, syncEditors } from './ui-utilities.js';
 import { icon } from './icons.js';
 import { createViewContinuity } from './continuity.js';
-import { installWorkbenchKeyboard, installAuthoringFlows, installMenus, installDisabledGuard } from './interactions.js';
+import { installWorkbenchKeyboard, installAuthoringFlows, installMenus, installDisabledGuard, installToggletips } from './interactions.js';
 import { authorDraftPending, canUndoReplace, refreshAuthorStatus } from './author-workspace.js';
 import { renderPreflightSettings, renderSettingsOrigin, renderSourceDiagnostics } from './preflight-settings.js';
 import { authorDecisions, createRuleMarks, renderModelInsight, ruleCount, renderRuleCause, renderRuleKinds, renderRulePanel, rulesAvailable } from './rule-panel.js';
@@ -50,6 +50,7 @@ export function createWorkbenchView({ root, state, ex, at, attempt, scroll, form
     installWorkbenchKeyboard(root);
     installDisabledGuard(root);
     installMenus(root);
+    installToggletips(root);
     installSurface(root, () => render());
     codeView(root);
     paneSplit(root);
@@ -235,7 +236,7 @@ export function createWorkbenchView({ root, state, ex, at, attempt, scroll, form
      * viewer dismisses it (a per-viewer convenience in local storage; without storage it simply shows). */
     const notice = () => validationMode === 'local-demo' && !demoNoticeSeen() ? `<p class="validation-notice" role="note" data-validation-notice><span>Local Demo / Preview Validation · Helyi demonstráció, nem hitelesített vizsgaeredmény. A jelvény a cím alatt mindig jelzi.</span>${tool('data-dismiss-notice', 'Értem', 'check', 'class="notice-dismiss"')}</p>` : '';
     function help(language) {
-        return `<details class="workspace-help" data-memory="workspace-help"><summary>${icon('help')}Súgó: kezelés és billentyűzet</summary><div class="help-body"><p>A sorokat húzással, a sorvégi gombokkal vagy billentyűzettel mozgathatod. A rögzített sorok helye megmarad. ${state.learnerPreview ? 'A Megoldáskódból az Alkalmazás gombbal térhetsz vissza a rendezőbe.' : 'A szerkesztett forrás és JSON csak alkalmazáskor válik aktívvá.'}</p><p><b>Billentyűzet:</b> fókuszálj a sor fogantyújára. Szóköz vagy Enter: felvétel; nyilak, Home, End: célzás; Enter: elhelyezés; Escape: megszakítás. <kbd>Ctrl</kbd> + <kbd>Enter</kbd>: ellenőrzés.</p><p class="formatter-status ${language === 'typescript' || beautifier() ? 'ready' : 'unavailable'}">${languageName(language)} · 5 szóközös élő behúzás · ${language === 'typescript' ? 'TypeScript lexikai formázás' : beautifier() ? 'helyi JS Beautify elérhető' : 'JS Beautify nem érhető el'}</p></div></details>`;
+        return `<details class="workspace-help" data-memory="workspace-help"><summary>${icon('help')}Súgó: kezelés és billentyűzet</summary><div class="help-body"><p>A sorokat húzással, a sorvégi gombokkal vagy billentyűzettel mozgathatod. A rögzített sorok helye megmarad. ${state.learnerPreview ? 'A Megoldáskódból az Alkalmazás gombbal térhetsz vissza a rendezőbe.' : 'A szerkesztett forrás és JSON csak alkalmazáskor válik aktívvá.'}</p><p><b>Billentyűzet:</b> fókuszálj a sor fogantyújára. Szóköz vagy Enter: felvétel; nyilak, Home, End: célzás; Enter: elhelyezés; Escape: megszakítás. <kbd>Ctrl</kbd> + <kbd>Enter</kbd>: ellenőrzés.</p><p><a class="help-link" href="./help/index.html" target="_blank" rel="noopener">A teljes súgó: beállítások, minősítés, leletek, ellenőrzött példákkal${icon('external')}<span class="sr-only"> (új lapon)</span></a></p><p class="formatter-status ${language === 'typescript' || beautifier() ? 'ready' : 'unavailable'}">${languageName(language)} · 5 szóközös élő behúzás · ${language === 'typescript' ? 'TypeScript lexikai formázás' : beautifier() ? 'helyi JS Beautify elérhető' : 'JS Beautify nem érhető el'}</p></div></details>`;
     }
     /** ADR-123 (M5): what the learner reads (title, description, level) and the way out (export), beside the try where it
      * is seen; changing it is no reanalysis (setLearnerData). */

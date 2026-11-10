@@ -32,7 +32,7 @@ test('a verified, publishable, short task: three yes answers, the step is Kész,
  assert.deepEqual(status.next,{text:'Próbáld ki tanulóként.',action:'try'});
  assert.equal(rulesWord(state),'Kész');
  const html=renderTaskStatus(state);
- assert.match(html,/data-task-answer="fair"><b class="task-question">Igazságos\?<\/b><span class="task-verdict"><span class="status-dot" aria-hidden="true"><\/span>Igen<\/span>/);
+ assert.match(html,/data-task-answer="fair"><div class="task-question"><b>Igazságos\?<\/b><details class="menu toggletip" data-help="fair">.*?<\/details><\/div><span class="task-verdict"><span class="status-dot" aria-hidden="true"><\/span>Igen<\/span>/);
  assert.doesNotMatch(html,/data-show-rule-kinds|task-findings|Következő lépés/,'the next step is the action bar’s (ADR-123)');
 });
 
@@ -104,7 +104,7 @@ test('findings group by cause, the surest first; a single finding keeps its row,
  assert.deepEqual(groups.map(group=>group.map(item=>item.line)),[[9],[3,1]]);
  const html=renderFindingGroups([context(3),definite,context(1)]);
  assert.match(html,/<li class="diagnostic certainty-definite" data-diagnostic="BS001"><span class="diagnostic-kind">Biztos hiba<\/span><button type="button" class="diagnostic-line" data-goto-line="9"/);
- assert.match(html,/data-diagnostic-count="2"><span class="diagnostic-kind">Nem eldönthető<\/span><span class="diagnostic-count">2 sor<\/span><span class="diagnostic-message">Hiányzó projektkontextus/);
+ assert.match(html,/data-diagnostic-count="2"><span class="diagnostic-kind">Nem eldönthető<\/span><span class="diagnostic-count">2 sor<\/span><div class="diagnostic-message">Hiányzó projektkontextus[^<]*<details class="menu toggletip" data-help="project-context">/);
  const other=renderFindingGroups([{...definite,line:2},definite]);assert.match(other,/b before its declaration \(és még 1 hasonló\)/);
  assert.match(renderSourceDiagnostics({verdict:'inconclusive',diagnostics:[context(1)]},false),/<ol class="diagnostic-list">/);
 });
