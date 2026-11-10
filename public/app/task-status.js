@@ -75,18 +75,15 @@ export function taskStatus(state) {
 /** The stepper's word for the Rules step: the card's overall tone. */
 export const TONE_WORD = { ok: 'Kész', warning: 'Figyelem', error: 'Hiba' };
 const VERDICT = { ok: 'Igen', warning: 'Részben', error: 'Nem' };
-const ACTION = {
-    source: `<button type="button" class="btn" data-next-step="source">${icon('back')}<span>Vissza a forráshoz</span></button>`,
-    try: `<button type="button" class="btn primary" data-next-step="try">${icon('arrow')}<span>Tovább a próbához</span></button>`,
-    'rule-kinds': `<button type="button" class="btn" data-show-rule-kinds>${icon('link')}<span>Megmutatom</span></button>`
-};
-/** The card at the top of the Rules step: three answers, the next step, and the source findings grouped by cause. */
+const SHOW_RULE_KINDS = `<button type="button" class="btn" data-show-rule-kinds>${icon('link')}<span>Megmutatom</span></button>`;
+/** The card at the top of the Rules step: three answers and the source findings grouped by cause. The next step is the
+ * step's action bar (ADR-123), which reads `taskStatus` too. */
 export function renderTaskStatus(state) {
     const status = taskStatus(state);
     if (!status)
         return '';
-    const answers = status.answers.map(answer => `<li class="task-answer tone-${answer.tone}" data-task-answer="${answer.id}"><b class="task-question">${answer.question}</b><span class="task-verdict"><span class="status-dot" aria-hidden="true"></span>${VERDICT[answer.tone]}</span><span class="task-text">${esc(answer.text)}</span>${answer.action ? ACTION[answer.action] : ''}</li>`).join('');
+    const answers = status.answers.map(answer => `<li class="task-answer tone-${answer.tone}" data-task-answer="${answer.id}"><b class="task-question">${answer.question}</b><span class="task-verdict"><span class="status-dot" aria-hidden="true"></span>${VERDICT[answer.tone]}</span><span class="task-text">${esc(answer.text)}</span>${answer.action ? SHOW_RULE_KINDS : ''}</li>`).join('');
     const findings = modelSourceFindings(state);
     const details = findings.length ? `<details class="task-findings" data-memory="task-findings"><summary>Részletek: a forrás leletei okonként</summary>${renderFindingGroups(findings)}</details>` : '';
-    return `<section class="task-status tone-${status.tone}" data-task-status aria-labelledby="task-status-title"><h3 id="task-status-title">A feladat állapota</h3><ul class="task-answers">${answers}</ul><p class="task-next" data-task-next><span><b>Következő lépés:</b> ${esc(status.next.text)}</span>${ACTION[status.next.action]}</p>${details}</section>`;
+    return `<section class="task-status tone-${status.tone}" data-task-status aria-labelledby="task-status-title"><h3 id="task-status-title">A feladat állapota</h3><ul class="task-answers">${answers}</ul>${details}</section>`;
 }

@@ -19,7 +19,7 @@ function admit(state,land){
 test('steps: rules and try are locked until a model is applied; the source is always open',()=>{
  const state=make();
  assert.deepEqual(flowSteps(state).map(s=>[s.step,!!s.locked,s.current]),[['source',false,true],['rules',true,false],['try',true,false]]);
- for(const view of ['model','sort','edit']){assert.match(blockedReason(state,view),/Forrás/);assert.equal(enterView(state,undefined,[],view),false);assert.equal(state.view,'author');}
+ for(const view of ['model','sort','edit']){assert.match(blockedReason(state,view),/Kód lépésben/);assert.equal(enterView(state,undefined,[],view),false);assert.equal(state.view,'author');}
  admit(state,'rules');
  assert.equal(state.view,'model');assert.equal(state.active,'author-preview');assert.equal(authorPreviewId(state),'author-preview');
  assert.deepEqual(flowSteps(state).map(s=>[s.step,!!s.locked,s.current]),[['source',false,false],['rules',false,true],['try',false,false]]);

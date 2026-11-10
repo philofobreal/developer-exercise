@@ -2,7 +2,7 @@
  * which step can be entered, which model each step shows and what is stale; views and
  * handlers ask here instead of re-deriving it from scattered flags.
  *
- * Author: Forrás (`author`) → Szabályok (`model`) → Próba (`sort` | `edit`). Rules and try
+ * Author (ADR-123): Kód (`author`) → Elemzés és szabályok (`model`) → Próba és kiadás (`sort` | `edit`). Rules and try
  * need an applied model; every later step shows that model, and a reference or JSON edit made
  * after it marks them stale until it is applied or discarded. Practice: the trusted exercises,
  * `sort` | `edit` only. Learner preview is UI isolation inside the author's try step. */
@@ -15,7 +15,7 @@ import {icon} from './icons.js';
 
 export type Step='source'|'rules'|'try';
 export const stepOf=(view:ViewName):Step=>view==='author'?'source':view==='model'?'rules':'try';
-const NEEDS_MODEL='Előbb készíts modellt a Forrás lépésben.';
+const NEEDS_MODEL='Előbb készíts modellt a Kód lépésben.';
 
 /** The applied author model's preview exercise id; there is at most one. */
 export const authorPreviewId=(state:WorkbenchState):string|null=>state.previews.keys().next().value??null;
@@ -30,8 +30,11 @@ export function jsonPending(state:WorkbenchState):boolean {
 /** Why the steps after the source no longer show the latest author intent, or ''. */
 export function staleReason(state:WorkbenchState):string {
  if(!authorPreviewId(state))return '';
- if(authorDraftPending(state))return 'A referenciaforrás az utolsó modellkészítés óta módosult; a szabályok és a próba még a korábbi modellt mutatják.';
- return jsonPending(state)?'A Szabályok lépés JSON-jában nem alkalmazott módosítás van; a próba még az aktív modellt használja.':'';
+ const base=state.authorBaseline;
+ if(authorDraftPending(state))return base&&base.source===state.author.source&&base.language===state.author.language
+  ?'A vizsgálati vagy az elemzési beállítások a modell készítése óta változtak; a szabályok és a próba még a korábbi beállításokkal készült modellt mutatják.'
+  :'A referenciaforrás az utolsó modellkészítés óta módosult; a szabályok és a próba még a korábbi modellt mutatják.';
+ return jsonPending(state)?'Az Elemzés és szabályok lépés JSON-jában nem alkalmazott módosítás van; a próba még az aktív modellt használja.':'';
 }
 
 /** `status`: the step's state in one word of one vocabulary, as text (colour only adds to it): Kész, Figyelem, Hiba,
@@ -69,9 +72,9 @@ export function flowSteps(state:WorkbenchState):StepState[] {
  const current=stepOf(state.view),locked=authorPreviewId(state)?'':NEEDS_MODEL,stale=!!staleReason(state);
  const later=(step:'rules'|'try'):Pick<StepState,'status'|'tone'>=>locked?{status:'Zárolt',tone:'locked'}:stale?{status:'Elavult',tone:'stale'}:step==='try'?tryStatus(state):rulesStatus(state);
  return [
-  {step:'source',view:'author',number:1,label:'Forrás',hint:'A helyes referenciakód',current:current==='source',locked:'',stale:false,...sourceStatus(state)},
-  {step:'rules',view:'model',number:2,label:'Szabályok',hint:'Függőségek és minősítés',current:current==='rules',locked,stale,...later('rules')},
-  {step:'try',view:'sort',number:3,label:'Próba',hint:'Rendezés és ellenőrzés',current:current==='try',locked,stale,...later('try')}
+  {step:'source',view:'author',number:1,label:'Kód',hint:'A helyes, olvasható referenciaforrás és a vizsgálata',current:current==='source',locked:'',stale:false,...sourceStatus(state)},
+  {step:'rules',view:'model',number:2,label:'Elemzés és szabályok',hint:'A feladat állapota, az elemzési beállítások és a sorrendi szabályok',current:current==='rules',locked,stale,...later('rules')},
+  {step:'try',view:'sort',number:3,label:'Próba és kiadás',hint:'Tanulói próba, tanulói adatok és exportálás',current:current==='try',locked,stale,...later('try')}
  ];
 }
 /** The author's stepper. `done`: a step behind the current one that is neither locked, stale nor refused. */

@@ -39,6 +39,20 @@ def build(page,text):
 def json_model(page,value):
     page.locator('[data-step="source"]').click();page.locator('[data-source-kind="json"]').click();expect(page.locator('[data-import-model]')).to_be_visible()
     page.locator('#model-editor').fill(json.dumps(value));expect(page.locator('[data-model-status]')).to_contain_text('Nem alkalmazott JSON');page.locator('[data-model-apply]').click();current(page,'rules')
+def reanalyse(page,**settings):
+    """ADR-123 (M5): the environment settings live in the Elemzés és szabályok step, on an applied model; a change shows
+    the stale banner there, whose Modell újrakészítése rebuilds the model under them."""
+    page.locator('[data-step="rules"]').click();current(page,'rules');analysis_options(page)
+    for path,value in settings.items():page.locator(f'[data-preflight="{path}"]').select_option(value)
+    rebuild=page.locator('[data-stale-notice] [data-author-apply]')
+    if rebuild.count():rebuild.click();expect(page.locator('[data-stale-notice]')).to_have_count(0)
+    current(page,'rules')
+def build_with(page,text,**settings):
+    """A model of this source, then the given environment settings (ADR-123); an up-to-date model is reused."""
+    page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill(text)
+    apply=page.locator('[data-author-apply]')
+    if apply.get_attribute('aria-disabled')!='true':apply.click();current(page,'rules')
+    reanalyse(page,**settings)
 def to_try(page):page.locator('[data-step="try"]').click();current(page,'try');expect(page.locator('.solution-zone')).to_be_visible()
 def rules_json(page):page.locator('[data-step="rules"]').click();page.locator('[data-rules-view="json"]').click();expect(page.locator('#model-editor')).to_be_visible()
 def practice(page):
@@ -137,20 +151,27 @@ def preflight_ui(page):
     # The Format action is a labelled, visible button again (it had become a bare, borderless icon).
     fmt=page.locator('[data-author-format]');expect(fmt).to_be_visible();expect(fmt).to_have_text('Formázás')
     assert fmt.evaluate("b=>getComputedStyle(b).borderTopColor!=='rgba(0, 0, 0, 0)'")
-    for legend in ['Elemzési környezet','Forrás biztonságossága','Haladó profil']:expect(box.locator('legend',has_text=legend)).to_have_count(1)
-    expect(page.locator('[data-preflight="jsCheck"]')).to_have_count(1);expect(page.locator('[data-preflight="tsDiagnostics"]')).to_have_count(0)
-    expect(page.locator('[data-preflight="inputs"] option:checked')).to_contain_text('új feladat kezdőértéke')
-    summary=page.locator('[data-preflight-summary]')
-    page.locator('[data-preflight="portability"]').select_option('conservative')
-    inputs=page.locator('[data-preflight="inputs"]');expect(inputs).to_be_disabled();expect(inputs).to_have_value('any');expect(summary).to_contain_text('3 zárolt')
-    why=page.locator('[data-lock-why="inputs"]');why.locator('summary').focus();page.keyboard.press('Enter')
-    expect(why).to_have_attribute('open','');expect(why.locator('p')).to_contain_text('Feloldás');expect(why.locator('p')).to_contain_text('Érvényes egyszerű adat')
-    expect(page.locator('[data-preflight="objectState"]')).to_be_enabled()
-    page.locator('[data-preflight="portability"]').select_option('configured');expect(inputs).to_be_enabled();expect(inputs).to_have_value('valid');expect(summary).not_to_contain_text('zárolt')
+    # ADR-123 (M5): the Kód step holds what the source check looks for; the environment and the profile are in Elemzés és szabályok.
+    expect(box.locator('legend',has_text='Forrás biztonságossága')).to_have_count(1)
+    for legend in ['Elemzési környezet','Haladó profil']:expect(box.locator('legend',has_text=legend)).to_have_count(0)
+    expect(page.locator('[data-preflight="jsCheck"]')).to_have_count(1);expect(page.locator('[data-preflight="tsDiagnostics"]')).to_have_count(0);expect(page.locator('[data-preflight="inputs"]')).to_have_count(0)
+    summary=box.locator('[data-preflight-summary]')
     # ADR-113: the Local Demo loads the standard library, so it offers what the server offers (C16 only without it).
     expect(page.locator('[data-preflight="unknownPolicy"] option[value="block"]')).to_be_enabled();expect(page.locator('[data-server-only]')).to_have_count(0)
     page.locator('[data-preflight="unknownPolicy"]').select_option('block');expect(summary).to_contain_text('bizonytalan: tilt')
     page.locator('[data-preflight="unknownPolicy"]').select_option('warn')
+    build(page,rules_source);box=analysis_options(page)
+    for legend in ['Elemzési környezet','Haladó profil']:expect(box.locator('legend',has_text=legend)).to_have_count(1)
+    expect(box.locator('legend',has_text='Forrás biztonságossága')).to_have_count(0);expect(page.locator('[data-preflight="objectState"]')).to_have_count(0)
+    expect(page.locator('[data-preflight="inputs"] option:checked')).to_contain_text('új feladat kezdőértéke')
+    summary=box.locator('[data-preflight-summary]')
+    page.locator('[data-preflight="portability"]').select_option('conservative')
+    inputs=page.locator('[data-preflight="inputs"]');expect(inputs).to_be_disabled();expect(inputs).to_have_value('any');expect(summary).to_contain_text('3 zárolt')
+    expect(page.locator('[data-stale-notice]')).to_contain_text('beállítások a modell készítése óta változtak')
+    why=page.locator('[data-lock-why="inputs"]');why.locator('summary').focus();page.keyboard.press('Enter')
+    expect(why).to_have_attribute('open','');expect(why.locator('p')).to_contain_text('Feloldás');expect(why.locator('p')).to_contain_text('Érvényes egyszerű adat')
+    page.locator('[data-preflight="portability"]').select_option('configured');expect(inputs).to_be_enabled();expect(inputs).to_have_value('valid');expect(summary).not_to_contain_text('zárolt')
+    expect(page.locator('[data-stale-notice]')).to_have_count(0);page.locator('[data-step="source"]').click()
     page.locator('#author-editor').fill('function f() {\n  const a = b;\n  const b = 1;\n  return a;\n}');page.locator('[data-author-apply]').click();current(page,'source')
     findings=page.locator('[data-source-diagnostics]');expect(findings).to_contain_text('Biztos hiba');expect(findings).to_contain_text('BS001')
     expect(page.locator('[data-step="source"] [data-step-status]')).to_have_text('Hiba')
@@ -172,10 +193,10 @@ def task_status(page):
     expect(card.locator('[data-task-answer="checkable"]')).to_have_class(re.compile('tone-ok'));expect(card.locator('[data-task-answer="fillable"]')).to_contain_text('A referencia elfogadott; 5 sor.')
     expect(page.locator('[data-step="rules"] [data-step-status]')).to_have_text('Figyelem')
     fair.locator('[data-show-rule-kinds]').click();expect(page.locator('[data-rule-kinds]')).to_have_attribute('open','');expect(page.locator('[data-rule-kinds] > summary')).to_be_focused()
-    card.locator('[data-next-step="try"]').click();current(page,'try')
+    expect(page.locator('.action-bar [data-task-next]')).to_contain_text('Következő lépés');page.locator('.action-bar [data-goto="try"]').click();current(page,'try')
     build(page,'const a = 1;\nconst b = 2;\nconsole.log(a, b);')
     card=page.locator('[data-task-status]');expect(card).to_have_class(re.compile('tone-ok'));expect(card.locator('.tone-ok')).to_have_count(3)
-    expect(page.locator('[data-step="rules"] [data-step-status]')).to_have_text('Kész');expect(card.locator('[data-task-next]')).to_contain_text('Próbáld ki tanulóként.')
+    expect(page.locator('[data-step="rules"] [data-step-status]')).to_have_text('Kész');expect(page.locator('[data-task-next]')).to_contain_text('Próbáld ki tanulóként.')
 def session_settings(page):
     """ADR-108 (E8): a saved session records the analysis settings the model was made under and brings them back
     (recorded); an older version-1 file restores the model with the start values and says the origin is partial."""
@@ -201,7 +222,7 @@ def menus(page):
     page.keyboard.press('Escape');expect(menu).not_to_have_attribute('open','');expect(menu.locator('summary')).to_be_focused()
     menu.locator('summary').click();page.locator('h1').click();expect(menu).not_to_have_attribute('open','')
     opener=page.locator('details.open-menu');opener.locator('summary').click();expect(page.locator('[data-start-example]')).to_be_visible()
-    page.locator('details.analysis-options summary').click();expect(opener).not_to_have_attribute('open','');expect(page.locator('[data-preflight="inputs"]')).to_be_visible()
+    page.locator('details.analysis-options summary').click();expect(opener).not_to_have_attribute('open','');expect(page.locator('[data-preflight="objectState"]')).to_be_visible()
 
 def steps_locked_until_model(page):
     for step in ['rules','try']:expect(page.locator(f'[data-step="{step}"]')).to_be_disabled()
@@ -388,7 +409,8 @@ def rule_connect(page):
     page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Hibás')
 def pending_reference_survives_rule_edit(page):
     build(page,'function f() {\n  const a = 1;\n  return a;\n}')
-    page.locator('[data-step="source"]').click();page.locator('[data-author="language"]').select_option('typescript');analysis_options(page);expect(page.locator('[data-preflight="importEmit"]')).to_have_value('verbatim')
+    page.locator('[data-step="source"]').click();page.locator('[data-author="language"]').select_option('typescript')
+    page.locator('[data-step="rules"]').click();analysis_options(page);expect(page.locator('[data-preflight="importEmit"]')).to_have_value('verbatim');page.locator('[data-step="source"]').click()
     unapplied='function f() {\n  const unapplied = 1;\n}'
     page.locator('#author-editor').fill(unapplied);page.locator('[data-step="rules"]').click();expect(page.locator('[data-stale-notice]')).to_be_visible()
     # ADR-120: one draft at a time. With an unapplied reference the rule editor waits and says why; the draft is kept.
@@ -410,15 +432,16 @@ def input_contract(page):
     """ADR-050: the author picks the input contract; the model records it and frees the input reads.
     ADR-106: a new draft starts from valid inputs, ignored key order and standard class fields, and the
     folded summary follows every change."""
-    page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click()
+    build(page,'function measure(grid) {\n  const rows = grid.length;\n  const cols = grid[0].length;\n  return rows * cols;\n}')
+    # ADR-123 (M5): the environment is set in Elemzés és szabályok, where the rules it frees are seen.
     summary=page.locator('details.analysis-options summary');expect(summary).to_contain_text('érvényes adat · kulcssorrend nem számít · szabványos mezők')
     analysis_options(page);expect(page.locator('[data-preflight="inputs"]')).to_have_value('valid');expect(page.locator('[data-preflight="keyOrder"]')).to_have_value('ignored');expect(page.locator('[data-preflight="classFields"]')).to_have_value('define')
     page.locator('[data-preflight="inputs"]').focus();page.locator('[data-preflight="inputs"]').select_option('any');expect(summary).to_contain_text('szigorú bemenet');expect(page.locator('[data-preflight="inputs"]')).to_be_focused()
-    page.locator('[data-preflight="inputs"]').select_option('valid');expect(summary).to_contain_text('érvényes adat')
-    page.locator('#author-editor').fill('function measure(grid) {\n  const rows = grid.length;\n  const cols = grid[0].length;\n  return rows * cols;\n}');page.locator('[data-author-apply]').click();current(page,'rules')
+    expect(page.locator('[data-stale-notice]')).to_be_visible()
+    page.locator('[data-preflight="inputs"]').select_option('valid');expect(summary).to_contain_text('érvényes adat');expect(page.locator('[data-stale-notice]')).to_have_count(0)
     rules_json(page);generated=json.loads(page.locator('#model-editor').input_value())
     assert generated['authoring']['evidence']['environment']['inputs']=='valid';assert 2 not in generated['lines'][2]['dependencies']
-    page.locator('[data-step="source"]').click();analysis_options(page);expect(page.locator('[data-preflight="inputs"]')).to_have_value('valid');expect(page.locator('[data-author-status]')).to_contain_text('ebből a forrásból')
+    page.locator('[data-step="source"]').click();expect(page.locator('[data-author-status]')).to_contain_text('ebből a forrásból')
 
 # ADR-090: rows never scroll on their own; a list scrolls sideways as one, and its row controls stay
 # inside the list's visible area at both ends of that scroll.
@@ -530,12 +553,15 @@ def code_editor(page):
     practice(page);page.locator('[data-view="edit"]').click();page.locator('#code-editor').fill('const a = 1;')
     expect(page.locator('.editor-frame:has(#code-editor) .editor-highlight code .token').first).to_be_attached();page.locator('[data-editor-reload]').click()
 
-# ADR-101: the author chooses the level in the source step; the built model carries it.
+# ADR-101: the author chooses the level; the model carries it. ADR-123 (M5): the title, description and level are the
+# learner's text, set in Próba és kiadás; they change the applied model in place, with no reanalysis and no stale step.
 def author_level(page):
-    page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click()
-    page.locator('[data-author="level"]').select_option('intermediate');page.locator('#author-editor').fill(rules_source);page.locator('[data-author-apply]').click();current(page,'rules')
-    rules_json(page);assert json.loads(page.locator('#model-editor').input_value()).get('level')=='intermediate'
-    page.locator('[data-step="source"]').click();expect(page.locator('[data-author="level"]')).to_have_value('intermediate')
+    build(page,rules_source);to_try(page);data=page.locator('details.learner-data')
+    if data.get_attribute('open') is None:data.locator('summary').click()
+    page.locator('[data-learner="level"]').select_option('intermediate');page.locator('[data-learner="title"]').fill('Tanulói cím');page.locator('[data-learner="title"]').press('Tab')
+    expect(page.locator('h1')).to_have_text('Tanulói cím');expect(page.locator('[data-stale-notice]')).to_have_count(0);expect(page.locator('.solution-zone')).to_be_visible()
+    rules_json(page);model_json=json.loads(page.locator('#model-editor').input_value());assert model_json.get('level')=='intermediate' and model_json['title']=='Tanulói cím',model_json.get('title')
+    expect(page.locator('[data-step="try"]')).to_be_enabled();to_try(page);expect(page.locator('[data-learner="level"]')).to_have_value('intermediate')
 
 def open_rules(page):
     """ADR-107: the rule inspector opens from its toolbar button only."""
@@ -651,9 +677,8 @@ def rule_cause_lifts(page):
     """ADR-054: a rejected author attempt names the violated rule's reason and its lifting step;
     the button opens that rule, a confirmed policy override accepts the order; the learner sees none of it."""
     source='\n'.join(['class Box {','  constructor() {','    this.a = 1;','    this.b = 2;','  }','}','function evaluate() {',"  const list = Object['ke' + 'ys'];",'  return list(new Box());','}'])
-    page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill(source)
     # The rule under test exists only while key order is observed (ADR-055); since ADR-106 a new draft ignores it.
-    analysis_options(page);page.locator('[data-preflight="inputs"]').select_option('valid');page.locator('[data-preflight="keyOrder"]').select_option('observed');page.locator('[data-author-apply]').click();current(page,'rules')
+    build_with(page,source,inputs='valid',keyOrder='observed')
     expect(page.locator('[data-ordering-policy]').first).not_to_contain_text('nem alkalmazható')
     to_try(page);page.locator('[data-all]').click();page.locator('[data-down="2"]').click();page.locator('[data-check]').click()
     expect(page.locator('.report')).to_contain_text('Hibás');cause=page.locator('.report [data-rule-cause="3-4"]')
@@ -671,9 +696,7 @@ def key_order_and_rule_kinds(page):
     rule edit and the model stays analysis-verified. ADR-056: with key order counting, lifting the
     rule kind in one confirmed step accepts it too, and the qualification honestly drops."""
     source='\n'.join(['class Box {','  constructor() {','    this.a = 1;','    this.b = 2;','  }','}','function evaluate() {',"  const list = Object['ke' + 'ys'];",'  return list(new Box());','}'])
-    def make(key_order):
-        page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill(source)
-        analysis_options(page);page.locator('[data-preflight="keyOrder"]').select_option(key_order);page.locator('[data-author-apply]').click();current(page,'rules')
+    def make(key_order):build_with(page,source,keyOrder=key_order)
     def swapped_verdict():
         to_try(page)
         if page.locator('[data-all]').count():page.locator('[data-all]').click()
@@ -692,9 +715,7 @@ def class_fields_setting(page):
     in order; with standard [[Define]] fields only, the swap is accepted without any rule edit, the model
     stays analysis-verified and the rules step names the setting."""
     source='\n'.join(['class B {','  set f5(value) {',"    record('set', this.g);",'  }','}','class A extends B {','  f5 = 6;','  g = 7;','}','function evaluate() {','  const a = new A();','  return [a.g, a.f5];','}'])
-    def make(class_fields):
-        page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill(source)
-        analysis_options(page);page.locator('[data-preflight="classFields"]').select_option(class_fields);page.locator('[data-author-apply]').click();current(page,'rules')
+    def make(class_fields):build_with(page,source,classFields=class_fields)
     def swapped_verdict():
         to_try(page)
         if page.locator('[data-all]').count():page.locator('[data-all]').click()
@@ -705,7 +726,7 @@ def class_fields_setting(page):
     expect(swapped_verdict()).to_contain_text('Hibás')
     make('define');expect(page.locator('[data-analysis-settings]')).to_contain_text('csak szabványos');expect(page.locator('[data-step-verification]')).to_have_text('Elemzéssel igazolt')
     expect(swapped_verdict()).to_contain_text('Elfogadva')
-    page.locator('[data-step="source"]').click();analysis_options(page);expect(page.locator('[data-preflight="classFields"]')).to_have_value('define')
+    page.locator('[data-step="rules"]').click();analysis_options(page);expect(page.locator('[data-preflight="classFields"]')).to_have_value('define')
 def rule_edit_keeps_scroll(page):
     """A rule edit yields a new draft id, but it is the same project: the sorter keeps its scroll like after a drag."""
     source='\n'.join(['function f() {',*[f'  const v{i} = {i};' for i in range(38)],'  g(v0, v37);','}'])

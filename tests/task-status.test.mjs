@@ -33,7 +33,7 @@ test('a verified, publishable, short task: three yes answers, the step is Kész,
  assert.equal(rulesWord(state),'Kész');
  const html=renderTaskStatus(state);
  assert.match(html,/data-task-answer="fair"><b class="task-question">Igazságos\?<\/b><span class="task-verdict"><span class="status-dot" aria-hidden="true"><\/span>Igen<\/span>/);
- assert.match(html,/data-next-step="try"/);assert.doesNotMatch(html,/data-show-rule-kinds|task-findings/);
+ assert.doesNotMatch(html,/data-show-rule-kinds|task-findings|Következő lépés/,'the next step is the action bar’s (ADR-123)');
 });
 
 test(`a task longer than ${LONG_TASK_ROWS} rows is a warning on Kitölthető?; ${LONG_TASK_ROWS} rows is not`,()=>{
@@ -69,7 +69,7 @@ test('a refused second gate is an error whose next step is the source; a stale s
  const refused={...passed,verdict:'inconclusive',admitted:false,message:'A Próba lépés nem nyitható meg a „tilt” beállítás miatt: …'};
  const state=applied(2,{tryGate:refused}),status=taskStatus(state);
  assert.equal(status.tone,'error');assert.deepEqual(status.next,{text:refused.message,action:'source'});
- assert.equal(rulesWord(state),'Hiba');assert.match(renderTaskStatus(state),/data-next-step="source"/);
+ assert.equal(rulesWord(state),'Hiba');
  state.author.source+='\n';
  assert.equal(taskStatus(state),undefined);assert.equal(renderTaskStatus(state),'');assert.equal(rulesWord(state),'Elavult');
 });
@@ -115,4 +115,24 @@ test('the qualification numbers audit findings by source line, as the source ste
  const html=renderModelInsight({...state.authorInsight,audit},state.authorModel);
  assert.match(html,/data-goto-line="3"[^>]*>3\. sor<\/button>/);assert.doesNotMatch(html,/data-goto-line="2"/);
  assert.match(renderModelInsight({...state.authorInsight,audit}),/data-goto-line="2"/,'without the model the row number stands');
+});
+
+test('ADR-123 (M5): the learner’s title, description and level change the applied model in place, with no stale step',async()=>{
+ const {setLearnerData}=await import('../public/app/author-workspace.js');
+ const {staleReason,tryAdmission}=await import('../public/app/flow.js');
+ const state=applied();
+ assert.equal(setLearnerData(state,'title','Új cím'),true);assert.equal(setLearnerData(state,'level','intermediate'),true);assert.equal(setLearnerData(state,'description','Rendezd!'),true);
+ assert.equal(state.authorModel.title,'Új cím');assert.equal(state.authorModel.level,'intermediate');assert.equal(state.exercises[0].description,'Rendezd!');
+ assert.equal(JSON.parse(state.modelDraft).title,'Új cím','the applied JSON follows');
+ assert.equal(staleReason(state),'');assert.equal(tryAdmission(state).ok,true);assert.equal(taskStatus(state).tone,'ok');
+ assert.equal(setLearnerData(state,'level',''),true);assert.equal('level' in state.authorModel,false);
+ assert.equal(setLearnerData(state,'level','expert'),false);assert.equal(setLearnerData(state,'source','x'),false);assert.equal(state.author.source,SOURCE);
+ state.modelDraft='{own unapplied JSON';setLearnerData(state,'title','Még újabb');assert.equal(state.modelDraft,'{own unapplied JSON','an unapplied JSON draft stays as typed');
+});
+
+test('ADR-123 (M5): a changed setting is named as such in the stale banner, a changed source as a source change',async()=>{
+ const {staleReason}=await import('../public/app/flow.js');
+ const state=applied();state.author.inputs='valid';
+ assert.match(staleReason(state),/beállítások a modell készítése óta változtak/);
+ delete state.author.inputs;state.author.source+='\n';assert.match(staleReason(state),/referenciaforrás/);
 });

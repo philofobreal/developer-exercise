@@ -20,6 +20,10 @@ Egy fogalom, egy szó (ADR-119). A felület minden felirata ezt követi. A [glos
 | **Kód frissítése a rendezőből** | a megoldáskód újraírása a rendező állapotából | Megoldáskód | „Rendezőből újratöltés” |
 | **Mintamegoldás kitöltése** | a referencia sorrend beírása a megoldásba (szerző) | Próba | „Minta kitöltés” |
 | **TypeScript minta (436 sor)** | a szállított nagy TypeScript-szolgáltatás | Megnyitás menü | „TS tesztfájl” |
+| **Kód / Elemzés és szabályok / Próba és kiadás** | a feladatkészítés három lépése (ADR-123) | lépéssor, lépéscímek, üzenetek | „Forrás”, „Szabályok”, „Próba” mint lépésnév |
+| **Vizsgálati beállítások / Elemzési beállítások** | a forrás vizsgálatának beállításai (Kód lépés) / az elemzési környezet és a profil (Elemzés és szabályok lépés) | beállításblokkok | |
+| **Tanulói adatok és kiadás** | a feladat címe, leírása, szintje és az exportálás | Próba és kiadás lépés | |
+| **Vissza a kódhoz** | visszalépés a Kód lépésbe | műveletsáv | „Vissza a forráshoz” |
 | **Kész / Figyelem / Hiba / Zárolt / Elavult** | a lépéssor egyetlen szókészlete: rendben; továbbengedve, de figyelj; javítani kell; még nem nyitható meg; a modell óta változott a forrás (ADR-122) | lépéssor | „Hibás forrás”, „Figyelmeztetés”, „Figyelmeztetéssel”, „Zárva” |
 | **A feladat állapota** | a tanári állapotkártya: Kitölthető? Ellenőrizhető? Igazságos? – Igen / Részben / Nem, és a következő lépés | Szabályok lépés | |
 | **Következő lépés** | az egyetlen javasolt teendő az állapotkártya alján | Szabályok lépés | |

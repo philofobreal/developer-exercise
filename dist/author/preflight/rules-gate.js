@@ -4,7 +4,7 @@ const blocked = (reasons) => ({ gate: 'rules-to-try', verdict: 'blocked', admitt
 export function rulesGate(input) {
     const { snapshot, current, verification } = input;
     if (!snapshot)
-        return blocked(['Ehhez a modellhez nincs első kapus ellenőrzés; készítsd el a modellt a Forrás lépésben.']);
+        return blocked(['Ehhez a modellhez nincs első kapus ellenőrzés; készítsd el a modellt a Kód lépésben.']);
     if (typeof current.source !== 'string')
         return blocked(['Hiányzik a jelenlegi forrás.']);
     const stale = [];
@@ -20,7 +20,7 @@ export function rulesGate(input) {
 export function tryReadiness(input) {
     const { snapshot, verification } = input;
     if (!snapshot)
-        return blocked(['Ehhez a modellhez nincs első kapus ellenőrzés; készítsd el a modellt a Forrás lépésben.']);
+        return blocked(['Ehhez a modellhez nincs első kapus ellenőrzés; készítsd el a modellt a Kód lépésben.']);
     if (!snapshot.gate.admitted)
         return blocked(['Az első kapu nem engedte tovább a forrást.']);
     if (!verification || verification.checks.reference === 'rejected')

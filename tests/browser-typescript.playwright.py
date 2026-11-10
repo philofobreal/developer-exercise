@@ -72,9 +72,12 @@ try:
                     source=(ROOT/'public/samples/typescript/01-user-account.ts').read_text(encoding='utf-8')
                     page.locator('[data-source-file]').set_input_files({'name':'user-account.ts','mimeType':'text/plain','buffer':source.encode()})
                     expect(page.locator('#author-editor')).to_have_value(source)
-                    page.locator('[data-author="title"]').fill('UserAccount sorrendszabályok')
-                    page.locator('[data-author="description"]').fill('Az interface mezők, az osztálymezők és a constructor két értékadása is cserélhető; a constructor értékadásai a constructorban maradnak.')
                     page.locator('[data-author-apply]').click();expect(page.locator('[data-board-line]')).to_have_count(13);page.locator('[data-step="try"]').click();expect(page.locator('.source-zone .code-row')).to_have_count(13)
+                    # ADR-123 (M5): the learner's title and description are set beside the try, with no reanalysis.
+                    page.locator('details.learner-data > summary').click()
+                    page.locator('[data-learner="title"]').fill('UserAccount sorrendszabályok')
+                    page.locator('[data-learner="description"]').fill('Az interface mezők, az osztálymezők és a constructor két értékadása is cserélhető; a constructor értékadásai a constructorban maradnak.')
+                    page.locator('[data-learner="description"]').press('Tab');expect(page.locator('h1')).to_have_text('UserAccount sorrendszabályok')
                     model=json.loads((ROOT/'public/samples/typescript/01-user-account.model.json').read_text(encoding='utf-8'))
                     def check_order(order,label):
                         by_id={line['id']:line['code'] for line in model['lines']}

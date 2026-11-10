@@ -20,8 +20,8 @@ import {escapeHtml as esc} from './ui-utilities.js';
 import {icon} from './icons.js';
 
 export type Tone='ok'|'warning'|'error';
-/** Where an answer or the next step sends the teacher: back to the source, to the rule kinds, or on to the try. */
-export type TaskAction='source'|'rule-kinds'|'try';
+/** Where the next step sends the teacher: back to the code, or on to the try (the step's action bar makes it primary). */
+export type TaskAction='source'|'try';
 export interface TaskAnswer {id:'fillable'|'checkable'|'fair';question:string;tone:Tone;text:string;action?:'rule-kinds';}
 export interface TaskStatus {tone:Tone;answers:readonly TaskAnswer[];next:{text:string;action:TaskAction};}
 /** Above this many rows a task is long for a learner to sort (the author's decision of 2026-11-09). */
@@ -96,17 +96,14 @@ export function taskStatus(state:WorkbenchState):TaskStatus|undefined {
 /** The stepper's word for the Rules step: the card's overall tone. */
 export const TONE_WORD:Readonly<Record<Tone,string>>={ok:'Kész',warning:'Figyelem',error:'Hiba'};
 const VERDICT:Readonly<Record<Tone,string>>={ok:'Igen',warning:'Részben',error:'Nem'};
-const ACTION:Readonly<Record<TaskAction,string>>={
- source:`<button type="button" class="btn" data-next-step="source">${icon('back')}<span>Vissza a forráshoz</span></button>`,
- try:`<button type="button" class="btn primary" data-next-step="try">${icon('arrow')}<span>Tovább a próbához</span></button>`,
- 'rule-kinds':`<button type="button" class="btn" data-show-rule-kinds>${icon('link')}<span>Megmutatom</span></button>`
-};
+const SHOW_RULE_KINDS=`<button type="button" class="btn" data-show-rule-kinds>${icon('link')}<span>Megmutatom</span></button>`;
 
-/** The card at the top of the Rules step: three answers, the next step, and the source findings grouped by cause. */
+/** The card at the top of the Rules step: three answers and the source findings grouped by cause. The next step is the
+ * step's action bar (ADR-123), which reads `taskStatus` too. */
 export function renderTaskStatus(state:WorkbenchState):string {
  const status=taskStatus(state);if(!status)return '';
- const answers=status.answers.map(answer=>`<li class="task-answer tone-${answer.tone}" data-task-answer="${answer.id}"><b class="task-question">${answer.question}</b><span class="task-verdict"><span class="status-dot" aria-hidden="true"></span>${VERDICT[answer.tone]}</span><span class="task-text">${esc(answer.text)}</span>${answer.action?ACTION[answer.action]:''}</li>`).join('');
+ const answers=status.answers.map(answer=>`<li class="task-answer tone-${answer.tone}" data-task-answer="${answer.id}"><b class="task-question">${answer.question}</b><span class="task-verdict"><span class="status-dot" aria-hidden="true"></span>${VERDICT[answer.tone]}</span><span class="task-text">${esc(answer.text)}</span>${answer.action?SHOW_RULE_KINDS:''}</li>`).join('');
  const findings=modelSourceFindings(state);
  const details=findings.length?`<details class="task-findings" data-memory="task-findings"><summary>Részletek: a forrás leletei okonként</summary>${renderFindingGroups(findings)}</details>`:'';
- return `<section class="task-status tone-${status.tone}" data-task-status aria-labelledby="task-status-title"><h3 id="task-status-title">A feladat állapota</h3><ul class="task-answers">${answers}</ul><p class="task-next" data-task-next><span><b>Következő lépés:</b> ${esc(status.next.text)}</span>${ACTION[status.next.action]}</p>${details}</section>`;
+ return `<section class="task-status tone-${status.tone}" data-task-status aria-labelledby="task-status-title"><h3 id="task-status-title">A feladat állapota</h3><ul class="task-answers">${answers}</ul>${details}</section>`;
 }

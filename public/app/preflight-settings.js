@@ -4,7 +4,7 @@ import { escapeHtml as esc } from './ui-utilities.js';
 export const NEW_DRAFT_SETTINGS = { inputs: 'valid', keyOrder: 'ignored', classFields: 'define' };
 /** The groups of the plan (§6); the pedagogical ordering group waits for its analyzer (ADR-108, deviation 2). */
 const GROUPS = [
-    { title: 'Elemzési környezet', intro: 'Milyen környezetben fut a referencia: ettől függ, mely sorok cserélhetők fel.', settings: [
+    { title: 'Elemzési környezet', intro: 'Milyen környezetben fut a referencia: ettől függ, mely sorok cserélhetők fel.', scope: 'analysis', settings: [
             { path: 'importEmit', label: 'Importok kibocsátása', language: 'typescript', start: 'verbatim', hint: 'A buildbeállításod szerint: verbatimModuleSyntax / preserveValueImports esetén verbatim. Az import-sorok szabadsága ettől függ.', choices: [
                     { value: 'verbatim', label: 'verbatim · minden import megmarad', short: 'verbatim' }, { value: 'elide-unused', label: 'elide-unused · a csak típusként használt import kimarad', short: 'elide-unused' }
                 ] },
@@ -18,7 +18,7 @@ const GROUPS = [
                     { value: 'either', label: 'Mindkét mód · szabványos definíció és régi értékadás is', short: 'mindkét mezőmód' }, { value: 'define', label: 'Csak szabványos · natív osztálymezők, useDefineForClassFields: true', short: 'szabványos mezők' }
                 ] }
         ] },
-    { title: 'Forrás biztonságossága', intro: 'Mit ellenőriz a Modell készítése, mielőtt a forrásból sorok és szabályok lesznek.', settings: [
+    { title: 'Forrás biztonságossága', intro: 'Mit keres a Forrás vizsgálata és a Modell készítése, mielőtt a forrásból sorok és szabályok lesznek.', scope: 'source', settings: [
             { path: 'tsDiagnostics', label: 'TypeScript-diagnosztika', language: 'typescript', start: 'baseline', hint: 'A szigorú mód a strict fordítóbeállításokkal ellenőriz; a hibái biztos fordítási hibák, és megállítják a modellkészítést.', choices: [
                     { value: 'baseline', label: 'Alap · a fordító alapbeállításai' }, { value: 'strict', label: 'Szigorú · strict fordítóbeállítások' }
                 ] },
@@ -32,7 +32,7 @@ const GROUPS = [
                     { value: 'warn', label: 'Figyelmeztet · továbbléphetsz' }, { value: 'block', label: 'Tilt · csak eldöntött eredménnyel lehet továbblépni' }
                 ] }
         ] },
-    { title: 'Haladó profil', intro: 'Előre beállított, együtt mozgó értékek.', settings: [
+    { title: 'Haladó profil', intro: 'Előre beállított, együtt mozgó értékek: a konzervatív profil a fenti környezetet a legszigorúbb értékére zárja.', scope: 'analysis', settings: [
             { path: 'portability', label: 'Hordozhatóság', start: 'configured', hint: 'A konzervatív profil a környezeti beállításokat a legszigorúbb értékükre zárja: a megoldásnak minden környezetben helyes sorrendet kell adnia. A választásaid megmaradnak, és a profil kikapcsolásakor visszaállnak.', choices: [
                     { value: 'configured', label: 'Beállított környezet · a fenti választások szerint' }, { value: 'conservative', label: 'Konzervatív · minden környezeti beállítás a legszigorúbb értéken' }
                 ] }
@@ -131,24 +131,31 @@ function control(setting, author, resolution, environment) {
     const why = lock ? `<details class="lock-why" data-lock-why="${esc(setting.path)}"><summary>Miért?</summary><p id="${whyId}">${esc(lock.reason)} Feloldás: állítsd a Hordozhatóságot „Beállított környezet” értékre${asked !== lock.effective ? `; ekkor a választásod („${esc(choiceLabel(setting, asked))}”) visszaáll` : ''}.</p></details>` : '';
     return `<div class="preflight-setting${lock ? ' locked' : ''}" data-preflight-setting="${esc(setting.path)}"><label for="${controlId(setting.path)}">${esc(setting.label)}${lock ? ' <span class="lock-label">zárolva</span>' : ''}</label><select id="${controlId(setting.path)}" data-preflight="${esc(setting.path)}" aria-describedby="${lock ? whyId + ' ' : ''}${hintId}" ${lock ? 'disabled' : ''}>${options}</select>${why}<small class="inline-hint" id="${hintId}">${esc(setting.hint)}</small>${notes.map(note => `<small class="inline-hint server-only" data-server-only="${esc(setting.path)}">${esc(note)}</small>`).join('')}</div>`;
 }
-/** One line: the environment as the analysis will run it, the source checks, how unknowns are treated, the profile and locks. */
-function summary(author, resolution) {
+/** One line per scope: for the source check, what it looks for and how undecided findings count; for the analysis,
+ * the environment as it will run, the profile and the locks. */
+function summary(author, resolution, scope) {
     const value = (path) => { const setting = settingOf(path); return resolution?.locks.find(lock => lock.path === path)?.effective ?? requested(author, setting); };
     const short = (path) => { const setting = settingOf(path), current = value(path); return setting.choices.find(choice => choice.value === current)?.short ?? current; };
     const typescript = author.language === 'typescript';
-    const environment = ['inputs', 'keyOrder', 'classFields', ...(typescript ? ['importEmit'] : [])].map(short);
-    const checks = ['kötések', value('objectState') === 'local' ? 'objektumállapot' : '', typescript ? (value('tsDiagnostics') === 'strict' ? 'strict TS' : '') : (value('jsCheck') === 'on' ? 'checkJs' : '')].filter(Boolean);
-    const locks = resolution?.locks.length ?? 0;
-    return [...environment, 'ellenőrzés: ' + checks.join(', '), value('unknownPolicy') === 'block' ? 'bizonytalan: tilt' : 'bizonytalan: figyelmeztet', value('portability') === 'conservative' ? 'konzervatív profil' : '', locks ? `${locks} zárolt` : ''].filter(Boolean).join(' · ');
+    if (scope === 'source') {
+        const checks = ['kötések', value('objectState') === 'local' ? 'objektumállapot' : '', typescript ? (value('tsDiagnostics') === 'strict' ? 'strict TS' : '') : (value('jsCheck') === 'on' ? 'checkJs' : '')].filter(Boolean);
+        return ['ellenőrzés: ' + checks.join(', '), value('unknownPolicy') === 'block' ? 'bizonytalan: tilt' : 'bizonytalan: figyelmeztet'].join(' · ');
+    }
+    const environment = ['inputs', 'keyOrder', 'classFields', ...(typescript ? ['importEmit'] : [])].map(short), locks = resolution?.locks.length ?? 0;
+    return [...environment, value('portability') === 'conservative' ? 'konzervatív profil' : '', locks ? `${locks} zárolt` : ''].filter(Boolean).join(' · ');
 }
-/** The folded settings block of the Source step, from the author's request and its last resolution. */
-export function renderPreflightSettings(author, resolution, origin) {
+const SCOPE_TITLE = { source: 'Vizsgálati beállítások', analysis: 'Elemzési beállítások' };
+/** The folded settings block of one step (ADR-123): the Kód step shows the source check's settings, the Elemzés és
+ * szabályok step the analysis environment and profile. Both come from the author's one request and its last resolution. */
+export function renderPreflightSettings(author, resolution, scope = 'source') {
     const current = answers(resolution, author) ? resolution : undefined;
     // What the environment does not offer depends on the language only, so a resolution for an earlier request still says it.
     const environment = resolution && resolution.language === (author.language === 'typescript' ? 'typescript' : 'javascript') ? resolution.unavailable ?? [] : [];
-    const conflicts = current?.conflicts.filter(conflict => conflict.blocking) ?? [];
-    const groups = GROUPS.map(group => { const settings = group.settings.filter(setting => applies(setting, author.language)); return settings.length ? `<fieldset class="preflight-group"><legend>${esc(group.title)}</legend><p class="inline-hint">${esc(group.intro)}</p><div class="options-grid">${settings.map(setting => control(setting, author, current, environment)).join('')}</div></fieldset>` : ''; }).join('');
-    return `<details class="analysis-options" data-memory="analysis-options"><summary><b>Elemzési beállítások</b><span data-preflight-summary>${esc(summary(author, current))}</span></summary>${renderSettingsOrigin(origin)}${conflicts.length ? `<ul class="preflight-conflicts" role="alert">${conflicts.map(conflict => `<li>${esc(conflict.message)}</li>`).join('')}</ul>` : ''}${groups}</details>`;
+    const mine = GROUPS.filter(group => group.scope === scope), paths = new Set(mine.flatMap(group => group.settings.map(setting => setting.path)));
+    // A conflict of no one setting (a malformed policy object) is shown where the source is checked, so it is never lost.
+    const conflicts = current?.conflicts.filter(conflict => conflict.blocking && (paths.has(conflict.path) || scope === 'source' && !settingOf(conflict.path))) ?? [];
+    const groups = mine.map(group => { const settings = group.settings.filter(setting => applies(setting, author.language)); return settings.length ? `<fieldset class="preflight-group"><legend>${esc(group.title)}</legend><p class="inline-hint">${esc(group.intro)}</p><div class="options-grid">${settings.map(setting => control(setting, author, current, environment)).join('')}</div></fieldset>` : ''; }).join('');
+    return `<details class="analysis-options" data-memory="analysis-options-${scope}" data-settings-scope="${scope}"><summary><b>${SCOPE_TITLE[scope]}</b><span data-preflight-summary>${esc(summary(author, current, scope))}</span></summary>${conflicts.length ? `<ul class="preflight-conflicts" role="alert">${conflicts.map(conflict => `<li>${esc(conflict.message)}</li>`).join('')}</ul>` : ''}${groups}</details>`;
 }
 const CERTAINTY = { definite: 'Biztos hiba', possible: 'Lehetséges hiba', unknown: 'Nem eldönthető' };
 const ORIGIN = { compiler: 'fordító', 'runtime-order': 'futási sorrend', 'runtime-value': 'futási érték', environment: 'környezet' };

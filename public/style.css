@@ -245,7 +245,7 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 .step.locked {opacity:.55}.step.stale .step-text small {color:var(--w-80);opacity:1}
 /* Section bar: the step's title with the mock's blue square, its controls on the right. */
 .section-bar {display:flex;align-items:center;justify-content:space-between;gap:12px 18px;flex-wrap:wrap;margin:0 0 16px}
-.section-bar h2,.solution-editor .editor-heading h2 {display:flex;align-items:center;gap:12px;margin:0;font-size:18px;font-weight:800;letter-spacing:-.2px}
+.section-bar h2,.solution-editor .editor-heading :is(h2,h3) {display:flex;align-items:center;gap:12px;margin:0;font-size:18px;font-weight:800;letter-spacing:-.2px}
 .section-bar h2::before {content:'';width:12px;height:12px;background:var(--blue);flex:none}
 .section-actions {display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .author,.solution-editor {padding:22px;border:1px solid var(--border);background:var(--n-08)}
@@ -277,9 +277,9 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 .workspace-actions button {background:var(--n-08);color:var(--n-84)}
 .panel-title {display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px;margin:0;padding:0 6px 0 14px;border:1px solid var(--n-32);border-bottom:0;background:var(--n-14)}
 .panel-title>div {display:flex;align-items:center;gap:10px;min-width:0}
-.panel-title h2 {position:relative;margin:0;font-size:13px;font-weight:800}
-.panel-title h2::before {content:'';position:absolute;left:-14px;top:-9px;width:5px;height:20px;background:var(--blue)}
-.answer-pane .panel-title h2::before {background:var(--yellow)}
+.panel-title :is(h2,h3) {position:relative;margin:0;font-size:13px;font-weight:800}
+.panel-title :is(h2,h3)::before {content:'';position:absolute;left:-14px;top:-9px;width:5px;height:20px;background:var(--blue)}
+.answer-pane .panel-title :is(h2,h3)::before {background:var(--yellow)}
 .panel-title .count {font:600 11px var(--mono);color:var(--n-70);padding:0;border:0;background:none}
 .panel-title progress {width:72px;height:4px;border:0;background:var(--n-24);overflow:hidden}
 .panel-title progress::-webkit-progress-bar {background:var(--n-24)}
@@ -380,8 +380,8 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 .try-body.with-inspector {grid-template-columns:minmax(0,1fr) minmax(300px,360px)}
 .rule-inspector {min-width:0;display:flex;flex-direction:column;border:1px solid var(--n-32);background:var(--n-08);align-self:stretch;max-height:calc(100dvh - 140px);overflow:auto;overscroll-behavior:contain}
 .inspector-head {position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:40px;padding:0 4px 0 14px;border-bottom:1px solid var(--n-24);background:var(--n-14)}
-.inspector-head h2 {display:flex;align-items:center;gap:8px;margin:0;font-size:13px;font-weight:800}
-.inspector-head h2 .icon {width:15px;color:var(--accent-text)}
+.inspector-head :is(h2,h3) {display:flex;align-items:center;gap:8px;margin:0;font-size:13px;font-weight:800}
+.inspector-head :is(h2,h3) .icon {width:15px;color:var(--accent-text)}
 .inspector-head button {border-color:transparent;background:transparent}
 .rule-inspector .try-rules {margin:0;padding:10px 14px;border:0;border-bottom:1px solid var(--n-20);background:transparent}
 .rule-inspector .try-rule-panel {margin:0;padding:12px 14px}
@@ -578,3 +578,45 @@ button.btn.link-action:hover:not(:disabled) {background:var(--blue-pale);border-
 .editor-frame textarea::selection {background:color-mix(in srgb,var(--blue) 32%,transparent)}
 .editor-frame textarea::placeholder {-webkit-text-fill-color:var(--muted)}
 @media (forced-colors:active) {.editor-highlight {display:none}.editor-frame textarea {color:CanvasText;-webkit-text-fill-color:CanvasText}}
+/* ADR-123 (UI4): one skeleton for every author step. App bar (the header), context bar (the task's title, language,
+ * validation badge and the stepper side by side when there is room), workspace (the step's panels), and one action bar
+ * per step, sticky at the bottom: back on the left, the state in one sentence, the main action on the right. */
+.context-bar {display:grid;grid-template-columns:minmax(0,1fr);gap:8px 24px;align-items:center;margin:0 0 14px}
+.context-bar>.task-heading,.context-bar>.stepper {margin:0}
+@media(min-width:1100px) and (not ((max-height:500px) and (orientation:landscape))) {.context-bar {grid-template-columns:minmax(0,1fr) minmax(0,640px)}}
+.action-bar {position:sticky;bottom:0;z-index:14;display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;margin:16px 0 0;padding:10px 0;border-top:1px solid var(--border);background:inherit}
+.action-start,.action-end {display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.action-end {margin-left:auto}
+.action-status {flex:1 1 260px;min-width:0;margin:0;font-size:12px;line-height:1.5;color:var(--muted)}
+.action-status b {color:var(--text)}
+.action-bar .author-status {display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px}
+@media(max-width:650px) {.action-bar {margin-top:12px;padding:8px 0}.action-status {flex-basis:100%;order:-1}}
+#app[data-surface=focus] .action-bar {position:static;flex:none;margin:8px 0 0;padding:8px 0 0;box-shadow:none}
+.source-meta {grid-template-columns:minmax(0,220px)}
+/* ADR-123 (M5): the learner's title, description and level, and the way out, beside the try. */
+.learner-data {margin:14px 0 0;border:1px solid var(--border);background:var(--n-12)}
+.learner-data>summary {display:flex;align-items:center;min-height:var(--control-h);padding:0 12px;font-size:13px;font-weight:600;cursor:pointer}
+.learner-data>.form-grid,.learner-data>.inline-hint,.learner-data>.learner-actions {margin:0 12px 10px}
+.learner-actions {display:flex;gap:8px;flex-wrap:wrap}
+/* ADR-123 (UI4): one notification: a 4 px stripe in its meaning's colour (information, warning, error, success). */
+.validation-notice,.draft-notice {border-left-color:var(--a-52)}
+.stale-notice,.edit-paused,.notice.tone-warning {border-left-color:var(--yellow)}
+.notice.tone-error {border-left-color:var(--d-48)}
+.notice.tone-success {border-left-color:var(--ok-line)}
+/* ADR-123 (UI4): a phone held upright keeps the app bar to one row too: the logo without its wordmark, the two modes as
+ * icon buttons (their names stay as accessible names and titles), then the session, theme and full-screen controls. */
+@media(max-width:650px) and (not ((max-height:500px) and (orientation:landscape))) {
+ .header {flex-wrap:nowrap}
+ .brand strong {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+ .mode-tabs {order:0;width:auto;flex:0 0 auto;margin:0 auto 0 4px;padding:0;gap:4px}
+ .mode-tabs button {flex:0 0 auto;width:var(--control-h);min-width:var(--control-h);padding:0}
+ .mode-tabs button>span:not(.icon) {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+}
+@media(min-width:1100px) and (not ((max-height:500px) and (orientation:landscape))) {
+ .context-bar {grid-template-columns:minmax(0,1fr) auto}
+ .context-bar .stepper ol {grid-template-columns:repeat(3,max-content)}
+ .context-bar .step-text b {white-space:nowrap}
+}
+/* ADR-123: the focus surface is the code: the learner data panel stays out, and the context bar only holds the compact heading. */
+#app[data-surface=focus] .learner-data {display:none}
+#app[data-surface=focus] .context-bar {display:block;flex:none;margin:0}

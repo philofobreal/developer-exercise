@@ -15,7 +15,9 @@ const RETIRED={
  'TS tesztfájl':'TypeScript minta (436 sor)','Minta kitöltés':'Mintamegoldás kitöltése','Visszaállítás':'Újrakezdés',
  'Forrásváltozás elvetése':'Változtatások elvetése','Változások elvetése':'Változtatások elvetése',
  // ADR-122: the stepper's one vocabulary.
- 'Hibás forrás':'Hiba','Figyelmeztetéssel':'Figyelem',"'Figyelmeztetés'":"'Figyelem'",'Zárva':'Zárolt'
+ 'Hibás forrás':'Hiba','Figyelmeztetéssel':'Figyelem',"'Figyelmeztetés'":"'Figyelem'",'Zárva':'Zárolt',
+ // ADR-123: the steps' new names.
+ 'Vissza a forráshoz':'Vissza a kódhoz','a Forrás lépésben':'a Kód lépésben'
 };
 
 test('no retired label in the interface sources',()=>{

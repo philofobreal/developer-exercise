@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased – 2026-11-10 három lépés új feladatkiosztással, egy csontváz (ADR-123)
+
+- **Új lépések:** Kód → Elemzés és szabályok → Próba és kiadás.
+  - **Kód:** a forrás, a nyelv és a vizsgálati beállítások (TS-diagnosztika, checkJs, helyi objektumállapot, Nem eldönthető eredmények).
+  - **Elemzés és szabályok:** a feladat állapota, az elemzési környezet (bemenetek, kulcssorrend, osztálymezők, importok) és a hordozhatósági profil, mellette a szabályok.
+  - **Próba és kiadás:** a tanulói próba, a feladat címe, leírása és szintje, és a JSON exportálása.
+- **A cím, a leírás és a szint módosítása nem kér újraelemzést:** a modellt helyben írja át, és egyik lépés sem lesz elavult.
+- **Beállítás-módosítás után** az elavultsági sáv megmondja, hogy a beállítás változott, és felajánlja a modell újrakészítését.
+  - Ha kézi szabálydöntés veszne el, előre jelzi.
+  - Utána kiírja, hány szabály volt és hány lett.
+- **Egy csontváz:**
+  - kontextussáv (cím és lépéssor egy sávban);
+  - lépésenként egy ragadós műveletsáv alul: balra vissza, középen az állapot, jobbra a fő művelet;
+  - egy értesítésforma (4 px-es színes csík);
+  - címsorszintek: h1 feladat, h2 lépés, h3 panel.
+- **Álló telefonon is egysoros fejléc:** logó, a két mód ikonként, munkamenet, téma, teljes képernyő.
+
 ## Unreleased – 2026-11-10 a feladat állapota a tanárnak: három kérdés, egy következő lépés (ADR-122)
 
 - **Állapotkártya a Szabályok lépés tetején.** Három kérdés, mindegyikre egy szó (Igen / Részben / Nem), egy mondat és legfeljebb egy gomb:

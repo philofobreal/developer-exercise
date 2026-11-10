@@ -4,7 +4,7 @@ import { taskStatus } from './task-status.js';
 import { escapeHtml as esc } from './ui-utilities.js';
 import { icon } from './icons.js';
 export const stepOf = (view) => view === 'author' ? 'source' : view === 'model' ? 'rules' : 'try';
-const NEEDS_MODEL = 'Előbb készíts modellt a Forrás lépésben.';
+const NEEDS_MODEL = 'Előbb készíts modellt a Kód lépésben.';
 /** The applied author model's preview exercise id; there is at most one. */
 export const authorPreviewId = (state) => state.previews.keys().next().value ?? null;
 /** Whose scroll, focus and open details a render restores. Every admission (a rule edit, a refresh,
@@ -19,9 +19,12 @@ export function jsonPending(state) {
 export function staleReason(state) {
     if (!authorPreviewId(state))
         return '';
+    const base = state.authorBaseline;
     if (authorDraftPending(state))
-        return 'A referenciaforrás az utolsó modellkészítés óta módosult; a szabályok és a próba még a korábbi modellt mutatják.';
-    return jsonPending(state) ? 'A Szabályok lépés JSON-jában nem alkalmazott módosítás van; a próba még az aktív modellt használja.' : '';
+        return base && base.source === state.author.source && base.language === state.author.language
+            ? 'A vizsgálati vagy az elemzési beállítások a modell készítése óta változtak; a szabályok és a próba még a korábbi beállításokkal készült modellt mutatják.'
+            : 'A referenciaforrás az utolsó modellkészítés óta módosult; a szabályok és a próba még a korábbi modellt mutatják.';
+    return jsonPending(state) ? 'Az Elemzés és szabályok lépés JSON-jában nem alkalmazott módosítás van; a próba még az aktív modellt használja.' : '';
 }
 /** The first gate's word on the source; only for the text it checked, so typing clears it. */
 function sourceStatus(state) {
@@ -58,9 +61,9 @@ export function flowSteps(state) {
     const current = stepOf(state.view), locked = authorPreviewId(state) ? '' : NEEDS_MODEL, stale = !!staleReason(state);
     const later = (step) => locked ? { status: 'Zárolt', tone: 'locked' } : stale ? { status: 'Elavult', tone: 'stale' } : step === 'try' ? tryStatus(state) : rulesStatus(state);
     return [
-        { step: 'source', view: 'author', number: 1, label: 'Forrás', hint: 'A helyes referenciakód', current: current === 'source', locked: '', stale: false, ...sourceStatus(state) },
-        { step: 'rules', view: 'model', number: 2, label: 'Szabályok', hint: 'Függőségek és minősítés', current: current === 'rules', locked, stale, ...later('rules') },
-        { step: 'try', view: 'sort', number: 3, label: 'Próba', hint: 'Rendezés és ellenőrzés', current: current === 'try', locked, stale, ...later('try') }
+        { step: 'source', view: 'author', number: 1, label: 'Kód', hint: 'A helyes, olvasható referenciaforrás és a vizsgálata', current: current === 'source', locked: '', stale: false, ...sourceStatus(state) },
+        { step: 'rules', view: 'model', number: 2, label: 'Elemzés és szabályok', hint: 'A feladat állapota, az elemzési beállítások és a sorrendi szabályok', current: current === 'rules', locked, stale, ...later('rules') },
+        { step: 'try', view: 'sort', number: 3, label: 'Próba és kiadás', hint: 'Tanulói próba, tanulói adatok és exportálás', current: current === 'try', locked, stale, ...later('try') }
     ];
 }
 /** The author's stepper. `done`: a step behind the current one that is neither locked, stale nor refused. */

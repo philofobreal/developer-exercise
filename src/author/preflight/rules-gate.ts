@@ -41,7 +41,7 @@ const blocked = (reasons: string[]): RulesGate => ({gate: 'rules-to-try', verdic
 
 export function rulesGate(input: RulesGateInput): RulesGate {
  const {snapshot, current, verification} = input;
- if (!snapshot) return blocked(['Ehhez a modellhez nincs első kapus ellenőrzés; készítsd el a modellt a Forrás lépésben.']);
+ if (!snapshot) return blocked(['Ehhez a modellhez nincs első kapus ellenőrzés; készítsd el a modellt a Kód lépésben.']);
  if (typeof current.source !== 'string') return blocked(['Hiányzik a jelenlegi forrás.']);
  const stale: string[] = [];
  if (sourceFingerprint(current.source) !== snapshot.sourceFingerprint) stale.push('A forrás a modell készítése óta változott; készítsd újra a modellt, vagy vesd el a változtatást.');
@@ -53,7 +53,7 @@ export function rulesGate(input: RulesGateInput): RulesGate {
 /** The second gate for the draft's own source and policy (no staleness to check). */
 export function tryReadiness(input: Omit<RulesGateInput, 'current' | 'snapshot'> & {snapshot: SourceSnapshot | undefined}): RulesGate {
  const {snapshot, verification} = input;
- if (!snapshot) return blocked(['Ehhez a modellhez nincs első kapus ellenőrzés; készítsd el a modellt a Forrás lépésben.']);
+ if (!snapshot) return blocked(['Ehhez a modellhez nincs első kapus ellenőrzés; készítsd el a modellt a Kód lépésben.']);
  if (!snapshot.gate.admitted) return blocked(['Az első kapu nem engedte tovább a forrást.']);
  if (!verification || verification.checks.reference === 'rejected') return blocked(['A modell nem fogadja el a saját referenciasorrendjét.']);
  const unknown: string[] = [];

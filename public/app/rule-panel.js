@@ -198,6 +198,15 @@ export function settleRuleSelection(state, edited) {
     selection.message = edited ? 'A szabálymódosítás érvényes; a modell újraminősítve.' : '';
 }
 /** `model`: the applied model, whose rows carry their source line; the audit numbers the model's rows, the author reads source lines (ADR-122). */
+/** The author-editable rules of the applied model (structural ones left out): the count the Rules step shows and a
+ * reanalysis reports against (ADR-123). */
+export const ruleCount = (insight) => insight?.rules?.constraints.filter(c => c.editability !== 'hard').length ?? 0;
+/** How many of the model's rules are the author's own decisions (narrowing, pins, profiles, lifted rules): what a
+ * rebuild from the source would discard. */
+export function authorDecisions(insight) {
+    const checks = insight?.verification?.checks;
+    return checks ? checks.authorRules + checks.fixed + checks.profiles + checks.relaxations.conservative + checks.relaxations.overrides : 0;
+}
 export function renderModelInsight(insight, model) {
     const verification = insight?.verification;
     if (!verification)

@@ -1,8 +1,8 @@
 import {markEditorDraft,markEditorApplied,reloadEditorFromArrangement,captureEditorRequest,adjacentMoveBoundary,dispatchWorkbenchAction} from './app/interactions.js';
-import {refreshAuthorStatus,captureAuthorRequest,authorRequest,startFromExample,replaceDraft,formatLoaded,undoReplace,revertAuthorDraft,admitAuthorModel} from './app/author-workspace.js';
+import {refreshAuthorStatus,captureAuthorRequest,authorRequest,startFromExample,replaceDraft,formatLoaded,undoReplace,revertAuthorDraft,admitAuthorModel,setLearnerData} from './app/author-workspace.js';
 import {NEW_DRAFT_SETTINGS,setPreflightOption,settingsKey,settingsRequest} from './app/preflight-settings.js';
 import {revealLine} from './app/ui-utilities.js';
-import {readRuleEdit,readRuleKindEdits,recordRuleRefusal,settleRuleKind,settleRuleSelection} from './app/rule-panel.js';
+import {readRuleEdit,readRuleKindEdits,recordRuleRefusal,ruleCount,settleRuleKind,settleRuleSelection} from './app/rule-panel.js';
 import {availability,reasonOf,refreshAvailability} from './app/availability.js';
 /** ADR-120: the rule editor's own last check (the view and the guard already refused a disabled control). */
 const ruleEditBlocked=state=>reasonOf(availability(state,'rule-edit'));
@@ -59,6 +59,8 @@ const steps={source:'author',rules:'model',try:'sort'};
  * Compatible attempts survive a dependency-only edit, so the new rules are observable at once. */
 async function authorApply(body,{preserveAttempt=false,sessionImport,settingsOrigin,current=captureAuthorRequest(state),request=compileDraft,land='stay'}={}){
  delete state.boardStatus;
+ // ADR-123: a rebuild of an applied model reports how many rules it changed.
+ const rulesBefore=body.source!==undefined&&authorPreviewId(state)?ruleCount(state.authorInsight):undefined;
  let data;try{data=await request(body);}catch(error){if(!current())return;if(error?.details?.gate&&typeof body.source==='string')state.sourceGate={gate:error.details.gate,source:body.source};throw error;}
  if(!current())return;
  if(data.ok===false){if(state.ruleSelection)recordRuleRefusal(state.ruleSelection,data,body.edits);render();return data;}
@@ -66,7 +68,8 @@ async function authorApply(body,{preserveAttempt=false,sessionImport,settingsOri
  const {compatible,model:m}=installPreview(state,data,{preserveAttempt,restoredAttempt});
  admitAuthorModel(state,m,body.source,{keepPending:!!body.edits,policy:data.policy,settingsOrigin});if(data.gate)state.sourceGate={gate:data.gate,source:state.authorBaseline.source};settleRuleSelection(state,!!body.edits);delete state.ruleConnect;
  const summary='A modell elkészült: '+m.lines.length+' sor, '+m.blocks.length+' blokk. '+(m.authoring?.dependencyHints?.length??0)+' deklaráció/használat jelzés. Az egyszerű const deklarációk kötésalapú függőségeket kapnak; teljes szemantikai bizonyítás nincs.'+(m.authoring?.omittedBlocks?' '+m.authoring.omittedBlocks+' közös sorhatárú blokk csak sorrendvédelemmel reprezentált.':'');
- state.modelMessage=body.source!==undefined?summary:compatible?'A módosított szabályok érvényesek. A kitöltés megmaradt; ellenőrizheted az új függőségekkel.':'A módosított modell érvényes. A kitöltést az új szerkezethez visszaállítottuk.';
+ const rebuilt=rulesBefore===undefined?'':` Újraelemzés: ${rulesBefore} → ${ruleCount(state.authorInsight)} nem szerkezeti szabály.`;
+ state.modelMessage=body.source!==undefined?summary+rebuilt:compatible?'A módosított szabályok érvényesek. A kitöltés megmaradt; ellenőrizheted az új függőségekkel.':'A módosított modell érvényes. A kitöltést az új szerkezethez visszaállítottuk.';
  state.author.message=summary;
  // ADR-108 (E6): landing on Try (a session import) passes the second gate first; refused, it lands on Rules.
  if(land==='try'){const gate=tryAdmission(state);if(!gate.ok){land='rules';state.modelMessage=gate.message;}}
@@ -146,7 +149,7 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
   try{const source=await loadTypeScriptFixture();if(!current())return;const next=await formatLoaded({...state.author,source,language:'typescript',title:'CopyFieldUtilityService',description:'Mellékelt TypeScript service, 31 osztálytag',message:'A 31 metódusos TypeScript minta betöltve.'},formatSource);if(!current())return;replaceDraft(state,next);render();}catch(err){if(current()){state.author.message=err.message;render();}}return;
  }
  if(b.dataset.mode){enterMode(state,b.dataset.mode);render();root.querySelector(`[data-mode="${state.mode}"]`)?.focus({preventScroll:true});return;}
- if(b.dataset.step||b.dataset.goto||b.dataset.nextStep){await go(steps[b.dataset.step??b.dataset.goto??b.dataset.nextStep]);root.querySelector('#step-title')?.focus?.({preventScroll:true});return;}
+ if(b.dataset.step||b.dataset.goto){await go(steps[b.dataset.step??b.dataset.goto]);root.querySelector('#step-title')?.focus?.({preventScroll:true});return;}
  if(b.dataset.rulesView){state.rulesView=b.dataset.rulesView;render();return;}
  if(b.hasAttribute('data-open-json')){state.rulesView='json';await go('model');return;}
  if(b.dataset.sourceKind){state.sourceKind=b.dataset.sourceKind;render();return;}
@@ -233,7 +236,7 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  }
 },error=>notify(error instanceof Error?error.message:'A művelet nem sikerült.')));
 root.addEventListener('keydown',ev=>{if(ev.key!=='Escape'||!state.rulePanelOpen||ev.defaultPrevented||!(ev.target instanceof Element)||!ev.target.closest('.rule-inspector,.inspector-toggle')||ev.target.closest('input,textarea,select'))return;ev.preventDefault();state.rulePanelOpen=false;render();root.querySelector('.inspector-toggle')?.focus({preventScroll:true});});
-root.addEventListener('input',ev=>{const el=ev.target; if(el.closest('.editor-frame'))syncEditors(root);if(el.id==='code-editor')markEditorDraft(at(),el.value);else if(el.id==='model-editor')state.modelDraft=el.value;else if(el.id==='author-editor')state.author.source=el.value;else if(el.dataset.author)state.author[el.dataset.author]=el.value;refreshAuthorStatus(root,state);refreshStepper(root,state);refreshAvailability(root,state,at());});
+root.addEventListener('input',ev=>{const el=ev.target; if(el.closest('.editor-frame'))syncEditors(root);if(el.id==='code-editor')markEditorDraft(at(),el.value);else if(el.id==='model-editor')state.modelDraft=el.value;else if(el.id==='author-editor')state.author.source=el.value;else if(el.dataset.author)state.author[el.dataset.author]=el.value;else if(el.dataset.learner)setLearnerData(state,el.dataset.learner,el.value);refreshAuthorStatus(root,state);refreshStepper(root,state);refreshAvailability(root,state,at());});
 root.addEventListener('scroll',ev=>{if(ev.target.matches('.editor-frame textarea'))syncEditors(root);},true);
 // ADR-121 (M4): the editors' keys (Tab/Shift+Tab on lines, Enter keeps the indentation, } steps back) in one place.
 root.addEventListener('keydown',handleEditorKey);
@@ -253,6 +256,8 @@ root.addEventListener('change',ev=>{
  // M2: choosing an example loads it at once (undoable); there is no separate load button.
  if(ev.target.matches('[data-start-example]')){const e=state.exercises.find(x=>x.id===ev.target.value);if(!e)return;startFromExample(state,e);state.sourceKind='code';render();root.querySelector('.open-menu > summary')?.focus({preventScroll:true});return;}
  if(ev.target.dataset.author){state.author[ev.target.dataset.author]=ev.target.value;refreshAuthorStatus(root,state);if(ev.target.dataset.author==='language')render();}
+ // ADR-123: the learner's title, description and level change the applied model in place; the heading follows.
+ if(ev.target.dataset.learner&&setLearnerData(state,ev.target.dataset.learner,ev.target.value))render();
  if(ev.target.dataset.preflight&&setPreflightOption(state.author,ev.target.dataset.preflight,ev.target.value)){refreshAuthorStatus(root,state);render();}
  if(ev.target.matches('[data-board-all]')){state.boardAll=ev.target.checked;render();root.querySelector('[data-board-all]')?.focus({preventScroll:true});}
 });
