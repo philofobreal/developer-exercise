@@ -6,6 +6,12 @@ export interface VerificationInput {
     /** Whether the generated constraints equal a fresh regeneration of the source, or provably only
      * narrow it (ADR-114: same blocks, every regenerated ordering implied, no reason the analysis lacks). */
     rederivation?: 'match' | 'narrower' | 'differs';
+    /** ADR-114 (B2): the regenerated orderings (line ids) the model's own rules do not imply, when the block structure is
+     * the same: what a hand model relaxes. Named in the finding; the regeneration itself stays with the author side. */
+    unimplied?: readonly {
+        before: number;
+        after: number;
+    }[];
     /** The analyser version of that regeneration. */
     currentAnalyzer?: DependencyPolicy;
     /** Projection loss of that regeneration; otherwise the bound evidence's own figure. */

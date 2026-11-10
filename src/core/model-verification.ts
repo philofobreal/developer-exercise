@@ -34,6 +34,9 @@ export interface VerificationInput {
   /** Whether the generated constraints equal a fresh regeneration of the source, or provably only
    * narrow it (ADR-114: same blocks, every regenerated ordering implied, no reason the analysis lacks). */
   rederivation?: 'match' | 'narrower' | 'differs';
+  /** ADR-114 (B2): the regenerated orderings (line ids) the model's own rules do not imply, when the block structure is
+   * the same: what a hand model relaxes. Named in the finding; the regeneration itself stays with the author side. */
+  unimplied?: readonly { before: number; after: number }[];
   /** The analyser version of that regeneration. */
   currentAnalyzer?: DependencyPolicy;
   /** Projection loss of that regeneration; otherwise the bound evidence's own figure. */
@@ -109,7 +112,11 @@ export function verifyModel(model: CodeLineExercise, input: VerificationInput = 
   const unverified: string[] = [];
   const missing: Record<Exclude<ModelVerification['checks']['provenance'], 'complete'>, string> = { partial: 'Néhány kényszernek nincs oka.', absent: 'A modellnek nincs provenienciája (régi vagy importált modell).', unbound: 'A proveniencia nem ezekhez a sorokhoz tartozik.' };
   if (checks.provenance !== 'complete') unverified.push(missing[checks.provenance]);
-  if (checks.rederivation === 'differs') unverified.push('A generált szabályok eltérnek a forrás újragenerálásától (kézi módosítás vagy más elemző).');
+  const relaxedLinks = checks.rederivation === 'differs' ? input.unimplied ?? [] : [];
+  if (relaxedLinks.length) {
+    const shown = relaxedLinks.slice(0, 5).map(link => `#${link.before} → #${link.after}`).join(', ');
+    unverified.push(`A szabályok lazítanak a forrás újragenerálásához képest: ${relaxedLinks.length} generált sorrendi kötés nem következik a modell szabályaiból (${shown}${relaxedLinks.length > 5 ? ', …' : ''}). Ezeknél a pároknál a modell több sorrendet engedhet meg, mint a generált.`);
+  } else if (checks.rederivation === 'differs') unverified.push('A generált szabályok eltérnek a forrás újragenerálásától (kézi módosítás vagy más elemző).');
   if (checks.rederivation === 'not-run') unverified.push('A szabályokat nem vezettük le újra a forrásból.');
   if (checks.audit === 'errors') unverified.push('A referencia nyelvi hibát tartalmaz.');
   if (checks.relaxations.conservative) unverified.push(`${checks.relaxations.conservative} konzervatív szabályt a szerző eltávolított; a lazítás helyessége nem igazolt.`);

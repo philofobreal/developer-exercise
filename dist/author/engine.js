@@ -126,9 +126,11 @@ export function authorRuleSheet(model) {
  * ADR-114: a model that differs only by narrowing is `narrower`, not `differs`: the same block
  * structure, every regenerated ordering implied by the model's own (dependencies and edges, at any
  * distance), and every analysis reason it records one the regeneration also gives. Its accepted
- * orders are then a subset of the regenerated model's, so nothing the analysis rejects is accepted. */
+ * orders are then a subset of the regenerated model's, so nothing the analysis rejects is accepted.
+ * B2: with the same block structure, the regenerated orderings the model leaves free are passed on (`unimplied`), so
+ * a hand model that both narrows and relaxes is told which generated rule it relaxes. */
 export async function verifyAuthorModel(model, ports, input = {}) {
-    let rederivation = 'differs', currentAnalyzer, projectionLoss;
+    let rederivation = 'differs', currentAnalyzer, projectionLoss, unimplied = [];
     try {
         const generated = await ports.generate({ source: model.lines.map(line => line.code).join('\n'), language: model.language, title: model.title, description: model.description, ...recordedAssumptions(model) });
         currentAnalyzer = generated.authoring?.evidence?.analyzer;
@@ -153,18 +155,20 @@ export async function verifyAuthorModel(model, ports, input = {}) {
         else if (sameStructure) {
             const regenerated = [...generated.lines.flatMap((line, index) => line.dependencies.map(before => ({ before: id(before), after: model.lines[index].id }))), ...(generated.edges ?? []).map(edge => ({ before: id(edge.before), after: id(edge.after) }))].filter(kept);
             const fromAnalysis = new Set(analysed);
-            if (recorded.every(key => fromAnalysis.has(key)) && impliesAll(model, regenerated))
+            // ADR-114 (B2): the regenerated orderings the model's own rules leave free are its relaxation; they are named.
+            unimplied = notImplied(model, regenerated);
+            if (recorded.every(key => fromAnalysis.has(key)) && !unimplied.length)
                 rederivation = 'narrower';
         }
     }
     catch {
         rederivation = 'differs';
     }
-    return verifyModel(model, { ...input, rederivation, ...(currentAnalyzer ? { currentAnalyzer } : {}), ...(projectionLoss === undefined ? {} : { projectionLoss }) });
+    return verifyModel(model, { ...input, rederivation, ...(unimplied.length ? { unimplied } : {}), ...(currentAnalyzer ? { currentAnalyzer } : {}), ...(projectionLoss === undefined ? {} : { projectionLoss }) });
 }
-/** Whether the model's own ordering (line dependencies and shared edges, transitively) puts every
- * `before` of `required` earlier than its `after` (ADR-114). */
-function impliesAll(model, required) {
+/** The orderings of `required` the model's own ordering (line dependencies and shared edges, transitively) does not put
+ * in order, each once, in `required`'s order (ADR-114; B2: none means every one is implied). */
+function notImplied(model, required) {
     const predecessors = new Map(model.lines.map(line => [line.id, [...line.dependencies]]));
     for (const edge of model.edges ?? [])
         predecessors.get(edge.after)?.push(edge.before);
@@ -184,7 +188,9 @@ function impliesAll(model, required) {
         earlier.set(id, found);
         return found;
     };
-    return required.every(edge => ancestors(edge.after).has(edge.before));
+    const seen = new Set();
+    return required.filter(edge => { const key = edge.before + ':' + edge.after; if (seen.has(key) || ancestors(edge.after).has(edge.before))
+        return false; seen.add(key); return true; }).map(({ before, after }) => ({ before, after }));
 }
 export function createLegacyJSTSBridge(language, ports) {
     if (!['javascript', 'typescript'].includes(language) || !ports || ['generate', 'audit', 'format'].some(method => typeof ports[method] !== 'function'))

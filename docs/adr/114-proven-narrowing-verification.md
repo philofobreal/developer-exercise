@@ -72,3 +72,20 @@
 
 - A `ModelVerification.checks.rederivation` értékkészlete: `match | narrower | differs | not-run`.
 - A Szabályok panelen hozzáadott és a JSON-ban kézzel megírt szigorítás ugyanazt a minősítést kapja.
+
+## Kiegészítés (2026-11-10): a lazítás megnevezése (B2)
+
+- **Probléma:** egy kézi modell, amely egyszerre szűkít és lazít, eddig csak az általános leletet kapta („A generált szabályok eltérnek a forrás újragenerálásától…”). A szerző nem tudta meg, melyik kötése a hiba.
+- **Döntés:**
+  - azonos blokkszerkezet mellett a `verifyAuthorModel` a lezárt-ellenőrzés közben összegyűjti azokat a regenerált sorrendi kötéseket, amelyek nem következnek a modell saját szabályaiból, és a magnak `unimplied` bemenetként adja át (sor-azonosítókkal);
+  - a mag ezt a leletben nevezi meg (legfeljebb öt kötést, a többit „…” jelzi): „A szabályok lazítanak a forrás újragenerálásához képest: N generált sorrendi kötés nem következik a modell szabályaiból (#1 → #3, …).” Ez a lelet az általános helyett áll;
+  - a szűkítő szerzői szabály leletje mellette marad, így a szűkítő és lazító modellnél mindkét oldal látszik.
+- **Pontosság:** a mondat azt állítja, amit bizonyítunk. Hogy egy kötés nem következik, azt a lezárt mutatja meg. Hogy ettől több sorrend fogadható el, az csak lehetőség („engedhet meg”), mert egy rögzített hely vagy profil máshonnan is kötheti.
+- **Interfész:**
+  - a `VerificationInput` egy opcionális mezővel bővül;
+  - a regenerált modell továbbra sem kerül a magba (ugyanaz az elv, mint a választott tervben);
+  - a többi hívó nem ad `unimplied`-ot, ezért náluk semmi nem változik.
+- **Bizonyíték:** [proven-narrowing.test.mjs](../../tests/proven-narrowing.test.mjs) „B2” teszt:
+  - a tiszta lazítás megnevezi a `#1 → #3` kötést, és az általános lelet eltűnik;
+  - a szűkítő és lazító modell mindkét hiányzó kötést megnevezi, a szerzői szűkítést is;
+  - a tiszta szűkítés semmit nem nevez meg.

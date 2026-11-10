@@ -66,6 +66,23 @@ test('what stays unverified: a relaxation, a forged analysis reason, a changed b
  assert.equal((await verify(moved)).checks.rederivation,'differs','a line moved into another block is not a narrowing');
 });
 
+test('B2: a relaxation is named: the generated rule the model does not imply, also beside an author narrowing',async()=>{
+ const relaxed=base();line(relaxed,3).dependencies=[2];relaxed.authoring.provenance=relaxed.authoring.provenance.filter(entry=>!(entry.before===1&&entry.after===3));
+ const loose=await verify(relaxed);
+ assert.equal(loose.checks.rederivation,'differs');
+ const named=loose.findings.find(finding=>finding.startsWith('A szabályok lazítanak'));
+ assert.ok(named,loose.findings.join(' | '));assert.match(named,/1 generált sorrendi kötés nem következik a modell szabályaiból \(#1 → #3\)/);
+ assert.ok(!loose.findings.some(finding=>finding.startsWith('A generált szabályok eltérnek')),'the named finding replaces the general one');
+ // Narrows (a before b, an author rule) and relaxes (c no longer after b): the author rule is counted, the relaxed rule named.
+ const both=narrowed();line(both,3).dependencies=[];both.authoring.provenance=both.authoring.provenance.filter(entry=>!(entry.after===3));
+ const mixed=await verify(both);
+ assert.equal(mixed.checks.rederivation,'differs');assert.equal(mixed.status,'unverified');
+ assert.ok(mixed.findings.some(finding=>finding.includes('2 generált sorrendi kötés')&&finding.includes('#1 → #3, #2 → #3')),mixed.findings.join(' | '));
+ assert.ok(mixed.findings.some(finding=>finding.includes('szerzői szabály szűkíti')),mixed.findings.join(' | '));
+ // A narrowing alone names nothing.
+ assert.ok(!(await verify(narrowed())).findings.some(finding=>finding.startsWith('A szabályok lazítanak')));
+});
+
 test('the second gate opens a proven narrowing even when undecided results block (Tilt)',async()=>{
  const catalog=new ExerciseCatalog(new Map());
  const narrowedDraft=await catalog.createDraft({model:narrowed(),policy:{unknownPolicy:'block'}});

@@ -75,7 +75,12 @@ export function verifyModel(model, input = {}) {
     const missing = { partial: 'Néhány kényszernek nincs oka.', absent: 'A modellnek nincs provenienciája (régi vagy importált modell).', unbound: 'A proveniencia nem ezekhez a sorokhoz tartozik.' };
     if (checks.provenance !== 'complete')
         unverified.push(missing[checks.provenance]);
-    if (checks.rederivation === 'differs')
+    const relaxedLinks = checks.rederivation === 'differs' ? input.unimplied ?? [] : [];
+    if (relaxedLinks.length) {
+        const shown = relaxedLinks.slice(0, 5).map(link => `#${link.before} → #${link.after}`).join(', ');
+        unverified.push(`A szabályok lazítanak a forrás újragenerálásához képest: ${relaxedLinks.length} generált sorrendi kötés nem következik a modell szabályaiból (${shown}${relaxedLinks.length > 5 ? ', …' : ''}). Ezeknél a pároknál a modell több sorrendet engedhet meg, mint a generált.`);
+    }
+    else if (checks.rederivation === 'differs')
         unverified.push('A generált szabályok eltérnek a forrás újragenerálásától (kézi módosítás vagy más elemző).');
     if (checks.rederivation === 'not-run')
         unverified.push('A szabályokat nem vezettük le újra a forrásból.');
