@@ -1,8 +1,11 @@
 import { mergeOrderingEntries } from './ordering-relations.js';
 import { freeCommentRows } from './comment-rows.js';
 import { inertValue } from './inert-value.js';
+import { objectReach } from './object-reach.js';
 /** `reflectedKeys` (ADR-020): the program may list non-enumerable keys, so the ADR-010 key chain applies.
  * `enumeratedKeys` (ADR-029): the program may list enumerable keys, so instance fields keep their order. */
+/** `observedKeys` (v56, ADR-130, NY-36): the author's key order is „Számít”: a caller may list the keys of an instance
+ *  (or of the class value) that leaves the program, so its fields keep their order unless objectReach proves it stays. */
 export function typeMemberOrdering(file, compiler, options = {}) {
     const physical = file.text.split('\n'), entries = [], spans = [];
     /** `row` follows every row of `after` for the same reason. */
@@ -233,6 +236,23 @@ export function typeMemberOrdering(file, compiler, options = {}) {
                     counts.set(key, (counts.get(key) ?? 0) + 1);
             }
             const isStatic = (member) => compiler.canHaveModifiers(member) && !!compiler.getModifiers(member)?.some(modifier => modifier.kind === compiler.SyntaxKind.StaticKeyword);
+            // ADR-029 + NY-36 (v56): whether the keys this member creates can be listed — by the program, or (key order
+            // „Számít”) by code outside it that receives an instance (or, for a static member, the class value).
+            const reach = isClass && options.observedKeys ? objectReach(file, compiler) : undefined;
+            const instanceListed = !!options.enumeratedKeys || !!reach && !reach.instancesStay(node);
+            const staticListed = !!options.enumeratedKeys || !!reach && !reach.classStays(node);
+            // A field whose name a base field of the chain already created adds no key: listing cannot see its position.
+            const baseFields = new Set();
+            if (isClass)
+                for (let ancestor = baseOf(node); ancestor; ancestor = baseOf(ancestor))
+                    for (const field of ancestor.members) {
+                        if (!compiler.isPropertyDeclaration(field) || isStatic(field) || compiler.getModifiers(field)?.some(modifier => modifier.kind === compiler.SyntaxKind.DeclareKeyword || modifier.kind === compiler.SyntaxKind.AbstractKeyword))
+                            continue;
+                        const inheritedName = name(field);
+                        if (inheritedName !== undefined && !(field.name && compiler.isPrivateIdentifier(field.name)))
+                            baseFields.add(inheritedName);
+                    }
+            const listed = (member) => isStatic(member) ? staticListed : instanceListed && !baseFields.has(name(member) ?? '');
             // ADR-012: exactly one getter and one setter with bodies, the same name and the same placement form one property.
             const pairs = new Set();
             // v44 (ADR-078): fields of that name may stand beside the pair; a field creates an instance or
@@ -373,11 +393,15 @@ export function typeMemberOrdering(file, compiler, options = {}) {
                 // v34 (ADR-068): likewise a static field (a key of the constructor) and an `accessor` field, whose
                 // initialiser only fills a private storage; its get/set key is created at definition (the key chain).
                 // v44 (ADR-078): a private field is never listed, so it is loose even when the program lists keys.
-                const loose = (!options.enumeratedKeys || !!member.name && compiler.isPrivateIdentifier(member.name)) && phases?.length === 1 && key !== undefined && counts.get(key) === 1 && compiler.isPropertyDeclaration(member) && assignable(key, member) && (!member.initializer || inert(member.initializer));
+                // v56 (ADR-130): nor is an `accessor` field: its storage is private and its get/set pair lives on the prototype (the
+                // key chain above), so listing the instance's own keys never sees it.
+                // Nor an abstract or declare field, which emits nothing.
+                const emitsNoKey = compiler.isPropertyDeclaration(member) && !!modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.AbstractKeyword || modifier.kind === compiler.SyntaxKind.DeclareKeyword);
+                const loose = (!listed(member) || !!member.name && compiler.isPrivateIdentifier(member.name) || autoAccessor || emitsNoKey) && phases?.length === 1 && key !== undefined && counts.get(key) === 1 && compiler.isPropertyDeclaration(member) && assignable(key, member) && (!member.initializer || inert(member.initializer));
                 // v39 (ADR-073): a field that copies an earlier own data field of the same placement (`f = this.g`)
                 // runs no code either: `g` is then an own data property (defined, or assigned without a setter on
                 // the chain), so the read runs no getter. It follows `g`, but no other loose field.
-                const copied = !loose && !options.enumeratedKeys && !reshapes && phases?.length === 1 && phases[0] !== 'key' && key !== undefined && counts.get(key) === 1 && compiler.isPropertyDeclaration(member) && !autoAccessor && assignable(key, member) && member.initializer ? copySource(member, node.members) : undefined;
+                const copied = !loose && !listed(member) && !reshapes && phases?.length === 1 && phases[0] !== 'key' && key !== undefined && counts.get(key) === 1 && compiler.isPropertyDeclaration(member) && !autoAccessor && assignable(key, member) && member.initializer ? copySource(member, node.members) : undefined;
                 // v42 (ADR-076): an instance field whose initialiser cannot name the instance, in a construction
                 // that cannot leak it before: its code cannot observe the loose fields, only other code.
                 const candidate = quiet && !loose && !copied && phases?.length === 1 && phases[0] === 'instance' && key !== undefined && counts.get(key) === 1 && compiler.isPropertyDeclaration(member) && !autoAccessor && !modifiers?.some(modifier => modifier.kind === compiler.SyntaxKind.DeclareKeyword || modifier.kind === compiler.SyntaxKind.AbstractKeyword);
@@ -388,7 +412,7 @@ export function typeMemberOrdering(file, compiler, options = {}) {
                 const footprint = initial && assigned ? union(initial, assigned) : undefined;
                 // v44 (ADR-078): when the program lists keys, a public field that runs no code is not loose; it
                 // stays ordered with every other public field (its key), but not with the private loose fields.
-                const detached = !!footprint && (!assignable(key, member) || !!member.initializer || !!options.enumeratedKeys);
+                const detached = !!footprint && (!assignable(key, member) || !!member.initializer || listed(member));
                 return { first: row, last: end, pure, plain, free: definition || isClass && pure, ...((definition || autoAccessor) && duplicate ? { sameKey: key + (isStatic(member) ? ' static' : ' prototype'), ...(compiler.isGetAccessorDeclaration(member) ? { half: 'get' } : compiler.isSetAccessorDeclaration(member) ? { half: 'set' } : {}) } : {}), ...(reflected ? { reflect: isStatic(member) ? 'static' : 'prototype' } : {}), ...(phases ? { phases } : {}), ...(definition && paired ? { pair: key } : {}), ...(loose || copied ? { loose: true } : {}), ...(copied ? { copies: last(copied) } : {}), ...(loose || copied ? { touches: { reads: copied ? [name(copied)] : [], writes: [key] } } : {}), ...(detached ? { detached: true, ...(footprint ? { footprint } : {}) } : {}) };
             });
             // An overload signature must directly precede the next signature or the

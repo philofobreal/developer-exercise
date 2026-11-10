@@ -289,12 +289,13 @@
     ],
     "evidence": {
       "sourceDigest": "b3adab2637be05fd",
-      "analyzer": "scoped-effect-analysis-v55",
+      "analyzer": "scoped-effect-analysis-v56",
       "environment": {
         "typescript": "5.8.3",
         "importEmit": "verbatim",
         "sourceKind": "script",
-        "classFields": "either"
+        "classFields": "either",
+        "keyOrder": "ignored"
       },
       "projectionLoss": {
         "pairs": 0,

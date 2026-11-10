@@ -11,7 +11,9 @@ import {generate,measureFixture,CORPUS_CAPS} from './support/ordering-metrics.mj
 import {createClassifier} from './support/order-classification.mjs';
 
 const environments=['strict','es2015','sloppy'];
-const fixture=(id,language,source,extra={})=>({id,origin:'adr-076',language,probe:'evaluate()',environments,source,...extra});
+// NY-36 (v56, ADR-130): these classes are script globals, which a caller may instantiate and list; the mechanism here
+// is what field code runs, checked where no one lists keys („Nem számít”).
+const fixture=(id,language,source,extra={})=>({id,origin:'adr-076',language,probe:'evaluate()',environments,keyOrder:'ignored',source,...extra});
 /** The verdict for moving the row `code` (trimmed) to just after the row `target`. */
 function verdict(program,code,target){
  const model=generate(program),order=model.lines.map(line=>line.id),at=text=>order.findIndex(id=>model.lines[id-1].code.trim()===text);

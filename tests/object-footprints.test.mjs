@@ -11,8 +11,8 @@ import {compileCodeLineExercise,validateSubmission} from '../dist/index.js';
 import {createOracle} from './support/semantic-oracle.mjs';
 import {objectFixtures} from './fixtures/object-programs.mjs';
 
-const prepare=fixture=>{
- const model=generateCodeLineExercise({source:fixture.source.join('\n'),language:fixture.language},ts),compiled=compileCodeLineExercise(model);
+const prepare=(fixture,keyOrder)=>{
+ const model=generateCodeLineExercise({source:fixture.source.join('\n'),language:fixture.language,...(keyOrder?{keyOrder}:{})},ts),compiled=compileCodeLineExercise(model);
  assert.ok(!compiled.status,compiled.message);
  const index=new Map(model.lines.map((line,i)=>[line.code.trim(),i]));
  /** The reference order with `row` moved directly before (or after) `anchor`, both named by their text. */
@@ -98,7 +98,9 @@ function closedOrder(model){
 test('ADR-028: the generator orders the master prompt input exactly as the hand-made runtime model',async()=>{
  const {readFile}=await import('node:fs/promises');
  const manual=JSON.parse(await readFile(new URL('../docs/runtime-prompt-mini-fixture.llm.json',import.meta.url),'utf8'));
- const c=prepare(objectFixtures.get('prompt-mini-fixture'));
+ // The hand-made model compares runtime values and leaves key order out („Nem számít”); with „Számít” the returned
+ // users' keys are listable by the caller and their field order is kept (NY-36, v56).
+ const c=prepare(objectFixtures.get('prompt-mini-fixture'),'ignored');
  assert.deepEqual(c.model.lines.map(line=>line.code),manual.lines.map(line=>line.code));
  assert.deepEqual(closedOrder(c.model),closedOrder(manual),'neither stricter nor looser than the runtime analysis');
 });

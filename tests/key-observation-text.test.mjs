@@ -29,12 +29,19 @@ test('a field, a local and a comment named like a key listing are the program\'s
  assert.equal(reflects(['class Box {','  constructor() { this.self = 1; this.frames = []; }','  size() { return this.frames.length; }','}']),false);
 });
 
+// NY-36 (v56, ADR-130): a script-level Ledger is a global a caller may instantiate and list; inside evaluate() its instance
+// stays, so only the program's own listing could keep the writes ordered — which `entries` must not count as.
+const nestedLedger=['function evaluate() {',...ledger.slice(0,10).map(row=>'  '+row),"  const ledger = new Ledger('Bea');",'  ledger.add(5);','  return [ledger.balance, ledger.entries];','}'];
 test('the swapped field writes of the ledger are accepted and sound',()=>{
- const model=generateCodeLineExercise({source:ledger.join('\n'),language:'javascript'},ts),compiled=compileCodeLineExercise(model);
- const swapped=[1,2,4,3,5,...ledger.slice(5).map((_,i)=>i+6)].map(row=>ledger[row-1]);
+ const model=generateCodeLineExercise({source:nestedLedger.join('\n'),language:'javascript'},ts),compiled=compileCodeLineExercise(model);
+ const swapped=[...nestedLedger];[swapped[3],swapped[4]]=[swapped[4],swapped[3]];
+ assert.match(swapped[3],/this\.balance = 0;/);
  assert.equal(validateSubmission(compiled.compiled,{exerciseId:model.id,revision:model.revision,lines:swapped}).status,'accepted');
- const row=measureFixture({id:'adr-060-ledger',origin:'witness',language:'javascript',probe:'evaluate()',source:ledger},CORPUS_CAPS);
+ const row=measureFixture({id:'adr-060-ledger',origin:'witness',language:'javascript',probe:'evaluate()',source:nestedLedger},CORPUS_CAPS);
  assert.equal(row.unsound,0,JSON.stringify(row.counterexamples));
+ // The script-level original: a caller may list a new Ledger's keys.
+ const global=generateCodeLineExercise({source:ledger.join('\n'),language:'javascript'},ts),listed=[1,2,4,3,5,...ledger.slice(5).map((_,i)=>i+6)].map(row=>ledger[row-1]);
+ assert.equal(validateSubmission(compileCodeLineExercise(global).compiled,{exerciseId:global.id,revision:global.revision,lines:listed}).status,'rejected');
 });
 
 test('everything that may reach the built-in still counts',()=>{

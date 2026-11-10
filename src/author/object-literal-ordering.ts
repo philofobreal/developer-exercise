@@ -35,6 +35,7 @@
  * object) keep the row conservative. */
 import type ts from 'typescript';
 import {inertValue} from './inert-value.js';
+import {objectReach} from './object-reach.js';
 import {mergeOrderingEntries, type OrderingEntry, type OrderingReason} from './ordering-relations.js';
 
 interface PropertyRow {readonly row: number; readonly key: string; readonly comma: boolean;}
@@ -42,10 +43,6 @@ const arrayIndex = (key: string): boolean => /^(0|[1-9]\d*)$/.test(key) && Numbe
 
 export function objectLiteralOrdering(file: ts.SourceFile, compiler: typeof ts, options: {keyOrder?: 'observed' | 'ignored'} = {}): {entries: OrderingEntry[]} {
  const physical = file.text.split('\n'), entries: OrderingEntry[] = [], observed = options.keyOrder !== 'ignored';
- // Every identifier by name: a reference anywhere to a name like the variable's counts (shadowing only adds references).
- const references = new Map<string, ts.Identifier[]>();
- const collect = (node: ts.Node): void => {if (compiler.isIdentifier(node)) references.set(node.text, [...references.get(node.text) ?? [], node]); compiler.forEachChild(node, collect);};
- collect(file);
  const evaluates = /\beval\b|\bwith\s*\(/.test(file.text);
  // NY-35: every value binding the file declares, by name: its kind, the node whose end initialises it and its scope
  // (the node a read must lie in to resolve to it). `other` is any binding this analysis does not prove.
@@ -107,20 +104,6 @@ export function objectLiteralOrdering(file: ts.SourceFile, compiler: typeof ts, 
   risky?.add(binding);
   return !!risky;
  };
- /** The literal stays in its variable: each other occurrence of the name is the object of a member access, not called. */
- const contained = (node: ts.ObjectLiteralExpression): boolean => {
-  const declaration = node.parent;
-  if (evaluates || !compiler.isVariableDeclaration(declaration) || declaration.initializer !== node || !compiler.isIdentifier(declaration.name)) return false;
-  const statement = declaration.parent.parent;
-  if (!compiler.isVariableStatement(statement) || compiler.isSourceFile(statement.parent) || compiler.isModuleBlock(statement.parent)) return false;
-  const own = declaration.name;
-  return (references.get(own.text) ?? []).every(reference => {
-   if (reference === own) return true;
-   const access = reference.parent;
-   if (!(compiler.isPropertyAccessExpression(access) || compiler.isElementAccessExpression(access)) || access.expression !== reference) return false;
-   return !(compiler.isCallExpression(access.parent) && access.parent.expression === access);
-  });
- };
  const rowOf = (position: number): number => file.getLineAndCharacterOfPosition(position).line;
  const braces = (row: number): number => physical[row]?.match(/[{}]/g)?.length ?? 0;
  /** The literal's property rows, or undefined when the literal does not qualify. */
@@ -154,7 +137,7 @@ export function objectLiteralOrdering(file: ts.SourceFile, compiler: typeof ts, 
    const bounded = open >= 0 && close > open + 1 && braces(open) === 1 && braces(close) === 1 && !!physical[open]?.trimEnd().endsWith('{') && !!physical[close]?.trim().startsWith('}');
    const rows = bounded ? propertyRows(node, open, close) : undefined;
    if (rows) {
-    const tail = rows.at(-1)!.comma ? undefined : rows.at(-1)!, keyed = observed && !contained(node);
+    const tail = rows.at(-1)!.comma ? undefined : rows.at(-1)!, keyed = observed && !objectReach(file, compiler).literalStays(node);
     let previousKey: PropertyRow | undefined;
     for (const property of rows) {
      const reasons: OrderingReason[] = [{before: open, code: 'block-open'}];

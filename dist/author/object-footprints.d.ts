@@ -44,11 +44,15 @@ export interface Footprint {
  * and no write but in `loop`, outside nested functions); undefined otherwise. */
 /** `plainData` (v52, ADR-102): a binding that, under the `valid` input contract, holds outside plain data or a fresh value no
  * statement of the list owns, never one of the list's own objects; it reads like a parameter. */
+/** `observedKeys` (v56, ADR-130, NY-36): the author's key order is „Számít”: an own object the list returns, and the instance a
+ *  constructor builds unless objectReach proves its class's instances stay inside, can have its keys listed by a caller,
+ *  so adding a key to it (or to anything it holds) orders like a whole-object write, as if the program listed keys. */
 export interface FootprintHost {
     primitive(expr: ts.Expression): boolean;
     plainData?(identifier: ts.Identifier): boolean;
     assignable?(identifier: ts.Identifier): boolean;
     enumeratedKeys?: boolean;
+    observedKeys?: boolean;
     entry?(identifier: ts.Identifier, loop: ts.Statement): {
         lit: string | number | boolean | null;
     } | undefined;

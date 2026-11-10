@@ -29,6 +29,7 @@ import type ts from 'typescript';
 import {assignedNames, atMostOnce, loopEnds, type LoopObjects} from './loop-termination.js';
 import {OTHER, PRIM, STR, WHOLE, at, literal, objectOf, objects, union, type Literal, type Value} from './footprint-values.js';
 import {ObjectHeap} from './object-heap.js';
+import {objectReach} from './object-reach.js';
 type Compiler = typeof ts;
 
 /** `external` (ADR-040): the statement runs code outside the program (a trace, outside state).
@@ -42,7 +43,10 @@ export interface Footprint {reads: Set<string>; writes: Set<string>; mayThrow: b
  * and no write but in `loop`, outside nested functions); undefined otherwise. */
 /** `plainData` (v52, ADR-102): a binding that, under the `valid` input contract, holds outside plain data or a fresh value no
  * statement of the list owns, never one of the list's own objects; it reads like a parameter. */
-export interface FootprintHost {primitive(expr: ts.Expression): boolean; plainData?(identifier: ts.Identifier): boolean; assignable?(identifier: ts.Identifier): boolean; enumeratedKeys?: boolean; entry?(identifier: ts.Identifier, loop: ts.Statement): {lit: string | number | boolean | null} | undefined;}
+/** `observedKeys` (v56, ADR-130, NY-36): the author's key order is „Számít”: an own object the list returns, and the instance a
+ *  constructor builds unless objectReach proves its class's instances stay inside, can have its keys listed by a caller,
+ *  so adding a key to it (or to anything it holds) orders like a whole-object write, as if the program listed keys. */
+export interface FootprintHost {primitive(expr: ts.Expression): boolean; plainData?(identifier: ts.Identifier): boolean; assignable?(identifier: ts.Identifier): boolean; enumeratedKeys?: boolean; observedKeys?: boolean; entry?(identifier: ts.Identifier, loop: ts.Statement): {lit: string | number | boolean | null} | undefined;}
 
 interface ClassInfo {
  fields: Map<string, ts.Expression | undefined>; methods: Map<string, ts.MethodDeclaration>;
@@ -173,6 +177,9 @@ export function objectFootprints(list: readonly ts.Statement[], file: ts.SourceF
  const self = selfInfo ? 'T' + ctor!.pos : null;
  const parameters = new Set<ts.Symbol>(ctor ? ctor.parameters.flatMap(parameter => {const symbol = compiler.isIdentifier(parameter.name) ? checker.getSymbolAtLocation(parameter.name) : undefined; return symbol ? [symbol] : [];}) : []);
  if (!owned.size && !self) return result;
+ // NY-36: own objects a caller may receive (returned, or the instance under construction), and all they hold.
+ const outward = new Set<string>(self && host.observedKeys && !objectReach(file, compiler).instancesStay(ctor!.parent) ? [self] : []);
+ const listed = (object: string): boolean => !!host.enumeratedKeys || !!host.observedKeys && outward.has(object);
 
  // Abstract heap, collected flow-insensitively over every statement of the list.
  const kinds = new Map<string, Kind>([...owned.values()].map(entry => [entry.id, entry.kind]));
@@ -465,7 +472,7 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
    // A field the construction already created keeps the key order; any other name may add a key.
    // ADR-031: unless the program lists keys, adding a key is a write of that field alone.
    // ADR-045: or one every finished construction created, once this object's construction is over.
-   const existing = !host.enumeratedKeys || kind.kind === 'class' && (kind.info.fields.get(name) !== undefined || kind.info.parameterFields.includes(name) || kind.info.created.has(name) && !frame.constructing?.has(object));
+   const existing = !listed(object) || kind.kind === 'class' && (kind.info.fields.get(name) !== undefined || kind.info.parameterFields.includes(name) || kind.info.created.has(name) && !frame.constructing?.has(object));
    frame.fp.writes.add(at(object, existing ? name : WHOLE));heap.addField(object, name, value);
    if (sure.has(object)) frame.must!.add(at(object, name));
   }
@@ -735,12 +742,35 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
   return false;
  };
  let foreign = new Set<ts.Symbol>();
+ const returned = new Set<ts.Symbol>();
+ const builtinObject = !/\b(?:let|const|var|function|class)\s+Object\b|\bObject\s*=[^=]|\bwith\s*\(/.test(file.text);
+ /** NY-36: whether the value of `node` (an own object, or a member read from it, which may be an object it holds) can
+  *  become the returned value: it flows up through grouping, `||`/`&&`/`??`/comma, a conditional's branches, an array
+  *  or object literal and a member access; a call may hand it back (except ADR-109's count `Object.keys(o).length`);
+  *  arithmetic, comparison, `typeof`, a template and any other operator yield a primitive and stop it. */
+ const handsOn = (node: ts.Node, statement: ts.ReturnStatement): boolean => {
+  for (let current: ts.Node = node, parent = node.parent; parent; current = parent, parent = parent.parent) {
+   if (parent === statement) return true;
+   if (compiler.isParenthesizedExpression(parent) || compiler.isAsExpression(parent) || compiler.isSatisfiesExpression(parent) || compiler.isNonNullExpression(parent) || compiler.isAwaitExpression(parent) || compiler.isArrayLiteralExpression(parent) || compiler.isSpreadElement(parent) || compiler.isSpreadAssignment(parent) || compiler.isPropertyAssignment(parent) || compiler.isShorthandPropertyAssignment(parent) || compiler.isObjectLiteralExpression(parent)) continue;
+   if (compiler.isConditionalExpression(parent)) {if (current === parent.condition) return false; continue;}
+   if (compiler.isBinaryExpression(parent)) {const operator = parent.operatorToken.kind; if ([compiler.SyntaxKind.BarBarToken, compiler.SyntaxKind.AmpersandAmpersandToken, compiler.SyntaxKind.QuestionQuestionToken].includes(operator) || operator === compiler.SyntaxKind.CommaToken && current === parent.right) continue; return false;}
+   if ((compiler.isPropertyAccessExpression(parent) || compiler.isElementAccessExpression(parent)) && parent.expression === current) continue;
+   if (compiler.isCallExpression(parent) || compiler.isNewExpression(parent)) {
+    const callee = parent.expression, count = builtinObject && compiler.isCallExpression(parent) && compiler.isPropertyAccessExpression(callee) && compiler.isIdentifier(callee.expression) && callee.expression.text === 'Object' && ['keys', 'values', 'entries'].includes(callee.name.text) && compiler.isPropertyAccessExpression(parent.parent) && parent.parent.expression === parent && parent.parent.name.text === 'length';
+    if (count) return false;
+    return true;
+   }
+   return false;
+  }
+  return false;
+ };
  const selfStatements = new Set<ts.Statement>();
  const scan = (node: ts.Node, statement: ts.Statement): void => {
   if (compiler.isIdentifier(node)) {
    const symbol = checker.getSymbolAtLocation(node);
    if (symbol && owned.has(symbol)) {
     if (inNested(node, statement)) foreign.add(symbol);
+    if (compiler.isReturnStatement(statement) && handsOn(node, statement)) returned.add(symbol);
     (occurrences.get(symbol) ?? occurrences.set(symbol, []).get(symbol)!).push(statement);
    }
   }
@@ -751,6 +781,7 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
  // A block-scoped const of this list is visible only to the list's statements; a use inside a nested function escapes.
  for (const statement of list) scan(statement, statement);
  const escaped = new Set<string>([...foreign].map(symbol => owned.get(symbol)!.id));
+ if (host.observedKeys) for (const symbol of returned) outward.add(owned.get(symbol)!.id);
  const budget = {steps: 0};
  // ADR-031: the state the body starts from, as a construction leaves it.
  if (self) {
@@ -785,6 +816,7 @@ interface Frame {self: string | null; env: Map<string, Value>; fp: Footprint; st
   for (const id of [...escaped]) {
    for (const value of heap.held(id)) for (const object of value.objs) if (!escaped.has(object)) {escaped.add(object); heap.touch();}
   }
+  for (const id of [...outward]) for (const value of heap.held(id)) for (const object of value.objs) if (!outward.has(object)) {outward.add(object); heap.touch();}
   if (!heap.changed) return result;
  }
  result.clear();

@@ -826,8 +826,9 @@ function execute(code,{language,probe,strict:strictMode=true,environment='strict
  const nestedSnapshot=`(()=>{try{${keys}return JSON.stringify(__classes.map(([k,c])=>JSON.stringify([k,own(c.prototype),own(c)])).sort());}catch(error){return 'throws:'+(error&&error.name);}})()`;
  const attempt=(js,timeout)=>{
   const prefix=(strict?'"use strict";\n':'')+(environment==='hostile'?hostileRecord(js):'function record(...args) { trace.push(args); }\n')+(keyOrder==='ignored'?canonicalKeys:'')+reachWitness(!/\beval\b/.test(js)),from=prefix.split('\n').length,reach={on:true,from,to:from+js.split('\n').length-1},context=createContext({trace:[],__classes:[],exports:{},__hit:hit,__reach:reach},asynchronous?{microtaskMode:'afterEvaluate'}:{});
-  // ADR-029: unless the program lists enumerable keys itself, an object's key order is not part of the result.
-  const replacer=enumerated?'null':`(key,value)=>value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(name=>[name,value[name]])):value`;
+  // ADR-029 → NY-36 (v56, ADR-130): with key order „Számít” a caller may list the keys of what it receives, so the
+  // key order of the result (and of what record() receives) is part of it; only „Nem számít” compares key sets.
+  const replacer=enumerated||keyOrder!=='ignored'?'null':`(key,value)=>value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(name=>[name,value[name]])):value`;
   const tail=asynchronous
    ?`;var __result='pending',__nested='pending';__reach.on=true;Promise.resolve(${probe}).then(value=>{__reach.on=false;__result=JSON.stringify({value,trace},${replacer});__nested=${nestedSnapshot};},error=>{__result='throws:'+(error&&error.name)+':'+(error&&error.message);});`
    :`;__reach.on=true;var __value=(${probe});__reach.on=false;var __result=JSON.stringify({value:__value,trace},${replacer});var __nested=${nestedSnapshot};`;

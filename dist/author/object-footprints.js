@@ -1,6 +1,7 @@
 import { assignedNames, atMostOnce, loopEnds } from './loop-termination.js';
 import { OTHER, PRIM, STR, WHOLE, at, literal, objectOf, objects, union } from './footprint-values.js';
 import { ObjectHeap } from './object-heap.js';
+import { objectReach } from './object-reach.js';
 /** Thrown inside the interpretation when a statement leaves the analysable subset. */
 class Unknown extends Error {
 }
@@ -170,6 +171,9 @@ export function objectFootprints(list, file, compiler, checker, host) {
     const parameters = new Set(ctor ? ctor.parameters.flatMap(parameter => { const symbol = compiler.isIdentifier(parameter.name) ? checker.getSymbolAtLocation(parameter.name) : undefined; return symbol ? [symbol] : []; }) : []);
     if (!owned.size && !self)
         return result;
+    // NY-36: own objects a caller may receive (returned, or the instance under construction), and all they hold.
+    const outward = new Set(self && host.observedKeys && !objectReach(file, compiler).instancesStay(ctor.parent) ? [self] : []);
+    const listed = (object) => !!host.enumeratedKeys || !!host.observedKeys && outward.has(object);
     // Abstract heap, collected flow-insensitively over every statement of the list.
     const kinds = new Map([...owned.values()].map(entry => [entry.id, entry.kind]));
     if (self)
@@ -574,7 +578,7 @@ export function objectFootprints(list, file, compiler, checker, host) {
             // A field the construction already created keeps the key order; any other name may add a key.
             // ADR-031: unless the program lists keys, adding a key is a write of that field alone.
             // ADR-045: or one every finished construction created, once this object's construction is over.
-            const existing = !host.enumeratedKeys || kind.kind === 'class' && (kind.info.fields.get(name) !== undefined || kind.info.parameterFields.includes(name) || kind.info.created.has(name) && !frame.constructing?.has(object));
+            const existing = !listed(object) || kind.kind === 'class' && (kind.info.fields.get(name) !== undefined || kind.info.parameterFields.includes(name) || kind.info.created.has(name) && !frame.constructing?.has(object));
             frame.fp.writes.add(at(object, existing ? name : WHOLE));
             heap.addField(object, name, value);
             if (sure.has(object))
@@ -958,6 +962,41 @@ export function objectFootprints(list, file, compiler, checker, host) {
         return false;
     };
     let foreign = new Set();
+    const returned = new Set();
+    const builtinObject = !/\b(?:let|const|var|function|class)\s+Object\b|\bObject\s*=[^=]|\bwith\s*\(/.test(file.text);
+    /** NY-36: whether the value of `node` (an own object, or a member read from it, which may be an object it holds) can
+     *  become the returned value: it flows up through grouping, `||`/`&&`/`??`/comma, a conditional's branches, an array
+     *  or object literal and a member access; a call may hand it back (except ADR-109's count `Object.keys(o).length`);
+     *  arithmetic, comparison, `typeof`, a template and any other operator yield a primitive and stop it. */
+    const handsOn = (node, statement) => {
+        for (let current = node, parent = node.parent; parent; current = parent, parent = parent.parent) {
+            if (parent === statement)
+                return true;
+            if (compiler.isParenthesizedExpression(parent) || compiler.isAsExpression(parent) || compiler.isSatisfiesExpression(parent) || compiler.isNonNullExpression(parent) || compiler.isAwaitExpression(parent) || compiler.isArrayLiteralExpression(parent) || compiler.isSpreadElement(parent) || compiler.isSpreadAssignment(parent) || compiler.isPropertyAssignment(parent) || compiler.isShorthandPropertyAssignment(parent) || compiler.isObjectLiteralExpression(parent))
+                continue;
+            if (compiler.isConditionalExpression(parent)) {
+                if (current === parent.condition)
+                    return false;
+                continue;
+            }
+            if (compiler.isBinaryExpression(parent)) {
+                const operator = parent.operatorToken.kind;
+                if ([compiler.SyntaxKind.BarBarToken, compiler.SyntaxKind.AmpersandAmpersandToken, compiler.SyntaxKind.QuestionQuestionToken].includes(operator) || operator === compiler.SyntaxKind.CommaToken && current === parent.right)
+                    continue;
+                return false;
+            }
+            if ((compiler.isPropertyAccessExpression(parent) || compiler.isElementAccessExpression(parent)) && parent.expression === current)
+                continue;
+            if (compiler.isCallExpression(parent) || compiler.isNewExpression(parent)) {
+                const callee = parent.expression, count = builtinObject && compiler.isCallExpression(parent) && compiler.isPropertyAccessExpression(callee) && compiler.isIdentifier(callee.expression) && callee.expression.text === 'Object' && ['keys', 'values', 'entries'].includes(callee.name.text) && compiler.isPropertyAccessExpression(parent.parent) && parent.parent.expression === parent && parent.parent.name.text === 'length';
+                if (count)
+                    return false;
+                return true;
+            }
+            return false;
+        }
+        return false;
+    };
     const selfStatements = new Set();
     const scan = (node, statement) => {
         if (compiler.isIdentifier(node)) {
@@ -965,6 +1004,8 @@ export function objectFootprints(list, file, compiler, checker, host) {
             if (symbol && owned.has(symbol)) {
                 if (inNested(node, statement))
                     foreign.add(symbol);
+                if (compiler.isReturnStatement(statement) && handsOn(node, statement))
+                    returned.add(symbol);
                 (occurrences.get(symbol) ?? occurrences.set(symbol, []).get(symbol)).push(statement);
             }
         }
@@ -977,6 +1018,9 @@ export function objectFootprints(list, file, compiler, checker, host) {
     for (const statement of list)
         scan(statement, statement);
     const escaped = new Set([...foreign].map(symbol => owned.get(symbol).id));
+    if (host.observedKeys)
+        for (const symbol of returned)
+            outward.add(owned.get(symbol).id);
     const budget = { steps: 0 };
     // ADR-031: the state the body starts from, as a construction leaves it.
     if (self) {
@@ -1038,6 +1082,13 @@ export function objectFootprints(list, file, compiler, checker, host) {
                         heap.touch();
                     }
         }
+        for (const id of [...outward])
+            for (const value of heap.held(id))
+                for (const object of value.objs)
+                    if (!outward.has(object)) {
+                        outward.add(object);
+                        heap.touch();
+                    }
         if (!heap.changed)
             return result;
     }

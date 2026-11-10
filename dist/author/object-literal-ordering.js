@@ -1,13 +1,9 @@
 import { inertValue } from './inert-value.js';
+import { objectReach } from './object-reach.js';
 import { mergeOrderingEntries } from './ordering-relations.js';
 const arrayIndex = (key) => /^(0|[1-9]\d*)$/.test(key) && Number(key) < 4294967295;
 export function objectLiteralOrdering(file, compiler, options = {}) {
     const physical = file.text.split('\n'), entries = [], observed = options.keyOrder !== 'ignored';
-    // Every identifier by name: a reference anywhere to a name like the variable's counts (shadowing only adds references).
-    const references = new Map();
-    const collect = (node) => { if (compiler.isIdentifier(node))
-        references.set(node.text, [...references.get(node.text) ?? [], node]); compiler.forEachChild(node, collect); };
-    collect(file);
     const evaluates = /\beval\b|\bwith\s*\(/.test(file.text);
     const declared = new Map();
     /** The function (or class field, static block, file) whose evaluation runs `node`. */
@@ -91,24 +87,6 @@ export function objectLiteralOrdering(file, compiler, options = {}) {
         risky?.add(binding);
         return !!risky;
     };
-    /** The literal stays in its variable: each other occurrence of the name is the object of a member access, not called. */
-    const contained = (node) => {
-        const declaration = node.parent;
-        if (evaluates || !compiler.isVariableDeclaration(declaration) || declaration.initializer !== node || !compiler.isIdentifier(declaration.name))
-            return false;
-        const statement = declaration.parent.parent;
-        if (!compiler.isVariableStatement(statement) || compiler.isSourceFile(statement.parent) || compiler.isModuleBlock(statement.parent))
-            return false;
-        const own = declaration.name;
-        return (references.get(own.text) ?? []).every(reference => {
-            if (reference === own)
-                return true;
-            const access = reference.parent;
-            if (!(compiler.isPropertyAccessExpression(access) || compiler.isElementAccessExpression(access)) || access.expression !== reference)
-                return false;
-            return !(compiler.isCallExpression(access.parent) && access.parent.expression === access);
-        });
-    };
     const rowOf = (position) => file.getLineAndCharacterOfPosition(position).line;
     const braces = (row) => physical[row]?.match(/[{}]/g)?.length ?? 0;
     /** The literal's property rows, or undefined when the literal does not qualify. */
@@ -148,7 +126,7 @@ export function objectLiteralOrdering(file, compiler, options = {}) {
             const bounded = open >= 0 && close > open + 1 && braces(open) === 1 && braces(close) === 1 && !!physical[open]?.trimEnd().endsWith('{') && !!physical[close]?.trim().startsWith('}');
             const rows = bounded ? propertyRows(node, open, close) : undefined;
             if (rows) {
-                const tail = rows.at(-1).comma ? undefined : rows.at(-1), keyed = observed && !contained(node);
+                const tail = rows.at(-1).comma ? undefined : rows.at(-1), keyed = observed && !objectReach(file, compiler).literalStays(node);
                 let previousKey;
                 for (const property of rows) {
                     const reasons = [{ before: open, code: 'block-open' }];

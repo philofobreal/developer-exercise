@@ -34,9 +34,12 @@ export interface TypeMemberOrdering {
 }
 /** `reflectedKeys` (ADR-020): the program may list non-enumerable keys, so the ADR-010 key chain applies.
  * `enumeratedKeys` (ADR-029): the program may list enumerable keys, so instance fields keep their order. */
+/** `observedKeys` (v56, ADR-130, NY-36): the author's key order is „Számít”: a caller may list the keys of an instance
+ *  (or of the class value) that leaves the program, so its fields keep their order unless objectReach proves it stays. */
 export declare function typeMemberOrdering(file: ts.SourceFile, compiler: Compiler, options?: {
     reflectedKeys?: boolean;
     enumeratedKeys?: boolean;
+    observedKeys?: boolean;
     classFields?: 'either' | 'define';
 }): TypeMemberOrdering;
 export {};

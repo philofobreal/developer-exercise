@@ -218,7 +218,7 @@ export function jsTsOrderingRelations(file, compiler, options = {}) {
     const observed = options.keyOrder !== 'ignored', reached = unspelledNames(file, compiler), text = observed ? keyObservationText(file, compiler, reached) : '';
     const reflectedKeys = observed && observesKeyOrder(file, compiler, reached, text), enumeratedKeys = observed && enumeratesKeys(file, compiler, reached, text);
     const { imports, inputs, classFields } = options;
-    const statements = statementOrdering(file, compiler, { ...(file.fileName.endsWith('.ts') && imports ? { imports } : {}), ...(inputs ? { inputs } : {}), reflectedKeys, enumeratedKeys }), members = typeMemberOrdering(file, compiler, { reflectedKeys, enumeratedKeys, ...(classFields === 'define' ? { classFields } : {}) });
+    const statements = statementOrdering(file, compiler, { ...(file.fileName.endsWith('.ts') && imports ? { imports } : {}), ...(inputs ? { inputs } : {}), keyOrder: observed ? 'observed' : 'ignored', reflectedKeys, enumeratedKeys }), members = typeMemberOrdering(file, compiler, { reflectedKeys, enumeratedKeys, observedKeys: observed, ...(classFields === 'define' ? { classFields } : {}) });
     const unavailable = statements.inputsBlocked ? 'Az érvényes bemenet szerződése nem alkalmazható: a program módosíthatja az olvasást (Proxy, prototípus, eval, képzett név), ezért szigorú.' : '';
     return combineOrderingRelations([
         { entries: statements.entries, protectedInputs: statements.protectedInputs, spans: statements.units.map(({ first, last, header }) => ({ first, last, ...(header ? { header } : {}) })), note: unavailable, ...(statements.inputsBlocked ? { environment: { inputsOverride: { effective: 'any', ...statements.inputsBlocked } } } : {}) },

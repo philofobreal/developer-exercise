@@ -258,7 +258,7 @@ for(const [id,spec] of Object.entries(library))test('bal oldali feladatkönyvtá
  auditReference(model,ts);const compiled=compile(model),equivalent=oracle(model,spec.probe),reference=model.lines.map(line=>line.id);
  const extensions=linearExtensions(model);assert.equal(extensions.length,spec.extensions);
  // Every extension is graded. Its runtime run is exhaustive up to 1 000 extensions and a fixed
- // stride sample above (the class examples have 5 760 and 10 080 (class-accounts-ts revision 3), all once verified
+ // stride sample above (the class examples have 5 760 and 10 080 (class-accounts-ts revision 4), all once verified
  // equivalent exhaustively); ORACLE_EXHAUSTIVE=1 runs them all again.
  const stride=process.env.ORACLE_EXHAUSTIVE||extensions.length<=1000?1:Math.ceil(extensions.length/1000);
  extensions.forEach((order,index)=>{const lines=codes(model,order);assert.equal(grade(compiled,lines).status,'accepted',JSON.stringify(order));if(index%stride===0)assert.ok(equivalent(lines),'UNSOUND reference model:\n'+lines.join('\n'));});

@@ -233,9 +233,9 @@
  "ch-multiline-object": {
   "neighbours": 92,
   "accepted": 2,
-  "completenessGaps": 1,
+  "completenessGaps": 0,
   "intentRejections": 0,
-  "justifiedRejections": 89
+  "justifiedRejections": 90
  },
  "ch-template-coercion": {
   "neighbours": 176,
@@ -491,10 +491,10 @@
  },
  "contract-ts-this-reads": {
   "neighbours": 117,
-  "accepted": 9,
+  "accepted": 7,
   "completenessGaps": 0,
   "intentRejections": 0,
-  "justifiedRejections": 108
+  "justifiedRejections": 110
  },
  "evaluate-ordering": {
   "neighbours": 51,
@@ -701,17 +701,17 @@
  },
  "class-accounts-ts": {
   "neighbours": 1059,
-  "accepted": 27,
+  "accepted": 19,
   "completenessGaps": 0,
   "intentRejections": 0,
-  "justifiedRejections": 1032
+  "justifiedRejections": 1040
  },
  "class-accounts-ts-valid": {
   "neighbours": 1059,
-  "accepted": 27,
+  "accepted": 19,
   "completenessGaps": 0,
   "intentRejections": 0,
-  "justifiedRejections": 1032
+  "justifiedRejections": 1040
  },
  "keyorder-listing": {
   "neighbours": 115,
@@ -785,16 +785,16 @@
  },
  "task-ledger-js": {
   "neighbours": 1994,
-  "accepted": 32,
+  "accepted": 27,
   "completenessGaps": 0,
-  "intentRejections": 0,
+  "intentRejections": 5,
   "justifiedRejections": 1962
  },
  "task-ledger-js-valid": {
   "neighbours": 1994,
-  "accepted": 32,
+  "accepted": 27,
   "completenessGaps": 0,
-  "intentRejections": 0,
+  "intentRejections": 5,
   "justifiedRejections": 1962
  },
  "task-group-by-js": {
@@ -827,16 +827,16 @@
  },
  "task-search-tree-js": {
   "neighbours": 2835,
-  "accepted": 58,
+  "accepted": 52,
   "completenessGaps": 0,
-  "intentRejections": 0,
+  "intentRejections": 6,
   "justifiedRejections": 2777
  },
  "task-search-tree-js-valid": {
   "neighbours": 2835,
-  "accepted": 58,
+  "accepted": 52,
   "completenessGaps": 0,
-  "intentRejections": 0,
+  "intentRejections": 6,
   "justifiedRejections": 2777
  },
  "task-memoize-js": {
@@ -883,16 +883,16 @@
  },
  "task-priority-queue-ts": {
   "neighbours": 1142,
-  "accepted": 19,
+  "accepted": 16,
   "completenessGaps": 0,
-  "intentRejections": 0,
+  "intentRejections": 3,
   "justifiedRejections": 1123
  },
  "task-priority-queue-ts-valid": {
   "neighbours": 1142,
-  "accepted": 19,
+  "accepted": 16,
   "completenessGaps": 0,
-  "intentRejections": 0,
+  "intentRejections": 3,
   "justifiedRejections": 1123
  },
  "task-grade-report-ts": {

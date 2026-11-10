@@ -19,7 +19,8 @@ const library={
  'algo-bfs-js':'(() => { const grid = [[0, 0, 0, 0], [1, 1, 0, 1], [0, 0, 0, 0], [0, 1, 1, 0]]; return [shortestPath(grid, [0, 0], [3, 3]), shortestPath(grid, [0, 0], [2, 0]), shortestPath(grid, [3, 0], [0, 3]), shortestPath([[0, 1], [1, 0]], [0, 0], [1, 1]), shortestPath(grid, [2, 2], [2, 2]), shortestPath([[0, 0], [0, 0]], [0, 0], [5, 5])]; })()',
  'algo-sort-search-js':'(() => { const input = [5, 2, 9, 1, 5, 6, -3]; const sorted = insertionSort(input); return [sorted, input, [-3, 1, 5, 6, 9, 4, 10].map((target) => binarySearch(sorted, target))]; })()',
  'class-inventory-ts':"(() => { const inventory = new Inventory(3); inventory.add({ sku: 'a', name: 'alma', quantity: 2, price: 100 }); inventory.add({ sku: 'b', name: 'barack', quantity: 5, price: 40 }); inventory.add({ sku: 'a', name: 'alma', quantity: 4, price: 100 }); inventory.add({ sku: 'c', name: 'citrom', quantity: 1, price: 70 }); return [inventory.totalValue(), inventory.lowStock(), Object.keys(inventory)]; })()",
- 'class-accounts-ts':"(() => { const account = new CreditAccount('Ana', 50); account.deposit(100); const results = [account.withdraw(120), account.withdraw(40), account.withdraw(5)]; account.deposit(7); return [results, account.statement(), Object.keys(account).sort(), account instanceof Account]; })()",
+ // NY-36 (v56, ADR-130): the second probe is the caller key order „Számít” protects: it lists an instance's keys.
+ 'class-accounts-ts':["(() => { const account = new CreditAccount('Ana', 50); account.deposit(100); const results = [account.withdraw(120), account.withdraw(40), account.withdraw(5)]; account.deposit(7); return [results, account.statement(), Object.keys(account).sort(), account instanceof Account]; })()","JSON.stringify(new CreditAccount('Ana', 50))"],
 };
 
 const fixtures=[
@@ -185,16 +186,18 @@ fixtures.push(
   'function evaluate() {','  const seen = [];','  const handler = { get(object, key) { seen.push(key); return object[key]; } };','  const watched = new Proxy({ x: 1, y: 2 }, handler);','  return [sum(watched), seen];','}','function sum(point) {','  const x = point.x;','  const y = point.y;','  return x + y;','}']},
  {id:'contract-ts-destructure',origin:'contract',inputs:'valid',language:'typescript',probe:"shift([{ x: 1, y: 2 }, { x: 3, y: 4 }], 2)",source:[
   'interface Point {','  x: number;','  y: number;','}','function shift(points: Point[], by: number): Array<number | string> {','  const [first, second] = points;','  const dx = first.x + by;','  const dy = second.y - by;','  const label = `${dx}:${dy}`;','  return [dx, dy, label];','}']},
- {id:'contract-ts-this-reads',origin:'contract',inputs:'valid',language:'typescript',probe:'(() => { const basket = new Basket(); basket.items.push(4, 7); return basket.summary(); })()',source:[
+ // NY-36 (v56, ADR-130): a second probe is the caller „Számít” protects, listing the keys of an instance it made.
+ {id:'contract-ts-this-reads',origin:'contract',inputs:'valid',language:'typescript',probes:['(() => { const basket = new Basket(); basket.items.push(4, 7); return basket.summary(); })()','JSON.stringify(new Basket())'],source:[
   'class Basket {','  items: number[] = [];','  limit = 3;','  summary(): string[] {','    const count = this.items.length;','    const limit = this.limit;','    const first = this.items[0];','    return [String(count), String(limit), String(first)];','  }','}']}
 );
 const evaluateSource=(await readFile(new URL('./evaluate-ordering.js',import.meta.url),'utf8')).replace(/\r\n?/g,'\n').trimEnd().split('\n');
 fixtures.push({id:'evaluate-ordering',origin:'regression',language:'javascript',source:evaluateSource});
 for(const [id,probe] of Object.entries(library)){
  const model=JSON.parse(await readFile(new URL(`../../examples/${id}.json`,import.meta.url),'utf8'));
- fixtures.push({id,origin:'library',language:model.language,probe,source:model.lines.map(line=>line.code)});
+ const probing=Array.isArray(probe)?{probe:probe[0],probes:probe}:{probe};
+ fixtures.push({id,origin:'library',language:model.language,...probing,source:model.lines.map(line=>line.code)});
  // ADR-050: the same example under the `valid` input contract; its probe passes valid data.
- fixtures.push({id:id+'-valid',origin:'contract',inputs:'valid',language:model.language,probe,source:model.lines.map(line=>line.code)});
+ fixtures.push({id:id+'-valid',origin:'contract',inputs:'valid',language:model.language,...probing,source:model.lines.map(line=>line.code)});
 }
 // ADR-055: key order declared not part of the exercise (`keyOrder: 'ignored'`).
 fixtures.push(

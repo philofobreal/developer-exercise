@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased – 2026-11-10 v56: „Számít” a hívó felől is (ADR-130, NY-36)
+
+- **Javítva egy helyességi hiba:** „Számít” kulcssorrendnél eddig szabad volt egy objektum kulcsainak sorrendje, ha a program maga nem írta ki őket, akkor is, ha az objektumot visszaadta vagy a hívó maga is létrehozhatta.
+  - A hívó (például egy teszt) kiírhatja a kulcsokat, így a tanuló rossz sorrendje is elfogadott volt.
+  - A szállított `class-accounts-ts` példánál ez 51 hibás sorrendet jelentett egy kiíró hívó mellett.
+  - Most ezek a sorrendek kötöttek.
+- **Ami bizonyítottan nem jut ki** (függvényen belüli objektum, csak a tagjain keresztül használva), az továbbra is szabad. Az `accessor` mező sorrendje mindig szabad, mert a kulcsfelsorolás nem látja.
+- **A `class-accounts-ts` példa (rev 4)** „Nem számít” kulcssorrend-beállítást kapott, ahogy a leírása ígéri; az elfogadott sorrendjei nem változtak.
+- **Három TS minta** (`01-user-account`, `01-user-account.values-only`, `04-declare-fields`) szigorúbb lett, mert ott a kulcssorrend a hívó felől megfigyelhető.
+
 ## Unreleased – 2026-11-10 v55: változót olvasó objektumtulajdonságok (ADR-129, NY-35)
 
 - **A `start: origin` és a rövidített `{ name, age }` tulajdonságsor is felcserélhető,** ha az olvasott név egy paraméter, egy `var`, vagy egy már bizonyítottan inicializált `let`/`const`.

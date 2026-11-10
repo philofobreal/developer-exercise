@@ -2,12 +2,14 @@
   {
     "id": "01-user-account",
     "title": "UserAccount – a beküldött példa",
-    "description": "Az interface adatmezői, a kezdőérték nélküli class mezők és a konstruktor két független this-értékadása felcserélhetők, mert a program maga nem listázza a kulcsokat (ADR-029, ADR-031).",
+    "description": "Az interface adatmezői felcserélhetők (törlődnek). A kezdőérték nélküli class mezők és a konstruktor két this-értékadása „Számít” kulcssorrendnél kötött: a UserAccount szkriptszintű osztály, a hívó létrehozhat és kiírhat egy példányt, és látja a kulcsok sorrendjét (ADR-130). „Nem számít” mellett felcserélhetők (ADR-029, ADR-031).",
     "acceptedSwaps": [
       [
         2,
         3
-      ],
+      ]
+    ],
+    "rejectedSwaps": [
       [
         6,
         7
@@ -15,9 +17,7 @@
       [
         9,
         10
-      ]
-    ],
-    "rejectedSwaps": [
+      ],
       [
         5,
         13
@@ -83,18 +83,18 @@
   {
     "id": "04-declare-fields",
     "title": "Kifejezetten törölt declare mezők",
-    "description": "A declare mezők nem hoznak létre futásidejű property-t. A konstruktor két független értékadása is felcserélhető, mert a program nem listázza a kulcsokat (ADR-031).",
+    "description": "A declare mezők nem hoznak létre futásidejű property-t, ezért felcserélhetők. A konstruktor két értékadása „Számít” kulcssorrendnél kötött, mert a hívó kiírhatja a példány kulcsait (ADR-130); „Nem számít” mellett felcserélhető (ADR-031).",
     "acceptedSwaps": [
       [
         2,
         3
-      ],
-      [
-        5,
-        6
       ]
     ],
     "rejectedSwaps": [
+      [
+        5,
+        6
+      ],
       [
         4,
         8

@@ -19,7 +19,9 @@ import {createClassifier} from './support/order-classification.mjs';
 
 const environments=['strict','es2015','sloppy'];
 const setter=language=>['class B {',language==='typescript'?'  set f5(value: number) {':'  set f5(value) {',language==='typescript'?"    record('set', (this as any).g);":"    record('set', this.g);",'  }','}','class A extends B {','  f5 = 6;','  g = 7;','}','function evaluate() {','  const a = new A();','  return [a.g, a.f5];','}'];
-const fixture=(language,classFields)=>({id:`adr075-${language}-${classFields??'either'}`,origin:'adr-075',language,probe:'evaluate()',environments,source:setter(language),...(classFields?{classFields}:{})});
+// NY-36 (v56, ADR-130): these classes are script globals, which a caller may instantiate and list; the mechanism here
+// is what field code runs, checked where no one lists keys („Nem számít”).
+const fixture=(language,classFields)=>({id:`adr075-${language}-${classFields??'either'}`,origin:'adr-075',language,probe:'evaluate()',environments,keyOrder:'ignored',source:setter(language),...(classFields?{classFields}:{})});
 /** The verdict for moving the row `code` (trimmed) to just after the row `target`. */
 function verdict(program,code,target){
  const model=generate(program),order=model.lines.map(line=>line.id),at=text=>order.findIndex(id=>model.lines[id-1].code.trim()===text);
@@ -62,7 +64,8 @@ test('the oracle runs the setting independently: without it the define-only acce
 });
 
 test('the setting is part of the evidence, of the verification and of a refresh; an unknown value is refused',async()=>{
- const source=setter('javascript').join('\n'),either=generateCodeLineExercise({source},ts),define=generateCodeLineExercise({source,classFields:'define'},ts);
+ // „Nem számít”: the class is a script global, so with „Számít” its fields keep their order in either mode (NY-36).
+ const source=setter('javascript').join('\n'),either=generateCodeLineExercise({source,keyOrder:'ignored'},ts),define=generateCodeLineExercise({source,classFields:'define',keyOrder:'ignored'},ts);
  assert.equal(either.authoring.evidence.environment.classFields,'either');
  assert.equal(define.authoring.evidence.environment.classFields,'define');
  const libraryDir=path.dirname(ts.getDefaultLibFilePath({}));

@@ -47,9 +47,13 @@ for(const example of examples)test('public TS matrix: '+example.id,async()=>{
 
 test('exact screenshot is syntactically valid but has a different observable property order',async()=>{
  const source=await readFile(new URL('01-user-account.ts',directory),'utf8');
- const model=generateCodeLineExercise({source,language:'typescript'},ts),compiled=compile(model);
+ // NY-36 (v56, ADR-130): with key order „Számít” a caller may list a UserAccount's keys, so the different key order
+ // below is observable and the screenshot order is rejected; the rest of this test is the „Nem számít” contract.
+ const observed=generateCodeLineExercise({source,language:'typescript'},ts);
+ const model=generateCodeLineExercise({source,language:'typescript',keyOrder:'ignored'},ts),compiled=compile(model);
  const order=[1,2,3,4,5,7,6,8,10,9,11,12,13],changed=codes(model,order);
- // ADR-031: fields and constructor writes both swapped; only the unlisted key order differs.
+ assert.equal(grade(compile(observed),codes(observed,order)).status,'rejected');
+ // ADR-031: fields and constructor writes both swapped; only the key order differs, which „Nem számít” leaves out.
  assert.equal(grade(compiled,changed).status,'accepted');
  assert.equal(model.authoring.dependencyPolicy,DEPENDENCY_POLICY);
  assert.deepEqual(model.lines[1].dependencies,[1]);assert.deepEqual(model.lines[2].dependencies,[1]);assert.deepEqual(model.lines[3].dependencies,[2,3]);
@@ -107,7 +111,7 @@ test('whole independent member lists have exactly the expected full physical per
  }
 });
 
-for(const [name,source,yes,no] of [
+for(const [name,source,yes,no,options={}] of [
  ['trailing comment','interface X {\n a: number; // attached\n b: number;\n c: number;\n}',[[3,4]],[[2,3]]],
  ['multiline member','interface X {\n a:\n string;\n b: number;\n c: number;\n}',[[4,5]],[[2,4]]],
  ['shared row','interface X {\n a: number; b: number;\n c: number; d: number;\n}',[],[[2,3]]],
@@ -120,19 +124,23 @@ for(const [name,source,yes,no] of [
  ['static declare stays conservative','class X {\n declare static a: number;\n declare static b: number;\n}',[],[[2,3]]],
  // ADR-029: abstract fields emit nothing and run no code; the program lists no keys.
  ['abstract fields are free','abstract class X {\n abstract a: number;\n abstract b: number;\n}',[[2,3]],[]],
+ ['abstract fields are free with „Számít” too: they emit nothing (v56)','abstract class X {\n abstract a: number;\n abstract b: number;\n}',[[2,3]],[],{keyOrder:'observed'}],
  ['an initialiser that reads another field stays ordered','class X {\n a = 1;\n b = this.a + 1;\n}',[],[[2,3]]],
  // ADR-076 (v42): code that cannot name the instance cannot observe a loose field; code that can, stays ordered.
- ['an initialiser that runs code without the instance commutes','function f(): number { return 1; }\nclass X {\n a = f();\n b = 2;\n}',[[3,4]],[]],
+ ['an initialiser that runs code without the instance commutes','function f(): number { return 1; }\nclass X {\n a = f();\n b = 2;\n}',[[3,4]],[],{keyOrder:'ignored'}],
  ['an initialiser that runs code with the instance stays ordered','function f(o: object): number { return 1; }\nclass X {\n a = f(this);\n b = 2;\n}',[],[[3,4]]],
  ['literal fields are ordered when the program lists keys','class X {\n a = 1;\n b = 2;\n}\nconsole.log(Object.keys(new X()));',[],[[2,3]]],
- ['literal fields are free when the program lists no keys','class X {\n a = 1;\n b = [2, {c: "d"}];\n}\nconst x = new X();',[[2,3]],[]],
+ // NY-36 (v56, ADR-130): X is a script global; with „Számít” a caller may list a new X's keys.
+ ['literal fields are free when no one lists keys („Nem számít”)','class X {\n a = 1;\n b = [2, {c: "d"}];\n}\nconst x = new X();',[[2,3]],[],{keyOrder:'ignored'}],
+ ['literal fields of a global class keep their order with „Számít”','class X {\n a = 1;\n b = [2, {c: "d"}];\n}\nconst x = new X();',[],[[2,3]]],
+ ['literal fields of a class inside a function are free with „Számít”','function f(): number {\n class X {\n  a = 1;\n  b = [2, {c: "d"}];\n }\n const x = new X();\n return x.a;\n}',[[3,4]],[]],
  ['decorated member stays attached','function tag(...args: unknown[]): void {}\nclass X {\n @tag\n declare a: number;\n declare b: number;\n declare c: number;\n}',[[5,6]],[[3,5],[4,5]]],
  ['readonly declare','class X {\n declare readonly a: number;\n declare readonly b: number;\n}',[[2,3]],[]],
  // ADR-068 (v34): an `accessor` field whose initialiser runs no code is loose like an instance field.
  ['auto accessors','class X {\n accessor a = 1;\n accessor b = 2;\n}',[[2,3]],[]],
  ['auto accessors are ordered when the program lists keys','class X {\n accessor a = 1;\n accessor b = 2;\n}\nconsole.log(Object.getOwnPropertyNames(X.prototype));',[],[[2,3]]]
 ])test('mixed TS member edge: '+name,()=>{
- const model=generateCodeLineExercise({source,language:'typescript'},ts),compiled=compile(model),order=model.lines.map(line=>line.id);
+ const model=generateCodeLineExercise({source,language:'typescript',...options},ts),compiled=compile(model),order=model.lines.map(line=>line.id);
  assert.equal(grade(compiled,codes(model,order)).status,'accepted');
  for(const pair of yes)assert.equal(grade(compiled,codes(model,swap(order,...pair))).status,'accepted');
  for(const pair of no)assert.equal(grade(compiled,codes(model,swap(order,...pair))).status,'rejected');
@@ -146,21 +154,24 @@ test('500-row member model keeps the compiler boundary and accepts a reverse mem
 });
 
 test('all eight interface/class/constructor combinations agree with both compiler modes',async()=>{
- const source=await readFile(new URL('01-user-account.ts',directory),'utf8'),model=generateCodeLineExercise({source,language:'typescript'},ts),compiled=compile(model);
+ const source=await readFile(new URL('01-user-account.ts',directory),'utf8');
  const authored=compile(JSON.parse(await readFile(new URL('01-user-account.values-only.model.json',directory),'utf8')));
- const reference=model.lines.map(line=>line.id),baselines=[false,true].map(define=>run(source,examples[0].probe,define));let accepted=0;
- for(const types of [false,true])for(const fields of [false,true])for(const writes of [false,true]){
-  let order=reference;if(types)order=swap(order,2,3);if(fields)order=swap(order,6,7);if(writes)order=swap(order,9,10);
-  // ADR-029: the program lists no keys, so equal values and an equal key set are the same behaviour.
-  const observe=value=>{const result=JSON.parse(value);return JSON.stringify([result.name,result.id,[...result.keys].sort()]);};
-  const lines=codes(model,order),actuals=[false,true].map(define=>run(lines.join('\n'),examples[0].probe,define)),equivalent=actuals.every((value,index)=>observe(value)===observe(baselines[index]));
-  // Exact (ADR-031 closed the constructor gap): accepted precisely when behaviour is kept.
-  const verdict=grade(compiled,lines).accepted;
-  assert.equal(verdict,equivalent,JSON.stringify({types,fields,writes}));if(verdict)accepted++;
-  assert.equal(grade(authored,lines).status,'accepted');
-  for(const value of actuals){const result=JSON.parse(value);assert.equal(result.name,'Murphy');assert.equal(result.id,1);}
+ // NY-36 (v56, ADR-130): „Számít” compares the key order a caller sees; „Nem számít” (ADR-029) the key set.
+ for(const [keyOrder,sorted,expected] of [['observed',false,2],['ignored',true,8]]){
+  const model=generateCodeLineExercise({source,language:'typescript',keyOrder},ts),compiled=compile(model);
+  const reference=model.lines.map(line=>line.id),baselines=[false,true].map(define=>run(source,examples[0].probe.replace('.sort()',''),define));let accepted=0;
+  for(const types of [false,true])for(const fields of [false,true])for(const writes of [false,true]){
+   let order=reference;if(types)order=swap(order,2,3);if(fields)order=swap(order,6,7);if(writes)order=swap(order,9,10);
+   const observe=value=>{const result=JSON.parse(value);return JSON.stringify([result.name,result.id,sorted?[...result.keys].sort():result.keys]);};
+   const lines=codes(model,order),actuals=[false,true].map(define=>run(lines.join('\n'),examples[0].probe.replace('.sort()',''),define)),equivalent=actuals.every((value,index)=>observe(value)===observe(baselines[index]));
+   // Exact (ADR-031 closed the constructor gap): accepted precisely when behaviour is kept.
+   const verdict=grade(compiled,lines).accepted;
+   assert.equal(verdict,equivalent,JSON.stringify({keyOrder,types,fields,writes}));if(verdict)accepted++;
+   assert.equal(grade(authored,lines).status,'accepted');
+   for(const value of actuals){const result=JSON.parse(value);assert.equal(result.name,'Murphy');assert.equal(result.id,1);}
+  }
+  assert.equal(accepted,expected,keyOrder);
  }
- assert.equal(accepted,8);
 });
 
 test('mixed type-member DAG keeps fixed slots, common edges, OR profiles, text bijection and budget',()=>{

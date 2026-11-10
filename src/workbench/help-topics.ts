@@ -72,7 +72,7 @@ const GROUPS:readonly HelpGroup[]=[
   {id:'classFields',title:'Osztálymezők létrehozása',summary:'A régi értékadásos módban egy mező létrehozása lefuttatja az ős azonos nevű setterét, ezért az ilyen mezők sorrendje kötött. Ne válaszd, ha a kódot régebbi célra fordítják.',body:[
    'A „Csak szabványos” a natív osztálymezőket (useDefineForClassFields: true) feltételezi: a mező definíció, nem értékadás, az ős settere nem fut le.'],
    example:{kind:'order',language:'javascript',source:"class B {\n  set f5(value) {\n    record('set', this.g);\n  }\n}\nclass A extends B {\n  f5 = 6;\n  g = 7;\n}\nfunction evaluate() {\n  const a = new A();\n  return [a.g, a.f5];\n}",swap:[7,8],outcomes:[
-    {settings:{classFields:'either'},label:'Mindkét mód',accepted:false},{settings:{classFields:'define'},label:'Csak szabványos',accepted:true}]}},
+    {settings:{classFields:'either',keyOrder:'ignored'},label:'Mindkét mód, kulcssorrend: Nem számít',accepted:false},{settings:{classFields:'define',keyOrder:'ignored'},label:'Csak szabványos, kulcssorrend: Nem számít',accepted:true}]}},
   {id:'importEmit',title:'Importok kibocsátása (TypeScript)',summary:'A buildbeállításod szerint: verbatimModuleSyntax / preserveValueImports esetén verbatim. Az import-sorok szabadsága ettől függ.',body:[
    'Verbatim módban minden import betölti a modulját, ezért az importok sorrendje futási sorrend. Ha a csak típusként használt import kimarad a kimenetből, az a sor szabad.'],
    example:{kind:'order',language:'typescript',source:"import { make } from './make';\nimport { Shape } from './shape';\nconst shape: Shape = make();",swap:[1,2],outcomes:[

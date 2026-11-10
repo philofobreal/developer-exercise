@@ -10,8 +10,10 @@ import {compileCodeLineExercise,validateSubmission} from '../dist/index.js';
 import {createOracle} from './support/semantic-oracle.mjs';
 import {objectFixtures} from './fixtures/object-programs.mjs';
 
-const prepare=id=>{
- const fixture=objectFixtures.get(id),model=generateCodeLineExercise({source:fixture.source.join('\n'),language:fixture.language},ts),{compiled}=compileCodeLineExercise(model);
+// NY-36 (v56, ADR-130): these classes are script globals, which a caller may instantiate and list; the commutation
+// mechanism is checked where no one lists keys („Nem számít”), the listing cases with „Számít”.
+const prepare=(id,keyOrder='ignored')=>{
+ const fixture={...objectFixtures.get(id),keyOrder},model=generateCodeLineExercise({source:fixture.source.join('\n'),language:fixture.language,keyOrder},ts),{compiled}=compileCodeLineExercise(model);
  const judge=createOracle(fixture),reference=model.lines.map(line=>line.code);
  const swap=(a,b)=>{const lines=[...reference],i=lines.findIndex(line=>line.trim()===a),j=lines.findIndex(line=>line.trim()===b);assert.ok(i>=0&&j>=0,a+' / '+b);[lines[i],lines[j]]=[lines[j],lines[i]];return lines;};
  return {model,swap,check:(lines,accepted,why)=>{
@@ -27,6 +29,11 @@ test('independent constructor writes commute; the policy is v15',()=>{
  c.check(c.swap('this.x = x;',"this.label = 'p';"),true,'a parameter is only stored');
 });
 
+test('NY-36: with key order „Számít” a global class\'s independent constructor writes keep their order',()=>{
+ const c=prepare('ctor-independent-writes','observed');
+ c.check(c.swap('this.x = x;','this.y = y;'),false,'a caller may list the keys of a new instance');
+});
+
 test('a read after a write keeps its order, an unrelated write does not',()=>{
  const c=prepare('ctor-read-after-write');
  c.check(c.swap('this.a = 1;','this.b = this.a + 1;'),false,'b reads a');
@@ -36,7 +43,7 @@ test('a read after a write keeps its order, an unrelated write does not',()=>{
 test('an escaped this, a key-listing program and a derived class stay ordered',()=>{
  const escape=prepare('ctor-escape');
  escape.check(escape.swap('this.b = 2;','this.c = 3;'),false,'register(this) hands this to unknown code');
- const listing=prepare('ctor-enumerates');
+ const listing=prepare('ctor-enumerates','observed');
  listing.check(listing.swap('this.a = 1;','this.b = 2;'),false,'JSON.stringify sees the key order');
  const derived=prepare('ctor-derived');
  derived.check(derived.swap('this.a = 1;','this.b = 2;'),false,'a derived constructor is not analysed');

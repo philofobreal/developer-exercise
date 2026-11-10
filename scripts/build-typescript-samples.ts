@@ -28,7 +28,10 @@ for (const example of examples) {
   valuesOnly.description = 'Csak a user.name és user.id értékét őrizd meg. Az interface mezők, class mezők és a két független this-értékadás cserélhető; a kulcssorrend nem része ennek a feladatnak.';
   const dependencies = [[], [1], [1], [2,3], [4], [5], [5], [6,7], [8], [8], [9,10], [11], [12]];
   valuesOnly.lines.forEach((line, index) => {line.dependencies = dependencies[index]!;});
-  valuesOnly.authoring = {...model.authoring, strategy: 'manual-value-contract', semanticEquivalenceProven: false, note: 'Kézzel szűkített oktatási szerződés: csak a name/id érték számít, az Object.keys és a létrehozási sorrend nem. Kizárólag ehhez a mellékhatásmentes, öröklés/setter nélküli mintához készült; nem általános TS ekvivalencia. A függőségfrissítés visszaállítja a konzervatív generált szabályokat.'};
+  // NY-36 (v56, ADR-130): its contract says key order is not part of it, so it records „Nem számít”; with „Számít” a
+  // caller may list the instance's keys and the generated rules keep the field order.
+  const recorded = model.authoring!.evidence!;
+  valuesOnly.authoring = {...model.authoring, evidence: {...recorded, environment: {...recorded.environment, keyOrder: 'ignored'}}, strategy: 'manual-value-contract', semanticEquivalenceProven: false, note: 'Kézzel szűkített oktatási szerződés: csak a name/id érték számít, az Object.keys és a létrehozási sorrend nem. Kizárólag ehhez a mellékhatásmentes, öröklés/setter nélküli mintához készült; nem általános TS ekvivalencia. A függőségfrissítés visszaállítja a konzervatív generált szabályokat.'};
   delete valuesOnly.authoring.dependencyPolicy;
   // Hand-written dependencies are the author's rules, not the generated ones (ADR-014).
   valuesOnly.authoring.provenance = valuesOnly.lines.flatMap(line => line.dependencies.map(before => ({before, after: line.id, category: 'author' as const, code: 'manual-value-contract'})));

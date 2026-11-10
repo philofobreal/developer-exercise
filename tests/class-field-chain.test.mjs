@@ -39,13 +39,15 @@ test('JavaScript too: an ES2015 down-level emit assigns fields, so a base setter
  clean(program);
 });
 
-test('no base defines the names: the loose fields commute',()=>{
+test('no base defines the names: the loose fields commute where no one lists the keys',()=>{
  const program=fixture('adr073-free',['class B {','  h = 1;','}','class A extends B {','  f5 = 6;','  g = 7;','}',...evaluate]);
- assert.equal(verdict(program,'f5 = 6;','g = 7;'),'accepted');
- clean(program);
+ // NY-36 (v56, ADR-130): A is a script global; with key order „Számít” a caller may list a new instance's keys.
+ assert.equal(verdict(program,'f5 = 6;','g = 7;'),'intent');
+ assert.equal(verdict({...program,keyOrder:'ignored'},'f5 = 6;','g = 7;'),'accepted');
+ clean(program);clean({...program,keyOrder:'ignored'});
 });
 
-test('a base method, field or computed method is a writable data property: the loose fields commute',()=>{
+test('a base method, field or computed method is a writable data property: the loose fields commute (a base field\'s key exists already, v56)',()=>{
  const program=fixture('adr073-data',['class B {','  f5(): number {','    return 1;','  }','  g = 2;',"  [record('k') ?? 'k'](): string {","    return 'k';",'  }','}','class A extends B {','  f5 = 6;','  g = 7;','}',...evaluate]);
  assert.equal(verdict(program,'f5 = 6;','g = 7;'),'accepted');
  clean(program);

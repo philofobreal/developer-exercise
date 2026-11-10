@@ -12,7 +12,9 @@ import {generate,measureFixture,CORPUS_CAPS} from './support/ordering-metrics.mj
 import {createClassifier} from './support/order-classification.mjs';
 
 const environments=['strict','es2015','sloppy'];
-const fixture=(id,source,language='javascript')=>({id,origin:'adr-078',language,probe:'evaluate()',environments,source});
+// NY-36 (v56, ADR-130): these classes are script globals, which a caller may instantiate and list; the mechanism here
+// is what field code runs, checked where no one lists keys („Nem számít”).
+const fixture=(id,source,language='javascript')=>({id,origin:'adr-078',language,probe:'evaluate()',environments,keyOrder:'ignored',source});
 /** The verdict for moving the row `code` (trimmed) to just after the row `target`; a one-row member moves whole. */
 function verdict(program,code,target){
  const model=generate(program),order=model.lines.map(line=>line.id),at=text=>order.findIndex(id=>model.lines[id-1].code.trim()===text);
@@ -72,7 +74,8 @@ test('the definition left last decides what an assignment runs',()=>{
 });
 
 test('a private field is loose although the program lists keys; public keys keep their order',()=>{
- const p=fixture('adr078-private',['class A {','  f0 = 4;','  #h = 7;','  f1 = 5;','  get h() {','    return this.#h;','  }','}','function evaluate() {','  const a = new A();','  return [a.h, JSON.stringify(a)];','}']);
+ // The program lists the keys: „Számít” is what this case is about.
+ const p={...fixture('adr078-private',['class A {','  f0 = 4;','  #h = 7;','  f1 = 5;','  get h() {','    return this.#h;','  }','}','function evaluate() {','  const a = new A();','  return [a.h, JSON.stringify(a)];','}']),keyOrder:'observed'};
  assert.equal(verdict(p,'#h = 7;','f1 = 5;'),'accepted');
  assert.equal(verdict(p,'f0 = 4;','f1 = 5;'),'justified','JSON.stringify lists the public keys in order');
  clean(p);

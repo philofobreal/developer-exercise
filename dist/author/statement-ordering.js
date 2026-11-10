@@ -909,7 +909,7 @@ export function statementOrdering(file, compiler, options = {}) {
                 summaries.push(summary(statement, node));
             // ADR-025: in a function-context list, statements on the list's own objects get footprints.
             if (compiler.isBlock(node) && context(node) !== file) {
-                const footprints = objectFootprints(node.statements, file, compiler, checker, { primitive: expr => primitive(expr, new Set()), plainData, assignable, enumeratedKeys: options.enumeratedKeys ?? true, entry });
+                const footprints = objectFootprints(node.statements, file, compiler, checker, { primitive: expr => primitive(expr, new Set()), plainData, assignable, enumeratedKeys: options.enumeratedKeys ?? true, observedKeys: options.keyOrder !== 'ignored', entry });
                 summaries.forEach((unit, i) => {
                     const statement = node.statements[i], footprint = footprints.get(statement);
                     // ADR-028: an if/else owns its first and last rows; its branch rows follow their own block.
