@@ -35,6 +35,8 @@ try:
             page.goto(f'http://127.0.0.1:{server.server_port}/developer-exercise/', wait_until='networkidle')
             report = page.evaluate('''async () => {
                 const load = path => import(new URL(path, location.href));
+                // ADR-125: the shipped compiler is the Local Demo worker's module (it sets globalThis.ts); the page no longer loads it.
+                await load('vendor/typescript.mjs');
                 const core = await load('dist/index.js');
                 const {LanguageEngine, createLegacyJSTSBridge} = await load('dist/author/engine.js');
                 const {generateCodeLineExercise} = await load('author/generator.mjs');

@@ -34,6 +34,15 @@ export function refreshAuthorStatus(root:HTMLElement,state:WorkbenchState):void 
  else if(!pending)step?.querySelector('.dirty-dot')?.remove();
 }
 export type LearnerField='title'|'description'|'level';
+/** ADR-125: a model's CodeLine JSON, as the JSON editor shows it, serialized once per model object. A model is never
+ *  changed in place (setLearnerData makes a new one), so the cached text cannot go out of date; this keeps the
+ *  "unapplied JSON" question cheap enough for every control of a 500-row board to ask it. */
+const serialized=new WeakMap<CodeLineExercise,string>();
+export function modelJson(model:CodeLineExercise):string {
+ let text=serialized.get(model);
+ if(text===undefined){text=JSON.stringify(model,null,2);serialized.set(model,text);}
+ return text;
+}
 const LEVELS:readonly ExerciseLevel[]=['beginner','intermediate','advanced'];
 const isLevel=(value:string):value is ExerciseLevel=>(LEVELS as readonly string[]).includes(value);
 /** ADR-123 (M5): the learner-facing text of the task (title, description, level) is set in the Próba és kiadás step and
@@ -44,7 +53,9 @@ const isLevel=(value:string):value is ExerciseLevel=>(LEVELS as readonly string[
 export function setLearnerData(state:WorkbenchState,field:string,value:string):boolean {
  if(field!=='title'&&field!=='description'&&field!=='level')return false;
  if(field==='level'&&value!==''&&!isLevel(value))return false;
- const model=state.authorModel,applied=!!model&&state.modelDraft===JSON.stringify(model,null,2);
+ const current=state.authorModel,applied=!!current&&state.modelDraft===modelJson(current);
+ // A new model object, never an in-place change: its cached JSON (modelJson) belongs to the old one.
+ const model=current?{...current}:undefined;if(model)state.authorModel=model;
  const targets:{title:string;description:string;level?:ExerciseLevel|''}[]=[state.author];
  if(state.authorBaseline)targets.push(state.authorBaseline);
  const listed=model?state.exercises.find(exercise=>exercise.id===model.id):undefined;
@@ -54,7 +65,7 @@ export function setLearnerData(state:WorkbenchState,field:string,value:string):b
   else if(isLevel(value))target.level=value;
   else delete target.level;
  }
- if(model&&applied)state.modelDraft=JSON.stringify(model,null,2);
+ if(model&&applied)state.modelDraft=modelJson(model);
  return true;
 }
 const nextRequest=(state:WorkbenchState):number=>state.authorRequestGeneration=(state.authorRequestGeneration??0)+1;

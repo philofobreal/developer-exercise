@@ -27,7 +27,6 @@
 | NY-29 | **„Érvényes adat → szigorú lett” a beállítássávban.** A kért és a hatályos bemeneti szerződés különbsége ma csak a generátor szöveges megjegyzésében él | felület | a tanár nem látja egy pillantással, hogy a kódja miatt a „valid” nem érvényesült | [ADR-122](adr/122-task-status-for-the-teacher.md), [ADR-123](adr/123-steps-reassigned-and-one-skeleton.md) | strukturált mező a modell bizonyítékában (`AnalysisEnvironment`); sémaváltozás a szerzői elemzésben |
 | NY-30 | **Három felület a CSS-ben:** a panel, a beágyazott és a lebegő felület összevonása; az értesítés már egységes | tervezés | a keretes dobozok több, időben eltérően épült változata | [ADR-123](adr/123-steps-reassigned-and-one-skeleton.md) | osztálykészlet a panelekre, a régi változatok kivezetése az elrendezés-kapu mellett |
 | NY-31 | **Súgó: „Kipróbálom” és kiemelt kód.** A példa nem nyitható meg a Kód lépésben; a buborék és az oldal kódja kiemelés nélküli | felület | alacsony | [ADR-124](adr/124-help-from-one-source.md) | a példa betöltése szerzői előnézetként, a Local Demo jelzéssel |
-| NY-32 | **Modellkészítés háttérszálon.** 500 soros, mélyen tagolt forrásnál a generálás kb. 2 s; a Pages-en a fő szálon fut, a felület addig áll | felület | a Local Demo nagy forrásnál megakad | – | Web Worker a generátorhoz és az első kapuhoz, a szerver útvonala változatlan |
 | NY-33 | **A v3 egységmodell bekötése a szerzői láncba** (overload-csoport, `});` jellegű lezáró sorok egységként) | tervezés | mért haszon nincs (az NY-04 lezárásakor) | [ADR-079](adr/079-overload-header-blocks.md) | külön epic, saját tervezési körrel |
 
 ## Elfogadott korlátok (nem rések, nem javítandók)
@@ -45,6 +44,7 @@
 
 | Tétel | Lezárta |
 | --- | --- |
+| NY-32: modellkészítés háttérszálon a Local Demóban; a leghosszabb fő szálas feladat 2,4–2,6 s helyett kb. 140 ms (a `jsonPending` gyorsítótárával együtt) | [ADR-125](adr/125-local-demo-engine-in-a-worker.md) |
 | NY-27: a hosszú sor teljes szövege telefonon: a kijelölt sor sávja a sort egészében, tördelve mutatja | [ADR-118](adr/118-picked-row-action-bar.md) (kiegészítés, 2026-11-10) |
 | A `param` rés a `valid` szerződés alatt: a saját tömbre írás (`out.push(c0)`) és az olvasási egységek sorrendje (v52); a 7-es mag 19 → 0 rés | [ADR-102](adr/102-valid-reads-commute-with-own-objects.md) |
 | NY-06: tiszta műveletek és beépített hívások a `valid` szerződés alatt (v51); a `stats-js` tanú rése 6 → 0, a két statisztikapélda felvéve | [ADR-099](adr/099-valid-plain-operations.md) |

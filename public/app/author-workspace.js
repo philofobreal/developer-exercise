@@ -35,6 +35,18 @@ export function refreshAuthorStatus(root, state) {
     else if (!pending)
         step?.querySelector('.dirty-dot')?.remove();
 }
+/** ADR-125: a model's CodeLine JSON, as the JSON editor shows it, serialized once per model object. A model is never
+ *  changed in place (setLearnerData makes a new one), so the cached text cannot go out of date; this keeps the
+ *  "unapplied JSON" question cheap enough for every control of a 500-row board to ask it. */
+const serialized = new WeakMap();
+export function modelJson(model) {
+    let text = serialized.get(model);
+    if (text === undefined) {
+        text = JSON.stringify(model, null, 2);
+        serialized.set(model, text);
+    }
+    return text;
+}
 const LEVELS = ['beginner', 'intermediate', 'advanced'];
 const isLevel = (value) => LEVELS.includes(value);
 /** ADR-123 (M5): the learner-facing text of the task (title, description, level) is set in the Próba és kiadás step and
@@ -47,7 +59,11 @@ export function setLearnerData(state, field, value) {
         return false;
     if (field === 'level' && value !== '' && !isLevel(value))
         return false;
-    const model = state.authorModel, applied = !!model && state.modelDraft === JSON.stringify(model, null, 2);
+    const current = state.authorModel, applied = !!current && state.modelDraft === modelJson(current);
+    // A new model object, never an in-place change: its cached JSON (modelJson) belongs to the old one.
+    const model = current ? { ...current } : undefined;
+    if (model)
+        state.authorModel = model;
     const targets = [state.author];
     if (state.authorBaseline)
         targets.push(state.authorBaseline);
@@ -65,7 +81,7 @@ export function setLearnerData(state, field, value) {
             delete target.level;
     }
     if (model && applied)
-        state.modelDraft = JSON.stringify(model, null, 2);
+        state.modelDraft = modelJson(model);
     return true;
 }
 const nextRequest = (state) => state.authorRequestGeneration = (state.authorRequestGeneration ?? 0) + 1;

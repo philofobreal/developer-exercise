@@ -3,12 +3,15 @@ import assert from 'node:assert/strict';
 import {readFile,stat,access,readdir} from 'node:fs/promises';
 import {compileCodeLineExercise,validateSubmission} from '../dist/index.js';
 const file=p=>new URL('../_site/'+p,import.meta.url);
-test('Pages artifact has relative entrypoints and local compiler',async()=>{
+test('Pages artifact has relative entrypoints and a local compiler for the worker, not the page',async()=>{
  const html=await readFile(file('index.html'),'utf8');
  assert.match(html,/src="\.\/ui\.js"/);
- assert.match(html,/src="\.\/vendor\/typescript\.js"/);
+ // ADR-125: the compiler is the worker's; the page never loads it.
+ assert.doesNotMatch(html,/vendor\/typescript\.m?js/);
  assert.doesNotMatch(html,/src="\/|href="\//);
- assert.ok((await stat(file('vendor/typescript.js'))).size>1000000);
+ assert.ok((await stat(file('vendor/typescript.mjs'))).size>1000000);
+ assert.match(await readFile(file('vendor/typescript.mjs'),'utf8'),/\nglobalThis\.ts = ts;\n$/);
+ assert.match(await readFile(file('app/pages-worker.js'),'utf8'),/import '\.\.\/vendor\/typescript\.mjs';\s*import \* as engine from '\.\/pages-api\.js';/);
  assert.ok((await stat(file('dist/validator.js'))).size>1000);
  assert.ok((await stat(file('author/generator.mjs'))).size>1000);
  // ADR-011/013 wiring, re-rooted for the one-level-shallower static author folder.
@@ -25,7 +28,8 @@ test('Python author-probe infrastructure and WASM are not published as a product
 test('Browser uses static API and original business modules',async()=>{
  const api=await readFile(file('app/api.js'),'utf8');
  const pagesApi=await readFile(file('app/pages-api.js'),'utf8');
- assert.match(api,/pages-api\.js/);
+ // ADR-125: the page's API is the worker client; the engine behind it is pages-api.
+ assert.equal(api,"export * from './local-demo.js';\n");assert.match(await readFile(file('app/local-demo.js'),'utf8'),/pages-worker\.js/);
  assert.match(pagesApi,/validateSubmission/);
  assert.doesNotMatch(pagesApi,/\/api\/evaluate|\/api\/author/);
  // ADR-035: the manifest lists exactly what the catalog gate served; every example is accounted for.

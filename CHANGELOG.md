@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-10 a Local Demo nem áll meg modellkészítés közben (ADR-125)
+
+- **A Pages-en a modellkészítés háttérszálon fut.** A 436 soros TypeScript minta elemzése alatt a felület eddig kb. 2,4 másodpercig nem reagált; most a leghosszabb megakadás kb. 0,14 másodperc.
+- **A TypeScript-fordító is a háttérszálban töltődik be,** a főoldal így gyorsabban indul.
+- **Javítva:** a Szabályok lépés kirajzolásakor minden szabályvezérlő a teljes modellt újraszerializálta. Nagy modellnél ez magában fél másodperc volt, és a szerveres módban is lassított.
+
 ## Unreleased – 2026-11-10 lezárás: a kijelölt sor teljes szövege, frissített jegyzék (F6)
 
 - **Telefonon a kijelölt sor egészében olvasható:** a sor sávja a teljes kódsort mutatja, tördelve, akkor is, ha a listában csak az eleje fér ki (NY-27 lezárva).

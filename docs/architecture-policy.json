@@ -45,6 +45,9 @@
     "src/workbench/preflight-settings.ts": "public/app/preflight-settings.js",
     "src/workbench/task-status.ts": "public/app/task-status.js",
     "src/workbench/help-topics.ts": "public/app/help-topics.js",
-    "src/workbench/help-search.ts": "public/app/help-search.js"
+    "src/workbench/help-search.ts": "public/app/help-search.js",
+    "src/workbench/worker-rpc.ts": "public/app/worker-rpc.js",
+    "src/workbench/local-demo.ts": "public/app/local-demo.js",
+    "src/workbench/pages-worker.ts": "public/app/pages-worker.js"
   }
 }

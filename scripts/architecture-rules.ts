@@ -22,7 +22,9 @@ export function inspectModule(file:string,source:string):Violation[]{
   if(core&&!resolved.startsWith('src/core/'))report('core-boundary','Core must remain independent of browser, author, transport and Node libraries: '+specifier);
   const owners=internalOwners[resolved.replace(/^dist\//,'src/core/').replace(/\.ts$/,'.js')];
   if(owners&&!owners.includes(normalized))report('information-hiding',`${specifier} hides one decision for ${owners.join(', ')} only (ADR-037).`);
-  if(ui&&!(resolved.startsWith('src/workbench/')||specifier==='../formatter.js'||typeOnly&&resolved.startsWith('dist/')))report('presentation-boundary','Presentation may use only its own modules, explicit formatter port and domain types: '+specifier);
+  // ADR-125: the Local Demo worker's one compiler port, for that file and that import only.
+  const workerCompiler=normalized==='src/workbench/pages-worker.ts'&&specifier==='../vendor/typescript.mjs';
+  if(ui&&!(resolved.startsWith('src/workbench/')||specifier==='../formatter.js'||workerCompiler||typeOnly&&resolved.startsWith('dist/')))report('presentation-boundary','Presentation may use only its own modules, explicit formatter port and domain types: '+specifier);
   const authorEngine=normalized==='src/author/engine.ts'&&resolved==='dist/index.js';
   // Explicit ADR-007/008/011 migration wiring: legacy author MJS → compiled typed author modules.
   const typedMemberProjection=typedAuthorWiring.has(normalized+' -> '+resolved);

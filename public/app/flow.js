@@ -1,4 +1,4 @@
-import { authorDraftPending, evidenceStale } from './author-workspace.js';
+import { authorDraftPending, evidenceStale, modelJson } from './author-workspace.js';
 import { activateView } from './interactions.js';
 import { taskStatus } from './task-status.js';
 import { escapeHtml as esc } from './ui-utilities.js';
@@ -13,7 +13,7 @@ export const authorPreviewId = (state) => state.previews.keys().next().value ?? 
 export const continuityKey = (state) => (state.mode === 'author' ? 'author-project' : state.active ?? 'none') + ':' + state.mode;
 export function jsonPending(state) {
     const model = authorPreviewId(state) ? state.authorModel : undefined;
-    return !!state.modelDraft && (!model || state.modelDraft !== JSON.stringify(model, null, 2));
+    return !!state.modelDraft && (!model || state.modelDraft !== modelJson(model));
 }
 /** Why the steps after the source no longer show the latest author intent, or ''. */
 export function staleReason(state) {

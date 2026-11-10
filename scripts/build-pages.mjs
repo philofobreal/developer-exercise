@@ -32,7 +32,9 @@ await copyFile(path.join(root,'docs/codeline-v3.schema.json'),path.join(out,'cod
 await copyFile(path.join(root,'src/core/LICENSE-ajv.txt'),path.join(out,'vendor/LICENSE-ajv.txt'));
 const tsSource=require.resolve('typescript/lib/typescript.js');
 await mkdir(path.join(out,'vendor'),{recursive:true});
-await copyFile(tsSource,path.join(out,'vendor','typescript.js'));
+// ADR-125 (NY-32): the compiler runs in the Local Demo's worker, as a module: the shipped file unchanged, its global
+// handed on (`globalThis.ts`), so the worker imports it and the main thread never parses it.
+await writeFile(path.join(out,'vendor','typescript.mjs'),readFileSync(tsSource,'utf8')+'\nglobalThis.ts = ts;\n');
 await copyFile(path.join(path.dirname(path.dirname(tsSource)),'LICENSE.txt'),path.join(out,'vendor','LICENSE-typescript.txt'));
 // ADR-113: the standard library the server's language audit reads (lib.es2022.full.d.ts and what it references),
 // so the Local Demo audits as the server does. Fetched once, on the first author action.
@@ -45,11 +47,9 @@ await copyFile(path.join(path.dirname(path.dirname(tsSource)),'LICENSE.txt'),pat
 let index=await readFile(path.join(out,'index.html'),'utf8');
 index=index.replaceAll('href="/','href="./').replaceAll('src="/','src="./');
 index=index.replace('<title>CodeLineSorter</title>','<title>CodeLineSorter – GitHub Pages demo</title>');
-index=index.replace('<script type="module" src="./ui.js"></script>',
-  '<script src="./vendor/typescript.js"></script>\n<script type="module" src="./ui.js"></script>');
 await writeFile(path.join(out,'index.html'),index);
 let api=await readFile(path.join(out,'app/api.js'),'utf8');
-api="export * from './pages-api.js';\n";
+api="export * from './local-demo.js';\n";
 await writeFile(path.join(out,'app/api.js'),api);
 // The pure author and validator modules are browser-safe ESM. A Node backend is NOT deployed.
 console.log('GitHub Pages demo created:',out,'reference exercises:',served.length);
