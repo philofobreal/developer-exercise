@@ -510,7 +510,11 @@ def pick_actions(browser):
         assert not page.locator('.source-zone .row-actions [data-move]').first.is_visible(),'no row control over the code on a touch screen'
         first=page.locator('.source-zone .code-row').first;text=first.locator('.code-text').inner_text()
         first.locator('.code-text').tap();expect(page.locator('.pick-bar')).to_be_visible();expect(page.locator('[data-check]')).to_have_count(0)
-        expect(page.locator('.pick-bar .pick-status')).to_contain_text('Felhasználható sor');page.locator('.pick-bar [data-move]').tap()
+        expect(page.locator('.pick-bar .pick-status')).to_contain_text('Felhasználható sor')
+        # NY-27: the bar shows the picked row whole, wrapped inside the screen.
+        expect(page.locator('.pick-bar [data-pick-code]')).to_have_text(text.strip())
+        assert page.locator('.pick-bar [data-pick-code]').evaluate('e=>e.scrollWidth<=e.clientWidth&&e.getBoundingClientRect().right<=innerWidth'),'the picked row wraps inside the screen'
+        page.locator('.pick-bar [data-move]').tap()
         expect(page.locator('.pick-bar')).to_have_count(0);expect(page.locator('[data-check]')).to_be_visible()
         placed=page.locator('.solution-zone .code-row:not(.blank-row)').first;expect(placed.locator('.code-text')).to_have_text(text);start=int(placed.get_attribute('data-index'))
         placed.locator('.code-text').tap();expect(page.locator('.pick-bar .pick-status')).to_contain_text(f'A megoldás {start+1}. sora')

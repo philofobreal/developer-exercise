@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-11-10 lezárás: a kijelölt sor teljes szövege, frissített jegyzék (F6)
+
+- **Telefonon a kijelölt sor egészében olvasható:** a sor sávja a teljes kódsort mutatja, tördelve, akkor is, ha a listában csak az eleje fér ki (NY-27 lezárva).
+- **A nyitott tételek jegyzéke** ([docs/nyitott-tetelek.md](docs/nyitott-tetelek.md)):
+  - a fejléc a mai állapotot és szabályverziót írja (v53);
+  - az utóbbi döntések rögzített maradékai új tételek: NY-29 „érvényes adat → szigorú” jelzés, NY-30 a felületek összevonása, NY-31 a súgó „Kipróbálom” gombja, NY-32 modellkészítés háttérszálon, NY-33 a v3 egységmodell.
+
 ## Unreleased – 2026-11-10 súgó egy forrásból, ellenőrzött példákkal (ADR-124)
 
 - **Súgóoldal** (`help/index.html`):

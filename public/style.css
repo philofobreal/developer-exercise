@@ -670,3 +670,6 @@ button.btn.link-action:hover:not(:disabled) {background:var(--blue-pale);border-
 .help-table table {border-collapse:collapse;width:100%;font-size:12px}
 .help-table th,.help-table td {padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
 @media(max-width:800px) {.help-layout {grid-template-columns:minmax(0,1fr);padding:16px;gap:16px}.help-toc {position:static;max-height:none}.help-header {padding:10px 16px}}
+/* NY-27: the picked row whole in the action bar; it wraps instead of scrolling, so a long row reads on a phone. */
+.pick-code {display:block;flex-basis:100%;margin:0 0 6px;padding:4px 8px;border-left:3px solid var(--a-52);background:var(--n-10);font:12px/1.5 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text)}
+.pick-bar {flex-wrap:wrap}

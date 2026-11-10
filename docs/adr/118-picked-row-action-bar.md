@@ -60,3 +60,13 @@ A böngészős `pick_actions` teszt a megjelölést és az elrejtést is ellenő
 - A meglévő `tap_to_place` (ADR-095) változatlanul átmegy.
 - [browser-matrix.playwright.py](../../tests/browser-matrix.playwright.py): a sormozgató lépések egy segéden (`row_action`) mennek át. Ez a soron lévő gombot használja, ha látszik, különben a kijelölt sor sávját.
 - **Javított hiba fejlesztés közben:** a kijelölés utáni újrarajzolás kiürítette a képernyőolvasó állapotsorát. A bemondás most az újrarajzolás után jön.
+
+## Kiegészítés (2026-11-10): a kijelölt sor teljes szövege (NY-27)
+
+- **Probléma:** 390 px széles telefonon egy megoldássorban kb. 245 px jut a kódnak; a hosszabb sor vége csak a lista vízszintes görgetésével látszott (NY-27).
+- **Döntés:**
+  - a kijelölt sor sávja a sort egészében mutatja (`data-pick-code`), kiemelve és tördelve, a lista görgetése nélkül;
+  - a megoldássor a formázott, behúzott alakjában áll benne, a felhasználható sor a saját szövegével;
+  - a sáv nem görget, hanem tördel, így billentyűzetes elérés sem kell hozzá;
+  - a jegyzékben felsorolt két lehetőség közül ezt választottam. A másik, a csak mobilon tördelő sor, a húzás fix sormagasságát érintette volna.
+- **Bizonyíték:** [browser-workbench.playwright.py](../../tests/browser-workbench.playwright.py) `pick_actions` (390 px, érintés): a sáv a sor teljes szövegét mutatja, és a képernyőn belül tördel.

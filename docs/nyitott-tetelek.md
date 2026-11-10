@@ -1,6 +1,6 @@
 # Nyitott tételek jegyzéke
 
-Állapot: 2026-11-03, szabályverzió `scoped-effect-analysis-v40`. Ez az egyetlen hely, ahol a lezáratlan tételek össze vannak gyűjtve: a még meg nem oldott generátorhiányok, mérési korlátok, döntések és tervezési adósságok. A részletek a forrásként megadott ADR-ben vannak.
+Állapot: 2026-11-10, szabályverzió `scoped-effect-analysis-v53`. Ez az egyetlen hely, ahol a lezáratlan tételek össze vannak gyűjtve: a még meg nem oldott generátorhiányok, mérési korlátok, döntések és tervezési adósságok. A részletek a forrásként megadott ADR-ben vannak.
 
 **Szabályok:**
 - Minden ADR, amelynek „Nyitott” szakasza van, ide kerül. Ezt a [governance-teszt](../tests/governance.test.mjs) ellenőrzi.
@@ -12,6 +12,7 @@
 - **mérés:** az osztályozó vagy az orákulum korlátja;
 - **döntés:** a felhasználó (pedagógiai vagy publikálási) döntése kell hozzá;
 - **tervezés:** Ousterhout-féle adósság, viselkedésváltozás nélkül;
+- **felület:** a szerző vagy a tanuló felületének hiánya, a validátor viselkedése nem változik;
 - **környezet:** nem a repó hibája.
 
 ## Nyitott
@@ -21,9 +22,13 @@
 | NY-03 | **Hatásösszegzés** a felső szintű függvényekre (`var v = f()`) | generátor | **0 mért rés** (a korábban ide sorolt 31 rés más okú volt, [ADR-069](adr/069-deep-hostile-input-and-own-class-names.md)) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) | csak ha egy mérés esetet mutat |
 | NY-05 | **2d maradéka:** saját objektumot kapó ismeretlen függvény (a referencia megtartása) | generátor | **0 mért rés** (2026-11-04: a korpusz `Object.entries(totals)` tanúja már nem rés, a kampányban sincs ilyen) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md), [ADR-059](adr/059-read-only-builtins.md) | csak ha egy mérés esetet mutat |
 | NY-08 | **Érték-perturbáció korlátja:** egy literál egyszerre, legfeljebb 96 változat | mérés | a rés felső becslés marad | [ADR-067](adr/067-value-perturbation-in-measurement.md) | csak ha egy rés gyanúsan szándékhű |
-| NY-27 | **Mobil: a hosszú sor teljes szövege.** 390 képpont szélesen egy megoldássorban 245 képpont jut a kódnak ([ADR-095](adr/095-tap-to-place-and-drag-insert-migration.md)); a hosszabb sort a lista vízszintes görgetése mutatja | felület | alacsony prioritás (a felhasználó döntése: kevés ráfordítás a mobilra) | [ADR-094](adr/094-toolbar-help-and-mobile-sorter.md), [ADR-095](adr/095-tap-to-place-and-drag-insert-migration.md) | lehetőségek: a kijelölt sor teljes szövege egy sávban; tördelés csak mobilon (a húzás fix sormagasságát érinti) |
 | NY-28 | **Régi, TypeScript-forrás nélküli felületi modulok:** `api`, `author-session`, `clipboard`, `pages-api` (`public/app`); az `attempt` és a `persistence` migrálva ([ADR-097](adr/097-attempt-and-persistence-migration.md)), a `drag-insert` is ([ADR-095](adr/095-tap-to-place-and-drag-insert-migration.md)) | tervezés | 4 modul; a lista rögzített (`workbench-sources.test.mjs`) | [ADR-001](adr/001-typescript-workbench-and-boundaries.md), [ADR-097](adr/097-attempt-and-persistence-migration.md) | a két HTTP-adapter és a vágólap, ha módosítani kell őket |
 | NY-13 | **`primitive`/`pure`/`readOnly`:** három egymásra épülő osztályozó | tervezés | nincs | [ADR-050](adr/050-input-contract.md) | nem sürgős |
+| NY-29 | **„Érvényes adat → szigorú lett” a beállítássávban.** A kért és a hatályos bemeneti szerződés különbsége ma csak a generátor szöveges megjegyzésében él | felület | a tanár nem látja egy pillantással, hogy a kódja miatt a „valid” nem érvényesült | [ADR-122](adr/122-task-status-for-the-teacher.md), [ADR-123](adr/123-steps-reassigned-and-one-skeleton.md) | strukturált mező a modell bizonyítékában (`AnalysisEnvironment`); sémaváltozás a szerzői elemzésben |
+| NY-30 | **Három felület a CSS-ben:** a panel, a beágyazott és a lebegő felület összevonása; az értesítés már egységes | tervezés | a keretes dobozok több, időben eltérően épült változata | [ADR-123](adr/123-steps-reassigned-and-one-skeleton.md) | osztálykészlet a panelekre, a régi változatok kivezetése az elrendezés-kapu mellett |
+| NY-31 | **Súgó: „Kipróbálom” és kiemelt kód.** A példa nem nyitható meg a Kód lépésben; a buborék és az oldal kódja kiemelés nélküli | felület | alacsony | [ADR-124](adr/124-help-from-one-source.md) | a példa betöltése szerzői előnézetként, a Local Demo jelzéssel |
+| NY-32 | **Modellkészítés háttérszálon.** 500 soros, mélyen tagolt forrásnál a generálás kb. 2 s; a Pages-en a fő szálon fut, a felület addig áll | felület | a Local Demo nagy forrásnál megakad | – | Web Worker a generátorhoz és az első kapuhoz, a szerver útvonala változatlan |
+| NY-33 | **A v3 egységmodell bekötése a szerzői láncba** (overload-csoport, `});` jellegű lezáró sorok egységként) | tervezés | mért haszon nincs (az NY-04 lezárásakor) | [ADR-079](adr/079-overload-header-blocks.md) | külön epic, saját tervezési körrel |
 
 ## Elfogadott korlátok (nem rések, nem javítandók)
 
@@ -40,6 +45,7 @@
 
 | Tétel | Lezárta |
 | --- | --- |
+| NY-27: a hosszú sor teljes szövege telefonon: a kijelölt sor sávja a sort egészében, tördelve mutatja | [ADR-118](adr/118-picked-row-action-bar.md) (kiegészítés, 2026-11-10) |
 | A `param` rés a `valid` szerződés alatt: a saját tömbre írás (`out.push(c0)`) és az olvasási egységek sorrendje (v52); a 7-es mag 19 → 0 rés | [ADR-102](adr/102-valid-reads-commute-with-own-objects.md) |
 | NY-06: tiszta műveletek és beépített hívások a `valid` szerződés alatt (v51); a `stats-js` tanú rése 6 → 0, a két statisztikapélda felvéve | [ADR-099](adr/099-valid-plain-operations.md) |
 | NY-11: az AI-governance teljes (tulajdonos, kikényszerítés és bizonyíték minden elemhez); a jegyzék sora elavult volt. 2026-11-04: a kockázati osztályok kiegészítve az akadálymentességi átvizsgálással és a régi modulok őrtesztjével | [ADR-049](adr/049-ai-governance-completion.md), [ADR-096](adr/096-automated-accessibility-scan.md), [ADR-097](adr/097-attempt-and-persistence-migration.md) |

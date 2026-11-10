@@ -119,7 +119,9 @@ export function createWorkbenchView({ root, state, ex, at, attempt, scroll, form
         const connect = !rulesAvailable(state) || typeof id !== 'number' ? '' : anchor === undefined ? tool(`data-rule-connect="${id}" data-keep-pick`, 'Kapcsolatok', 'connect', 'aria-pressed="false" title="A sor kapcsolatainak megjelölése: kék előtte, borostyán utána"')
             : anchor === id ? tool(`data-rule-connect="${id}" data-keep-pick`, 'Kapcsolatok elrejtése', 'connect', 'aria-pressed="true"')
                 : tool(`data-rule-connect="${id}"`, `Kapcsolat a(z) #${anchor} sorral`, 'connect', disabledAttributes(availability(state, 'rule-edit')) + ` title="Szabály létrehozása vagy törlése a(z) #${anchor} és e sor között"`);
-        return `<div class="evaluation-bar pick-bar" role="toolbar" aria-label="A kijelölt sor műveletei"><p class="pick-status">${answer ? `A megoldás ${i + 1}. sora` : 'Felhasználható sor'} kijelölve. Koppints a helyére, vagy:</p><div class="pick-actions">${moves}${rules}${connect}${tool('data-unpick', 'Kész', 'check', 'class="primary"')}</div></div>`;
+        // NY-27: on a phone a long row shows only its start in the list; the bar shows the picked row whole, wrapped.
+        const code = (answer ? attempt.formattedAnswer()[i] : attempt.text(id ?? null)) ?? '';
+        return `<div class="evaluation-bar pick-bar" role="toolbar" aria-label="A kijelölt sor műveletei"><p class="pick-status">${answer ? `A megoldás ${i + 1}. sora` : 'Felhasználható sor'} kijelölve. Koppints a helyére, vagy:</p><code class="pick-code" data-pick-code>${syntax(code.trim())}</code><div class="pick-actions">${moves}${rules}${connect}${tool('data-unpick', 'Kész', 'check', 'class="primary"')}</div></div>`;
     }
     function sortView(e, a) {
         const pane = paneHeading(), filled = a.answer.filter(id => id !== null).length;
