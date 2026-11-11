@@ -36,6 +36,32 @@ test('a worker that cannot start fails every waiting and later call with one mes
  page.close();
 });
 
+test('ADR-132: a served operation reports its stage while it runs; the caller hears it only for a waiting call',async()=>{
+ const [worker,page]=pair(),heard=[];let finish;
+ serve(worker,{build:(report,n)=>new Promise(resolve=>{report('a fordító betöltése');finish=()=>{report('');resolve(n*2);};}),late:report=>{setTimeout(()=>report('túl késő'),5);return 1;}},{progress:true});
+ const call=connect(page,'nem indult el',stage=>heard.push(stage));
+ const built=call('build',21);
+ await new Promise(resolve=>setTimeout(resolve,10));assert.deepEqual(heard,['a fordító betöltése']);
+ finish();assert.equal(await built,42);assert.deepEqual(heard,['a fordító betöltése','']);
+ assert.equal(await call('late'),1);await new Promise(resolve=>setTimeout(resolve,20));
+ assert.deepEqual(heard,['a fordító betöltése',''],'a stage after the answer is not heard');
+ worker.close();page.close();
+});
+
+test('ADR-132: cancel fails every waiting call and closes the connection; with nothing waiting it does nothing',async()=>{
+ const [worker,page]=pair();
+ serve(worker,{slow:()=>new Promise(()=>{}),quick:()=>'ok'});
+ const call=connect(page,'nem indult el');
+ assert.equal(call.cancel('megszakítottad'),false,'idle: nothing to stop');
+ assert.equal(await call('quick'),'ok','the connection stays open');
+ const first=call('slow'),second=call('slow');
+ assert.equal(call.cancel('megszakítottad'),true);
+ await assert.rejects(first,/^Error: megszakítottad$/);await assert.rejects(second,/megszakítottad/);
+ await assert.rejects(call('quick'),/megszakítottad/,'a later call fails with the same message');
+ assert.equal(call.cancel('újra'),false,'a closed connection is not stopped twice');
+ worker.close();page.close();
+});
+
 test('the model JSON is serialized once per model object; a learner-data change makes a new model',async()=>{
  const {modelJson,setLearnerData}=await import('../public/app/author-workspace.js');
  const {jsonPending}=await import('../public/app/flow.js');

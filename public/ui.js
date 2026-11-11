@@ -10,7 +10,7 @@ import {connection,installRuleBoard,linkWith} from './app/rule-board.js';
 import {authorPreviewId,blockedReason,enterMode,enterView,landAfterAdmission,refreshStepper,tryAdmission} from './app/flow.js';
 /** App orchestration and event wiring; modes, steps and staleness live in the typed flow (ADR-022). */
 import {readClipboard} from './app/clipboard.js';
-import {trackActivity} from './app/activity.js';
+import {trackActivity,setActivityAbort} from './app/activity.js';
 import {cycleTheme} from './app/theme.js';
 import {toggleSurface} from './app/surface.js';
 import {setCodeView} from './app/code-view.js';
@@ -21,7 +21,9 @@ import {createWorkbenchView} from './app/view.js';
 import {practiceOrder} from './app/fields.js';
 import {createInsertionDrag} from './app/drag-insert.js';
 import {createScrollMemory,syncEditors,handleEditorKey,copyToClipboard,escapeHtml} from './app/ui-utilities.js';
-import {formatSource,getExercises,compileDraft,checkSource,editRules,previewDraft,resolvePolicy,evaluate,loadTypeScriptFixture} from './app/api.js';
+import {formatSource,getExercises,compileDraft,checkSource,editRules,previewDraft,resolvePolicy,evaluate,loadTypeScriptFixture,abortPending} from './app/api.js';
+// ADR-132 (P2): after 10 s the progress chip offers to stop waiting; the API knows how (a request, or the Local Demo worker).
+setActivityAbort(abortPending);
 const root=document.querySelector('#app');
 const state={exercises:[],active:null,attempts:new Map(),previews:new Map(),drag:null,mode:'author',view:'author',practiceActive:null,author:{...NEW_DRAFT_SETTINGS,title:'Saját kódrendezős feladat',description:'Rendezd sorba a kódsorokat.',language:'javascript',source:`function calculate() {\n     const a = 10;\n     const b = 20;\n     return a + b;\n}`,message:''},modelDraft:'',modelMessage:''};
 const ex=()=>state.exercises.find(x=>x.id===state.active);
@@ -75,7 +77,7 @@ async function authorApply(body,{preserveAttempt=false,sessionImport,settingsOri
  // ADR-108 (E6): landing on Try (a session import) passes the second gate first; refused, it lands on Rules.
  if(land==='try'){const gate=tryAdmission(state);if(!gate.ok){land='rules';state.modelMessage=gate.message;}}
  landAfterAdmission(state,land);commit(state.modelMessage);
- if(compatible){const id=state.active,a=at(),generation=a.generation,{lines,slots}=submitted(a);let report;try{report={...await previewDraft(gateEvidence({draftId:data.draftId,lines})),slots};}catch(error){report={status:'indeterminate',message:error instanceof Error&&/^A Próba lépés/.test(error.message)?error.message:'Az előnézet értékelése nem érhető el.',exploredStates:0};}if(state.active===id&&at()===a&&a.generation===generation){a.report=report;render();}}
+ if(compatible){const id=state.active,a=at(),generation=a.generation,{lines,slots}=submitted(a);let report;try{report={...await previewDraft(gateEvidence({draftId:data.draftId,lines})),slots};}catch(error){report={status:'indeterminate',message:error instanceof Error&&/^A Próba lépés|^A műveletet megszakítottad/.test(error.message)?error.message:'Az előnézet értékelése nem érhető el.',exploredStates:0};}if(state.active===id&&at()===a&&a.generation===generation){a.report=report;render();}}
  return data;
 }
 /** The link between the anchor and another line toggles (ADR-024): a direct link is removed (the
@@ -233,7 +235,7 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
    try{const preview=state.previews.get(state.active),{lines,slots}=submitted(a);
       // ADR-108 (E6): an author preview is evaluated only through the second gate; the request carries its evidence.
       const report=preview?await previewDraft(gateEvidence({draftId:preview,lines})):await evaluate({exerciseId:ex().id,revision:ex().revision,lines});if(at()===a&&a.generation===generation)a.report={...report,slots};}
-   catch(error){if(at()===a&&a.generation===generation)a.report={status:'indeterminate',message:error instanceof Error&&/^A Próba lépés/.test(error.message)?error.message:'A validációs szerver nem érhető el.',exploredStates:0};}render();return;
+   catch(error){if(at()===a&&a.generation===generation)a.report={status:'indeterminate',message:error instanceof Error&&/^A Próba lépés|^A műveletet megszakítottad/.test(error.message)?error.message:'A validációs szerver nem érhető el.',exploredStates:0};}render();return;
  }
 },error=>notify(error instanceof Error?error.message:'A művelet nem sikerült.')));
 root.addEventListener('keydown',ev=>{if(ev.key!=='Escape'||!state.rulePanelOpen||ev.defaultPrevented||!(ev.target instanceof Element)||!ev.target.closest('.rule-inspector,.inspector-toggle')||ev.target.closest('input,textarea,select'))return;ev.preventDefault();state.rulePanelOpen=false;render();root.querySelector('.inspector-toggle')?.focus({preventScroll:true});});

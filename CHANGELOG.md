@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-11-11 P2: a folyamatjelző megnevezi a fázist, és 10 s után megszakítható (ADR-132)
+
+- **A Local Demo első szerzői műveleténél a jelző kiírja, hogy a TypeScript-fordító töltődik.**
+- **10 s várakozás után a jelzőn „Megszakítás” gomb jelenik meg.**
+  - Szerveres módban a kérés megszakad; a szerver a már elkezdett számítást befejezi, az eredményét eldobjuk.
+  - A Local Demo-ban a háttérszál újraindul; a kész szerzői előnézetet újra el kell készíteni, a szállított feladatok gyakorlása tovább működik.
+- A szabályok és az értékelés nem változtak.
+
 ## Unreleased – 2026-11-10 v57: a kulcssorrend miatti szabály megmondja az okát (ADR-131)
 
 - **A szabálypanel a kulcssorrend miatti kötésnél a valódi okot mutatja:** `key-creation-order`, és jelzi, hogy a „Nem számít” beállítás feloldja. Eddig ugyanez „kiértékelési fázis” vagy „objektumírás” okkal jelent meg.

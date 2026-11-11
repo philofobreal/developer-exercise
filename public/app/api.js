@@ -1,6 +1,16 @@
 /** All server validation and authoring traffic behind one small API. */
 /** A refusal keeps its structured details (a gate decision, a policy resolution) on `error.details` (ADR-108). */
-async function jsonRequest(url,body){const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await response.json();if(!response.ok)throw Object.assign(new Error(data.error??`HTTP ${response.status}`),{details:{gate:data.gate,policy:data.policy}});return data;}
+/** ADR-132 (P2): every request in flight, so the page can stop waiting for them. The server finishes the computation it
+ * started (it runs synchronously and cannot be interrupted); its answer is discarded. */
+const inFlight=new Set();
+const STOPPED='A műveletet megszakítottad. A szerver a már elkezdett számítást befejezi, az eredményét eldobjuk.';
+export function abortPending(){for(const controller of inFlight)controller.abort();inFlight.clear();}
+async function jsonRequest(url,body){
+ const controller=new AbortController();inFlight.add(controller);
+ try{const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller.signal});const data=await response.json();if(!response.ok)throw Object.assign(new Error(data.error??`HTTP ${response.status}`),{details:{gate:data.gate,policy:data.policy}});return data;}
+ catch(error){if(controller.signal.aborted)throw new Error(STOPPED);throw error;}
+ finally{inFlight.delete(controller);}
+}
 export const validationMode='trusted-server';
 export const getExercises=async()=>{const r=await fetch('/api/exercises');if(!r.ok)throw new Error(`HTTP ${r.status}`);return (await r.json()).exercises;};
 export const compileDraft=body=>jsonRequest('/api/author/compile',body);

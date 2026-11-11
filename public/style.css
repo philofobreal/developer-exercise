@@ -689,3 +689,7 @@ button.btn.link-action:hover:not(:disabled) {background:var(--blue-pale);border-
 .loading[data-busy]::after {content:'';width:min(240px,60vw);height:3px;background:linear-gradient(90deg,var(--accent),var(--accent)) no-repeat,color-mix(in srgb,var(--accent) 22%,transparent);background-size:40% 100%,100% 100%;animation:activity-sweep 1.2s cubic-bezier(.4,0,.2,1) infinite}
 @keyframes activity-sweep {from {background-position:-67% 0,0 0}to {background-position:167% 0,0 0}}
 @media(prefers-reduced-motion:reduce) {.activity-line::after {left:0;width:100%;opacity:.55}.activity:is([data-phase=settling],[data-phase=leaving]) .activity-line::after {opacity:1}.loading[data-busy]::after {background-size:100% 100%,100% 100%;opacity:.55}}
+/* ADR-132 (P2): the stage after the name, and after 10 s a way out; only the button takes clicks. */
+.activity-detail {color:var(--muted);overflow:hidden;text-overflow:ellipsis}.activity-detail:empty {display:none}.activity-detail::before {content:'· '}
+.activity:has(.activity-abort:not([hidden])) {display:flex;align-items:center;gap:12px}
+.activity-abort {pointer-events:auto;flex-shrink:0;min-height:32px;padding:4px 12px;font-size:12.5px}

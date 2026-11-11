@@ -8,12 +8,16 @@
  * flashes; when the work ends, its line fills (350 ms) and it fades (250 ms). It does not say „Kész”: the work's own
  * message says how it ended, and an operation can end with an error the indicator cannot see. After 3 s it counts the
  * seconds. Several operations share one slot: the latest one is named, and the slot winds down when the last ends.
+ *
+ * ADR-132 (P2): the work may name its phase (`activityDetail`, e.g. the Local Demo loading the compiler), shown after
+ * the name. When the page registered how to stop waiting (`setActivityAbort`) and the work has lasted 10 s, the chip
+ * offers „Megszakítás” (Nielsen's 10 s: beyond it the user needs a way out), said once on the status line.
  */
-export const ACTIVITY_TIMING = { delay: 400, minimum: 600, settle: 350, leave: 250, countAfter: 3000 };
+export const ACTIVITY_TIMING = { delay: 400, minimum: 600, settle: 350, leave: 250, countAfter: 3000, abortAfter: 10_000 };
 /** The timing alone, against any clock and any painter (the unit tests drive it with a fake clock). */
 export function createActivity(clock, paint) {
     const active = [];
-    let phase = 'hidden', shownAt = 0, timer, shown = { phase: 'hidden', label: '' };
+    let phase = 'hidden', shownAt = 0, timer, shown = { phase: 'hidden', label: '' }, abort;
     const later = (ms) => { if (timer !== undefined)
         clock.clear(timer); timer = clock.set(() => { timer = undefined; step(); }, Math.max(0, ms)); };
     const draw = (next) => { shown = next; paint(next); };
@@ -29,9 +33,10 @@ export function createActivity(clock, paint) {
                 shownAt = now;
             }
             phase = 'running';
-            const elapsed = now - top.start, counting = elapsed >= ACTIVITY_TIMING.countAfter;
-            draw({ phase, label: top.label, ...(counting ? { seconds: Math.floor(elapsed / 1000) } : {}), ...(top.source ? { source: top.source } : {}) });
-            later(counting ? 1000 - elapsed % 1000 : ACTIVITY_TIMING.countAfter - elapsed);
+            const elapsed = now - top.start, counting = elapsed >= ACTIVITY_TIMING.countAfter, waited = now - Math.min(...active.map(entry => entry.start));
+            draw({ phase, label: top.label, ...(top.detail ? { detail: top.detail } : {}), ...(counting ? { seconds: Math.floor(elapsed / 1000) } : {}), ...(abort && waited >= ACTIVITY_TIMING.abortAfter ? { abortable: true } : {}), ...(top.source ? { source: top.source } : {}) });
+            const tick = counting ? 1000 - elapsed % 1000 : ACTIVITY_TIMING.countAfter - elapsed;
+            later(abort && waited < ACTIVITY_TIMING.abortAfter ? Math.min(tick, ACTIVITY_TIMING.abortAfter - waited) : tick);
             return;
         }
         if (phase === 'hidden') {
@@ -70,6 +75,19 @@ export function createActivity(clock, paint) {
             work.then(end, end);
             return work;
         },
+        detail(text) {
+            const top = active[active.length - 1];
+            if (!top || top.detail === text)
+                return;
+            if (text)
+                top.detail = text;
+            else
+                delete top.detail;
+            if (phase === 'running')
+                step();
+        },
+        abortWith(next) { abort = next; if (phase === 'running')
+            step(); },
     };
 }
 /** The slot in the page: a status line for screen readers and, above everything (the top layer, so also over the
@@ -83,14 +101,16 @@ function mountActivity(doc) {
     const chip = doc.createElement('div');
     chip.className = 'activity';
     chip.dataset.activity = '';
-    chip.setAttribute('aria-hidden', 'true');
     chip.hidden = true;
     const topLayer = typeof chip.showPopover === 'function';
     if (topLayer)
         chip.popover = 'manual';
-    chip.innerHTML = '<span class="activity-text"><span class="activity-label"></span><span class="activity-seconds"></span></span><span class="activity-line"></span>';
+    // The status line speaks for the text; only the button is for everyone (ADR-132).
+    chip.innerHTML = '<span class="activity-text" aria-hidden="true"><span class="activity-label"></span><span class="activity-detail"></span><span class="activity-seconds"></span></span><button type="button" class="activity-abort" data-activity-abort hidden>Megszakítás</button><span class="activity-line" aria-hidden="true"></span>';
     doc.body.append(live, chip);
-    const label = chip.querySelector('.activity-label'), seconds = chip.querySelector('.activity-seconds');
+    const label = chip.querySelector('.activity-label'), detail = chip.querySelector('.activity-detail'), seconds = chip.querySelector('.activity-seconds'), stop = chip.querySelector('.activity-abort');
+    let abort;
+    stop?.addEventListener('click', () => abort?.());
     let marked;
     const mark = (source) => { if (marked === source)
         return; marked?.removeAttribute('data-busy-shown'); marked = source; source?.setAttribute('data-busy-shown', ''); };
@@ -117,11 +137,18 @@ function mountActivity(doc) {
         }
         if (label)
             label.textContent = view.phase === 'running' ? `${view.label}…` : view.label;
+        if (detail)
+            detail.textContent = view.detail && view.phase === 'running' ? view.detail : '';
         if (seconds)
             seconds.textContent = view.seconds === undefined ? '' : `${view.seconds} s`;
+        if (stop) {
+            const offered = view.phase === 'running' && !!view.abortable;
+            if (stop.hidden === offered)
+                stop.hidden = !offered;
+        }
         if (view.phase === 'running') {
             mark(view.source);
-            const said = `${view.label} folyamatban.`;
+            const said = `${view.label} folyamatban.${view.detail ? ` ${view.detail}.` : ''}${view.abortable ? ' Sokáig tart; a Megszakítás gombbal leállítható.' : ''}`;
             if (live.textContent !== said)
                 live.textContent = said;
         }
@@ -136,13 +163,17 @@ function mountActivity(doc) {
         else if (view.phase === 'running')
             dock();
     };
-    return createActivity({ now: () => performance.now(), set: (callback, ms) => window.setTimeout(callback, ms), clear: handle => window.clearTimeout(handle) }, paint);
+    const activity = createActivity({ now: () => performance.now(), set: (callback, ms) => window.setTimeout(callback, ms), clear: handle => window.clearTimeout(handle) }, paint);
+    return { ...activity, abortWith: next => { abort = next; activity.abortWith(next); } };
 }
 let shared;
+const sharedSlot = () => typeof document === 'undefined' || !document.body ? undefined : shared ??= mountActivity(document);
+/** The stage of the latest work in the slot (`undefined` clears it). */
+export function activityDetail(text) { sharedSlot()?.detail(text); }
+/** How the page stops waiting for its work; the slot offers „Megszakítás” after 10 s only when this is set. */
+export function setActivityAbort(abort) { sharedSlot()?.abortWith(abort); }
 /** Shows `work` in the page's one progress slot (if it lasts) and returns it unchanged. Outside a page it only returns it. */
 export function trackActivity(label, work, source) {
-    if (typeof document === 'undefined' || !document.body)
-        return work;
-    shared ??= mountActivity(document);
-    return shared.track(label, work, source);
+    const slot = sharedSlot();
+    return slot ? slot.track(label, work, source) : work;
 }

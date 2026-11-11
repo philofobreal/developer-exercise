@@ -916,7 +916,8 @@ def activity_indicator(browser):
                 chip=page.locator('[data-activity]');expect(chip).to_be_visible();expect(chip).to_have_attribute('data-phase','running')
                 expect(chip).to_contain_text('Modell készítése…');expect(page.locator('[data-activity-live]')).to_have_text('Modell készítése folyamatban.')
                 expect(apply).to_have_attribute('data-busy-shown','');expect(apply).to_contain_text('Modell készítése')
-                assert chip.get_attribute('aria-hidden')=='true','the live line speaks; the chip does not repeat it'
+                assert chip.get_attribute('aria-hidden') is None and chip.locator('.activity-text').get_attribute('aria-hidden')=='true','the live line speaks; the chip text does not repeat it (ADR-132: only its Megszakítás button is for everyone)'
+                expect(chip.locator('[data-activity-abort]')).to_be_hidden()
                 box,stuck=chip.bounding_box(),bar.bounding_box()
                 assert stuck['y']+stuck['height']>=height-2,f'{width}px: the action bar is stuck at the bottom ({stuck})'
                 assert box['y']+box['height']<=stuck['y']+1,f'{width}px: the chip covers the action bar ({box} over {stuck})'
@@ -940,6 +941,37 @@ def lazy_compiler(page,url):
         page.locator('[data-mode="author"]').click();build(page,rules_source)
         assert len([u for u in requests if u.endswith('/vendor/typescript.mjs')])==1,'the first author action loads the compiler once'
     finally:page.remove_listener('request',listen)
+def activity_abort(browser,url,pages):
+    """ADR-132 (P2): work that lasts names its stage (the Local Demo's compiler download) and after 10 s the chip offers
+    Megszakítás, said on the status line. Stopping ends the wait with its own message, the indicator winds down, and
+    the page works on: the next build succeeds and a shipped exercise is still checked (the Local Demo's fresh worker
+    reloads them)."""
+    context=watch(browser.new_context(viewport={'width':1280,'height':800}));page=context.new_page()
+    held=[];target='**/vendor/typescript.mjs' if pages else '**/api/author/compile'
+    context.route(target,lambda route:held.append(route))
+    try:
+        reset(page,url);page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill(rules_source)
+        apply=page.locator('[data-author-apply]');apply.click()
+        chip=page.locator('[data-activity]');stop=chip.locator('[data-activity-abort]');live=page.locator('[data-activity-live]')
+        expect(chip).to_have_attribute('data-phase','running')
+        if pages:
+            expect(chip).to_contain_text('a TypeScript-fordító betöltése');expect(live).to_have_text('Modell készítése folyamatban. a TypeScript-fordító betöltése.')
+        expect(stop).to_be_hidden();expect(chip).to_contain_text('9 s',timeout=12000);expect(stop).to_be_hidden()
+        expect(stop).to_be_visible(timeout=3000);expect(stop).to_have_text('Megszakítás')
+        expect(live).to_contain_text('Sokáig tart; a Megszakítás gombbal leállítható.')
+        stop.click();expect(chip).to_be_hidden(timeout=3000)
+        expect(page.get_by_text(re.compile('^A műveletet megszakítottad'))).to_be_visible()
+        current(page,'source');expect(apply).to_be_enabled()
+        # The held request belongs to the stopped wait (an aborted fetch, a terminated worker): it is answered with a
+        # failure that nobody hears any more.
+        for route in held:
+            try:route.abort()
+            except Exception:pass
+        context.unroute_all(behavior='ignoreErrors')
+        apply.click();current(page,'rules')
+        practice(page);page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).not_to_have_class(re.compile(r'\bidle\b'))
+        expect(page.locator('.report')).not_to_contain_text('nem érhető el')
+    finally:context.close()
 def stale_format(page,author):
     if author:selector='#author-editor';action='[data-author-format]'
     else:
@@ -1005,6 +1037,8 @@ try:
             reset(page,BASE);case('node duplicate-check prevention and async feedback',lambda:busy(page))
             case('node one progress indicator: delayed, docked above the action bar, winds down',lambda:activity_indicator(browser))
             case('pages the compiler loads with the first author action, not with the page',lambda:lazy_compiler(page,f'http://127.0.0.1:{static.server_port}/developer-exercise/'))
+            case('node a long wait offers Megszakítás after 10 s and the page works on',lambda:activity_abort(browser,BASE,False))
+            case('pages the compiler download is named; Megszakítás restarts the worker, exercises still check',lambda:activity_abort(browser,f'http://127.0.0.1:{static.server_port}/developer-exercise/',True))
             reset(page,BASE);case('node admission preserves newer reference edits',lambda:stale_author_admission(page))
             reset(page,BASE);case('node sample loading preserves newer reference edits',lambda:stale_source_sample(page))
             for name,action in [('author format preserves newer edits',lambda:stale_format(page,True)),('solution format preserves newer edits',lambda:stale_format(page,False)),('stale check failure cannot replace newer attempt',lambda:stale_check_failure(page))]:

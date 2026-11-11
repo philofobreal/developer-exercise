@@ -14,5 +14,16 @@ const READS_SOURCE = new Set(['compileDraft', 'editRules', 'authorTransition', '
 const FAILED = 'A TypeScript fordító nem töltődött be; ellenőrizd a hálózatot, és próbáld újra.';
 let compiler;
 const loadCompiler = () => compiler ??= import('../vendor/typescript.mjs').catch(() => { compiler = undefined; throw Error(FAILED); });
-const withCompiler = (operation) => async (...args) => { await loadCompiler(); return operation(...args); };
-serve(self, Object.fromEntries(Object.entries(engine).map(([name, operation]) => [name, typeof operation === 'function' && READS_SOURCE.has(name) ? withCompiler(operation) : operation])));
+let loaded = false;
+/** ADR-132 (P2): the download is the stage worth naming (1.6 MB compressed, once per page). */
+const withCompiler = (operation) => async (report, ...args) => {
+    if (!loaded) {
+        report('a TypeScript-fordító betöltése');
+        await loadCompiler();
+        loaded = true;
+        report('');
+    }
+    return operation(...args);
+};
+const plain = (operation) => (_report, ...args) => operation(...args);
+serve(self, Object.fromEntries(Object.entries(engine).map(([name, operation]) => [name, typeof operation !== 'function' ? operation : READS_SOURCE.has(name) ? withCompiler(operation) : plain(operation)])), { progress: true });

@@ -6,20 +6,42 @@
  * starts (with the first call) and what a call looks like on the wire (worker-rpc).
  */
 import { connect } from './worker-rpc.js';
+import { activityDetail } from './activity.js';
 export const validationMode = 'local-demo';
 const FAILURE = 'A Local Demo háttérszála nem indult el ebben a böngészőben; frissítsd az oldalt, vagy használj újabb böngészőt.';
-let call;
+/** ADR-132 (P2): stopping the worker is the only way to stop its work; the author previews it held go with it. */
+const STOPPED = 'A műveletet megszakítottad. A Local Demo háttérszála újraindult; ha volt kész modell, készítsd el újra.';
+let call, worker, stopped = false;
+/** After a stop, the fresh worker first reloads the shipped exercises, which the page listed from the old one, so
+ *  practising them keeps working; the call waits for that. */
+let ready = Promise.resolve();
 const engine = (op) => (...args) => {
     if (!call) {
         try {
-            call = connect(new Worker(new URL('./pages-worker.js', import.meta.url), { type: 'module' }), FAILURE);
+            worker = new Worker(new URL('./pages-worker.js', import.meta.url), { type: 'module' });
+            call = connect(worker, FAILURE, stage => activityDetail(stage || undefined));
         }
         catch {
             return Promise.reject(Error(FAILURE));
         }
+        if (stopped) {
+            stopped = false;
+            ready = call('getExercises').catch(() => undefined);
+        }
     }
-    return call(op, ...args);
+    const connection = call;
+    return ready.then(() => connection(op, ...args));
 };
+/** Stops waiting for the work in progress: the worker is stopped, and the next call starts a fresh one. With nothing
+ *  in progress it does nothing (the worker and its previews stay). */
+export function abortPending() {
+    if (!call?.cancel(STOPPED))
+        return;
+    worker?.terminate();
+    call = undefined;
+    worker = undefined;
+    stopped = true;
+}
 export const getExercises = engine('getExercises');
 export const compileDraft = engine('compileDraft');
 export const editRules = engine('editRules');

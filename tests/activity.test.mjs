@@ -1,5 +1,6 @@
 /** ADR-127 (P1): the progress indicator's timing, on a fake clock. Quick work shows nothing; shown work stays at least
- *  600 ms, then its line fills (350 ms) and it fades (250 ms); seconds count from 3 s; operations share one slot. */
+ *  600 ms, then its line fills (350 ms) and it fades (250 ms); seconds count from 3 s; operations share one slot.
+ *  ADR-132 (P2): the work may name its stage; after 10 s of waiting a registered way to stop is offered. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {ACTIVITY_TIMING,createActivity,trackActivity} from '../public/app/activity.js';
@@ -21,7 +22,7 @@ function harness(){
 }
 
 test('the timing is the documented one',()=>{
- assert.deepEqual({...ACTIVITY_TIMING},{delay:400,minimum:600,settle:350,leave:250,countAfter:3000});
+ assert.deepEqual({...ACTIVITY_TIMING},{delay:400,minimum:600,settle:350,leave:250,countAfter:3000,abortAfter:10000});
 });
 
 test('work done within 400 ms shows nothing and leaves no timer behind',async()=>{
@@ -80,4 +81,44 @@ test('work that starts during the wind-down brings the indicator back without a 
 
 test('outside a page the work is returned untouched',async()=>{
  const work=Promise.resolve(7);assert.equal(trackActivity('x',work),work);assert.equal(await work,7);
+});
+
+test('a stage is shown after the name while the work runs, and cleared',async()=>{
+ const {clock,activity,views}=harness(),work=deferred();
+ activity.track('Modell készítése',work.promise);activity.detail('a TypeScript-fordító betöltése');
+ assert.equal(views.length,0,'a stage before the 400 ms shows nothing yet');
+ clock.advance(400);assert.equal(views.at(-1).detail,'a TypeScript-fordító betöltése');
+ activity.detail();assert.equal(views.at(-1).detail,undefined);assert.equal(views.at(-1).phase,'running');
+ activity.detail('x');activity.detail('x');assert.equal(views.filter(view=>view.detail==='x').length,1,'the same stage draws once');
+ work.resolve();await settle();clock.advance(1000);
+});
+
+test('Megszakítás is offered exactly at 10 s of waiting, only when the page registered a way to stop',async()=>{
+ const plain=harness(),plainWork=deferred();
+ plain.activity.track('Modell készítése',plainWork.promise);plain.clock.advance(12_000);
+ assert.ok(plain.views.every(view=>!view.abortable),'without a registered abort nothing is offered');
+ plainWork.resolve();await settle();plain.clock.advance(1000);
+ const {clock,activity,views}=harness(),work=deferred();let stopped=0;
+ activity.abortWith(()=>{stopped++;});
+ activity.track('Modell készítése',work.promise);clock.advance(9_999);
+ assert.ok(views.every(view=>!view.abortable));
+ clock.advance(1);assert.deepEqual([views.at(-1).abortable,views.at(-1).at],[true,10_000]);
+ work.reject(Error('A műveletet megszakítottad.'));await settle();clock.advance(1000);
+ assert.equal(views.at(-1).phase,'hidden');assert.equal(stopped,0,'the slot itself never calls it');
+});
+
+test('the 10 s count from the oldest waiting work, also when a newer operation is named',async()=>{
+ const {clock,activity,views}=harness(),first=deferred(),second=deferred();
+ activity.abortWith(()=>{});
+ activity.track('Modell készítése',first.promise);clock.advance(9_000);
+ activity.track('Szabály módosítása',second.promise);clock.advance(1_000);
+ assert.deepEqual([views.at(-1).label,views.at(-1).abortable,views.at(-1).at],['Szabály módosítása',true,10_000]);
+ first.resolve();second.resolve();await settle();clock.advance(1000);
+});
+
+test('registering the way to stop while the work already lasts 10 s offers it at once',async()=>{
+ const {clock,activity,views}=harness(),work=deferred();
+ activity.track('Ellenőrzés',work.promise);clock.advance(11_000);
+ activity.abortWith(()=>{});assert.equal(views.at(-1).abortable,true);
+ work.resolve();await settle();clock.advance(1000);
 });

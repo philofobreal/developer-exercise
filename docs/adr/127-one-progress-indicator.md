@@ -89,7 +89,7 @@
   - A tiszta időzítő és a DOM-rajzoló külön függvény, így az időzítés böngésző nélkül, hamis órával tesztelhető.
 - **interactions.ts:** a foglaltság listája (melyik vezérlő vár, mi a neve) egy táblázat lett a korábbi szelektor és háromágú feliratválasztás helyett.
 - **Rögzített maradék:**
-  - fázisüzenetek („fordító betöltése”, „szabályok ellenőrzése”) és a megszakítás 10 s fölött: ez a P2;
+  - fázisüzenetek („fordító betöltése”, „szabályok ellenőrzése”) és a megszakítás 10 s fölött: ez a P2, lezárta az [ADR-132](132-progress-stage-and-abort.md);
   - a példaválasztó betöltése szinkron, ezért nem jelez;
   - a vágólapról beillesztés formázása nincs a hatókörben, mert a mért idők a küszöb alatt vannak.
 
