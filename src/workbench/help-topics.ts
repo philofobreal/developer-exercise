@@ -11,11 +11,13 @@
  * Hidden here: the topics and their order, their anchors, the wording, the examples, and the markup of the bubble and of
  * the page. Callers name a topic and get text or markup.
  */
-import {escapeHtml as esc} from './ui-utilities.js';
+import {escapeHtml as esc,highlightLines} from './ui-utilities.js';
 import {icon} from './icons.js';
+import type {AuthorDraft,PreflightOptions} from './contracts.js';
 
-/** The settings an example may set: the request's own names (ADR-108), resolved by the policy resolver in the test. */
-export type HelpSettings=Readonly<Partial<Record<'inputs'|'keyOrder'|'classFields'|'importEmit'|'portability'|'tsDiagnostics'|'jsCheck'|'objectState'|'unknownPolicy',string>>>;
+/** The settings an example may set: the request's own names (ADR-108), resolved by the policy resolver in the test.
+ *  Typed as the draft's own fields (ADR-135), so a trial loads them as they are. */
+export type HelpSettings=Readonly<Pick<AuthorDraft,'inputs'|'keyOrder'|'classFields'|'importEmit'>&PreflightOptions>;
 /** Two rows of the reference swapped, under each setting: accepted or not. `label`: the setting as the author sees it. */
 export interface OrderExample {kind:'order';language:'javascript'|'typescript';source:string;swap:readonly [number,number];outcomes:readonly {settings:HelpSettings;label:string;accepted:boolean}[];}
 /** The source checked under each setting: the first gate's verdict, whether it lets the source on, and the finding it names. */
@@ -119,16 +121,43 @@ export const helpSummary=(id:string):string=>TOPICS.get(id)?.summary??'';
 /** The page's address for a topic, relative to the workbench page. */
 export const helpHref=(id:string):string=>`./help/index.html#${encodeURIComponent(id)}`;
 
+/** ADR-135 (NY-31): what „Kipróbálom” loads: the example's source in its language under one outcome's settings, what the
+ *  author does next, and what the help says will happen. */
+export interface HelpTrial {title:string;label:string;language:'javascript'|'typescript';source:string;settings:HelpSettings;next:string;expected:string;}
+const outcomeText=(example:HelpExample,index:number):string=>{
+ if(example.kind==='order'){const outcome=example.outcomes[index];return outcome?outcome.accepted?'elfogadva':'elutasítva':'';}
+ const outcome=example.outcomes[index];
+ return outcome?`${VERDICT[outcome.verdict]}${outcome.finding?` (${outcome.finding})`:''}, ${outcome.admitted?'továbbléphetsz':'nem léphetsz tovább'}`:'';
+};
+/** One outcome of a topic's example as a trial, or undefined (no such topic, example or outcome). */
+export function helpTrial(id:string,index:number):HelpTrial|undefined {
+ const topic=TOPICS.get(id),example=topic?.example,outcome=example?.outcomes[index];
+ if(!topic||!example||!outcome)return undefined;
+ const next=example.kind==='order'?`Készíts modellt, majd a Próba és kiadás lépésben cseréld fel a(z) ${example.swap[0]}. és ${example.swap[1]}. sort, és ellenőrizd.`:'Kattints a Forrás vizsgálata gombra.';
+ return {title:topic.title,label:outcome.label,language:example.language,source:example.source,settings:outcome.settings,next,expected:outcomeText(example,index)};
+}
+const TRIAL_HASH='kiprobalom=';
+/** The workbench address that opens a trial, relative to the help page (the page lives in `help/`). */
+export const helpTrialHref=(id:string,index:number):string=>`../index.html#${TRIAL_HASH}${encodeURIComponent(id)}.${index}`;
+/** The trial a workbench address names (`#kiprobalom=<topic>.<outcome>`), or undefined. */
+export function helpTrialFromHash(hash:string):HelpTrial|undefined {
+ const match=/^#kiprobalom=([^.]+)\.(\d+)$/.exec(hash);if(!match)return undefined;
+ let id:string;try{id=decodeURIComponent(match[1]!);}catch{return undefined;}
+ return helpTrial(id,Number(match[2]));
+}
+
 const inline=(text:string):string=>esc(text).replace(/`([^`]+)`/g,'<code>$1</code>');
 const rowsOf=(example:HelpExample):string=>example.kind==='order'?`A(z) ${example.swap[0]}. és ${example.swap[1]}. sor cseréje`:'A forrás vizsgálata';
 const VERDICT:Readonly<Record<CheckExample['outcomes'][number]['verdict'],string>>={passed:'átment',inconclusive:'nem dőlt el',blocked:'biztos hiba'};
-/** An example as the author reads it: the numbered source, then one line per setting with what happens. */
-export function renderExample(example:HelpExample):string {
- const code=example.source.split('\n').map((line,index)=>`<span class="help-line"><span class="help-ln" aria-hidden="true">${index+1}</span>${esc(line)||' '}</span>`).join('');
- const outcomes=example.kind==='order'
-  ?example.outcomes.map(outcome=>`<li><b>${esc(outcome.label)}:</b> ${outcome.accepted?'elfogadva':'elutasítva'}</li>`)
-  :example.outcomes.map(outcome=>`<li><b>${esc(outcome.label)}:</b> ${VERDICT[outcome.verdict]}${outcome.finding?` (${esc(outcome.finding)})`:''}, ${outcome.admitted?'továbbléphetsz':'nem léphetsz tovább'}</li>`);
- return `<figure class="help-example"><pre class="help-code" tabindex="0" aria-label="Kódpélda"><code>${code}</code></pre><figcaption>${rowsOf(example)}:<ul>${outcomes.join('')}</ul></figcaption></figure>`;
+/** An example as the author reads it: the numbered, highlighted source, then one line per setting with what happens,
+ * each with „Kipróbálom” (ADR-135): in the workbench a button that loads it, on the help page a link to the workbench. */
+export function renderExample(example:HelpExample,id:string,where:'workbench'|'page'):string {
+ const code=highlightLines(example.source,example.language).map((line,index)=>`<span class="help-line"><span class="help-ln" aria-hidden="true">${index+1}</span>${line||' '}</span>`).join('');
+ const trial=(index:number,label:string):string=>where==='workbench'
+  ?` <button type="button" class="help-try" data-help-try="${esc(id)}" data-help-outcome="${index}" aria-label="Kipróbálom: ${esc(label)}">Kipróbálom</button>`
+  :` <a class="help-try" href="${helpTrialHref(id,index)}" aria-label="Kipróbálom a munkafelületen: ${esc(label)}">Kipróbálom</a>`;
+ const outcomes=example.outcomes.map((outcome,index)=>`<li><b>${esc(outcome.label)}:</b> ${esc(outcomeText(example,index))}${trial(index,outcome.label)}</li>`);
+ return `<figure class="help-example"><pre class="help-code" data-language="${example.language}" tabindex="0" aria-label="Kódpélda"><code>${code}</code></pre><figcaption>${rowsOf(example)}:<ul>${outcomes.join('')}</ul></figcaption></figure>`;
 }
 
 /** ADR-124 (H3): the ⓘ beside a label. A toggletip (a menu, so Escape and an outside click close it): the topic's
@@ -136,7 +165,7 @@ export function renderExample(example:HelpExample):string {
  * already stand under the control. */
 export function renderInfo(id:string,name:string,{withSummary=true}:{withSummary?:boolean}={}):string {
  const topic=TOPICS.get(id);if(!topic)return '';
- return `<details class="menu toggletip" data-help="${esc(id)}"><summary class="info-button" aria-label="Súgó: ${esc(name)}" title="Súgó: ${esc(name)}">${icon('help')}</summary><div class="menu-panel toggletip-panel" role="note">${withSummary?`<p>${inline(topic.summary)}</p>`:''}${topic.example?renderExample(topic.example):''}<a class="help-link" href="${helpHref(id)}" target="_blank" rel="noopener">Részletek a súgóban${icon('external')}<span class="sr-only"> (új lapon)</span></a></div></details>`;
+ return `<details class="menu toggletip" data-help="${esc(id)}"><summary class="info-button" aria-label="Súgó: ${esc(name)}" title="Súgó: ${esc(name)}">${icon('help')}</summary><div class="menu-panel toggletip-panel" role="note">${withSummary?`<p>${inline(topic.summary)}</p>`:''}${topic.example?renderExample(topic.example,id,'workbench'):''}<a class="help-link" href="${helpHref(id)}" target="_blank" rel="noopener">Részletek a súgóban${icon('external')}<span class="sr-only"> (új lapon)</span></a></div></details>`;
 }
 
 /** A reason code of the analysis, as the registry gives it (the build passes the registry in). */
@@ -147,10 +176,10 @@ const CATEGORY:Readonly<Record<string,string>>={proven:'bizonyított',conservati
 export function renderHelpPage(codes:readonly HelpReasonCode[]):string {
  const toc=GROUPS.map(group=>`<li><a href="#${group.id}">${esc(group.title)}</a><ol>${group.topics.map(topic=>`<li data-help-entry="${esc(topic.id)}"><a href="#${esc(topic.id)}">${esc(topic.title)}</a></li>`).join('')}</ol></li>`).join('');
  const table=`<div class="help-table" tabindex="0" role="region" aria-label="Okkódok táblázata"><table><thead><tr><th scope="col">Okkód</th><th scope="col">Kategória</th><th scope="col">Jelentése</th></tr></thead><tbody>${[...codes].sort((a,b)=>a.code.localeCompare(b.code)).map(code=>`<tr><th scope="row"><code>${esc(code.code)}</code></th><td>${esc(CATEGORY[code.category]??code.category)}</td><td>${inline(code.meaning)}</td></tr>`).join('')}</tbody></table></div>`;
- const topic=(entry:HelpTopic):string=>`<section class="help-topic" id="${esc(entry.id)}" data-help-topic><h3><a href="#${esc(entry.id)}">${esc(entry.title)}</a></h3><p class="help-summary">${inline(entry.summary)}</p>${entry.body.map(paragraph=>`<p>${inline(paragraph)}</p>`).join('')}${entry.example?renderExample(entry.example):''}${entry.id==='rule-kinds'?table:''}</section>`;
+ const topic=(entry:HelpTopic):string=>`<section class="help-topic" id="${esc(entry.id)}" data-help-topic><h3><a href="#${esc(entry.id)}">${esc(entry.title)}</a></h3><p class="help-summary">${inline(entry.summary)}</p>${entry.body.map(paragraph=>`<p>${inline(paragraph)}</p>`).join('')}${entry.example?renderExample(entry.example,entry.id,'page'):''}${entry.id==='rule-kinds'?table:''}</section>`;
  const sections=GROUPS.map(group=>`<section class="help-group" id="${group.id}" data-help-group><h2>${esc(group.title)}</h2><p>${inline(group.intro)}</p>${group.topics.map(topic).join('')}</section>`).join('');
  return `<!doctype html>
-<html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><script src="../app/theme-boot.js"></script><title>Súgó · CodeLineSorter</title><link rel="stylesheet" href="../style.css"></head>
+<html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><script src="../app/theme-boot.js"></script><title>Súgó · CodeLineSorter</title><link rel="stylesheet" href="../vendor/prism.css"><link rel="stylesheet" href="../style.css"></head>
 <body class="help-page"><a class="skip-link" href="#help-main">Ugrás a tartalomra</a>
 <header class="help-header"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true"></span><strong>CodeLine<span class="brand-tail">Sorter</span></strong></a><span class="help-title">Súgó</span></header>
 <div class="help-layout"><nav class="help-toc" aria-label="A súgó tartalma"><label class="help-search">Keresés a súgóban<input type="search" data-help-search autocomplete="off" placeholder="például kulcssorrend"></label><p class="help-count" data-help-count role="status" aria-live="polite"></p><ol>${toc}</ol></nav>

@@ -14,6 +14,9 @@ import {REASON_CODES} from '../dist/author/reason-codes.js';
 import {helpHref,helpSummary,helpTopics,renderHelpPage,renderInfo} from '../public/app/help-topics.js';
 import {renderPreflightSettings} from '../public/app/preflight-settings.js';
 import {escapeHtml} from '../public/app/ui-utilities.js';
+// ADR-135: the page is built with the vendored Prism (scripts/build-help.mjs); rendering here uses the same, so the
+// shipped page can be compared with this source's build.
+for(const grammar of ['prism-core','prism-clike','prism-javascript','prism-typescript'])await import(`../public/vendor/${grammar}.js`);
 
 const TOP=['inputs','keyOrder','classFields','importEmit'];
 /** The request as the workbench sends it: the environment at the top, the rest under `policy` (ADR-108). */
@@ -74,7 +77,7 @@ test('one text: a setting’s hint is its help summary; the bubble links to the 
  const bubble=renderInfo('keyOrder','Objektumkulcsok sorrendje');
  assert.match(bubble,/aria-label="Súgó: Objektumkulcsok sorrendje"/);
  assert.ok(bubble.includes(`href="${helpHref('keyOrder')}" target="_blank" rel="noopener"`));
- assert.match(bubble,/A\(z\) 3\. és 4\. sor cseréje:<ul><li><b>Számít:<\/b> elutasítva<\/li><li><b>Nem számít:<\/b> elfogadva<\/li><\/ul>/);
+ assert.match(bubble,/A\(z\) 3\. és 4\. sor cseréje:<ul><li><b>Számít:<\/b> elutasítva <button type="button" class="help-try" data-help-try="keyOrder" data-help-outcome="0" aria-label="Kipróbálom: Számít">Kipróbálom<\/button><\/li><li><b>Nem számít:<\/b> elfogadva <button[^>]*data-help-outcome="1"[^>]*>Kipróbálom<\/button><\/li><\/ul>/);
  assert.equal(renderInfo('nincs-ilyen','x'),'');
 });
 
@@ -97,6 +100,6 @@ test('markup: an example’s lines are blocks with no newline between them (a ne
  const html=renderInfo('keyOrder','Objektumkulcsok sorrendje');
  const code=html.match(/<pre class="help-code"[^>]*><code>(.*?)<\/code><\/pre>/s)?.[1]??'';
  assert.ok(code.includes('<span class="help-line">'),'the example is rendered');assert.doesNotMatch(code,/\n/);
- assert.match(html,/<pre class="help-code" tabindex="0" aria-label="Kódpélda">/,'a scrollable example is reachable by keyboard');
+ assert.match(html,/<pre class="help-code" data-language="javascript" tabindex="0" aria-label="Kódpélda">/,'a scrollable example is reachable by keyboard');
  assert.match(renderHelpPage(REASON_CODES),/<div class="help-table" tabindex="0" role="region" aria-label="Okkódok táblázata">/,'the scrollable table too');
 });

@@ -4,8 +4,25 @@ declare global {interface Window {Prism?:{languages:Record<string,unknown>;highl
 /** ADR-121 (M4): syntax highlighting with the vendored Prism, the one highlighter of the app (sorter rows, rule board,
  *  snippets, editors). JSON uses the JavaScript grammar. Without Prism the code is escaped plain text. */
 export function highlight(code:string,language:string):string {
- try{const prism=window.Prism,grammar=prism?.languages[language]??(language==='json'?prism?.languages.javascript:undefined);if(prism&&grammar)return prism.highlight(code,grammar,language==='json'?'javascript':language);}catch{}
+ // The global, not `window`: the help page's build highlights in Node with the same vendored Prism (ADR-135).
+ try{const prism=(globalThis as {Prism?:Window['Prism']}).Prism,grammar=prism?.languages[language]??(language==='json'?prism?.languages.javascript:undefined);if(prism&&grammar)return prism.highlight(code,grammar,language==='json'?'javascript':language);}catch{}
  return escapeHtml(code);
+}
+/** ADR-135 (NY-31): the highlighted code cut into lines, for numbered listings. Prism highlights the whole text, so a
+ *  token over several lines (a template string, a block comment) keeps its colour; each line closes the spans still
+ *  open at its end and the next line opens them again, so every line is well-formed markup on its own. */
+export function highlightLines(code:string,language:string):string[] {
+ const lines:string[]=[],open:string[]=[];let current='';
+ for(const part of highlight(code,language).split(/(<span[^>]*>|<\/span>)/)){
+  if(part.startsWith('<span')){open.push(part);current+=part;}
+  else if(part==='</span>'){open.pop();current+=part;}
+  else{
+   const pieces=part.split('\n');
+   pieces.forEach((piece,index)=>{if(index>0){lines.push(current+'</span>'.repeat(open.length));current=open.join('');}current+=piece;});
+  }
+ }
+ lines.push(current);
+ return lines;
 }
 /** ADR-121 (M4): one code editor for the source, the CodeLine JSON and the solution code. A transparent textarea keeps the
  *  native editing (undo, selection, IME, paste, mobile keyboards) above a highlighted layer with the same metrics. */

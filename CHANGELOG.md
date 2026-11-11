@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-11-11 NY-31: „Kipróbálom” a súgóban, kiemelt kódpéldák (ADR-135)
+
+- **A súgó minden példájánál, minden kimenetel mellett „Kipróbálom”:** a példa forrása a Kód lépésbe kerül, pontosan azokkal a beállításokkal, amelyekkel a súgó tesztje ellenőrzi. Az üzenet megmondja a következő lépést és a súgó szerinti eredményt. A betöltés visszavonható.
+- **A súgóoldalról is működik:** a hivatkozás megnyitja a munkafelületet a példával.
+- **A kódpéldák kiemeltek** a buborékban és a súgóoldalon is, a munkafelület színeivel.
+- **Javítva: a nyitott súgóbuborék nem takarja el az alatta lévő mezőt,** hanem helyet foglal. Más betűtípusnál (például a CI gépén) a buborék félig rátakart a következő mezőre; emiatt a v57 óta a CI-n piros volt az akadálymentességi kapu, és a Pages-oldal nem frissült (így a négy nézetgomb kikapcsolása sem jelent meg).
+- A szabályok és az értékelés nem változtak.
+
 ## Unreleased – 2026-11-11 NY-28: az `api`, a `clipboard` és az `author-session` TypeScriptben (ADR-134)
 
 - **Három felületi modul szigorú TypeScript-forrást kapott;** a viselkedés nem változott.

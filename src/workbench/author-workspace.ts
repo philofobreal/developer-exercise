@@ -5,6 +5,7 @@ import type {AuthorDraft,ExerciseLevel,ExerciseSummary,SettingsOrigin,WorkbenchS
 import type {CodeLineExercise} from '../../dist/index.js';
 import type {PolicyResolution} from '../../dist/author/preflight/config-resolver.js';
 import {NEW_DRAFT_SETTINGS,settingsKey,settingsRequest} from './preflight-settings.js';
+import type {HelpTrial} from './help-topics.js';
 
 const same=(a:AuthorDraft,b:AuthorDraft):boolean=>a.source===b.source&&a.language===b.language&&a.title===b.title&&a.description===b.description&&(a.level||'')===(b.level||'')&&settingsKey(a)===settingsKey(b);
 /** The generation request for the reference; the import emit is a TypeScript-only assumption (ADR-013),
@@ -111,6 +112,15 @@ export function undoReplace(state:WorkbenchState):void {
 /** An example is a starting point: its reference becomes the unapplied draft (undoable, `replaceDraft`). */
 export function startFromExample(state:WorkbenchState,exercise:ExerciseSummary):void {
  replaceDraft(state,{...NEW_DRAFT_SETTINGS,title:exercise.title,description:exercise.description,...(exercise.level?{level:exercise.level}:{}),language:exercise.language,source:exercise.lines.map(line=>line.code).join('\n'),message:`A(z) „${exercise.title}” példa betöltve. A modell a Modell készítése gombbal készül el belőle.`});
+}
+/** ADR-135 (NY-31): „Kipróbálom” in the help loads the example's source under exactly the settings its outcome names
+ * (the ones the help's test runs), every other setting at its default, so the workbench reproduces what the help says.
+ * The title, description and level stay the author's; the replaced draft can be brought back (`undoReplace`). */
+export function startFromHelp(state:WorkbenchState,trial:HelpTrial):void {
+ const {title,description,level}=state.author,{inputs,keyOrder,classFields,importEmit,...policy}=trial.settings;
+ replaceDraft(state,{title,description,...(level!==undefined?{level}:{}),language:trial.language,source:trial.source,
+  ...(inputs?{inputs}:{}),...(keyOrder?{keyOrder}:{}),...(classFields?{classFields}:{}),...(importEmit?{importEmit}:{}),...(Object.keys(policy).length?{policy}:{}),
+  message:`Súgópélda betöltve: ${trial.title} (${trial.label}). ${trial.next} A súgó szerint: ${trial.expected}.`});
 }
 /** Discards unapplied reference edits: the draft returns to what the applied model was built from. */
 export function revertAuthorDraft(state:WorkbenchState):void {

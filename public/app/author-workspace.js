@@ -136,6 +136,15 @@ export function undoReplace(state) {
 export function startFromExample(state, exercise) {
     replaceDraft(state, { ...NEW_DRAFT_SETTINGS, title: exercise.title, description: exercise.description, ...(exercise.level ? { level: exercise.level } : {}), language: exercise.language, source: exercise.lines.map(line => line.code).join('\n'), message: `A(z) „${exercise.title}” példa betöltve. A modell a Modell készítése gombbal készül el belőle.` });
 }
+/** ADR-135 (NY-31): „Kipróbálom” in the help loads the example's source under exactly the settings its outcome names
+ * (the ones the help's test runs), every other setting at its default, so the workbench reproduces what the help says.
+ * The title, description and level stay the author's; the replaced draft can be brought back (`undoReplace`). */
+export function startFromHelp(state, trial) {
+    const { title, description, level } = state.author, { inputs, keyOrder, classFields, importEmit, ...policy } = trial.settings;
+    replaceDraft(state, { title, description, ...(level !== undefined ? { level } : {}), language: trial.language, source: trial.source,
+        ...(inputs ? { inputs } : {}), ...(keyOrder ? { keyOrder } : {}), ...(classFields ? { classFields } : {}), ...(importEmit ? { importEmit } : {}), ...(Object.keys(policy).length ? { policy } : {}),
+        message: `Súgópélda betöltve: ${trial.title} (${trial.label}). ${trial.next} A súgó szerint: ${trial.expected}.` });
+}
 /** Discards unapplied reference edits: the draft returns to what the applied model was built from. */
 export function revertAuthorDraft(state) {
     if (!state.authorBaseline)

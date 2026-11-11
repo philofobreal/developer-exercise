@@ -31,7 +31,9 @@ def author_flow(page,prefix):
     expect(page.locator('[data-step="rules"]')).to_have_attribute('aria-current','step');scan(page,prefix+'-author-rules')
     # ADR-124 (H3): an open ⓘ bubble, with its example and link.
     box=page.locator('details.analysis-options');box.locator(':scope > summary').click();page.locator('details.toggletip[data-help="keyOrder"] > summary').click()
-    expect(page.locator('details.toggletip[data-help="keyOrder"] .help-link')).to_be_visible();scan(page,prefix+'-author-rules-help');page.keyboard.press('Escape')
+    expect(page.locator('details.toggletip[data-help="keyOrder"] .help-link')).to_be_visible()
+    # ADR-135: the bubble is placed (and its room made) on its toggle event; scan the placed state.
+    page.wait_for_function('()=>(document.querySelector("details.toggletip[open] .toggletip-panel")?.style.left??"")!==""');scan(page,prefix+'-author-rules-help');page.keyboard.press('Escape')
     page.locator('[data-step="try"]').click();expect(page.locator('.solution-zone')).to_be_visible();page.locator('[data-all]').click();scan(page,prefix+'-author-try')
     page.locator('[data-check]').click();expect(page.locator('.report')).not_to_have_class('report idle');scan(page,prefix+'-author-try-checked')
     page.locator('[data-preview-toggle]').click();expect(page.locator('.learner-preview, #app.learner-preview')).to_have_count(1);scan(page,prefix+'-learner-preview')

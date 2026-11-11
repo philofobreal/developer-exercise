@@ -70,6 +70,7 @@
 - **Rögzített maradék:**
   - a buborékban a kód kiemelés nélküli. A Prism csak a böngészőben él, az oldal pedig buildkor készül.
   - a „Kipróbálom” gomb (a példa megnyitása a Kód lépésben) nem készült el.
+  - Mindkettőt lezárta az [ADR-135](135-help-trial-and-highlighted-examples.md).
 
 ## Bizonyíték
 

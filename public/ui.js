@@ -1,5 +1,5 @@
 import {markEditorDraft,markEditorApplied,reloadEditorFromArrangement,captureEditorRequest,adjacentMoveBoundary,dispatchWorkbenchAction} from './app/interactions.js';
-import {refreshAuthorStatus,captureAuthorRequest,authorRequest,startFromExample,replaceDraft,formatLoaded,undoReplace,revertAuthorDraft,admitAuthorModel,setLearnerData} from './app/author-workspace.js';
+import {refreshAuthorStatus,captureAuthorRequest,authorRequest,startFromExample,startFromHelp,replaceDraft,formatLoaded,undoReplace,revertAuthorDraft,admitAuthorModel,setLearnerData} from './app/author-workspace.js';
 import {NEW_DRAFT_SETTINGS,setPreflightOption,settingsKey,settingsRequest} from './app/preflight-settings.js';
 import {revealLine} from './app/ui-utilities.js';
 import {readRuleEdit,readRuleKindEdits,recordRuleRefusal,ruleCount,settleRuleKind,settleRuleSelection} from './app/rule-panel.js';
@@ -11,6 +11,7 @@ import {authorPreviewId,blockedReason,enterMode,enterView,landAfterAdmission,ref
 /** App orchestration and event wiring; modes, steps and staleness live in the typed flow (ADR-022). */
 import {readClipboard} from './app/clipboard.js';
 import {trackActivity,setActivityAbort} from './app/activity.js';
+import {helpTrial,helpTrialFromHash} from './app/help-topics.js';
 import {cycleTheme} from './app/theme.js';
 import {toggleSurface} from './app/surface.js';
 import {setCodeView} from './app/code-view.js';
@@ -157,6 +158,8 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  if(b.hasAttribute('data-open-json')){state.rulesView='json';await go('model');return;}
  if(b.dataset.sourceKind){state.sourceKind=b.dataset.sourceKind;render();return;}
  if(b.hasAttribute('data-author-undo')){undoReplace(state);render();root.querySelector('#author-editor')?.focus({preventScroll:true});return;}
+ // ADR-135 (NY-31): „Kipróbálom” in a help bubble loads that example under that outcome's settings in the Kód step.
+ if(b.hasAttribute('data-help-try')){const trial=helpTrial(b.dataset.helpTry,Number(b.dataset.helpOutcome));if(!trial)return;openHelpTrial(trial);return;}
  if(b.hasAttribute('data-edit-example')){const e=ex();if(!e)return;startFromExample(state,e);enterMode(state,'author');state.view='author';state.sourceKind='code';render();return;}
  if(b.hasAttribute('data-author-revert')){revertAuthorDraft(state);render();return;}
  // ADR-122: a finding's line is a source line wherever it is shown; from another step it opens the source there.
@@ -297,5 +300,9 @@ root.addEventListener('change',async ev=>{
  finally{input.value='';}
 });
 
-async function init(){try{state.exercises=practiceOrder(await getExercises());for(const e of state.exercises)state.attempts.set(e.id,createAttempt(e));if(!state.exercises.length)throw Error('Üres feladatlista.');state.practiceActive=state.exercises[0].id;render();}catch(err){root.innerHTML=`<div class="loading" role="alert">${escapeHtml(err.message)}</div>`;}}
+/** ADR-135: a help example opens in the Kód step, the bubble closed, the focus on the loaded source. */
+function openHelpTrial(trial){startFromHelp(state,trial);enterMode(state,'author');state.view='author';state.sourceKind='code';render();root.querySelector('#author-editor')?.focus({preventScroll:true});}
+async function init(){try{state.exercises=practiceOrder(await getExercises());for(const e of state.exercises)state.attempts.set(e.id,createAttempt(e));if(!state.exercises.length)throw Error('Üres feladatlista.');state.practiceActive=state.exercises[0].id;render();
+ // ADR-135: the help page's „Kipróbálom” opens the workbench at #kiprobalom=<topic>.<outcome>; the address is cleared after.
+ const trial=helpTrialFromHash(location.hash);if(trial){history.replaceState(null,'',location.pathname+location.search);openHelpTrial(trial);}}catch(err){root.innerHTML=`<div class="loading" role="alert">${escapeHtml(err.message)}</div>`;}}
 init();

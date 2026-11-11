@@ -50,15 +50,21 @@ export function installMenus(root:HTMLElement):void {
 }
 /** ADR-124 (H3): an opened ⓘ bubble stays on the screen: it opens under its button and, near an edge, shifts back
  *  inside the viewport (a 16 px margin), so it never widens the page. */
+/** ADR-135: the heads a bubble may stand in; an open bubble there makes room below the head instead of covering what
+ *  follows (a control half under a bubble is a target too small to hit, WCAG 2.5.8, whatever the font's height). */
+const TIP_HOSTS='.setting-head,.task-question,.diagnostics-head,.insight-heading';
 export function installToggletips(root:HTMLElement):void {
  root.addEventListener('toggle',event=>{
-  const tip=event.target;if(!(tip instanceof HTMLDetailsElement)||!tip.matches('details.toggletip')||!tip.open)return;
-  const panel=tip.querySelector<HTMLElement>('.toggletip-panel');if(!panel)return;
+  const tip=event.target;if(!(tip instanceof HTMLDetailsElement)||!tip.matches('details.toggletip'))return;
+  const panel=tip.querySelector<HTMLElement>('.toggletip-panel'),host=tip.parentElement?.closest<HTMLElement>(TIP_HOSTS);
+  if(!tip.open){host?.style.removeProperty('margin-bottom');return;}
+  if(!panel)return;
   // Moved by its offset, not a transform: a transformed box still widens the page at its untransformed place.
   panel.style.left='0px';
   const box=panel.getBoundingClientRect(),limit=document.documentElement.clientWidth-16;
   const shift=box.right>limit?limit-box.right:box.left<16?16-box.left:0;
   if(shift)panel.style.left=`${Math.round(shift)}px`;
+  if(host)host.style.marginBottom=`${Math.ceil(box.bottom-host.getBoundingClientRect().bottom+8)}px`;
  },true);
 }
 export function installWorkbenchKeyboard(root:HTMLElement):void {

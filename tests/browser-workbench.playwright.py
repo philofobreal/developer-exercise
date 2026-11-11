@@ -396,6 +396,8 @@ def stale_file_import(page):
         try:
             page.locator(f'[data-{kind}-file]').set_input_files({'name':'delayed-review.json','mimeType':'application/json','buffer':json.dumps(payload).encode()})
             page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();newer=f'const keepNewer_{kind} = 42;';page.locator('#author-editor').fill(newer)
+            # The read starts when the page asks for the file's text; on a slow machine that is after the fill above.
+            page.wait_for_function("()=>typeof globalThis.finishReviewFile==='function'")
             page.evaluate('''async () => {await finishReviewFile();await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));}''')
             expect(page.locator('#author-editor')).to_have_value(newer);current(page,'source');expect(page.locator('[data-step="rules"]')).to_be_disabled()
         finally:page.evaluate('() => {File.prototype.text=originalFileText;delete globalThis.finishReviewFile;}')
@@ -621,6 +623,39 @@ def indentation_single_owner(page):
     to_try(page);page.locator('[data-all]').click()
     sorter=[text.rstrip() for text in page.locator('.solution-zone .code-row .code-text').all_inner_texts()]
     assert sorter==source,sorter
+def authorKeyOrder(page):
+    """The key-order setting of the Elemzés step's control, unfolding the analysis options."""
+    page.locator('[data-step="rules"]').click();analysis_options(page);return page.locator('[data-preflight="keyOrder"]').input_value()
+# ADR-135: the controls outside the open ⓘ bubble that it overlaps (a control half under it is a target too small to hit).
+COVERED_BY_BUBBLE='''()=>{const panel=document.querySelector('details.toggletip[open] .toggletip-panel');if(!panel)return ['no open bubble'];
+ const hit=(x,y)=>{const top=document.elementFromPoint(x,y);return !!top&&panel.contains(top);};
+ // The content of a closed details (another bubble, a folded section) still has boxes in Chromium; it is not shown.
+ const shut=el=>{for(let d=el.closest('details');d;d=d.parentElement?.closest('details')??null)if(!d.open&&!d.querySelector(':scope>summary')?.contains(el))return true;return false;};
+ return [...document.querySelectorAll('button,select,input,textarea,a[href],summary')].filter(el=>!panel.contains(el)&&!el.closest('details.toggletip[open]')&&!shut(el)&&el.getClientRects().length).filter(el=>{
+  const r=el.getBoundingClientRect();if(!r.width||!r.height||r.bottom<=0||r.top>=innerHeight)return false;
+  const xs=[r.left+2,r.left+r.width/2,r.right-2],ys=[r.top+2,r.top+r.height/2,r.bottom-2];
+  return xs.some(x=>ys.some(y=>y>=0&&y<innerHeight&&hit(x,y)));}).map(el=>el.id||el.outerHTML.slice(0,60));}'''
+def help_trial(page,url):
+    """ADR-135 (NY-31): „Kipróbálom” beside an outcome of a help example loads the example under that outcome's settings
+    in the Kód step, and the workbench then reproduces what the help says: key order „Számít”, rows 3 and 4 swapped are
+    rejected. (The draft before was „Nem számít”, under which they are accepted: the rejection shows the trial's setting
+    replaced it.) The help page's own „Kipróbálom” opens the workbench the same way; its code is highlighted."""
+    build(page,rules_source);assert authorKeyOrder(page)=='ignored','a new draft starts with „Nem számít”'
+    tip=page.locator('details.toggletip[data-help="keyOrder"]');tip.locator('summary').click()
+    expect(tip.locator('.help-code .token.keyword').first).to_be_visible()
+    tip.locator('[data-help-try="keyOrder"][data-help-outcome="0"]').click()
+    current(page,'source');expect(page.locator('#author-editor')).to_have_value(re.compile(r'^class Box \{'))
+    expect(page.locator('.author-status')).to_contain_text('Súgópélda betöltve');expect(page.locator('.author-status')).to_contain_text('elutasítva')
+    page.locator('[data-author-apply]').click();current(page,'rules');assert authorKeyOrder(page)=='observed';to_try(page)
+    # `data-down` names the slot (from 0): slot 2 is row 3, which moves below row 4.
+    page.locator('[data-all]').click();page.locator('[data-down="2"]').click()
+    assert page.locator('.solution-zone .code-row').evaluate_all('rows=>rows.map(row=>row.dataset.lineId)')[:5]==['1','2','4','3','5']
+    page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Hibás')
+    page.goto(url.rstrip('/')+'/help/index.html');expect(page.locator('#objectState .help-code .token.keyword').first).to_be_visible()
+    page.locator('#objectState a.help-try').nth(1).click()
+    current(page,'source');expect(page.locator('#author-editor')).to_have_value('const user = null;\nconsole.log(user.name);')
+    assert page.evaluate('location.hash')=='','the trial address is cleared'
+    page.locator('[data-author-check]').click();expect(page.locator('[data-source-diagnostics]')).to_contain_text('OS001')
 def source_check(page):
     """ADR-113: the Source step checks the reference under the chosen settings without making a model: findings
     with their line, the step's state, and a clean result in words; no model, so Rules stays locked."""
@@ -1032,7 +1067,7 @@ try:
         watch(context)
         try:
             for mode,url in [('node',BASE),('pages',f'http://127.0.0.1:{static.server_port}/developer-exercise/')]:
-                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('preflight settings, locks and findings',preflight_ui),('one indentation in source, board and sorter',indentation_single_owner),('the source is checked without a model',source_check),('the Rules step answers three questions and names one next step',task_status),('the help: bubbles beside the settings and the searchable help page',help_toggletips),('the Local Demo analyses in a worker: the page stays responsive',local_demo_responsive),('the Rules step names why valid inputs became strict',inputs_override),('session v2 records the analysis settings; v1 is partial',session_settings),('model-first creation',model_first),('a rejected order names its rule and how to lift it',rule_cause_lifts),('key order setting and rule kinds',key_order_and_rule_kinds),('class-field mode setting',class_fields_setting),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('the input contract is chosen, recorded and restored',input_contract),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll),('circles toggle links: checks, removal and exact restore',link_toggle),('pins fix and release a line on the board',pin_lines),('feedback marks graded rows, invalidates on a move and respects the learner view',learner_feedback)]:
+                for name,action in [('steps stay locked until a model exists',steps_locked_until_model),('preflight settings, locks and findings',preflight_ui),('one indentation in source, board and sorter',indentation_single_owner),('the source is checked without a model',source_check),('the Rules step answers three questions and names one next step',task_status),('the help: bubbles beside the settings and the searchable help page',help_toggletips),('the help: Kipróbálom reproduces an example, from the bubble and from the page',lambda page:help_trial(page,url)),('the Local Demo analyses in a worker: the page stays responsive',local_demo_responsive),('the Rules step names why valid inputs became strict',inputs_override),('session v2 records the analysis settings; v1 is partial',session_settings),('model-first creation',model_first),('a rejected order names its rule and how to lift it',rule_cause_lifts),('key order setting and rule kinds',key_order_and_rule_kinds),('class-field mode setting',class_fields_setting),('source file pending then apply',source_file),('JSON file creation',json_file),('fixed position permits crossing peers',fixed_crossing),('learner preview isolation and roundtrip',learner),('keyboard tabs and draft preservation',keyboard_draft),('focus, details and contextual copy',continuity),('one author project beside practice; examples as starting points',reference_continuity),('rebuild and JSON apply refresh every later step',stale_rebuild_updates_every_step),('explicit legacy dependency refresh preserves screenshot arrangement',legacy_dependency_refresh),('delayed model/session File.text preserves newer reference',stale_file_import),('author rule panel edits, acknowledges and stays author-only',rule_panel),('pointer and keyboard connect lines into rules',rule_connect),('try sorter shows, redraws and edits rules while arranging',try_rules),('rule edits keep unapplied reference and JSON drafts',pending_reference_survives_rule_edit),('the input contract is chosen, recorded and restored',input_contract),('rule edits keep the sorter scroll position',rule_edit_keeps_scroll),('circles toggle links: checks, removal and exact restore',link_toggle),('pins fix and release a line on the board',pin_lines),('feedback marks graded rows, invalidates on a move and respects the learner view',learner_feedback)]:
                     reset(page,url);case(mode+' '+name,lambda:action(page))
                 reset(page,url);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-author.png')),full_page=True)
                 practice(page);page.screenshot(path=str(ARTIFACTS/('ux-'+mode+'-practice.png')),full_page=True)
@@ -1081,6 +1116,16 @@ try:
                     analysis_options(target);target.locator('details.toggletip[data-help="keyOrder"] > summary').click();expect(target.locator('details.toggletip[data-help="keyOrder"]')).to_have_attribute('open','')
                     target.wait_for_function('()=>(document.querySelector("details.toggletip[open] .toggletip-panel")?.style.left??"")!==""')
                     assert target.evaluate('document.documentElement.scrollWidth')<=width,f"{width}px: an open bubble widens the page to {target.evaluate('document.documentElement.scrollWidth')}"
+                    assert not target.evaluate(COVERED_BY_BUBBLE),f"{width}px: the open bubble covers {target.evaluate(COVERED_BY_BUBBLE)}"
+                    target.keyboard.press('Escape');expect(target.locator('details.toggletip[data-help="keyOrder"]')).not_to_have_attribute('open','')
+                    # The room goes with the bubble (on the same, asynchronous toggle event).
+                    target.wait_for_function('()=>document.querySelector(\'details.toggletip[data-help="keyOrder"]\').closest(".setting-head").style.marginBottom===""')
+                    # ADR-135: a taller bubble (another font, as on the CI runner) still covers nothing: it makes its own room.
+                    target.evaluate("()=>{const sheet=[...document.styleSheets].at(-1);sheet.insertRule('.toggletip-panel{line-height:2.6!important}',sheet.cssRules.length);}")
+                    target.locator('details.toggletip[data-help="keyOrder"] > summary').click();expect(target.locator('details.toggletip[data-help="keyOrder"]')).to_have_attribute('open','')
+                    # This opening's own sign: its room (style.left is still set from the first opening).
+                    target.wait_for_function('()=>document.querySelector(\'details.toggletip[data-help="keyOrder"]\').closest(".setting-head").style.marginBottom!==""')
+                    assert not target.evaluate(COVERED_BY_BUBBLE),f"{width}px, tall bubble: covers {target.evaluate(COVERED_BY_BUBBLE)}"
                     target.keyboard.press('Escape')
                     target.screenshot(path=str(ARTIFACTS/f'ux-mobile-{width}.png'),full_page=True);count+=1;print(f'PASS workbench: {width}px touch practice and author layout',flush=True)
                 finally:mobile.close()
