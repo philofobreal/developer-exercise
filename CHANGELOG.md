@@ -2,7 +2,8 @@
 
 ## Unreleased – 2026-11-11 A háttérben érkező válasz nem csukja be a nyitott menüt (ADR-136)
 
-- **Javítva:** betöltés után a beállítások ellenőrzésének válasza újrarajzolta az oldalt, és becsukta a közben megnyitott „Megnyitás” vagy „Munkamenet” menüt. Most nyitva marad; a menüben választott művelet után továbbra is bezárul.
+- **Javítva:** betöltés után a beállítások ellenőrzésének válasza újrarajzolta az oldalt. Ez becsukta a közben megnyitott menüt, vagy elnyelt egy éppen folyó kattintást (például a „Gyakorlás” gombét). Most ez a válasz az első rajzolás előtt megérkezik, így betöltés után semmi nem rajzol újra magától.
+- **Egy később, a háttérben érkező válasz** (például egy beállítás módosítása után) nyitva hagyja a megnyitott menüt; a menüben választott művelet után az továbbra is bezárul.
 - Ez okozta a CI egyik bukását is, ami miatt a Pages-oldal nem frissült.
 
 ## Unreleased – 2026-11-11 NY-31: „Kipróbálom” a súgóban, kiemelt kódpéldák (ADR-135)

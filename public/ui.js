@@ -303,7 +303,10 @@ root.addEventListener('change',async ev=>{
 
 /** ADR-135: a help example opens in the Kód step, the bubble closed, the focus on the loaded source. */
 function openHelpTrial(trial){startFromHelp(state,trial);enterMode(state,'author');state.view='author';state.sourceKind='code';render();root.querySelector('#author-editor')?.focus({preventScroll:true});}
-async function init(){try{state.exercises=practiceOrder(await getExercises());for(const e of state.exercises)state.attempts.set(e.id,createAttempt(e));if(!state.exercises.length)throw Error('Üres feladatlista.');state.practiceActive=state.exercises[0].id;render();
+/** ADR-136: the policy for the starting draft is asked with the exercise list, so the first render already has it: no
+ *  answer redraws the page under the reader's first click. A refusal leaves it to `ensurePolicy`, as before. */
+async function startingPolicy(){const key=settingsKey(state.author);try{state.authorPolicy=await resolvePolicy({language:state.author.language,...settingsRequest(state.author)});policyKey=key;}catch{}}
+async function init(){try{const [exercises]=await Promise.all([getExercises(),startingPolicy()]);state.exercises=practiceOrder(exercises);for(const e of state.exercises)state.attempts.set(e.id,createAttempt(e));if(!state.exercises.length)throw Error('Üres feladatlista.');state.practiceActive=state.exercises[0].id;render();
  // ADR-135: the help page's „Kipróbálom” opens the workbench at #kiprobalom=<topic>.<outcome>; the address is cleared after.
  const trial=helpTrialFromHash(location.hash);if(trial){history.replaceState(null,'',location.pathname+location.search);openHelpTrial(trial);}}catch(err){root.innerHTML=`<div class="loading" role="alert">${escapeHtml(err.message)}</div>`;}}
 init();

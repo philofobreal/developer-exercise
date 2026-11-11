@@ -272,19 +272,29 @@ def model_first(page):
     page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
 COUNT_RENDERS="()=>{window.__renders=0;new MutationObserver(()=>window.__renders++).observe(document.querySelector('#app'),{childList:true});}"
 def background_render_keeps_menu(page):
-    """ADR-136: the policy resolution answers after the first render. A menu the author opened meanwhile stays open when
-    that answer redraws the page (on a slow network it closed under the pointer; CI's source_file flake); a choice in
-    the menu still closes it."""
+    """ADR-136: no answer redraws the page under the author's first click: the starting policy is resolved before the
+    first render (held, the page waits for it). A later background answer (a changed setting's resolution) redraws the
+    page and leaves a menu the author opened meanwhile open (on a slow network it closed under the pointer: CI's
+    source_file failure); a choice in the menu still closes it."""
     held=[]
     page.route('**/api/author/policy*',lambda route:held.append(route))
     try:
-        page.goto(BASE);expect(page.locator('[data-step="source"]')).to_have_attribute('aria-current','step')
+        page.goto(BASE)
         for _ in range(200):
             if held:break
             page.wait_for_timeout(25)
-        assert held,'the policy request is on its way'
-        page.evaluate(COUNT_RENDERS);menu=open_menu(page,'open');expect(page.locator('[data-import-source]')).to_be_visible()
+        assert held,'the starting policy is asked'
+        page.wait_for_timeout(300);assert page.locator('[data-step]').count()==0,'the first render waits for the starting policy'
         route=held.pop();route.fulfill(response=route.fetch())
+        expect(page.locator('[data-step="source"]')).to_have_attribute('aria-current','step')
+        page.evaluate(COUNT_RENDERS);page.wait_for_timeout(300);assert page.evaluate('window.__renders')==0,'nothing redraws the loaded page by itself'
+        page.locator('[data-author="language"]').select_option('typescript')
+        for _ in range(200):
+            if held:break
+            page.wait_for_timeout(25)
+        assert held,'a changed setting asks for its policy'
+        menu=open_menu(page,'open');expect(page.locator('[data-import-source]')).to_be_visible()
+        page.evaluate(COUNT_RENDERS);route=held.pop();route.fulfill(response=route.fetch())
         page.wait_for_function('()=>window.__renders>0')
         expect(menu).to_have_attribute('open','');expect(page.locator('[data-import-source]')).to_be_visible()
         page.locator('[data-author-sample]').click();expect(page.locator('details.open-menu')).not_to_have_attribute('open','')
