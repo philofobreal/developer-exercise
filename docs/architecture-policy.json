@@ -49,6 +49,7 @@
     "src/workbench/pages-worker.ts": "public/app/pages-worker.js",
     "src/workbench/api.ts": "public/app/api.js",
     "src/workbench/clipboard.ts": "public/app/clipboard.js",
-    "src/workbench/author-session.ts": "public/app/author-session.js"
+    "src/workbench/author-session.ts": "public/app/author-session.js",
+    "src/workbench/header-fit.ts": "public/app/header-fit.js"
   }
 }

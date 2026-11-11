@@ -271,6 +271,28 @@ def model_first(page):
     json_model(page,model);to_try(page);expect(page.locator('.solution-zone .code-row')).to_have_count(7)
     page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
 COUNT_RENDERS="()=>{window.__renders=0;new MutationObserver(()=>window.__renders++).observe(document.querySelector('#app'),{childList:true});}"
+HEADER_STATE="""()=>{const h=document.querySelector('.header'),word=document.querySelector('.header .brand strong'),label=document.querySelector('.header .brand small');
+ const tops=[...h.children].filter(k=>k.getClientRects().length).map(k=>k.getBoundingClientRect().top);
+ return {step:h.dataset.brand,fits:h.scrollWidth<=h.clientWidth,rows:Math.max(...tops)-Math.min(...tops),word:word.getBoundingClientRect().width,label:label.getClientRects().length?label.textContent:'',page:document.documentElement.scrollWidth}}"""
+def header_logo_fits(browser):
+    """ADR-137: the app bar's logo keeps its wordmark wherever it fits, measured, not by a breakpoint: on every phone width
+    the bar is one row that does not overflow and the wordmark is shown (only a far wider font than ours falls back to
+    the mark alone); the EDITOR label stands beside it where the row has room (the desktop)."""
+    for width in (320,360,390,412,430,600,1280):
+        context=watch(browser.new_context(viewport={'width':width,'height':800},**({'is_mobile':True,'has_touch':True} if width<700 else {})));page=context.new_page()
+        try:
+            reset(page,BASE);build(page,rules_source)
+            state=page.evaluate(HEADER_STATE)
+            assert state['fits'] and state['page']<=width,f'{width}px: the app bar overflows {state}'
+            assert state['word']>60 and state['step']!='mark',f'{width}px: the wordmark is hidden although it fits {state}'
+            if width<650:assert state['rows']<12,f'{width}px: the app bar is one row {state}'
+            if width>=1280:assert state['step']=='complete' and state['label']=='Editor',state
+            assert 'Studio' not in page.locator('.header').inner_text()
+            # A wider font (another device) still never overflows: the logo steps back as far as it must.
+            page.evaluate("()=>{const sheet=[...document.styleSheets].at(-1);sheet.insertRule('.brand strong{letter-spacing:3px!important}',sheet.cssRules.length);dispatchEvent(new Event('resize'));}")
+            page.locator('[data-step="source"]').click()
+            state=page.evaluate(HEADER_STATE);assert state['fits'] and state['page']<=width,f'{width}px, wide font: {state}'
+        finally:context.close()
 def background_render_keeps_menu(page):
     """ADR-136: no answer redraws the page under the author's first click: the starting policy is resolved before the
     first render (held, the page waits for it). A later background answer (a changed setting's resolution) redraws the
@@ -1128,6 +1150,7 @@ try:
             case('pages the compiler loads with the first author action, not with the page',lambda:lazy_compiler(page,f'http://127.0.0.1:{static.server_port}/developer-exercise/'))
             case('node the four view buttons are switched off; the key turns them back on',lambda:view_switches_off(browser))
             case('node a menu opened before a background answer stays open',lambda:background_render_keeps_menu(page))
+            case('node the app bar keeps the wordmark wherever it fits, EDITOR beside it on the desktop',lambda:header_logo_fits(browser))
             case('node a long wait offers Megszakítás after 10 s and the page works on',lambda:activity_abort(browser,BASE,False))
             case('pages the compiler download is named; Megszakítás restarts the worker, exercises still check',lambda:activity_abort(browser,f'http://127.0.0.1:{static.server_port}/developer-exercise/',True))
             reset(page,BASE);case('node admission preserves newer reference edits',lambda:stale_author_admission(page))

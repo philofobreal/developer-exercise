@@ -306,7 +306,6 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 /* ADR-116: a phone on its side (740–930 × 340–430) takes the narrow layout too; the block after the last rule keeps it to one row per bar. */
 @media(max-width:850px),(max-height:500px) and (orientation:landscape) {
  .header {flex-wrap:wrap;padding:8px 14px 8px 22px;gap:8px 10px}.header::before {width:5px}
- .brand small {display:none}
  .mode-tabs {order:3;width:100%;margin:0;padding:0 6px;gap:6px}.mode-tabs button {flex:1;min-width:0}
  .practice-shell {display:block}
  .library {position:static;height:auto;overflow:visible;padding:0;border-right:0;border-bottom:1px solid var(--border)}
@@ -339,7 +338,7 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 .brand-tail {color:var(--accent-text)}
 @media(max-width:400px) {.brand strong {font-size:16px}.brand {gap:8px}.header-actions {gap:5px}}
 @media(max-width:400px) {:is(.header-actions,.mode-tabs) {--control-h:34px}.header-actions .menu-panel {--control-h:44px}.icon-only,.theme-toggle,.menu>summary,.header-actions .preview-toggle {width:var(--control-h);min-width:var(--control-h)}.mode-tabs button {padding:0 8px}}
-@media(max-width:360px) {.brand-mark {display:none}.header {padding-left:16px}}
+
 /* Surfaces (ADR-106): on the full screen the root scrolls itself, since the page no longer scrolls it.
  * Focus keeps only the code workspace: a one-line heading (title, language, what validates), the
  * toolbar, the lists or the editor at the largest height, and the check bar. */
@@ -480,8 +479,9 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 @media (max-width:640px){.task-answer {grid-template-columns:auto auto minmax(0,1fr)}.task-text {grid-column:1 / -1}.task-answer>.btn {grid-column:1 / -1;justify-self:start}}
 .step.tone-warning .step-text small {color:var(--w-80);opacity:1}
 @media (max-width:640px){.diagnostic {grid-template-columns:auto minmax(0,1fr)}.diagnostic-message,.diagnostic-origin {grid-column:1 / -1}}
-/* ADR-116 (M1): the header never runs off the screen: below 1000 px the learner-view toggle keeps only its icon and the Studio label goes. */
-@media(max-width:1000px) {.brand small {display:none}.header-actions .preview-toggle {width:38px;min-width:38px;padding:0}.header-actions .preview-toggle>span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
+/* ADR-116 (M1): the header never runs off the screen: below 1000 px the learner-view toggle keeps only its icon. ADR-137:
+   the logo's EDITOR label stays wherever the row fits it (header-fit.ts). */
+@media(max-width:1000px) {.header-actions .preview-toggle {width:38px;min-width:38px;padding:0}.header-actions .preview-toggle>span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
 /* ADR-116 (M1): in the wide layout the exercise list is a sidebar, never a closed drop-down: a list closed on a narrow screen stays visible
  * when the screen widens (it left an empty sidebar), and its heading does not toggle it. */
 @media(min-width:851px) and (not ((max-height:500px) and (orientation:landscape))) {
@@ -494,7 +494,7 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
  * lists take the rest of the screen. */
 @media(max-height:500px) and (orientation:landscape) {
  .header {flex-wrap:nowrap;min-height:0;padding:5px 10px 5px 18px;gap:8px}.header::before {width:4px}
- .brand strong {font-size:16px}.brand small {display:none}
+ .brand strong {font-size:16px}
  .mode-tabs {order:0;width:auto;flex:0 1 auto;min-width:0;margin:0 auto 0 6px;padding:0 4px;gap:4px}
  .mode-tabs button {flex:0 1 auto;min-width:0;padding:0 12px}
  .header-actions {gap:6px;flex:none}
@@ -603,12 +603,13 @@ button.btn.link-action:hover:not(:disabled) {background:var(--blue-pale);border-
 .stale-notice,.edit-paused,.notice.tone-warning {border-left-color:var(--yellow)}
 .notice.tone-error {border-left-color:var(--d-48)}
 .notice.tone-success {border-left-color:var(--ok-line)}
-/* ADR-123 (UI4): a phone held upright keeps the app bar to one row too: the logo without its wordmark, the two modes as
- * icon buttons (their names stay as accessible names and titles), then the session, theme and full-screen controls. */
+/* ADR-123 (UI4): a phone held upright keeps the app bar to one row too: the logo, the two modes as icon buttons (their
+ * names stay as accessible names and titles), then the session, theme and full-screen controls. ADR-137: the logo keeps
+ * its wordmark whenever the row fits it (header-fit.ts measures; the data-brand steps are below). */
 @media(max-width:650px) and (not ((max-height:500px) and (orientation:landscape))) {
  .header {flex-wrap:nowrap}
- .brand strong {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
- .mode-tabs {order:0;width:auto;flex:0 0 auto;margin:0 auto 0 4px;padding:0;gap:4px}
+ .header {gap:6px;padding-left:12px;padding-right:10px}
+ .mode-tabs {order:0;width:auto;flex:0 0 auto;margin:0 auto 0 0;padding:0;gap:4px}
  .mode-tabs button {flex:0 0 auto;width:var(--control-h);min-width:var(--control-h);padding:0}
  .mode-tabs button>span:not(.icon) {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 }
@@ -700,3 +701,11 @@ button.btn.link-action:hover:not(:disabled) {background:var(--blue-pale);border-
 .help-try {display:inline-flex;align-items:center;min-height:24px;margin-left:6px;padding:0 6px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--accent-text);font:inherit;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;white-space:nowrap}
 .help-try:hover {background:var(--blue-pale)}.help-try:focus-visible {outline:2px solid var(--accent);outline-offset:2px}
 .help-example li+li {margin-top:4px}
+/* ADR-137: the logo's steps on a narrow app bar, chosen by measuring (header-fit.ts): complete (with the EDITOR label),
+   without the label, without the mark, a smaller wordmark, and last the mark alone with the wordmark kept as the
+   accessible name. */
+.header:not([data-brand=complete]) .brand small {display:none}
+.header:is([data-brand=wordmark],[data-brand=small],[data-brand=smaller]) .brand-mark {display:none}
+.header[data-brand=small] .brand strong {font-size:14px}
+.header[data-brand=smaller] .brand strong {font-size:13px}
+.header[data-brand=mark] .brand strong {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}

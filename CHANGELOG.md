@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased – 2026-11-11 A logó felirata telefonon is látszik; „EDITOR” a „Studio” helyett (ADR-137)
+
+- **A „CodeLineSorter” felirat telefonon is látszik,** ahol elfér. A sáv méri, hogy elfér-e, és csak annyit enged, amennyit muszáj: előbb a négyzetes jelet, aztán kisebb betűt használ. Minden mért telefonszélességen (320–430 px) látszik.
+- **A logó kis címkéje „EDITOR”** a korábbi „Studio” helyett. Ott látszik, ahol a sorban elfér (asztali nézetben).
+
 ## Unreleased – 2026-11-11 A háttérben érkező válasz nem csukja be a nyitott menüt (ADR-136)
 
 - **Javítva:** betöltés után a beállítások ellenőrzésének válasza újrarajzolta az oldalt. Ez becsukta a közben megnyitott menüt, vagy elnyelt egy éppen folyó kattintást (például a „Gyakorlás” gombét). Most ez a válasz az első rajzolás előtt megérkezik, így betöltés után semmi nem rajzol újra magától.

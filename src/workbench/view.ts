@@ -10,6 +10,7 @@ import {validationMode} from './api.js';
 import {escapeHtml as esc,editorShell,highlight,syncEditors} from './ui-utilities.js';
 import {icon,type IconName} from './icons.js';
 import {createViewContinuity} from './continuity.js';
+import {installHeaderFit} from './header-fit.js';
 import {installWorkbenchKeyboard,installAuthoringFlows,installMenus,installDisabledGuard,installToggletips} from './interactions.js';
 import {authorDraftPending,canUndoReplace,refreshAuthorStatus} from './author-workspace.js';
 import {renderInputsContract,renderPreflightSettings,renderSettingsOrigin,renderSourceDiagnostics} from './preflight-settings.js';
@@ -38,7 +39,7 @@ const tool=(attribute:string,label:string,name:IconName,extra=''):string=>{
 const actionBar=(label:string,start:string,status:string,end:string):string=>`<div class="action-bar" role="group" aria-label="${label}"><div class="action-start">${start}</div>${status||'<span class="action-status"></span>'}<div class="action-end">${end}</div></div>`;
 const languageName=(language:string):string=>language==='typescript'?'TypeScript':'JavaScript';
 export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:WorkbenchOptions){
- const continuity=createViewContinuity(root);
+ const continuity=createViewContinuity(root),fitHeader=installHeaderFit(root);
  root.addEventListener('click',event=>{if(!(event.target instanceof Element)||!event.target.closest('[data-dismiss-notice]'))return;try{localStorage.setItem(DEMO_NOTICE,'seen');}catch{}root.querySelector('[data-validation-notice]')?.remove();root.querySelector<HTMLElement>('#workbench-main')?.focus({preventScroll:true});});installWorkbenchKeyboard(root);installDisabledGuard(root);installMenus(root);installToggletips(root);installSurface(root,()=>render());codeView(root);paneSplit(root);installPaneSplit(root,()=>drawRuleArcs(root,state));installAuthoringFlows(root,state,render,format);
  addEventListener('resize',()=>{drawRuleArcs(root,state);syncEditors(root);});
  // ADR-090: a code list scrolls sideways as one; its rule arcs follow the row controls pinned at its right edge.
@@ -203,7 +204,7 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:Wor
  function header():string {
   const learner=!!state.learnerPreview,author=state.mode==='author',tryStep=author&&stepOf(state.view)==='try'&&!!authorPreviewId(state);
   const modeButton=(value:'author'|'practice',label:string,name:IconName):string=>`<button type="button" data-mode="${value}" aria-pressed="${state.mode===value}" class="${state.mode===value?'active':''}" title="${label}">${icon(name)}<span>${label}</span></button>`;
-  return `<a class="skip-link" href="#workbench-main">Ugrás a munkaterületre</a><p id="move-help" class="sr-only">Mozgatás: szóköz vagy Enter, majd nyilak, Home vagy End; Enter az elhelyezéshez, Escape a megszakításhoz.</p><div class="sr-only" data-move-status role="status" aria-live="polite"></div><header class="header"><div class="brand"><span class="brand-mark" aria-hidden="true"></span><strong>CodeLine<span class="brand-tail">Sorter</span></strong><small>Studio</small></div>${learner?'':`<div class="mode-switch mode-tabs" role="group" aria-label="Munkamód">${modeButton('author','Feladat készítése','plus')}${modeButton('practice','Gyakorlás','sort')}</div>`}<div class="header-actions">${learner||tryStep?tool('data-preview-toggle',learner?'Vissza a szerzői nézethez':'Tanulói nézet',learner?'back':'code','class="preview-toggle"'):''}${learner?'':sessionMenu()}${themeButton()}${tool('data-fullscreen','','fullscreen',`class="icon-only fullscreen-toggle" aria-pressed="${surface(root)==='app'}" aria-label="Teljes képernyő" title="${surface(root)==='app'?'Kilépés a teljes képernyőből':'Teljes képernyő'}"`)}</div></header><div class="focus-bar"><span class="brand-mark" aria-hidden="true"></span><strong>CodeLine<span class="brand-tail">Sorter</span></strong></div><input type="file" accept="application/json,.json" data-model-file hidden><input type="file" accept="application/json,.json" data-session-file hidden>`;
+  return `<a class="skip-link" href="#workbench-main">Ugrás a munkaterületre</a><p id="move-help" class="sr-only">Mozgatás: szóköz vagy Enter, majd nyilak, Home vagy End; Enter az elhelyezéshez, Escape a megszakításhoz.</p><div class="sr-only" data-move-status role="status" aria-live="polite"></div><header class="header"><div class="brand"><span class="brand-mark" aria-hidden="true"></span><strong>CodeLine<span class="brand-tail">Sorter</span></strong><small>Editor</small></div>${learner?'':`<div class="mode-switch mode-tabs" role="group" aria-label="Munkamód">${modeButton('author','Feladat készítése','plus')}${modeButton('practice','Gyakorlás','sort')}</div>`}<div class="header-actions">${learner||tryStep?tool('data-preview-toggle',learner?'Vissza a szerzői nézethez':'Tanulói nézet',learner?'back':'code','class="preview-toggle"'):''}${learner?'':sessionMenu()}${themeButton()}${tool('data-fullscreen','','fullscreen',`class="icon-only fullscreen-toggle" aria-pressed="${surface(root)==='app'}" aria-label="Teljes képernyő" title="${surface(root)==='app'?'Kilépés a teljes képernyőből':'Teljes képernyő'}"`)}</div></header><div class="focus-bar"><span class="brand-mark" aria-hidden="true"></span><strong>CodeLine<span class="brand-tail">Sorter</span></strong></div><input type="file" accept="application/json,.json" data-model-file hidden><input type="file" accept="application/json,.json" data-session-file hidden>`;
  }
  /** Pages is a Local Demo (AGENTS.md): the badge always names it; this line says once what that means, until the
   * viewer dismisses it (a per-viewer convenience in local storage; without storage it simply shows). */
@@ -248,7 +249,7 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:Wor
   const fill=(selector:string,value:string):void=>{const editor=root.querySelector<HTMLTextAreaElement>(selector);if(editor)editor.value=value;};
   fill('#author-editor',state.author.source);fill('#model-editor',state.modelDraft);fill('#code-editor',at()?.draft??'');
   refreshAuthorStatus(root,state);syncEditors(root);drawRuleArcs(root,state);
-  root.dataset.renderedExercise=state.active??'';root.dataset.renderedView=v;root.dataset.renderedMode=state.mode;scroll.restore(key);continuity.restore(key+':'+v+(v==='model'?':'+(state.rulesView??'visual'):v==='author'?':'+(state.sourceKind??'code'):''));
+  root.dataset.renderedExercise=state.active??'';root.dataset.renderedView=v;root.dataset.renderedMode=state.mode;fitHeader();scroll.restore(key);continuity.restore(key+':'+v+(v==='model'?':'+(state.rulesView??'visual'):v==='author'?':'+(state.sourceKind??'code'):''));
  }
  return {render};
 }
