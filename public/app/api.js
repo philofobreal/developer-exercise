@@ -1,29 +1,60 @@
-/** All server validation and authoring traffic behind one small API. */
-/** A refusal keeps its structured details (a gate decision, a policy resolution) on `error.details` (ADR-108). */
+/**
+ * All server validation and authoring traffic behind one small API (the trusted-server mode). The Pages build serves
+ * `local-demo` under this module's name instead (ADR-125), with the same operations; `api-parity.test.mjs` holds the
+ * two to the same exports. Hidden here: the routes, the JSON wire format, how a refusal keeps its structured details
+ * (a gate decision, a policy resolution) on `error.details` (ADR-108), and how waiting stops (ADR-132).
+ *
+ * NY-28: migrated from hand-written JavaScript (ADR-134); the behaviour is unchanged. Responses stay `unknown`: the
+ * page's orchestration (`ui.js`, ADR-001) reads them, and the server's own types do not cross the wire.
+ */
+/** Which mode answers: this module is the trusted server; the Pages build serves `local-demo` under this module's name. */
+export const validationMode = 'trusted-server';
 /** ADR-132 (P2): every request in flight, so the page can stop waiting for them. The server finishes the computation it
- * started (it runs synchronously and cannot be interrupted); its answer is discarded. */
-const inFlight=new Set();
-const STOPPED='A műveletet megszakítottad. A szerver a már elkezdett számítást befejezi, az eredményét eldobjuk.';
-export function abortPending(){for(const controller of inFlight)controller.abort();inFlight.clear();}
-async function jsonRequest(url,body){
- const controller=new AbortController();inFlight.add(controller);
- try{const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller.signal});const data=await response.json();if(!response.ok)throw Object.assign(new Error(data.error??`HTTP ${response.status}`),{details:{gate:data.gate,policy:data.policy}});return data;}
- catch(error){if(controller.signal.aborted)throw new Error(STOPPED);throw error;}
- finally{inFlight.delete(controller);}
+ *  started (it runs synchronously and cannot be interrupted); its answer is discarded. */
+const inFlight = new Set();
+const STOPPED = 'A műveletet megszakítottad. A szerver a már elkezdett számítást befejezi, az eredményét eldobjuk.';
+export function abortPending() { for (const controller of inFlight)
+    controller.abort(); inFlight.clear(); }
+const refusal = (data) => typeof data === 'object' && data !== null ? data : {};
+async function jsonRequest(url, body) {
+    const controller = new AbortController();
+    inFlight.add(controller);
+    try {
+        const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal });
+        const data = await response.json();
+        if (!response.ok) {
+            const refused = refusal(data);
+            throw Object.assign(new Error(refused.error ?? `HTTP ${response.status}`), { details: { gate: refused.gate, policy: refused.policy } });
+        }
+        return data;
+    }
+    catch (error) {
+        if (controller.signal.aborted)
+            throw new Error(STOPPED);
+        throw error;
+    }
+    finally {
+        inFlight.delete(controller);
+    }
 }
-export const validationMode='trusted-server';
-export const getExercises=async()=>{const r=await fetch('/api/exercises');if(!r.ok)throw new Error(`HTTP ${r.status}`);return (await r.json()).exercises;};
-export const compileDraft=body=>jsonRequest('/api/author/compile',body);
+export const getExercises = async () => { const response = await fetch('/api/exercises'); if (!response.ok)
+    throw new Error(`HTTP ${response.status}`); return refusal(await response.json()).exercises; };
+export const compileDraft = (body) => jsonRequest('/api/author/compile', body);
 /** ADR-113: the first gate on the source only; no draft is made. */
-export const checkSource=body=>jsonRequest('/api/author/check',body);
-/** ADR-108 (E7): the server's policy resolver for the language and settings (locks, inactive options, refusals);
- * a safe query, so GET: nothing is stored, and the source is never part of it. */
-export const resolvePolicy=async settings=>{const response=await fetch('/api/author/policy?request='+encodeURIComponent(JSON.stringify(settings)));const data=await response.json();if(!response.ok)throw new Error(data.error??`HTTP ${response.status}`);return data;};
-export const previewDraft=body=>jsonRequest('/api/author/preview',body);
+export const checkSource = (body) => jsonRequest('/api/author/check', body);
+/** ADR-108 (E7): the server's policy resolver for the language and settings (locks, inactive options, refusals); a safe
+ *  query, so GET: nothing is stored, and the source is never part of it. */
+export const resolvePolicy = async (settings) => {
+    const response = await fetch('/api/author/policy?request=' + encodeURIComponent(JSON.stringify(settings)));
+    const data = await response.json();
+    if (!response.ok)
+        throw new Error(refusal(data).error ?? `HTTP ${response.status}`);
+    return data;
+};
+export const previewDraft = (body) => jsonRequest('/api/author/preview', body);
 /** Typed rule edits on the active draft (ADR-021); a refused edit answers `{ok:false,…}`. */
-export const editRules=body=>jsonRequest('/api/author/rules',body);
-export const evaluate=body=>jsonRequest('/api/evaluate',body);
-export const loadTypeScriptFixture=async()=>{const r=await fetch('/samples/copy-field-utility.service.ts');if(!r.ok)throw Error('TS mintafájl nem elérhető');return r.text();};
-export async function formatSource(source,language){
-  return jsonRequest('/api/author/format',{source,language});
-}
+export const editRules = (body) => jsonRequest('/api/author/rules', body);
+export const evaluate = (body) => jsonRequest('/api/evaluate', body);
+export const loadTypeScriptFixture = async () => { const response = await fetch('/samples/copy-field-utility.service.ts'); if (!response.ok)
+    throw Error('TS mintafájl nem elérhető'); return response.text(); };
+export const formatSource = (source, language) => jsonRequest('/api/author/format', { source, language });

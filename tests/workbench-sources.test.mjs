@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readdir} from 'node:fs/promises';
 
-const LEGACY=['api','author-session','clipboard','pages-api'];
+const LEGACY=['pages-api'];
 test('every public/app module has a TypeScript source, except the named legacy ones',async()=>{
  const app=(await readdir(new URL('../public/app/',import.meta.url))).filter(name=>name.endsWith('.js')).map(name=>name.slice(0,-3));
  const sources=new Set((await readdir(new URL('../src/workbench/',import.meta.url))).filter(name=>name.endsWith('.ts')&&!name.endsWith('.d.ts')).map(name=>name.slice(0,-3)));

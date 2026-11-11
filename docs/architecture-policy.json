@@ -1,9 +1,6 @@
 {
   "legacyJavaScript": [
-    "public/app/api.js",
     "public/app/attempt.js",
-    "public/app/author-session.js",
-    "public/app/clipboard.js",
     "public/app/drag-insert.js",
     "public/app/pages-api.js",
     "public/app/persistence.js",
@@ -49,6 +46,9 @@
     "src/workbench/worker-rpc.ts": "public/app/worker-rpc.js",
     "src/workbench/activity.ts": "public/app/activity.js",
     "src/workbench/local-demo.ts": "public/app/local-demo.js",
-    "src/workbench/pages-worker.ts": "public/app/pages-worker.js"
+    "src/workbench/pages-worker.ts": "public/app/pages-worker.js",
+    "src/workbench/api.ts": "public/app/api.js",
+    "src/workbench/clipboard.ts": "public/app/clipboard.js",
+    "src/workbench/author-session.ts": "public/app/author-session.js"
   }
 }

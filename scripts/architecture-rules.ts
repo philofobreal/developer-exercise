@@ -44,7 +44,9 @@ export function inspectModule(file:string,source:string):Violation[]{
    if(['runPython','runPythonAsync','loadPackagesFromImports'].includes(method)&&!(normalized==='src/python/runtime.ts'&&method==='runPython'&&node.arguments.length===1&&ts.isIdentifier(node.arguments[0]!)&&node.arguments[0]!.getText(tree)==='PYTHON_AUDIT_BOOTSTRAP'))report('python-source-data','Only the fixed trusted bootstrap may be passed to runPython; source is function-argument data.');
   }
   if(core&&ts.isIdentifier(node)&&['window','document','fetch','HTMLElement','XMLHttpRequest'].includes(node.text))report('core-platform','Core must not depend on DOM/network globals.');
-  if(ui&&ts.isCallExpression(node)&&ts.isIdentifier(node.expression)&&['fetch','validateSubmission','compileCodeLineExercise','generateCodeLineExercise'].includes(node.expression.text))report('presentation-policy','Rendering must not own transport, author analysis or grading.');
+  // ADR-134 (NY-28): the server API adapter is the presentation's one transport port; it may fetch, and nothing else may.
+  const transportPort=normalized==='src/workbench/api.ts'&&ts.isCallExpression(node)&&ts.isIdentifier(node.expression)&&node.expression.text==='fetch';
+  if(ui&&!transportPort&&ts.isCallExpression(node)&&ts.isIdentifier(node.expression)&&['fetch','validateSubmission','compileCodeLineExercise','generateCodeLineExercise'].includes(node.expression.text))report('presentation-policy','Rendering must not own transport, author analysis or grading.');
   ts.forEachChild(node,visit);
  }
  visit(tree);return out;

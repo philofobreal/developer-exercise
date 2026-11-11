@@ -59,3 +59,10 @@ test('only the language registry may wire the JS/TS ordering analysis',()=>{
  for(const module of ['type-member-ordering','statement-ordering'])assert.ok(inspectModule('src/author/languages.mjs',`import {x} from '../../dist/author/${module}.js';`).some(error=>error.rule==='author-boundary'),module);
  for(const file of ['src/author/statement-ordering.ts','src/author/type-member-ordering.ts','src/author/js-ts-ordering.ts','src/author/code-line-projection.ts'])assert.deepEqual(inspectModule(file,"import type ts from 'typescript';import {combineOrderingRelations} from './ordering-relations.js';"),[]);
 });
+
+test('ADR-134: the server API adapter alone may fetch; it may not grade or generate, and no other presentation module may fetch',()=>{
+ assert.deepEqual(inspectModule('src/workbench/api.ts',"export const ping=()=>fetch('/api/exercises');"),[]);
+ assert.ok(inspectModule('src/workbench/api.ts','validateSubmission(model,lines);').some(error=>error.rule==='presentation-policy'));
+ assert.ok(inspectModule('src/workbench/view.ts',"fetch('/api/exercises');").some(error=>error.rule==='presentation-policy'));
+ assert.ok(inspectModule('src/workbench/local-demo.ts',"fetch('/api/exercises');").some(error=>error.rule==='presentation-policy'));
+});

@@ -35,7 +35,6 @@ export const getExercises=engine('getExercises');
 export const compileDraft=engine('compileDraft');
 export const editRules=engine('editRules');
 export const resolvePolicy=engine('resolvePolicy');
-export const authorTransition=engine('authorTransition');
 export const previewDraft=engine('previewDraft');
 export const evaluate=engine('evaluate');
 export const loadTypeScriptFixture=engine('loadTypeScriptFixture');

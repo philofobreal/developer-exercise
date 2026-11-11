@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-11 NY-28: az `api`, a `clipboard` és az `author-session` TypeScriptben (ADR-134)
+
+- **Három felületi modul szigorú TypeScript-forrást kapott;** a viselkedés nem változott.
+- **Új teszt:** a szerveres API és a Local Demo ugyanazokat a műveleteket kínálja. Egy eltérést talált: a Local Demo egy soha nem hívott műveletet (`authorTransition`) is exportált; ez kikerült.
+- A jegyzék elfogadott korlátai közé került az ADR-130 maradéka (a metódusok sorrendje „Számít” mellett).
+
 ## Unreleased – 2026-11-11 A négy nézetgomb kikapcsolva (ADR-133)
 
 - **A Próba lépésben és a gyakorlásban nincs többé „Rendező | Megoldáskód” és „Szerkesztő | Kártyák” gomb.** A munkaterület a rendező.
