@@ -239,9 +239,10 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:Wor
   const e=ex(),a=at();if(!e||!a)return '';
   return `<div class="shell learner-shell"><main id="workbench-main" tabindex="-1">${heading(e.title,e.language,e.lines.length,e.description?`<p class="description">${esc(e.description)}</p>`:'')}${notice()}${tryPanel(e,a)}${help(e.language)}</main></div>`;
  }
- function render():void {
+ /** `background`: the render answers something the reader did not just do (ADR-136): an open menu stays open. */
+ function render({background=false}:{background?:boolean}={}):void {
   const v=state.view,learner=!!state.learnerPreview,key=continuityKey(state);
-  continuity.capture();scroll.capture();
+  continuity.capture({background});scroll.capture();
   root.classList.toggle('learner-preview',learner);root.classList.toggle('author-mode',state.mode==='author'&&!learner);
   root.innerHTML=header()+(learner?learnerShell():state.mode==='practice'?practiceShell():authorShell());
   const fill=(selector:string,value:string):void=>{const editor=root.querySelector<HTMLTextAreaElement>(selector);if(editor)editor.value=value;};

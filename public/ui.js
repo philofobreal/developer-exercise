@@ -48,7 +48,8 @@ function applyEditor(){const result=attempt.applyText(root.querySelector('#code-
 let policyKey='';
 function ensurePolicy(){
  const key=settingsKey(state.author);if(key===policyKey)return;policyKey=key;
- resolvePolicy({language:state.author.language,...settingsRequest(state.author)}).then(resolution=>{if(key===policyKey){state.authorPolicy=resolution;render();}},()=>{if(key===policyKey)policyKey='';});
+ // ADR-136: the resolution arrives in the background; a menu the author opened meanwhile stays open.
+ resolvePolicy({language:state.author.language,...settingsRequest(state.author)}).then(resolution=>{if(key===policyKey){state.authorPolicy=resolution;view.render({background:true});ensurePolicy();}},()=>{if(key===policyKey)policyKey='';});
 }
 /** A preview request with the second gate's evidence: the author's current source and analysis settings. */
 const gateEvidence=body=>({...authorRequest(state.author),...body});

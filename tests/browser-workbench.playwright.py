@@ -270,6 +270,25 @@ def steps_locked_until_model(page):
 def model_first(page):
     json_model(page,model);to_try(page);expect(page.locator('.solution-zone .code-row')).to_have_count(7)
     page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
+COUNT_RENDERS="()=>{window.__renders=0;new MutationObserver(()=>window.__renders++).observe(document.querySelector('#app'),{childList:true});}"
+def background_render_keeps_menu(page):
+    """ADR-136: the policy resolution answers after the first render. A menu the author opened meanwhile stays open when
+    that answer redraws the page (on a slow network it closed under the pointer; CI's source_file flake); a choice in
+    the menu still closes it."""
+    held=[]
+    page.route('**/api/author/policy*',lambda route:held.append(route))
+    try:
+        page.goto(BASE);expect(page.locator('[data-step="source"]')).to_have_attribute('aria-current','step')
+        for _ in range(200):
+            if held:break
+            page.wait_for_timeout(25)
+        assert held,'the policy request is on its way'
+        page.evaluate(COUNT_RENDERS);menu=open_menu(page,'open');expect(page.locator('[data-import-source]')).to_be_visible()
+        route=held.pop();route.fulfill(response=route.fetch())
+        page.wait_for_function('()=>window.__renders>0')
+        expect(menu).to_have_attribute('open','');expect(page.locator('[data-import-source]')).to_be_visible()
+        page.locator('[data-author-sample]').click();expect(page.locator('details.open-menu')).not_to_have_attribute('open','')
+    finally:page.unroute('**/api/author/policy*')
 def source_file(page):
     with page.expect_file_chooser() as chooser:open_menu(page,'open');page.locator('[data-import-source]').click()
     chooser.value.set_files({'name':'typed.ts','mimeType':'text/plain','buffer':source.encode()})
@@ -1098,6 +1117,7 @@ try:
             case('node one progress indicator: delayed, docked above the action bar, winds down',lambda:activity_indicator(browser))
             case('pages the compiler loads with the first author action, not with the page',lambda:lazy_compiler(page,f'http://127.0.0.1:{static.server_port}/developer-exercise/'))
             case('node the four view buttons are switched off; the key turns them back on',lambda:view_switches_off(browser))
+            case('node a menu opened before a background answer stays open',lambda:background_render_keeps_menu(page))
             case('node a long wait offers Megszakítás after 10 s and the page works on',lambda:activity_abort(browser,BASE,False))
             case('pages the compiler download is named; Megszakítás restarts the worker, exercises still check',lambda:activity_abort(browser,f'http://127.0.0.1:{static.server_port}/developer-exercise/',True))
             reset(page,BASE);case('node admission preserves newer reference edits',lambda:stale_author_admission(page))

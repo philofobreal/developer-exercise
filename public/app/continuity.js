@@ -1,7 +1,10 @@
 /** A DOM replacement must not discard focus, selection or expanded explanations. */
+/** ADR-136: the open header or step menu (`details.menu` named by its `…-menu` class), so a render the reader did not
+ *  cause (an answer arriving in the background) leaves it open; a render after an action closes it as before. */
+const menuName = (menu) => [...menu.classList].find(name => name.endsWith('-menu'));
 export function createViewContinuity(root) {
     const expanded = new Map();
-    let previous = '';
+    let previous = '', openMenus = [];
     let focused = null;
     function selectorFor(element) {
         if (element.id)
@@ -14,7 +17,8 @@ export function createViewContinuity(root) {
             return (row ? `.code-row[data-line-id="${CSS.escape(row.dataset.lineId ?? '')}"] ` : '') + `[${action.name}="${CSS.escape(action.value)}"]`;
         return null;
     }
-    return { capture() {
+    return { capture({ background = false } = {}) {
+            openMenus = background ? [...root.querySelectorAll('details.menu[open]:not(.toggletip)')].flatMap(menu => menuName(menu) ?? []) : [];
             if (previous)
                 expanded.set(previous, new Set([...root.querySelectorAll('details[open][data-memory]')].map(detail => detail.dataset.memory ?? '')));
             const element = document.activeElement;
@@ -31,6 +35,13 @@ export function createViewContinuity(root) {
             previous = key;
             for (const detail of root.querySelectorAll('details[data-memory]'))
                 detail.open = expanded.get(key)?.has(detail.dataset.memory ?? '') ?? detail.open;
+            if (same)
+                for (const name of openMenus) {
+                    const menu = root.querySelector(`details.menu.${CSS.escape(name)}`);
+                    if (menu)
+                        menu.open = true;
+                }
+            openMenus = [];
             if (!focused)
                 return;
             const element = root.querySelector(focused.selector);
