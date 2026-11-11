@@ -17,7 +17,7 @@ A szerzői lépések:
 | --- | --- | --- |
 | **1 · Forrás** | A helyes program (forráskód) vagy egy kész CodeLine JSON. Indulás üresen, példából, forrásfájlból, a TypeScript mintából vagy mentett munkamenetből. A „Modell készítése” után a folyamat a Szabályok lépésre lép. | mindig |
 | **2 · Szabályok** | Vizuális szabálytábla: a referencia sorai modellsorrendben, a szabályok ívekkel rajzolva, a sorok összeköthetők. Mellette a kijelölt sor szabálypanelje (ADR-021), alatta a minősítés. Haladó eszközként a CodeLine JSON, a függőségtábla és az újraszámítás. | ha van alkalmazott modell |
-| **3 · Próba** | Rendező és Megoldáskód, ellenőrzés, tanúsorrend, munkamenet-kezelés, valamint a „Tanulói nézet”. | ha van alkalmazott modell |
+| **3 · Próba** | Rendező (a Megoldáskód nézet az [ADR-133](adr/133-view-switches-off.md) óta kikapcsolva), ellenőrzés, tanúsorrend, munkamenet-kezelés, valamint a „Tanulói nézet”. | ha van alkalmazott modell |
 
 **Egyetlen igazságforrás:** a Szabályok és a Próba lépés mindig az **alkalmazott** modellt mutatja.
 
@@ -76,7 +76,7 @@ A feladatleírás, a rendező, a kódszerkesztő, a másolás, a beillesztés, a
 
 - **Elemek:** natív button, input/select/textarea, progress, details és list/listitem elemek.
   - A lépések egy rendezett lista gombjai: `aria-current="step"`, a zárolt lépés `disabled`, okkal.
-  - A Rendező/Megoldáskód és a Vizuális/JSON váltó tablist: Bal/Jobb/Home/End mozgat, Enter vagy Space aktivál.
+  - A Vizuális/JSON váltó (és bekapcsolt nézetváltóknál a Rendező/Megoldáskód, [ADR-133](adr/133-view-switches-off.md)) tablist: Bal/Jobb/Home/End mozgat, Enter vagy Space aktivál.
 - **Folytonosság:** a fókusz, az editor-kijelölés és a megnyitott magyarázatok a DOM-csere után megmaradnak, alnézetenként külön (a Szabályok vizuális és JSON nézete nem írja felül egymást).
 - **Ctrl/Cmd+Enter** az aktuális lépés elsődleges műveletét végzi: modellkészítés, JSON alkalmazása, megoldás alkalmazása vagy ellenőrzés.
 - **Visszajelzés:** az async műveletek aria-busy/disabled állapotot kapnak; a visszajelzések role=status / aria-live úton is elérhetők.

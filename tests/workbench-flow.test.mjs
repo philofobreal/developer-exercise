@@ -5,6 +5,13 @@ import assert from 'node:assert/strict';
 import {authorPreviewId,blockedReason,continuityKey,enterMode,enterView,flowSteps,jsonPending,landAfterAdmission,staleReason,stepOf,tryAdmission} from '../public/app/flow.js';
 import {admitAuthorModel} from '../public/app/author-workspace.js';
 import {connection} from '../public/app/rule-board.js';
+/** ADR-133: the solution editor (view `edit`) is switched off on the page; its behaviour is still tested with the
+ *  developer key on. */
+function withViewSwitches(run){
+ const stored=new Map([['ngdynamic.view-switches.v1','on']]);
+ globalThis.localStorage={getItem:key=>stored.get(key)??null,setItem:(key,value)=>stored.set(key,String(value)),removeItem:key=>stored.delete(key)};
+ try{return run();}finally{delete globalThis.localStorage;}
+}
 
 const trusted={id:'trusted',revision:1,title:'Trusted',description:'',language:'javascript',lines:[{id:1,code:'const a = 1;'}]};
 const make=()=>({exercises:[trusted],active:null,previews:new Map(),mode:'author',view:'author',practiceActive:null,author:{title:'T',description:'',language:'javascript',source:'const a = 1;',message:''},modelDraft:'',modelMessage:''});
@@ -16,7 +23,7 @@ function admit(state,land){
  admitAuthorModel(state,model);landAfterAdmission(state,land);return model;
 }
 
-test('steps: rules and try are locked until a model is applied; the source is always open',()=>{
+test('steps: rules and try are locked until a model is applied; the source is always open',()=>withViewSwitches(()=>{
  const state=make();
  assert.deepEqual(flowSteps(state).map(s=>[s.step,!!s.locked,s.current]),[['source',false,true],['rules',true,false],['try',true,false]]);
  for(const view of ['model','sort','edit']){assert.match(blockedReason(state,view),/Kód lépésben/);assert.equal(enterView(state,undefined,[],view),false);assert.equal(state.view,'author');}
@@ -24,7 +31,7 @@ test('steps: rules and try are locked until a model is applied; the source is al
  assert.equal(state.view,'model');assert.equal(state.active,'author-preview');assert.equal(authorPreviewId(state),'author-preview');
  assert.deepEqual(flowSteps(state).map(s=>[s.step,!!s.locked,s.current]),[['source',false,false],['rules',false,true],['try',false,false]]);
  assert.equal(enterView(state,attempt(),['const a = 1;'],'edit'),true);assert.equal(stepOf(state.view),'try');
-});
+}));
 
 test('staleness: a reference edit after the model marks the later steps; reverting or rebuilding clears it',()=>{
  const state=make();admit(state,'rules');
@@ -37,21 +44,21 @@ test('staleness: a reference edit after the model marks the later steps; reverti
  assert.equal(state.view,'model','stay keeps the rules step');
 });
 
-test('modes: practice shows only trusted exercises and the try views; each mode returns to its own view',()=>{
+test('modes: practice shows only trusted exercises and the try views; each mode returns to its own view',()=>withViewSwitches(()=>{
  const state=make();admit(state,'rules');
  enterMode(state,'practice');
  assert.deepEqual([state.mode,state.active,state.view],['practice','trusted','sort']);
- assert.match(blockedReason(state,'author'),/rendező/);assert.equal(enterView(state,attempt(),[],'model'),false);
+ assert.match(blockedReason(state,'author'),/megoldás rendezése/);assert.equal(enterView(state,attempt(),[],'model'),false);
  assert.equal(enterView(state,attempt(),['const a = 1;'],'edit'),true);
  enterMode(state,'author');assert.deepEqual([state.mode,state.active,state.view],['author','author-preview','model']);
  enterMode(state,'practice');assert.equal(state.view,'edit','practice returns to its own last view');
-});
+}));
 
 test('modes: without a model the author mode returns to the source; learner preview leaves it',()=>{
  const state=make();state.view='author';enterMode(state,'practice');state.modeViews.author='model';
  enterMode(state,'author');assert.equal(state.view,'author','a locked step is never restored');
  admit(state,'try');state.learnerPreview=true;
- assert.match(blockedReason(state,'model'),/rendező/);
+ assert.match(blockedReason(state,'model'),/megoldás rendezése/);
  enterMode(state,'practice');assert.equal(state.learnerPreview,false);
 });
 
@@ -129,4 +136,10 @@ test('ADR-108 (E6): Try opens on the draft’s own second-gate decision, without
  assert.equal(flowSteps(state).find(step=>step.step==='try').status,'Figyelem');
  state.authorInsight={tryGate:{...passed,verdict:'inconclusive',admitted:false,message:'A Próba lépés nem nyitható meg a „tilt” beállítás miatt'}};
  assert.equal(tryAdmission(state).ok,false);assert.equal(flowSteps(state).find(step=>step.step==='try').status,'Zárolt');
+});
+
+test('ADR-133: with the view switches off (the shipped page) the solution editor is never entered; the sorter stays',()=>{
+ const state=make();admit(state,'try');
+ assert.equal(enterView(state,attempt(),['const a = 1;'],'edit'),false);assert.equal(state.view,'sort');
+ enterMode(state,'practice');assert.equal(enterView(state,attempt(),['const a = 1;'],'edit'),false);assert.equal(state.view,'sort');
 });

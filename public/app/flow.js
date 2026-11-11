@@ -85,7 +85,7 @@ export function refreshStepper(root, state) {
 /** Why a view cannot be entered now, or ''. */
 export function blockedReason(state, view) {
     if (state.mode === 'practice' || state.learnerPreview)
-        return view === 'sort' || view === 'edit' ? '' : 'Ebben a nézetben csak a rendező és a megoldáskód érhető el.';
+        return view === 'sort' || view === 'edit' ? '' : 'Ebben a nézetben csak a megoldás rendezése érhető el.';
     return view === 'author' || authorPreviewId(state) ? '' : NEEDS_MODEL;
 }
 /** Enters a view when allowed; entering the solution editor captures the current arrangement. */

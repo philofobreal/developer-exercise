@@ -1,8 +1,10 @@
 import { captureAuthorRequest, formatLoaded, replaceDraft } from './author-workspace.js';
 import { trackActivity } from './activity.js';
+import { viewSwitchesOffered } from './code-view.js';
 const views = ['sort', 'edit', 'author', 'model'];
 export function activateView(state, attempt, formatted, next) {
-    if (!views.includes(next))
+    // ADR-133: the solution editor (Megoldáskód) is switched off with the view switches; its code stays.
+    if (!views.includes(next) || next === 'edit' && !viewSwitchesOffered())
         return;
     if (next === 'edit' && attempt && !attempt.editorDirty) {
         attempt.draft = formatted.join('\n');

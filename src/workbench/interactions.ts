@@ -2,9 +2,11 @@
 import type {AttemptSnapshot,ViewName,WorkbenchState} from './contracts.js';
 import {captureAuthorRequest,formatLoaded,replaceDraft} from './author-workspace.js';
 import {trackActivity} from './activity.js';
+import {viewSwitchesOffered} from './code-view.js';
 const views:readonly ViewName[]=['sort','edit','author','model'];
 export function activateView(state:WorkbenchState,attempt:AttemptSnapshot|undefined,formatted:string[],next:ViewName):void {
- if(!views.includes(next))return;
+ // ADR-133: the solution editor (Megoldáskód) is switched off with the view switches; its code stays.
+ if(!views.includes(next)||next==='edit'&&!viewSwitchesOffered())return;
  if(next==='edit'&&attempt&&!attempt.editorDirty){attempt.draft=formatted.join('\n');attempt.editorGeneration=attempt.generation;}
  state.view=next;
 }

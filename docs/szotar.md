@@ -17,7 +17,7 @@ Egy fogalom, egy szó (ADR-119). A felület minden felirata ezt követi. A [glos
 | **Visszavonás** | a legutóbbi betöltés visszavonása | Forrás lépés | |
 | **Változtatások elvetése** | a nem alkalmazott forrásváltozás eldobása | Forrás, Szabályok | „Forrásváltozás elvetése”, „Változások elvetése” |
 | **Sor szabályai** | a kijelölt sor szabálypanele | Próba eszköztár, kijelölt sor sávja | „Szabályok” gomb (az a lépés neve) |
-| **Kód frissítése a rendezőből** | a megoldáskód újraírása a rendező állapotából | Megoldáskód | „Rendezőből újratöltés” |
+| **Kód frissítése a rendezőből** | a megoldáskód újraírása a rendező állapotából | Megoldáskód (kikapcsolva, [ADR-133](adr/133-view-switches-off.md)) | „Rendezőből újratöltés” |
 | **Mintamegoldás kitöltése** | a referencia sorrend beírása a megoldásba (szerző) | Próba | „Minta kitöltés” |
 | **TypeScript minta (436 sor)** | a szállított nagy TypeScript-szolgáltatás | Megnyitás menü | „TS tesztfájl” |
 | **Kód / Elemzés és szabályok / Próba és kiadás** | a feladatkészítés három lépése (ADR-123) | lépéssor, lépéscímek, üzenetek | „Forrás”, „Szabályok”, „Próba” mint lépésnév |

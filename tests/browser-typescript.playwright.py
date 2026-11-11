@@ -26,6 +26,8 @@ try:
         try:
             for mode,url in [('node',BASE),('pages',f'http://127.0.0.1:{static.server_port}/developer-exercise/')]:
                 context=browser.new_context(viewport={'width':1500,'height':1000})
+                # ADR-133: the switched-off solution editor is the input of these cases; the key turns it on.
+                context.add_init_script("""try{localStorage.setItem('ngdynamic.view-switches.v1','on')}catch(e){}""")
                 page=context.new_page(); errors=[]; page.on('pageerror',lambda error: errors.append(str(error)))
                 try:
                     page.goto(url); expect(page.locator('[data-step="source"]')).to_have_attribute('aria-current','step')

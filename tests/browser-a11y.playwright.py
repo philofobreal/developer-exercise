@@ -40,7 +40,11 @@ def author_flow(page,prefix):
     picker=page.locator('details.task-picker')
     if picker.get_attribute('open') is None:picker.locator('summary').click();expect(page.locator('[data-task]').first).to_be_visible();scan(page,prefix+'-practice-picker')
     page.locator('details.session-menu summary').click();expect(page.locator('[data-save-local]')).to_be_visible();scan(page,prefix+'-session-menu');page.keyboard.press('Escape')
+    # ADR-133: the shipped page offers no view switches; the switched-off solution editor is scanned with them on.
+    assert page.locator('[data-view],[data-set-code-view]').count()==0
+    page.evaluate("""()=>localStorage.setItem('ngdynamic.view-switches.v1','on')""");page.reload();page.locator('[data-mode="practice"]').click();expect(page.locator('[data-check]')).to_be_visible()
     page.locator('[data-view="edit"]').click();expect(page.locator('#code-editor')).to_be_visible();scan(page,prefix+'-practice-code')
+    page.evaluate("""()=>localStorage.removeItem('ngdynamic.view-switches.v1')""")
     # ADR-124 (H2): the help page, whole and narrowed by the search.
     page.goto(BASE+'/help/index.html');expect(page.locator('[data-help-topic]').first).to_be_visible();scan(page,prefix+'-help')
     page.locator('[data-help-search]').fill('kulcssorrend');expect(page.locator('[data-help-count]')).to_contain_text('találat');scan(page,prefix+'-help-search')

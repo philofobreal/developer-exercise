@@ -93,7 +93,7 @@ export function refreshStepper(root:ParentNode,state:WorkbenchState):void {
 }
 /** Why a view cannot be entered now, or ''. */
 export function blockedReason(state:WorkbenchState,view:ViewName):string {
- if(state.mode==='practice'||state.learnerPreview)return view==='sort'||view==='edit'?'':'Ebben a nézetben csak a rendező és a megoldáskód érhető el.';
+ if(state.mode==='practice'||state.learnerPreview)return view==='sort'||view==='edit'?'':'Ebben a nézetben csak a megoldás rendezése érhető el.';
  return view==='author'||authorPreviewId(state)?'':NEEDS_MODEL;
 }
 /** Enters a view when allowed; entering the solution editor captures the current arrangement. */

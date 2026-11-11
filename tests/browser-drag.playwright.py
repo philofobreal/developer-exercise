@@ -26,7 +26,8 @@ count=0
 # insertion rules must not. The view is the reader's stored choice, set before the app loads.
 VIEW=next((arg.split('=',1)[1] for arg in sys.argv[1:] if arg.startswith('--code-view=')),'editor')
 assert VIEW in ('editor','cards'),VIEW
-VIEW_SCRIPT=f"try{{localStorage.setItem('ngdynamic.code-view.v1','{VIEW}')}}catch(e){{}}"
+# ADR-133: the view switches are off on the page and the pointer decides; the stored choice counts once they are on.
+VIEW_SCRIPT=f"try{{localStorage.setItem('ngdynamic.code-view.v1','{VIEW}');localStorage.setItem('ngdynamic.view-switches.v1','on')}}catch(e){{}}"
 
 def identities(page,zone='solution'):
     return page.locator('.'+zone+'-zone .code-row').evaluate_all('(rows)=>rows.map(r=>r.dataset.lineId)')

@@ -64,6 +64,8 @@ try:
     with sync_playwright() as p:
         browser=launch(p)
         context=browser.new_context(viewport={'width':1500,'height':1000},has_touch=True,permissions=['clipboard-read','clipboard-write'])
+        # ADR-133: the solution editor is switched off on the page; these cases type orders into it, so they turn it on.
+        context.add_init_script("""try{localStorage.setItem('ngdynamic.view-switches.v1','on')}catch(e){}""")
         context.tracing.start(screenshots=True,snapshots=True,sources=True)
         page=context.new_page();page.set_default_timeout(10000);errors=[]
         page.on('pageerror',lambda error:errors.append(str(error)))

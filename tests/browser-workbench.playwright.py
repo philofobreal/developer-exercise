@@ -972,6 +972,28 @@ def activity_abort(browser,url,pages):
         practice(page);page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).not_to_have_class(re.compile(r'\bidle\b'))
         expect(page.locator('.report')).not_to_contain_text('nem érhető el')
     finally:context.close()
+SWITCHES_ON="""try{localStorage.setItem('ngdynamic.view-switches.v1','on')}catch(e){}"""
+def view_switches_off(browser):
+    """ADR-133: the page offers neither Rendező | Megoldáskód nor Szerkesztő | Kártyák. The workspace is the sorter
+    without a tab list, in practice and in the author's Try step; the pointer decides the code view whatever an earlier
+    choice stored. The key turns the four buttons back on, and they work."""
+    for touch,stored,drawn in [(False,'cards','editor'),(True,'editor','cards')]:
+        context=watch(browser.new_context(viewport={'width':390,'height':844} if touch else {'width':1280,'height':800},**({'is_mobile':True,'has_touch':True} if touch else {})))
+        context.add_init_script("try{localStorage.setItem('ngdynamic.code-view.v1','%s')}catch(e){}" % stored)
+        try:
+            page=context.new_page();reset(page,BASE)
+            def none_offered():
+                assert page.locator('[data-view],[data-set-code-view],[role="tablist"]').count()==0,'a view switch is offered'
+                assert page.locator('#panel-try').get_attribute('role') is None
+                expect(page.locator('.solution-zone')).to_be_visible();expect(page.locator('#app')).to_have_attribute('data-code-view',drawn)
+            practice(page);none_offered()
+            page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
+            page.locator('[data-mode="author"]').click();build(page,rules_source);to_try(page);none_offered()
+            assert page.evaluate('document.documentElement.scrollWidth')<=(390 if touch else 1280)
+            page.evaluate("""()=>localStorage.setItem('ngdynamic.view-switches.v1','on')""");page.reload();practice(page)
+            expect(page.locator('#app')).to_have_attribute('data-code-view',stored)
+            expect(page.locator('[data-set-code-view]')).to_have_count(2);page.locator('[data-view="edit"]').click();expect(page.locator('#code-editor')).to_be_visible()
+        finally:context.close()
 def stale_format(page,author):
     if author:selector='#author-editor';action='[data-author-format]'
     else:
@@ -1003,7 +1025,10 @@ try:
         try:urllib.request.urlopen(BASE+'/api/exercises',timeout=.5);break
         except Exception:time.sleep(.1)
     with sync_playwright() as p:
-        browser=launch(p);context=browser.new_context(viewport={'width':1500,'height':1000},permissions=['clipboard-read','clipboard-write']);context.tracing.start(screenshots=True,snapshots=True,sources=True);page=context.new_page();page.set_default_timeout(10000);errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
+        browser=launch(p);context=browser.new_context(viewport={'width':1500,'height':1000},permissions=['clipboard-read','clipboard-write'])
+        # ADR-133: many cases below use the switched-off views (solution editor, code-view choice); the key turns them on.
+        # The shipped default is checked in its own context (view_switches_off).
+        context.add_init_script(SWITCHES_ON);context.tracing.start(screenshots=True,snapshots=True,sources=True);page=context.new_page();page.set_default_timeout(10000);errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
         watch(context)
         try:
             for mode,url in [('node',BASE),('pages',f'http://127.0.0.1:{static.server_port}/developer-exercise/')]:
@@ -1037,6 +1062,7 @@ try:
             reset(page,BASE);case('node duplicate-check prevention and async feedback',lambda:busy(page))
             case('node one progress indicator: delayed, docked above the action bar, winds down',lambda:activity_indicator(browser))
             case('pages the compiler loads with the first author action, not with the page',lambda:lazy_compiler(page,f'http://127.0.0.1:{static.server_port}/developer-exercise/'))
+            case('node the four view buttons are switched off; the key turns them back on',lambda:view_switches_off(browser))
             case('node a long wait offers Megszakítás after 10 s and the page works on',lambda:activity_abort(browser,BASE,False))
             case('pages the compiler download is named; Megszakítás restarts the worker, exercises still check',lambda:activity_abort(browser,f'http://127.0.0.1:{static.server_port}/developer-exercise/',True))
             reset(page,BASE);case('node admission preserves newer reference edits',lambda:stale_author_admission(page))

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-11 A négy nézetgomb kikapcsolva (ADR-133)
+
+- **A Próba lépésben és a gyakorlásban nincs többé „Rendező | Megoldáskód” és „Szerkesztő | Kártyák” gomb.** A munkaterület a rendező.
+- **A kódnézetet az eszköz dönti el:** érintőképernyőn kártyák (nagy célterületek), egérrel szerkesztő nézet; egy korábban eltárolt választás nem számít.
+- A funkciók nem törlődtek: a forrásban megmaradtak, és egy fejlesztői kulcs (`ngdynamic.view-switches.v1`) visszakapcsolja őket; a tesztek így ellenőrzik őket tovább.
+
 ## Unreleased – 2026-11-11 P2: a folyamatjelző megnevezi a fázist, és 10 s után megszakítható (ADR-132)
 
 - **A Local Demo első szerzői műveleténél a jelző kiírja, hogy a TypeScript-fordító töltődik.**
