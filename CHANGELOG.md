@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased – 2026-11-12 Gombrendszer: elfogadott terv (ADR-140)
+
+- **Rögzítve az elfogadott gombrendszer:** lecsapott sarok az irány és a döntés gombjain (módváltó, lépéslapok, fő művelet), kerekített minden eszközön és kapcsolón, összevont menü telefonon.
+- **Ütemezve** (NY-37, hat lépésben); a felület még nem változott.
+
 ## Unreleased – 2026-11-11 Az értékelősáv minden szélességen ragad (ADR-139)
 
 - **A gyakorlás és a Próba lépés lábléce** (az ítélet és az Ellenőrzés gomb) asztali nézetben is a képernyő aljára ragad, mint a feladatkészítés műveletsávja. Eddig csak telefonon ragadt.

@@ -1,6 +1,6 @@
 # Nyitott tételek jegyzéke
 
-Állapot: 2026-11-11, szabályverzió `scoped-effect-analysis-v57`. Ez az egyetlen hely, ahol a lezáratlan tételek össze vannak gyűjtve: a még meg nem oldott generátorhiányok, mérési korlátok, döntések és tervezési adósságok. A részletek a forrásként megadott ADR-ben vannak.
+Állapot: 2026-11-12, szabályverzió `scoped-effect-analysis-v57`. Ez az egyetlen hely, ahol a lezáratlan tételek össze vannak gyűjtve: a még meg nem oldott generátorhiányok, mérési korlátok, döntések és tervezési adósságok. A részletek a forrásként megadott ADR-ben vannak.
 
 **Szabályok:**
 - Minden ADR, amelynek „Nyitott” szakasza van, ide kerül. Ezt a [governance-teszt](../tests/governance.test.mjs) ellenőrzi.
@@ -19,12 +19,22 @@
 
 | ID | Tétel | Típus | Mért hatás (legutóbbi kampány) | Forrás | Következő lépés |
 | --- | --- | --- | --- | --- | --- |
+| NY-37 | **Gombrendszer frissítése** az elfogadott terv szerint ([ADR-140](adr/140-button-system.md)): lecsapott, ahol dönt; kerekített, ahol dolgozik; összevont menü telefonon | felület | a gombok ma két karakterben élnek (ferde módgombok, lecsípett és kerekített gombok vegyesen) | [ADR-140](adr/140-button-system.md) | D1 komponens és tokenek → D2 módváltó, lépéslapok → D3 fő műveletek → D4 eszközök, sorgombok, választók → D5 telefonos összevont menük → D6 kapuk, képernyőkép-összevetés, lezárás |
+| NY-38 | **Mért listamagasság a ragadós lábléc fölött** | felület | háromsoros leírásnál vagy 700 px alatti magasságnál a lista alja a lábléc alá kerül, amíg nem görgetnek | [ADR-139](adr/139-result-bar-sticks.md) | csak ha a gombrendszer után is zavaró; a fókusz módot, a panelosztót és a fekvő telefont is kezelni kell |
 | NY-03 | **Hatásösszegzés** a felső szintű függvényekre (`var v = f()`) | generátor | **0 mért rés** (a korábban ide sorolt 31 rés más okú volt, [ADR-069](adr/069-deep-hostile-input-and-own-class-names.md)) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) | csak ha egy mérés esetet mutat |
 | NY-05 | **2d maradéka:** saját objektumot kapó ismeretlen függvény (a referencia megtartása) | generátor | **0 mért rés** (2026-11-04: a korpusz `Object.entries(totals)` tanúja már nem rés, a kampányban sincs ilyen) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md), [ADR-059](adr/059-read-only-builtins.md) | csak ha egy mérés esetet mutat |
 | NY-08 | **Érték-perturbáció korlátja:** egy literál egyszerre, legfeljebb 96 változat | mérés | a rés felső becslés marad | [ADR-067](adr/067-value-perturbation-in-measurement.md) | csak ha egy rés gyanúsan szándékhű |
 | NY-28 | **Régi, TypeScript-forrás nélküli felületi modul:** `pages-api` (`public/app`, a Local Demo motorja); az `attempt` és a `persistence` migrálva ([ADR-097](adr/097-attempt-and-persistence-migration.md)), a `drag-insert` is ([ADR-095](adr/095-tap-to-place-and-drag-insert-migration.md)), az `api`, a `clipboard` és az `author-session` is ([ADR-134](adr/134-api-clipboard-session-migration.md)) | tervezés | 1 modul; a lista rögzített (`workbench-sources.test.mjs`) | [ADR-001](adr/001-typescript-workbench-and-boundaries.md), [ADR-097](adr/097-attempt-and-persistence-migration.md), [ADR-134](adr/134-api-clipboard-session-migration.md) | a `pages-api`, ha módosítani kell |
 | NY-13 | **`primitive`/`pure`/`readOnly`:** három egymásra épülő osztályozó | tervezés | nincs | [ADR-050](adr/050-input-contract.md) | nem sürgős |
 | NY-33 | **A v3 egységmodell bekötése a szerzői láncba** (overload-csoport, `});` jellegű lezáró sorok egységként) | tervezés | mért haszon nincs (az NY-04 lezárásakor) | [ADR-079](adr/079-overload-header-blocks.md) | külön epic, saját tervezési körrel |
+
+### Sorrend (2026-11-12)
+
+1. **NY-37 gombrendszer** (D1–D6), a felhasználó jóváhagyása szerint.
+2. **Valódi tanári kód mérése**: a helyesség és a teljesség következő forrása. A mért korpuszon a rések lényegében elfogytak; ehhez a felhasználótól kell anyag.
+3. **NY-38**, ha a gombrendszer után is zavaró.
+4. **NY-28** (`pages-api`), ha módosítani kell.
+5. **Parkoló, csak mért eset esetén:** NY-33, NY-03, NY-05, NY-08, NY-13.
 
 ## Elfogadott korlátok (nem rések, nem javítandók)
 
