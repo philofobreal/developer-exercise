@@ -14,7 +14,7 @@ export function createViewContinuity(root:HTMLElement){
   return null;
  }
  return {capture({background=false}:{background?:boolean}={}){
-  openMenus=background?[...root.querySelectorAll('details.menu[open]:not(.toggletip)')].flatMap(menu=>menuName(menu)??[]):[];
+  openMenus=background?[...root.querySelectorAll('details.menu[open]')].flatMap(menu=>menuName(menu)??[]):[];
   if(previous)expanded.set(previous,new Set([...root.querySelectorAll<HTMLDetailsElement>('details[open][data-memory]')].map(detail=>detail.dataset.memory??'')));
   const element=document.activeElement;
   if(element instanceof HTMLElement&&root.contains(element)){const selector=selectorFor(element);focused=selector?{selector}:null;if(focused&&(element instanceof HTMLTextAreaElement||element instanceof HTMLInputElement)&&element.selectionStart!==null)focused.selection=[element.selectionStart,element.selectionEnd??element.selectionStart];}else focused=null;

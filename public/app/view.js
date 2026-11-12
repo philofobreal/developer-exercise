@@ -9,7 +9,8 @@ import { escapeHtml as esc, editorShell, highlight, syncEditors } from './ui-uti
 import { icon } from './icons.js';
 import { createViewContinuity } from './continuity.js';
 import { installHeaderFit } from './header-fit.js';
-import { installWorkbenchKeyboard, installAuthoringFlows, installMenus, installDisabledGuard, installToggletips } from './interactions.js';
+import { installWorkbenchKeyboard, installAuthoringFlows, installMenus, installDisabledGuard } from './interactions.js';
+import { installToggletips } from './toggletip.js';
 import { authorDraftPending, canUndoReplace, refreshAuthorStatus } from './author-workspace.js';
 import { renderInputsContract, renderPreflightSettings, renderSettingsOrigin, renderSourceDiagnostics } from './preflight-settings.js';
 import { authorDecisions, createRuleMarks, renderModelInsight, ruleCount, renderRuleCause, renderRuleKinds, renderRulePanel, rulesAvailable } from './rule-panel.js';
@@ -42,7 +43,7 @@ const tool = (attribute, label, name, extra = '') => {
 const actionBar = (label, start, status, end) => `<div class="action-bar" role="group" aria-label="${label}"><div class="action-start">${start}</div>${status || '<span class="action-status"></span>'}<div class="action-end">${end}</div></div>`;
 const languageName = (language) => language === 'typescript' ? 'TypeScript' : 'JavaScript';
 export function createWorkbenchView({ root, state, ex, at, attempt, scroll, format }) {
-    const continuity = createViewContinuity(root), fitHeader = installHeaderFit(root);
+    const continuity = createViewContinuity(root), fitHeader = installHeaderFit(root), tips = installToggletips(root);
     root.addEventListener('click', event => { if (!(event.target instanceof Element) || !event.target.closest('[data-dismiss-notice]'))
         return; try {
         localStorage.setItem(DEMO_NOTICE, 'seen');
@@ -51,7 +52,6 @@ export function createWorkbenchView({ root, state, ex, at, attempt, scroll, form
     installWorkbenchKeyboard(root);
     installDisabledGuard(root);
     installMenus(root);
-    installToggletips(root);
     installSurface(root, () => render());
     codeView(root);
     paneSplit(root);
@@ -201,7 +201,7 @@ export function createWorkbenchView({ root, state, ex, at, attempt, scroll, form
         const environment = m?.authoring?.evidence?.environment;
         if (!environment)
             return '';
-        return `<p class="analysis-settings" data-analysis-settings>${renderInputsContract(environment)}<span>Objektumkulcsok sorrendje: <b>${environment.keyOrder === 'ignored' ? 'nem számít' : 'számít'}</b></span><span>Osztálymezők: <b>${environment.classFields === 'define' ? 'csak szabványos' : 'mindkét mód'}</b></span><span class="inline-hint">A modell ezzel a környezettel készült.</span></p>`;
+        return `<div class="analysis-settings" data-analysis-settings>${renderInputsContract(environment)}<span>Objektumkulcsok sorrendje: <b>${environment.keyOrder === 'ignored' ? 'nem számít' : 'számít'}</b></span><span>Osztálymezők: <b>${environment.classFields === 'define' ? 'csak szabványos' : 'mindkét mód'}</b></span><span class="inline-hint">A modell ezzel a környezettel készült.</span></div>`;
     }
     function rulesStep() {
         const m = state.authorModel, v = state.rulesView === 'json' ? 'json' : 'visual', verification = state.authorInsight?.verification;
@@ -295,6 +295,7 @@ export function createWorkbenchView({ root, state, ex, at, attempt, scroll, form
         fitHeader();
         scroll.restore(key);
         continuity.restore(key + ':' + v + (v === 'model' ? ':' + (state.rulesView ?? 'visual') : v === 'author' ? ':' + (state.sourceKind ?? 'code') : ''));
+        tips.rendered({ background });
     }
     return { render };
 }

@@ -160,12 +160,13 @@ export function renderExample(example:HelpExample,id:string,where:'workbench'|'p
  return `<figure class="help-example"><pre class="help-code" data-language="${example.language}" tabindex="0" aria-label="Kódpélda"><code>${code}</code></pre><figcaption>${rowsOf(example)}:<ul>${outcomes.join('')}</ul></figcaption></figure>`;
 }
 
-/** ADR-124 (H3): the ⓘ beside a label. A toggletip (a menu, so Escape and an outside click close it): the topic's
- * sentences, its example, and the help page at the topic in a new tab. `withSummary: false` where the same sentences
- * already stand under the control. */
+/** ADR-124 (H3): the ⓘ beside a label: the topic's sentences, its example, and the help page at the topic in a new tab.
+ * `withSummary: false` where the same sentences already stand under the control. ADR-141: a button and its bubble, a
+ * `popover` floating in the top layer (toggletip.ts pairs and places them), so opening it moves nothing on the page. The
+ * wrapper is a span: it may stand in running text, but never inside a <p> (the bubble's blocks would close it). */
 export function renderInfo(id:string,name:string,{withSummary=true}:{withSummary?:boolean}={}):string {
  const topic=TOPICS.get(id);if(!topic)return '';
- return `<details class="menu toggletip" data-help="${esc(id)}"><summary class="info-button" aria-label="Súgó: ${esc(name)}" title="Súgó: ${esc(name)}">${icon('help')}</summary><div class="menu-panel toggletip-panel" role="note">${withSummary?`<p>${inline(topic.summary)}</p>`:''}${topic.example?renderExample(topic.example,id,'workbench'):''}<a class="help-link" href="${helpHref(id)}" target="_blank" rel="noopener">Részletek a súgóban${icon('external')}<span class="sr-only"> (új lapon)</span></a></div></details>`;
+ return `<span class="toggletip" data-help="${esc(id)}"><button type="button" class="info-button" data-info="${esc(id)}" aria-label="Súgó: ${esc(name)}" title="Súgó: ${esc(name)}">${icon('help')}</button><div class="toggletip-panel" popover role="note" aria-label="Súgó: ${esc(name)}"><p class="toggletip-title">${esc(name)}</p>${withSummary?`<p>${inline(topic.summary)}</p>`:''}${topic.example?renderExample(topic.example,id,'workbench'):''}<a class="help-link" href="${helpHref(id)}" target="_blank" rel="noopener">Részletek a súgóban${icon('external')}<span class="sr-only"> (új lapon)</span></a></div></span>`;
 }
 
 /** A reason code of the analysis, as the registry gives it (the build passes the registry in). */

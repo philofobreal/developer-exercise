@@ -18,7 +18,7 @@ export function createViewContinuity(root) {
         return null;
     }
     return { capture({ background = false } = {}) {
-            openMenus = background ? [...root.querySelectorAll('details.menu[open]:not(.toggletip)')].flatMap(menu => menuName(menu) ?? []) : [];
+            openMenus = background ? [...root.querySelectorAll('details.menu[open]')].flatMap(menu => menuName(menu) ?? []) : [];
             if (previous)
                 expanded.set(previous, new Set([...root.querySelectorAll('details[open][data-memory]')].map(detail => detail.dataset.memory ?? '')));
             const element = document.activeElement;

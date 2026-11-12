@@ -72,7 +72,7 @@ test('one text: a setting’s hint is its help summary; the bubble links to the 
  const html=renderPreflightSettings(author,undefined,'source')+renderPreflightSettings(author,undefined,'analysis');
  for(const id of ['jsCheck','objectState','unknownPolicy','inputs','keyOrder','classFields','portability']){
   assert.ok(html.includes(`id="preflight-${id}-hint">${escapeHtml(helpSummary(id))}</small>`),id);assert.ok(helpSummary(id).length>20,id);
-  assert.match(html,new RegExp(`<details class="menu toggletip" data-help="${id}">`),id);
+  assert.match(html,new RegExp(`<span class="toggletip" data-help="${id}"><button type="button" class="info-button" data-info="${id}"`),id);
  }
  const bubble=renderInfo('keyOrder','Objektumkulcsok sorrendje');
  assert.match(bubble,/aria-label="Súgó: Objektumkulcsok sorrendje"/);
@@ -81,19 +81,16 @@ test('one text: a setting’s hint is its help summary; the bubble links to the 
  assert.equal(renderInfo('nincs-ilyen','x'),'');
 });
 
-test('markup: a bubble (a details element) never stands inside a paragraph or a span, where the parser would break it',async()=>{
+test('markup: a bubble never stands inside a paragraph, where its blocks would close it and leave the bubble outside its wrapper (ADR-141)',async()=>{
  const {renderTaskStatus}=await import('../public/app/task-status.js');
  const {renderModelInsight,renderRuleKinds}=await import('../public/app/rule-panel.js');
  const {renderFindingGroups,renderSourceDiagnostics}=await import('../public/app/preflight-settings.js');
  const context=line=>({line,code:'TS2307',message:'Cannot find module',certainty:'unknown',origin:'environment'});
  const author={title:'T',description:'',language:'typescript',source:'',message:''};
  const html=[renderPreflightSettings(author,undefined,'source'),renderPreflightSettings(author,undefined,'analysis'),renderFindingGroups([context(1),context(2)]),renderSourceDiagnostics({verdict:'inconclusive',diagnostics:[context(1),context(2)]},false)].join('');
- assert.ok(html.includes('<details class="menu toggletip"'),'the markup holds bubbles');
- // An open <p> or <span> that a <details> follows before it closes.
- for(const tag of ['p','span']){
-  const inside=new RegExp(`<${tag}(?:\\s[^>]*)?>(?:(?!</${tag}>).)*<details`,'s');
-  assert.doesNotMatch(html,inside,`a bubble inside <${tag}>`);
- }
+ assert.ok(html.includes('<span class="toggletip"'),'the markup holds bubbles');
+ // An open <p> that a bubble follows before it closes (the bubble's own <p> lines close at once).
+ assert.doesNotMatch(html,/<p(?:\s[^>]*)?>(?:(?!<\/p>).)*<span class="toggletip"/s,'a bubble inside <p>');
 });
 
 test('markup: an example’s lines are blocks with no newline between them (a newline inside <pre> doubled the line spacing)',()=>{

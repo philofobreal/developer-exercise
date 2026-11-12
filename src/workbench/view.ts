@@ -11,7 +11,8 @@ import {escapeHtml as esc,editorShell,highlight,syncEditors} from './ui-utilitie
 import {icon,type IconName} from './icons.js';
 import {createViewContinuity} from './continuity.js';
 import {installHeaderFit} from './header-fit.js';
-import {installWorkbenchKeyboard,installAuthoringFlows,installMenus,installDisabledGuard,installToggletips} from './interactions.js';
+import {installWorkbenchKeyboard,installAuthoringFlows,installMenus,installDisabledGuard} from './interactions.js';
+import {installToggletips} from './toggletip.js';
 import {authorDraftPending,canUndoReplace,refreshAuthorStatus} from './author-workspace.js';
 import {renderInputsContract,renderPreflightSettings,renderSettingsOrigin,renderSourceDiagnostics} from './preflight-settings.js';
 import {authorDecisions,createRuleMarks,renderModelInsight,ruleCount,renderRuleCause,renderRuleKinds,renderRulePanel,rulesAvailable} from './rule-panel.js';
@@ -39,8 +40,8 @@ const tool=(attribute:string,label:string,name:IconName,extra=''):string=>{
 const actionBar=(label:string,start:string,status:string,end:string):string=>`<div class="action-bar" role="group" aria-label="${label}"><div class="action-start">${start}</div>${status||'<span class="action-status"></span>'}<div class="action-end">${end}</div></div>`;
 const languageName=(language:string):string=>language==='typescript'?'TypeScript':'JavaScript';
 export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:WorkbenchOptions){
- const continuity=createViewContinuity(root),fitHeader=installHeaderFit(root);
- root.addEventListener('click',event=>{if(!(event.target instanceof Element)||!event.target.closest('[data-dismiss-notice]'))return;try{localStorage.setItem(DEMO_NOTICE,'seen');}catch{}root.querySelector('[data-validation-notice]')?.remove();root.querySelector<HTMLElement>('#workbench-main')?.focus({preventScroll:true});});installWorkbenchKeyboard(root);installDisabledGuard(root);installMenus(root);installToggletips(root);installSurface(root,()=>render());codeView(root);paneSplit(root);installPaneSplit(root,()=>drawRuleArcs(root,state));installAuthoringFlows(root,state,render,format);
+ const continuity=createViewContinuity(root),fitHeader=installHeaderFit(root),tips=installToggletips(root);
+ root.addEventListener('click',event=>{if(!(event.target instanceof Element)||!event.target.closest('[data-dismiss-notice]'))return;try{localStorage.setItem(DEMO_NOTICE,'seen');}catch{}root.querySelector('[data-validation-notice]')?.remove();root.querySelector<HTMLElement>('#workbench-main')?.focus({preventScroll:true});});installWorkbenchKeyboard(root);installDisabledGuard(root);installMenus(root);installSurface(root,()=>render());codeView(root);paneSplit(root);installPaneSplit(root,()=>drawRuleArcs(root,state));installAuthoringFlows(root,state,render,format);
  addEventListener('resize',()=>{drawRuleArcs(root,state);syncEditors(root);});
  // ADR-090: a code list scrolls sideways as one; its rule arcs follow the row controls pinned at its right edge.
  let arcFrame=0;
@@ -170,7 +171,7 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:Wor
  function analysisSettings(m:CodeLineExercise|undefined):string {
   const environment=m?.authoring?.evidence?.environment;
   if(!environment)return '';
-  return `<p class="analysis-settings" data-analysis-settings>${renderInputsContract(environment)}<span>Objektumkulcsok sorrendje: <b>${environment.keyOrder==='ignored'?'nem számít':'számít'}</b></span><span>Osztálymezők: <b>${environment.classFields==='define'?'csak szabványos':'mindkét mód'}</b></span><span class="inline-hint">A modell ezzel a környezettel készült.</span></p>`;
+  return `<div class="analysis-settings" data-analysis-settings>${renderInputsContract(environment)}<span>Objektumkulcsok sorrendje: <b>${environment.keyOrder==='ignored'?'nem számít':'számít'}</b></span><span>Osztálymezők: <b>${environment.classFields==='define'?'csak szabványos':'mindkét mód'}</b></span><span class="inline-hint">A modell ezzel a környezettel készült.</span></div>`;
  }
  function rulesStep():string {
   const m=state.authorModel,v=state.rulesView==='json'?'json':'visual',verification=state.authorInsight?.verification;
@@ -249,7 +250,7 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:Wor
   const fill=(selector:string,value:string):void=>{const editor=root.querySelector<HTMLTextAreaElement>(selector);if(editor)editor.value=value;};
   fill('#author-editor',state.author.source);fill('#model-editor',state.modelDraft);fill('#code-editor',at()?.draft??'');
   refreshAuthorStatus(root,state);syncEditors(root);drawRuleArcs(root,state);
-  root.dataset.renderedExercise=state.active??'';root.dataset.renderedView=v;root.dataset.renderedMode=state.mode;fitHeader();scroll.restore(key);continuity.restore(key+':'+v+(v==='model'?':'+(state.rulesView??'visual'):v==='author'?':'+(state.sourceKind??'code'):''));
+  root.dataset.renderedExercise=state.active??'';root.dataset.renderedView=v;root.dataset.renderedMode=state.mode;fitHeader();scroll.restore(key);continuity.restore(key+':'+v+(v==='model'?':'+(state.rulesView??'visual'):v==='author'?':'+(state.sourceKind??'code'):''));tips.rendered({background});
  }
  return {render};
 }

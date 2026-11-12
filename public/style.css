@@ -18,7 +18,7 @@
 :is(.author,.solution-editor) {border:1px solid var(--panel-line);border-radius:0;background:var(--bg)}
 :is(.model-overview,.rule-panel,.model-insight,.rule-board,.try-rules,.source-diagnostics,.task-status,.help-topic) {border:1px solid var(--panel-line);border-radius:0;background:var(--panel-fill)}
 :is(.dependency-details,.rule-item,.board-list,.feedback-details,.rule-kinds,.help-code) {border:1px solid var(--inset-line);border-radius:0;background:var(--inset-fill)}
-:is(.menu-panel,.activity) {border:1px solid var(--float-line);border-radius:0;background:var(--float-fill);box-shadow:var(--float-shadow)}
+:is(.menu-panel,.activity,.toggletip-panel) {border:1px solid var(--float-line);border-radius:0;background:var(--float-fill);box-shadow:var(--float-shadow)}
 /* Invariant (ADR-104): code is shown exactly as written, so no ligatures (>= stays >=, => stays =>). The font shorthand the
  * components use resets font-feature-settings (CSS Fonts 4), so inheritance cannot carry it; this is the stylesheet's one !important. */
 *,::before,::after {font-feature-settings:'liga' 0,'calt' 0 !important}
@@ -636,10 +636,14 @@ button.btn.link-action:hover:not(:disabled) {background:var(--blue-pale);border-
 /* ADR-124 (H3): the ⓘ toggletip. A quiet 28 px icon button after its label; the bubble is a floating surface with the
  * topic's sentences, its example and the link to the help page (a new tab). */
 .toggletip {display:inline-block;flex:none;vertical-align:middle}
-.menu.toggletip>summary.info-button {width:28px;min-width:28px;height:28px;min-height:28px;padding:0;border:0;background:transparent;color:var(--accent-text);justify-content:center}
-.menu.toggletip>summary.info-button:hover,.menu.toggletip[open]>summary.info-button {background:var(--blue-pale)}
-.menu.toggletip>summary .icon {width:16px;height:16px}
-.toggletip-panel {z-index:13;left:0;right:auto;width:min(380px,calc(100vw - 32px));min-width:0;gap:8px;padding:12px;font-size:12px;font-weight:400;line-height:1.55;letter-spacing:0;text-transform:none;white-space:normal;color:var(--text);text-align:left}
+.toggletip>.info-button {width:28px;min-width:28px;height:28px;min-height:28px;padding:0;border:0;background:transparent;color:var(--accent-text);justify-content:center}
+.toggletip>.info-button:hover:not(:disabled),.toggletip>.info-button[aria-expanded=true] {border:0;background:var(--blue-pale);color:var(--accent-text)}
+.toggletip>.info-button .icon {width:16px;height:16px}
+/* ADR-141 (T1): the bubble is a popover in the top layer, placed beside its button by toggletip.ts (left, top and the
+ * height of the room it has); it moves nothing, and above the sticky bars it is never under one. */
+.toggletip-panel {position:fixed;inset:auto;margin:0;overflow:auto;overscroll-behavior:contain;width:min(380px,calc(100vw - 32px));min-width:0;gap:8px;padding:12px;font-size:12px;font-weight:400;line-height:1.55;letter-spacing:0;text-transform:none;white-space:normal;color:var(--text);text-align:left}
+.toggletip-panel:popover-open {display:grid}
+.toggletip-title {font-weight:650;color:var(--n-90)}
 .toggletip-panel>p {margin:0}
 /* The code example scrolls inside the bubble: a grid item may not grow the bubble to its longest line. */
 .toggletip-panel {grid-template-columns:minmax(0,1fr)}

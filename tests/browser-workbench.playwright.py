@@ -202,14 +202,21 @@ def help_toggletips(page):
     topic in a new tab; Escape closes it and returns the focus. The help page holds every topic at its anchor, and the
     search narrows it to the topics holding every word."""
     build(page,rules_source);analysis_options(page)
-    tip=page.locator('details.toggletip[data-help="keyOrder"]');tip.locator('summary').click();expect(tip).to_have_attribute('open','')
-    panel=tip.locator('.toggletip-panel');expect(panel).to_contain_text('3. és 4. sor cseréje');expect(panel).to_contain_text('elfogadva')
+    tip=page.locator('.toggletip[data-help="keyOrder"]');button=tip.locator('.info-button');panel=tip.locator('.toggletip-panel')
+    button.click();expect(panel).to_be_visible();expect(button).to_have_attribute('aria-expanded','true')
+    expect(panel).to_contain_text('3. és 4. sor cseréje');expect(panel).to_contain_text('elfogadva')
     link=panel.locator('a.help-link');expect(link).to_have_attribute('target','_blank');expect(link).to_have_attribute('href','./help/index.html#keyOrder')
     box=panel.bounding_box();width=page.viewport_size['width'];assert box['x']>=0 and box['x']+box['width']<=width,(box,width)
-    page.keyboard.press('Escape');expect(tip).not_to_have_attribute('open','');expect(tip.locator('summary')).to_be_focused()
-    expect(page.locator('details.toggletip[data-help="fillable"]')).to_have_count(1);expect(page.locator('details.toggletip[data-help="qualification"]')).to_have_count(1)
+    page.keyboard.press('Escape');expect(panel).to_be_hidden();expect(button).to_be_focused();expect(button).to_have_attribute('aria-expanded','false')
+    expect(page.locator('.toggletip[data-help="fillable"]')).to_have_count(1);expect(page.locator('.toggletip[data-help="qualification"]')).to_have_count(1)
+    # ADR-141: the focus leaving the bubble closes it (Tab past its last link), so nothing it covers is reached under it.
+    button.click();expect(panel).to_be_visible()
+    for _ in range(12):
+        page.keyboard.press('Tab')
+        if not page.evaluate('()=>!!document.activeElement?.closest(\'.toggletip[data-help="keyOrder"]\')'):break
+    expect(panel).to_be_hidden()
     with page.expect_popup() as popup:
-        tip.locator('summary').click();link.click()
+        button.click();link.click()
     help_page=popup.value;expect(help_page.locator('#keyOrder')).to_be_visible();expect(help_page.locator('#keyOrder')).to_contain_text('Nem számít')
     help_page.locator('[data-help-search]').fill('osztálymező');expect(help_page.locator('[data-help-count]')).to_contain_text('találat')
     expect(help_page.locator('#classFields')).to_be_visible();expect(help_page.locator('#keyOrder')).to_be_hidden()
@@ -229,6 +236,9 @@ def inputs_override(page):
     strict, and the Rules step says so (asked → effective), why, and links the line in the source."""
     build(page,'const box = { a: 1 };\nconst p = new Proxy(box, {});\nconst a = p.a;\nconsole.log(a);')
     shown=page.locator('[data-inputs-override="hook"]');expect(shown).to_contain_text('érvényes egyszerű adat → szigorú lett');expect(shown).to_contain_text('„Proxy”')
+    # ADR-141: the bubble's blocks closed the line's <p> and pushed the rest of the line out of it: all four parts stay in.
+    expect(page.locator('[data-analysis-settings] > *')).to_have_count(4);expect(page.locator('[data-analysis-settings]')).to_contain_text('A modell ezzel a környezettel készült.')
+    tip=shown.locator('.toggletip[data-help="inputs"]');tip.locator('.info-button').click();expect(tip.locator('.toggletip-panel')).to_be_visible();page.keyboard.press('Escape')
     shown.locator('[data-goto-line="2"]').click();current(page,'source');expect(page.locator('#author-editor')).to_be_focused()
     assert page.evaluate("()=>{const e=document.querySelector('#author-editor');return e.value.slice(e.selectionStart,e.selectionEnd)}").startswith('const p = new Proxy')
     build(page,'const a = 1;\nconsole.log(a);');expect(page.locator('[data-inputs-override]')).to_have_count(0);expect(page.locator('[data-inputs-contract]')).to_have_text('Bemenetek: érvényes egyszerű adat')
@@ -337,6 +347,19 @@ def background_render_keeps_menu(page):
         page.wait_for_function('()=>window.__renders>0')
         expect(menu).to_have_attribute('open','');expect(page.locator('[data-import-source]')).to_be_visible()
         page.locator('[data-author-sample]').click();expect(page.locator('details.open-menu')).not_to_have_attribute('open','')
+        # ADR-141: an open ⓘ bubble stays open too, through a render the reader did not cause.
+        page.locator('[data-author="language"]').select_option('javascript')
+        for _ in range(200):
+            if held:break
+            page.wait_for_timeout(25)
+        assert held,'a changed setting asks for its policy'
+        box=page.locator('details.analysis-options[data-settings-scope="source"]')
+        if box.get_attribute('open') is None:box.locator(':scope > summary').click()
+        tip=page.locator('.toggletip[data-help="jsCheck"]');tip.locator('.info-button').click();expect(tip.locator('.toggletip-panel')).to_be_visible()
+        page.evaluate(COUNT_RENDERS);route=held.pop();route.fulfill(response=route.fetch())
+        page.wait_for_function('()=>window.__renders>0')
+        tip=page.locator('.toggletip[data-help="jsCheck"]');expect(tip.locator('.toggletip-panel')).to_be_visible();expect(tip.locator('.info-button')).to_have_attribute('aria-expanded','true')
+        page.keyboard.press('Escape');expect(tip.locator('.toggletip-panel')).to_be_hidden()
     finally:page.unroute('**/api/author/policy*')
 def source_file(page):
     with page.expect_file_chooser() as chooser:open_menu(page,'open');page.locator('[data-import-source]').click()
@@ -694,22 +717,23 @@ def indentation_single_owner(page):
 def authorKeyOrder(page):
     """The key-order setting of the Elemzés step's control, unfolding the analysis options."""
     page.locator('[data-step="rules"]').click();analysis_options(page);return page.locator('[data-preflight="keyOrder"]').input_value()
-# ADR-135: the controls outside the open ⓘ bubble that it overlaps (a control half under it is a target too small to hit).
-COVERED_BY_BUBBLE='''()=>{const panel=document.querySelector('details.toggletip[open] .toggletip-panel');if(!panel)return ['no open bubble'];
- const hit=(x,y)=>{const top=document.elementFromPoint(x,y);return !!top&&panel.contains(top);};
- // The content of a closed details (another bubble, a folded section) still has boxes in Chromium; it is not shown.
- const shut=el=>{for(let d=el.closest('details');d;d=d.parentElement?.closest('details')??null)if(!d.open&&!d.querySelector(':scope>summary')?.contains(el))return true;return false;};
- return [...document.querySelectorAll('button,select,input,textarea,a[href],summary')].filter(el=>!panel.contains(el)&&!el.closest('details.toggletip[open]')&&!shut(el)&&el.getClientRects().length).filter(el=>{
-  const r=el.getBoundingClientRect();if(!r.width||!r.height||r.bottom<=0||r.top>=innerHeight)return false;
-  const xs=[r.left+2,r.left+r.width/2,r.right-2],ys=[r.top+2,r.top+r.height/2,r.bottom-2];
-  return xs.some(x=>ys.some(y=>y>=0&&y<innerHeight&&hit(x,y)));}).map(el=>el.id||el.outerHTML.slice(0,60));}'''
+# ADR-141: where every control and answer of the page stands (an open ⓘ bubble floats over the page and moves none of it);
+# the sticky bars stand where the screen is, not on the page.
+PAGE_LAYOUT='''()=>[...document.querySelectorAll('#workbench-main :is(button,select,input,textarea,a[href],summary,.task-verdict,.task-text,.inline-hint)')].filter(el=>!el.closest('.toggletip-panel,.action-bar,.evaluation-bar')&&el.getClientRects().length).map(el=>{const r=el.getBoundingClientRect();return [Math.round(r.left+scrollX),Math.round(r.top+scrollY)].join(',')})'''
+# ADR-141: what is wrong with the open bubble's place: outside the screen's 16 px margin, cut by its bottom, widening the page.
+BUBBLE_MISPLACED='''()=>{const panel=document.querySelector('.toggletip-panel:popover-open');if(!panel)return ['no open bubble'];
+ const r=panel.getBoundingClientRect(),width=document.documentElement.clientWidth,wrong=[];
+ if(r.left<16||r.right>width-16)wrong.push(`x ${Math.round(r.left)}..${Math.round(r.right)} of ${width}`);
+ if(r.top<0||r.bottom>innerHeight)wrong.push(`y ${Math.round(r.top)}..${Math.round(r.bottom)} of ${innerHeight}`);
+ if(document.documentElement.scrollWidth>width)wrong.push(`page ${document.documentElement.scrollWidth} wide`);
+ return wrong;}'''
 def help_trial(page,url):
     """ADR-135 (NY-31): „Kipróbálom” beside an outcome of a help example loads the example under that outcome's settings
     in the Kód step, and the workbench then reproduces what the help says: key order „Számít”, rows 3 and 4 swapped are
     rejected. (The draft before was „Nem számít”, under which they are accepted: the rejection shows the trial's setting
     replaced it.) The help page's own „Kipróbálom” opens the workbench the same way; its code is highlighted."""
     build(page,rules_source);assert authorKeyOrder(page)=='ignored','a new draft starts with „Nem számít”'
-    tip=page.locator('details.toggletip[data-help="keyOrder"]');tip.locator('summary').click()
+    tip=page.locator('.toggletip[data-help="keyOrder"]');tip.locator('.info-button').click()
     expect(tip.locator('.help-code .token.keyword').first).to_be_visible()
     tip.locator('[data-help-try="keyOrder"][data-help-outcome="0"]').click()
     current(page,'source');expect(page.locator('#author-editor')).to_have_value(re.compile(r'^class Box \{'))
@@ -1183,20 +1207,20 @@ try:
                     handle=target.locator('.solution-zone .drag-handle[tabindex="0"]').first;assert handle.bounding_box()['width']>=44 and handle.bounding_box()['height']>=44
                     target.locator('[data-mode="author"]').click();build(target,rules_source);assert target.evaluate('document.documentElement.scrollWidth')<=width
                     connector=target.locator('[data-rule-connect="3"]').bounding_box();assert connector['width']>=28 and connector['height']>=28
-                    # ADR-124: an open ⓘ bubble shifts back inside the screen by its offset; a transform had widened the page to 559 px.
-                    analysis_options(target);target.locator('details.toggletip[data-help="keyOrder"] > summary').click();expect(target.locator('details.toggletip[data-help="keyOrder"]')).to_have_attribute('open','')
-                    target.wait_for_function('()=>(document.querySelector("details.toggletip[open] .toggletip-panel")?.style.left??"")!==""')
-                    assert target.evaluate('document.documentElement.scrollWidth')<=width,f"{width}px: an open bubble widens the page to {target.evaluate('document.documentElement.scrollWidth')}"
-                    assert not target.evaluate(COVERED_BY_BUBBLE),f"{width}px: the open bubble covers {target.evaluate(COVERED_BY_BUBBLE)}"
-                    target.keyboard.press('Escape');expect(target.locator('details.toggletip[data-help="keyOrder"]')).not_to_have_attribute('open','')
-                    # The room goes with the bubble (on the same, asynchronous toggle event).
-                    target.wait_for_function('()=>document.querySelector(\'details.toggletip[data-help="keyOrder"]\').closest(".setting-head").style.marginBottom===""')
-                    # ADR-135: a taller bubble (another font, as on the CI runner) still covers nothing: it makes its own room.
-                    target.evaluate("()=>{const sheet=[...document.styleSheets].at(-1);sheet.insertRule('.toggletip-panel{line-height:2.6!important}',sheet.cssRules.length);}")
-                    target.locator('details.toggletip[data-help="keyOrder"] > summary').click();expect(target.locator('details.toggletip[data-help="keyOrder"]')).to_have_attribute('open','')
-                    # This opening's own sign: its room (style.left is still set from the first opening).
-                    target.wait_for_function('()=>document.querySelector(\'details.toggletip[data-help="keyOrder"]\').closest(".setting-head").style.marginBottom!==""')
-                    assert not target.evaluate(COVERED_BY_BUBBLE),f"{width}px, tall bubble: covers {target.evaluate(COVERED_BY_BUBBLE)}"
+                    # ADR-141: an open ⓘ bubble floats over the page: nothing moves, and it stays inside the screen, at every width.
+                    analysis_options(target);tip=target.locator('.toggletip[data-help="keyOrder"]');panel=tip.locator('.toggletip-panel')
+                    tip.locator('.info-button').scroll_into_view_if_needed();before=target.evaluate(PAGE_LAYOUT);tip.locator('.info-button').click();expect(panel).to_be_visible()
+                    target.wait_for_function('()=>(document.querySelector(".toggletip-panel:popover-open")?.style.top??"")!==""')
+                    assert target.evaluate(PAGE_LAYOUT)==before,f"{width}px: opening the bubble moved the page"
+                    assert not target.evaluate(BUBBLE_MISPLACED),f"{width}px: {target.evaluate(BUBBLE_MISPLACED)}"
+                    target.keyboard.press('Escape');expect(panel).to_be_hidden()
+                    # A bubble taller than the screen (another font, as on the CI runner, taken to the extreme) is held to the room
+                    # it has; its rest scrolls inside.
+                    target.evaluate("()=>{const sheet=[...document.styleSheets].at(-1);sheet.insertRule('.toggletip-panel{line-height:6!important}',sheet.cssRules.length);}")
+                    tip.locator('.info-button').click();expect(panel).to_be_visible()
+                    target.wait_for_function('()=>(document.querySelector(".toggletip-panel:popover-open")?.style.top??"")!==""')
+                    assert not target.evaluate(BUBBLE_MISPLACED),f"{width}px, tall bubble: {target.evaluate(BUBBLE_MISPLACED)}"
+                    assert panel.evaluate('p=>p.scrollHeight>p.clientHeight'),f"{width}px: the tall bubble should scroll inside"
                     target.keyboard.press('Escape')
                     target.screenshot(path=str(ARTIFACTS/f'ux-mobile-{width}.png'),full_page=True);count+=1;print(f'PASS workbench: {width}px touch practice and author layout',flush=True)
                 finally:mobile.close()

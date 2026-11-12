@@ -12,9 +12,10 @@ with socket.socket() as sock:sock.bind(('127.0.0.1',0));port=sock.getsockname()[
 BASE=f'http://127.0.0.1:{port}'
 proc=subprocess.Popen(['node','server.mjs'],cwd=ROOT,env={**os.environ,'HOST':'127.0.0.1','PORT':str(port)},stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
 SOURCE='function calc(values) {\n  const total = values.length;\n  const first = values[0];\n  return [total, first];\n}'
-def scan(page,name):
+def scan(page,name,include=None):
+    """`include`: a selector the scan is limited to (an open floating bubble, ADR-141); else the whole document."""
     page.add_script_tag(content=AXE)
-    result=page.evaluate("""tags=>axe.run(document,{runOnly:{type:'tag',values:tags},resultTypes:['violations']})""",TAGS)
+    result=page.evaluate("""([tags,include])=>axe.run(include?{include:[include]}:document,{runOnly:{type:'tag',values:tags},resultTypes:['violations']})""",[TAGS,include])
     found=[v for v in result['violations'] if v['id'] not in WAIVED]
     if found and os.environ.get('A11Y_COLLECT'):
         for v in found:print(f"FOUND {name}: {v['id']} ({v['impact']}) {[n['target'] for n in v['nodes']][:6]} :: {v['nodes'][0]['failureSummary'][:220]}",flush=True)
@@ -30,10 +31,11 @@ def author_flow(page,prefix):
     page.locator('[data-source-kind="code"]').click();page.locator('#author-editor').fill(SOURCE);page.locator('[data-author-apply]').click()
     expect(page.locator('[data-step="rules"]')).to_have_attribute('aria-current','step');scan(page,prefix+'-author-rules')
     # ADR-124 (H3): an open ⓘ bubble, with its example and link.
-    box=page.locator('details.analysis-options');box.locator(':scope > summary').click();page.locator('details.toggletip[data-help="keyOrder"] > summary').click()
-    expect(page.locator('details.toggletip[data-help="keyOrder"] .help-link')).to_be_visible()
-    # ADR-135: the bubble is placed (and its room made) on its toggle event; scan the placed state.
-    page.wait_for_function('()=>(document.querySelector("details.toggletip[open] .toggletip-panel")?.style.left??"")!==""');scan(page,prefix+'-author-rules-help');page.keyboard.press('Escape')
+    box=page.locator('details.analysis-options');box.locator(':scope > summary').click();page.locator('.toggletip[data-help="keyOrder"] > .info-button').click()
+    expect(page.locator('.toggletip[data-help="keyOrder"] .help-link')).to_be_visible()
+    # ADR-141: the bubble is placed on its toggle event; scan the placed state. It floats over the page while open (the
+    # focus leaving it closes it), so the page under it is scanned closed (above) and the bubble itself here.
+    page.wait_for_function('()=>(document.querySelector(".toggletip-panel:popover-open")?.style.top??"")!==""');scan(page,prefix+'-author-rules-help',include='.toggletip-panel:popover-open');page.keyboard.press('Escape')
     page.locator('[data-step="try"]').click();expect(page.locator('.solution-zone')).to_be_visible();page.locator('[data-all]').click();scan(page,prefix+'-author-try')
     page.locator('[data-check]').click();expect(page.locator('.report')).not_to_have_class('report idle');scan(page,prefix+'-author-try-checked')
     page.locator('[data-preview-toggle]').click();expect(page.locator('.learner-preview, #app.learner-preview')).to_have_count(1);scan(page,prefix+'-learner-preview')

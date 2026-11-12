@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-11-12 A ⓘ súgóbuborék lebeg, és semmit nem tol el (ADR-141, NY-39 T1)
+
+- **A buborék a tartalom fölött nyílik,** a ⓘ mellett. A beállítás választója, a Feladat állapota „● Igen” válasza és a Minősítés jelvényei a helyükön maradnak; eddig a buborék 300–400 px-rel lejjebb tolta őket, vagy eltakarta őket.
+- **A buborék a képen belül marad:** alá nyílik, vagy fölé, ha alul nincs hely, és a ragadós sávok fölött áll. A magas buborék belül görgethető.
+- **Bezárul** Escape-re, máshova kattintásra, és ha a billentyűzettel kilépsz belőle. Ha a háttérben újrarajzolódik az oldal, a buborék nyitva marad.
+- **Javítva:** a „Bemenetek → szigorú lett” sorban egy hibás HTML-szerkezet szétszedte a környezetsort; most a sor minden része egy helyen áll.
+- **Még hátravan:** a T2 (elhelyezés és tartalom) és a T3 (a ⓘ gomb és az átfogó teszt).
+
 ## Unreleased – 2026-11-12 Súgóbuborékok: feltárás és javítási terv; TypeScript-tananyag terve (NY-39, NY-40)
 
 - **A ⓘ súgóbuborékok átvizsgálva** mind a hét helyen, asztalon és telefonon: 13 hiba ([terv](docs/terv-sugo-buborekok.md)). A legsúlyosabbak:

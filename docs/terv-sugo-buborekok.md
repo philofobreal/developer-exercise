@@ -1,6 +1,6 @@
 # Terv: a ⓘ súgóbuborékok javítása (NY-39)
 
-Állapot: **terv, ütemezve** (2026-11-12), a felhasználó kérésére („vizsgáld meg az összes infó tooltippet, tárd fel a hibáikat és írj tervet a javításukra”). Kockázati osztály: megjelenítés. A motor, a szabályok és az értékelés nem változik. A megvalósítás ADR-141 lesz; az [ADR-135](adr/135-help-trial-and-highlighted-examples.md) helycsinálását váltja fel, az [ADR-124](adr/124-help-from-one-source.md) buborékjának tartalmát megtartja.
+Állapot: **T1 kész** ([ADR-141](adr/141-floating-help-bubble.md), 2026-11-12, a B5 is), a T2 és a T3 következik. Terv: a felhasználó kérésére („vizsgáld meg az összes infó tooltippet, tárd fel a hibáikat és írj tervet a javításukra”). Kockázati osztály: megjelenítés. A motor, a szabályok és az értékelés nem változik. A megvalósítás az [ADR-141](adr/141-floating-help-bubble.md); az [ADR-135](adr/135-help-trial-and-highlighted-examples.md) helycsinálását váltja fel, az [ADR-124](adr/124-help-from-one-source.md) buborékjának tartalmát megtartja.
 
 ## Hol van ⓘ (a teljes lista)
 
@@ -70,8 +70,8 @@ Rendben működik:
 - Az ADR-135 `COVERED_BY_BUBBLE` tesztje új jelentést kap: nem a takarást tiltja, hanem azt, hogy takart vezérlő fókuszt kapjon.
 - Az akadálymentességi kapu a nyitott buborékot külön vizsgálja, az oldalt csukott buborékkal (az ADR-ben indokolva).
 
-**T2 Elhelyezés és tartalom** (B5, B6, B10, B12, B13):
-- **Környezetsor (B5):** a sor `div` lesz, nem `p`; a ⓘ a „Bemenetek:” címke mellé kerül, és nem törheti el a sort. Regresszióteszt: a sor elemei egy szülő alatt vannak.
+**T2 Elhelyezés és tartalom** (B6, B10, B12, B13; a B5 a T1-ben javult, mert az új jelölésben ott a ⓘ ki sem nyílt volna):
+- **Környezetsor:** a ⓘ a „Bemenetek:” címke mellé kerül.
 - **Szabálytípusok (B6):** az árva ⓘ megszűnik; a magyarázó bekezdés végére „Részletek a súgóban ↗” link kerül.
 - **Példák mérete:** a buborékban legfeljebb 8 soros kódpélda szerepel. Hosszabbnál a buborék a mondatot és a „Példa és kipróbálás a súgóban ↗” linket mutatja. Ezt egységteszt őrzi a témák listáján. A súgóoldal változatlanul a teljes példát adja, és a példák motoros ellenőrzése (`help-examples.test.mjs`) nem változik.
 - **„Kipróbálom” (B12):**

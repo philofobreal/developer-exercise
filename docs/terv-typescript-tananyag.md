@@ -1,6 +1,6 @@
 # Terv: egymásra épülő TypeScript-tananyag, egyben tesztkorpusz (NY-40)
 
-Állapot: **terv, jóváhagyásra vár** (2026-11-12). A felhasználó kérése: új, egymásra épülő oktatási anyag TypeScript nyelven, amely valódi programozási témakört tanít, és egyszerre a validátor és a modellképzés tesztkorpusza. A terv úgy készült, hogy egy másik kódoló ügynök (például az OpenAI Codex) a repóban önállóan folytathassa.
+Állapot: **jóváhagyva** (2026-11-12): a felhasználó jóváhagyta a témát (könyvtár), a 20 lecke sorrendjét és a kísérleti leckék korpusz-útját („jóváhagyom és folytasd az ajánlásod mentén”). A C0 felmérése és a szintek, valamint a szállított leckék listája a fázisok végén továbbra is a felhasználó döntése. A felhasználó kérése: új, egymásra épülő oktatási anyag TypeScript nyelven, amely valódi programozási témakört tanít, és egyszerre a validátor és a modellképzés tesztkorpusza. A terv úgy készült, hogy egy másik kódoló ügynök (például az OpenAI Codex) a repóban önállóan folytathassa.
 
 Kockázati osztályok ([ai-governance.md](ai-governance.md)):
 - **orákulum és mérés:** új korpusz, új alapszint;
