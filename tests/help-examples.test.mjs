@@ -11,9 +11,9 @@ import {ExerciseCatalog} from '../src/server/catalog.mjs';
 import {compileCodeLineExercise,validateSubmission} from '../dist/index.js';
 import {resolveAuthorPolicy} from '../dist/author/preflight/config-resolver.js';
 import {REASON_CODES} from '../dist/author/reason-codes.js';
-import {helpHref,helpSummary,helpTopics,renderHelpPage,renderInfo} from '../public/app/help-topics.js';
+import {BUBBLE_EXAMPLE_LINES,helpHref,helpSummary,helpTopics,renderExample,renderHelpPage,renderInfo} from '../public/app/help-topics.js';
 import {renderPreflightSettings} from '../public/app/preflight-settings.js';
-import {escapeHtml} from '../public/app/ui-utilities.js';
+import {article,escapeHtml} from '../public/app/ui-utilities.js';
 // ADR-135: the page is built with the vendored Prism (scripts/build-help.mjs); rendering here uses the same, so the
 // shipped page can be compared with this source's build.
 for(const grammar of ['prism-core','prism-clike','prism-javascript','prism-typescript'])await import(`../public/vendor/${grammar}.js`);
@@ -77,7 +77,11 @@ test('one text: a setting’s hint is its help summary; the bubble links to the 
  const bubble=renderInfo('keyOrder','Objektumkulcsok sorrendje');
  assert.match(bubble,/aria-label="Súgó: Objektumkulcsok sorrendje"/);
  assert.ok(bubble.includes(`href="${helpHref('keyOrder')}" target="_blank" rel="noopener"`));
- assert.match(bubble,/A\(z\) 3\. és 4\. sor cseréje:<ul><li><b>Számít:<\/b> elutasítva <button type="button" class="help-try" data-help-try="keyOrder" data-help-outcome="0" aria-label="Kipróbálom: Számít">Kipróbálom<\/button><\/li><li><b>Nem számít:<\/b> elfogadva <button[^>]*data-help-outcome="1"[^>]*>Kipróbálom<\/button><\/li><\/ul>/);
+ // ADR-141 (T2): the key-order example (10 lines) is the help page's; the bubble says its sentence and links to it.
+ assert.ok(bubble.includes(helpSummary('keyOrder').slice(0,40)),'a bubble without its example says its sentence');
+ assert.match(bubble,/>Példa és kipróbálás a súgóban<svg/);assert.doesNotMatch(bubble,/help-code/);
+ const inputs=renderInfo('inputs','Bemenetek',{withSummary:false});
+ assert.match(inputs,/A 2\. és 3\. sor cseréje:<ul><li><span class="help-outcome"><b>Szigorú:<\/b> elutasítva<\/span><button type="button" class="help-try" data-help-try="inputs" data-help-outcome="0" aria-label="Kipróbálom a Kód lépésben: Szigorú">Kipróbálom a Kód lépésben<\/button><\/li><li><span class="help-outcome"><b>Érvényes egyszerű adat:<\/b> elfogadva<\/span><button[^>]*data-help-outcome="1"[^>]*>Kipróbálom a Kód lépésben<\/button><\/li><\/ul><p class="help-try-note">A „Kipróbálom” a mostani forrást és beállításokat lecseréli; visszavonható\.<\/p>/);
  assert.equal(renderInfo('nincs-ilyen','x'),'');
 });
 
@@ -94,9 +98,26 @@ test('markup: a bubble never stands inside a paragraph, where its blocks would c
 });
 
 test('markup: an example’s lines are blocks with no newline between them (a newline inside <pre> doubled the line spacing)',()=>{
- const html=renderInfo('keyOrder','Objektumkulcsok sorrendje');
+ const html=renderInfo('inputs','Bemenetek');
  const code=html.match(/<pre class="help-code"[^>]*><code>(.*?)<\/code><\/pre>/s)?.[1]??'';
  assert.ok(code.includes('<span class="help-line">'),'the example is rendered');assert.doesNotMatch(code,/\n/);
  assert.match(html,/<pre class="help-code" data-language="javascript" tabindex="0" aria-label="Kódpélda">/,'a scrollable example is reachable by keyboard');
  assert.match(renderHelpPage(REASON_CODES),/<div class="help-table" tabindex="0" role="region" aria-label="Okkódok táblázata">/,'the scrollable table too');
+});
+
+test('ADR-141 (T2): a bubble shows an example of at most 8 lines; a longer one is the help page’s, linked from the bubble',()=>{
+ let long=0;
+ for(const topic of helpTopics()){
+  const bubble=renderInfo(topic.id,topic.title,{withSummary:false}),lines=(bubble.match(/class="help-line"/g)??[]).length;
+  assert.ok(lines<=BUBBLE_EXAMPLE_LINES,`${topic.id}: ${lines} lines in the bubble`);
+  if(topic.example&&topic.example.source.split('\n').length>BUBBLE_EXAMPLE_LINES){long++;assert.match(bubble,/Példa és kipróbálás a súgóban/,topic.id);assert.ok(bubble.includes(`<p>`),topic.id+': its sentence');}
+  if(topic.example)assert.ok(renderExample(topic.example,topic.id,'page').includes('help-code'),topic.id+': the page keeps the whole example');
+ }
+ assert.ok(long>=3,'keyOrder, classFields and portability are longer than a bubble');
+});
+
+test('ADR-141 (T2): the article before a number follows how it is read (a 2., az 5., az 1000.)',()=>{
+ const table={0:'a',1:'az',2:'a',5:'az',10:'a',15:'a',50:'az',55:'az',100:'a',105:'a',150:'a',500:'az',512:'az',1000:'az',1500:'az',2000:'a',5000:'az',12000:'a',150000:'a',1000000:'az'};
+ for(const [n,expected] of Object.entries(table))assert.equal(article(Number(n)),expected,n);
+ assert.equal(article(5,true),'Az');assert.equal(article(3,true),'A');
 });

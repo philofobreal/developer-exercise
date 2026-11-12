@@ -1,4 +1,4 @@
-# ADR-141 – A ⓘ buboréka lebeg, és semmit nem tol el (NY-39, T1)
+# ADR-141 – A ⓘ buboréka lebeg, és semmit nem tol el (NY-39, T1–T2)
 
 Állapot: **elfogadva** (2026-11-12). A felhasználó jóváhagyta a [javítási tervet](../terv-sugo-buborekok.md) („rendben, mehet”). Kockázati osztály: megjelenítés; a motor, a szabályok és az értékelés nem változott. Az [ADR-135](135-help-trial-and-highlighted-examples.md) helycsinálását váltja fel, az [ADR-124](124-help-from-one-source.md) buborékjának tartalmát megtartja. A terv T2 és T3 lépése ezt az ADR-t egészíti ki.
 
@@ -53,7 +53,6 @@ A mérés (hét hely, asztal és telefon) a [tervben](../terv-sugo-buborekok.md)
 - **Kikerült** a régi helycsinálás (`TIP_HOSTS`, a margó) az `interactions.ts`-ből, és a `continuity.ts` ⓘ-kivétele: a buborék már nem `details.menu`.
 - **Nincs párhuzamos állapot:** a nyitott buborékot csak a modul tartja nyilván, a böngésző `toggle` eseményéből.
 - **Rögzített maradék:**
-  - a T2-ben következik: az árva ⓘ a szabálytípusoknál, a 8 sornál hosszabb példák, a „Kipróbálom” felirata és elrendezése, a névelő;
   - a T3-ban következik: a fókuszkeret távolsága a címkétől, a `title` és a 44 px-es érintési terület;
   - a nyitott buborék akadálymentességi vizsgálata csak a buborékra szól. Az alatta lévő oldalt csukott buborékkal vizsgáljuk, mert a buborék takarása átmeneti, és a fókusz nem juthat alá. Az egész oldal vizsgálata nyitott buborékkal itt is 0 hibát adott, de egy másik betűkészletnél (CI) a takart vezérlő más lenne.
 
@@ -71,3 +70,38 @@ A mérés (hét hely, asztal és telefon) a [tervben](../terv-sugo-buborekok.md)
   - telefonos szélességek (320, 390, 768 px): nyitáskor semmi nem mozdul, a buborék a képen belül van, és a magasra nőtt buborék belül görgethető.
 - **Egységteszt** ([help-examples.test.mjs](../../tests/help-examples.test.mjs)): buborék soha nem áll nyitott `<p>`-ben.
 - **Akadálymentesség** ([browser-a11y.playwright.py](../../tests/browser-a11y.playwright.py)): a nyitott buborék 0 hibával, mind a négy téma–szélesség párban.
+
+## T2: elhelyezés és tartalom (2026-11-12)
+
+A felhasználó jóváhagyta („rendben, folytasd”).
+
+- **A szabálytípusok árva ⓘ-ja megszűnt.** A buboréka ugyanazt mondta, mint az alatta álló bekezdés. A bekezdés végén most „Részletek a súgóban ↗” link áll; a linket a `helpLink` adja, ugyanaz, amely a buborék utolsó sora.
+- **A „Bemenetek → szigorú lett” sor ⓘ-ja a „Bemenetek:” címke mellett áll,** mint minden más ⓘ, nem a mondat végén.
+- **A buborék legfeljebb 8 soros kódpéldát mutat** (`BUBBLE_EXAMPLE_LINES`).
+  - A hosszabb példa (ma az Objektumkulcsok sorrendje 10, a Hordozhatóság 10 és az Osztálymezők létrehozása 13 sorral) a súgóoldalé.
+  - Ilyenkor a buborék a téma mondatát mondja (akkor is, ha a mondat a vezérlő alatt is áll, hogy a buborék ne csak egy link legyen), és „Példa és kipróbálás a súgóban ↗” linkkel zárul.
+  - A súgóoldal a teljes, ellenőrzött példát mutatja; a példák motoros tesztje nem változott.
+- **„Kipróbálom a Kód lépésben”:**
+  - a munkafelületi gomb felirata megmondja, hova visz;
+  - a buborékban egyszer áll: „A „Kipróbálom” a mostani forrást és beállításokat lecseréli; visszavonható.”;
+  - a kimenetel és a gombja egy sorban, rácsban áll.
+
+  A súgóoldal linkje „Kipróbálom” maradt: ott az oldal elhagyása a hivatkozásból látszik.
+- **Névelő:** az `article(n)` a szám kiejtése szerint dönt: „az” egy (1), öt (5), ötven (50–59), ötszáz (500–599), ezer (1000–1999) és az általuk vezetett ezresek és milliók előtt, különben „a”. A sorjel (#5) ugyanígy, „az ötös”.
+  - **Cserélve a munkafelületen:** a súgópélda mondata és a Kipróbálom üzenete, a leletek és a bemeneti sor „Ugrás … sorra” felirata, a szabálytábla, a szabálypanel és a sorgombok feliratai.
+
+### Rögzített maradék (T2)
+
+- A motor (`src/core/diagnostics.ts`, a tanulói visszajelzés), a szabályszerkesztés és a szerzői elemzés üzenetei (`src/author`) továbbra is „a(z)”-t írnak.
+  - A számos esetek a magban vannak, ezért külön kockázati osztály; a nevesek („a(z) „x””) kiejtése egy azonosítónál nem dönthető el biztosan.
+  - A felületi feliratok cseréje ezeket nem érintette.
+
+### Bizonyíték (T2)
+
+- **Egységteszt** ([help-examples.test.mjs](../../tests/help-examples.test.mjs)):
+  - egy témához sem mutat a buborék 8 sornál hosszabb példát; a hosszabbaknál ott a mondat és a link, a súgóoldalon a teljes példa;
+  - a névelő 20 számra (0, 1, 2, 5, 10, 15, 50, 55, 100, 105, 150, 500, 512, 1000, 1500, 2000, 5000, 12 000, 150 000, 1 000 000);
+  - a bemenetek buborékának pontos jelölése (kimenetel, gomb, megjegyzés).
+- **Böngészős teszt** ([browser-workbench.playwright.py](../../tests/browser-workbench.playwright.py)):
+  - `help_toggletips`: a kulcssorrend buborékában nincs kód, ott a mondat és a link; a bemenetekében a példa;
+  - `help_trial`: a „Kipróbálom a Kód lépésben” a bemenetek példáját szigorú szerződéssel tölti be; a 2. és 3. sor cseréjét az Ellenőrzés elutasítja, ahogy a súgó mondja.

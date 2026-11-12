@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-11-12 Súgóbuborékok: elhelyezés és tartalom (ADR-141, NY-39 T2)
+
+- **Kisebb buborékok:** a buborékban legfeljebb 8 soros példa áll. A hosszabb példák (Objektumkulcsok sorrendje, Hordozhatóság, Osztálymezők létrehozása) a súgóoldalon vannak; a buborék ilyenkor egy mondatot mond, és „Példa és kipróbálás a súgóban ↗” linkkel zárul.
+- **„Kipróbálom a Kód lépésben”:** a gomb megmondja, hova visz. A buborék kiírja, hogy a mostani forrást és beállításokat lecseréli, és hogy ez visszavonható. A kimenetel és a gomb egy sorban áll.
+- **A ⓘ mindenhol a címke mellett áll:** a „Bemenetek → szigorú lett” sorban is. A „Szabályok típus szerint” lenyílóban a felesleges, címke nélküli ⓘ helyett a bekezdés végén „Részletek a súgóban ↗” link áll.
+- **„A(z)” helyett helyes névelő** a munkafelületen: „a 2. sor”, „az 5. sor”, „az #1 sor”.
+
 ## Unreleased – 2026-11-12 A ⓘ súgóbuborék lebeg, és semmit nem tol el (ADR-141, NY-39 T1)
 
 - **A buborék a tartalom fölött nyílik,** a ⓘ mellett. A beállítás választója, a Feladat állapota „● Igen” válasza és a Minősítés jelvényei a helyükön maradnak; eddig a buborék 300–400 px-rel lejjebb tolta őket, vagy eltakarta őket.

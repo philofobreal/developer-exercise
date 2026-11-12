@@ -15,7 +15,7 @@ import type {AuthorDraft,PreflightOptions,SettingsOrigin} from './contracts.js';
 import type {AnalysisEnvironment} from '../../dist/index.js';
 import type {PolicyPath,PolicyResolution,PolicyUnavailable} from '../../dist/author/preflight/config-resolver.js';
 import type {GateDiagnostic,SourceGate} from '../../dist/author/preflight/source-gate.js';
-import {escapeHtml as esc} from './ui-utilities.js';
+import {article,escapeHtml as esc} from './ui-utilities.js';
 import {helpSummary,renderInfo} from './help-topics.js';
 
 type Language='javascript'|'typescript';
@@ -173,11 +173,11 @@ export function renderPreflightSettings(author:AuthorDraft,resolution:PolicyReso
 export function renderInputsContract(environment:AnalysisEnvironment):string {
  const asked=environment.inputs==='valid'?'érvényes egyszerű adat':'szigorú',override=environment.inputsOverride;
  if(!override)return `<span data-inputs-contract>Bemenetek: <b>${asked}</b></span>`;
- const at=override.line?`<button type="button" class="diagnostic-line" data-goto-line="${override.line}" aria-label="Ugrás a(z) ${override.line}. sorra a forrásban">${override.line}. sor</button>`:'';
+ const at=override.line?`<button type="button" class="diagnostic-line" data-goto-line="${override.line}" aria-label="Ugrás ${article(override.line)} ${override.line}. sorra a forrásban">${override.line}. sor</button>`:'';
  const why=override.reason==='hook'?`${at} ${override.text?`„${esc(override.text)}”`:''}: ezzel a program megváltoztathatja, mit csinál egy tulajdonság olvasása`
   :override.reason==='computed-accessor'?`${at}: számított nevű accessor, amely bármely olvasáskor lefuthat`
   :'a program nem kiírt néven ér el beépített API-t';
- return `<span class="inputs-override" data-inputs-contract data-inputs-override="${override.reason}">Bemenetek: <b>érvényes egyszerű adat → szigorú lett</b>, mert ${why.trim()}.${renderInfo('inputs','Bemenetek')}</span>`;
+ return `<span class="inputs-override" data-inputs-contract data-inputs-override="${override.reason}"><span class="inputs-label">Bemenetek:${renderInfo('inputs','Bemenetek')}</span> <b>érvényes egyszerű adat → szigorú lett</b>, mert ${why.trim()}.</span>`;
 }
 const CERTAINTY:Readonly<Record<GateDiagnostic['certainty'],string>>={definite:'Biztos hiba',possible:'Lehetséges hiba',unknown:'Nem eldönthető'};
 const ORIGIN:Readonly<Record<GateDiagnostic['origin'],string>>={compiler:'fordító','runtime-order':'futási sorrend','runtime-value':'futási érték',environment:'környezet'};
@@ -189,7 +189,7 @@ export function groupFindings(findings:readonly GateDiagnostic[]):GateDiagnostic
  for(const item of findings){const key=`${item.certainty}|${item.origin}|${item.code}`;const group=groups.get(key);if(group)group.push(item);else groups.set(key,[item]);}
  return [...groups.values()].sort((a,b)=>RANK[a[0]!.certainty]-RANK[b[0]!.certainty]||a[0]!.line-b[0]!.line);
 }
-const lineButton=(line:number):string=>`<button type="button" class="diagnostic-line" data-goto-line="${line}" aria-label="Ugrás a(z) ${line}. sorra a forrásban">${line}. sor</button>`;
+const lineButton=(line:number):string=>`<button type="button" class="diagnostic-line" data-goto-line="${line}" aria-label="Ugrás ${article(line)} ${line}. sorra a forrásban">${line}. sor</button>`;
 /** What a group of findings has in common, in one sentence: missing project context has one meaning whatever the name. */
 const cause=(group:readonly GateDiagnostic[]):string=>group[0]!.origin==='environment'?'Hiányzó projektkontextus: a projekten kívüli modul vagy név típusai itt nem ellenőrizhetők. A sorrend elemzését ez nem érinti.':`${group[0]!.message} (és még ${group.length-1} hasonló)`;
 /** The findings grouped by cause; one finding is one row with its line, a group one row with its lines folded. Line

@@ -656,6 +656,11 @@ button.btn.link-action:hover:not(:disabled) {background:var(--blue-pale);border-
 .help-ln {display:inline-block;width:2.6em;padding-right:10px;text-align:right;color:var(--muted);user-select:none}
 .help-example figcaption {margin-top:6px}
 .help-example ul {margin:4px 0 0;padding-left:18px}
+/* ADR-141 (T2): an outcome and its trial on one row; the trial keeps its width, the text wraps beside it. */
+.help-example li {display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 10px;margin:2px 0}
+.help-example li>.help-try {margin-left:0}
+.help-try-note {margin:6px 0 0;color:var(--muted);font-size:11px}
+.inputs-label {display:inline-flex;align-items:center;gap:2px;white-space:nowrap}
 .setting-head,.task-question,.diagnostics-head,.insight-heading {display:flex;align-items:center;gap:2px}
 .setting-head>label {margin:0}
 .diagnostics-head>h3 {margin:0}

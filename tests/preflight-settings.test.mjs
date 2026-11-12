@@ -82,7 +82,7 @@ test('findings: certainty in words, the line as a button, the origin; out-of-dat
  assert.equal(gate.verdict,'blocked');
  const html=renderSourceDiagnostics(gate,false);
  assert.match(html,/<h3 id="source-diagnostics-title">A modell nem készült el: a forrás hibás<\/h3>/);
- assert.match(html,/<span class="diagnostic-kind">Biztos hiba<\/span><button type="button" class="diagnostic-line" data-goto-line="3" aria-label="Ugrás a\(z\) 3\. sorra a forrásban">3\. sor<\/button>/);
+ assert.match(html,/<span class="diagnostic-kind">Biztos hiba<\/span><button type="button" class="diagnostic-line" data-goto-line="3" aria-label="Ugrás a 3\. sorra a forrásban">3\. sor<\/button>/);
  assert.match(html,/&lt;kötés&gt;/,'messages are escaped');assert.match(html,/futási sorrend · BS001/);
  assert.doesNotMatch(html,/data-diagnostics-stale/);assert.match(renderSourceDiagnostics(gate,true),/data-diagnostics-stale/);
  assert.equal(renderSourceDiagnostics(undefined,false),'');

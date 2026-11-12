@@ -204,7 +204,12 @@ def help_toggletips(page):
     build(page,rules_source);analysis_options(page)
     tip=page.locator('.toggletip[data-help="keyOrder"]');button=tip.locator('.info-button');panel=tip.locator('.toggletip-panel')
     button.click();expect(panel).to_be_visible();expect(button).to_have_attribute('aria-expanded','true')
-    expect(panel).to_contain_text('3. és 4. sor cseréje');expect(panel).to_contain_text('elfogadva')
+    # ADR-141 (T2): the key-order example (10 lines) is the help page's: the bubble says its sentence and links there;
+    # a short example (the inputs', 5 lines) stands in its bubble.
+    expect(panel).to_contain_text('JSON.stringify');expect(panel.locator('.help-code')).to_have_count(0);expect(panel).to_contain_text('Példa és kipróbálás a súgóban')
+    inputs=page.locator('.setting-head .toggletip[data-help="inputs"]');inputs.locator('.info-button').click()
+    expect(inputs.locator('.toggletip-panel')).to_contain_text('A 2. és 3. sor cseréje');expect(inputs.locator('.toggletip-panel')).to_contain_text('elfogadva')
+    page.keyboard.press('Escape');button.click();expect(panel).to_be_visible()
     link=panel.locator('a.help-link');expect(link).to_have_attribute('target','_blank');expect(link).to_have_attribute('href','./help/index.html#keyOrder')
     box=panel.bounding_box();width=page.viewport_size['width'];assert box['x']>=0 and box['x']+box['width']<=width,(box,width)
     page.keyboard.press('Escape');expect(panel).to_be_hidden();expect(button).to_be_focused();expect(button).to_have_attribute('aria-expanded','false')
@@ -728,20 +733,23 @@ BUBBLE_MISPLACED='''()=>{const panel=document.querySelector('.toggletip-panel:po
  if(document.documentElement.scrollWidth>width)wrong.push(`page ${document.documentElement.scrollWidth} wide`);
  return wrong;}'''
 def help_trial(page,url):
-    """ADR-135 (NY-31): „Kipróbálom” beside an outcome of a help example loads the example under that outcome's settings
-    in the Kód step, and the workbench then reproduces what the help says: key order „Számít”, rows 3 and 4 swapped are
-    rejected. (The draft before was „Nem számít”, under which they are accepted: the rejection shows the trial's setting
-    replaced it.) The help page's own „Kipróbálom” opens the workbench the same way; its code is highlighted."""
-    build(page,rules_source);assert authorKeyOrder(page)=='ignored','a new draft starts with „Nem számít”'
-    tip=page.locator('.toggletip[data-help="keyOrder"]');tip.locator('.info-button').click()
-    expect(tip.locator('.help-code .token.keyword').first).to_be_visible()
-    tip.locator('[data-help-try="keyOrder"][data-help-outcome="0"]').click()
-    current(page,'source');expect(page.locator('#author-editor')).to_have_value(re.compile(r'^class Box \{'))
+    """ADR-135 (NY-31): „Kipróbálom a Kód lépésben” beside an outcome of a help example loads the example under that
+    outcome's settings in the Kód step, and the workbench then reproduces what the help says: strict inputs, rows 2 and 3
+    swapped are rejected. (A new draft asks for valid inputs, under which they are accepted: the rejection shows the trial's
+    setting replaced it.) The help page's own „Kipróbálom” opens the workbench the same way; its code is highlighted."""
+    def inputs():
+        page.locator('[data-step="rules"]').click();analysis_options(page);return page.locator('[data-preflight="inputs"]').input_value()
+    build(page,rules_source);assert inputs()=='valid','a new draft asks for valid inputs'
+    tip=page.locator('.setting-head .toggletip[data-help="inputs"]');tip.locator('.info-button').click()
+    expect(tip.locator('.help-code .token.keyword').first).to_be_visible();expect(tip.locator('.help-try-note')).to_contain_text('visszavonható')
+    tip.locator('[data-help-try="inputs"][data-help-outcome="0"]').click()
+    current(page,'source');expect(page.locator('#author-editor')).to_have_value(re.compile(r'^function measure\(grid\) \{'))
     expect(page.locator('.author-status')).to_contain_text('Súgópélda betöltve');expect(page.locator('.author-status')).to_contain_text('elutasítva')
-    page.locator('[data-author-apply]').click();current(page,'rules');assert authorKeyOrder(page)=='observed';to_try(page)
-    # `data-down` names the slot (from 0): slot 2 is row 3, which moves below row 4.
-    page.locator('[data-all]').click();page.locator('[data-down="2"]').click()
-    assert page.locator('.solution-zone .code-row').evaluate_all('rows=>rows.map(row=>row.dataset.lineId)')[:5]==['1','2','4','3','5']
+    expect(page.locator('.author-status')).to_contain_text('cseréld fel a 2. és 3. sort')
+    page.locator('[data-author-apply]').click();current(page,'rules');assert inputs()=='any';to_try(page)
+    # `data-down` names the slot (from 0): slot 1 is row 2, which moves below row 3.
+    page.locator('[data-all]').click();page.locator('[data-down="1"]').click()
+    assert page.locator('.solution-zone .code-row').evaluate_all('rows=>rows.map(row=>row.dataset.lineId)')[:5]==['1','3','2','4','5']
     page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Hibás')
     page.goto(url.rstrip('/')+'/help/index.html');expect(page.locator('#objectState .help-code .token.keyword').first).to_be_visible()
     page.locator('#objectState a.help-try').nth(1).click()

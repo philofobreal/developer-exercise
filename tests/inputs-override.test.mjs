@@ -50,7 +50,8 @@ test('the Rules step says asked → effective, why, and links the line; without 
  assert.equal(renderInputsContract({inputs:'valid'}),'<span data-inputs-contract>Bemenetek: <b>érvényes egyszerű adat</b></span>');
  assert.equal(renderInputsContract({inputs:'any'}),'<span data-inputs-contract>Bemenetek: <b>szigorú</b></span>');
  const hook=renderInputsContract({inputs:'valid',inputsOverride:{effective:'any',reason:'hook',line:7,text:'<Proxy>'}});
- assert.match(hook,/data-inputs-override="hook">Bemenetek: <b>érvényes egyszerű adat → szigorú lett<\/b>, mert <button type="button" class="diagnostic-line" data-goto-line="7"/);
+ // ADR-141 (T2): the ⓘ beside the label, as everywhere, not at the end of the sentence.
+ assert.match(hook,/data-inputs-override="hook"><span class="inputs-label">Bemenetek:<span class="toggletip" data-help="inputs">.*?<\/div><\/span><\/span> <b>érvényes egyszerű adat → szigorú lett<\/b>, mert <button type="button" class="diagnostic-line" data-goto-line="7" aria-label="Ugrás a 7\. sorra a forrásban"/);
  assert.ok(hook.includes('„&lt;Proxy&gt;”'),'the matched text is escaped');assert.match(hook,/data-help="inputs"/);
  assert.match(renderInputsContract({inputs:'valid',inputsOverride:{effective:'any',reason:'computed-name'}}),/mert a program nem kiírt néven ér el beépített API-t\./);
  assert.match(renderInputsContract({inputs:'valid',inputsOverride:{effective:'any',reason:'computed-accessor',line:3}}),/3\. sor<\/button>: számított nevű accessor/);

@@ -11,7 +11,7 @@
  * Hidden here: the topics and their order, their anchors, the wording, the examples, and the markup of the bubble and of
  * the page. Callers name a topic and get text or markup.
  */
-import { escapeHtml as esc, highlightLines } from './ui-utilities.js';
+import { article, escapeHtml as esc, highlightLines } from './ui-utilities.js';
 import { icon } from './icons.js';
 const KEY_ORDER_SOURCE = "class Box {\n  constructor() {\n    this.a = 1;\n    this.b = 2;\n  }\n}\nfunction evaluate() {\n  const list = Object['ke' + 'ys'];\n  return list(new Box());\n}";
 const UNKNOWN_SOURCE = 'const count = 5;\nconsole.log(count.length);';
@@ -150,7 +150,7 @@ export function helpTrial(id, index) {
     const topic = TOPICS.get(id), example = topic?.example, outcome = example?.outcomes[index];
     if (!topic || !example || !outcome)
         return undefined;
-    const next = example.kind === 'order' ? `Készíts modellt, majd a Próba és kiadás lépésben cseréld fel a(z) ${example.swap[0]}. és ${example.swap[1]}. sort, és ellenőrizd.` : 'Kattints a Forrás vizsgálata gombra.';
+    const next = example.kind === 'order' ? `Készíts modellt, majd a Próba és kiadás lépésben cseréld fel ${article(example.swap[0])} ${example.swap[0]}. és ${example.swap[1]}. sort, és ellenőrizd.` : 'Kattints a Forrás vizsgálata gombra.';
     return { title: topic.title, label: outcome.label, language: example.language, source: example.source, settings: outcome.settings, next, expected: outcomeText(example, index) };
 }
 const TRIAL_HASH = 'kiprobalom=';
@@ -171,27 +171,42 @@ export function helpTrialFromHash(hash) {
     return helpTrial(id, Number(match[2]));
 }
 const inline = (text) => esc(text).replace(/`([^`]+)`/g, '<code>$1</code>');
-const rowsOf = (example) => example.kind === 'order' ? `A(z) ${example.swap[0]}. és ${example.swap[1]}. sor cseréje` : 'A forrás vizsgálata';
+const rowsOf = (example) => example.kind === 'order' ? `${article(example.swap[0], true)} ${example.swap[0]}. és ${example.swap[1]}. sor cseréje` : 'A forrás vizsgálata';
+/** ADR-141 (T2): the longest example a bubble shows; a longer one is the help page's, where it has the room. */
+export const BUBBLE_EXAMPLE_LINES = 8;
+const exampleLines = (example) => example.source.split('\n').length;
 const VERDICT = { passed: 'átment', inconclusive: 'nem dőlt el', blocked: 'biztos hiba' };
 /** An example as the author reads it: the numbered, highlighted source, then one line per setting with what happens,
  * each with „Kipróbálom” (ADR-135): in the workbench a button that loads it, on the help page a link to the workbench. */
 export function renderExample(example, id, where) {
     const code = highlightLines(example.source, example.language).map((line, index) => `<span class="help-line"><span class="help-ln" aria-hidden="true">${index + 1}</span>${line || ' '}</span>`).join('');
     const trial = (index, label) => where === 'workbench'
-        ? ` <button type="button" class="help-try" data-help-try="${esc(id)}" data-help-outcome="${index}" aria-label="Kipróbálom: ${esc(label)}">Kipróbálom</button>`
-        : ` <a class="help-try" href="${helpTrialHref(id, index)}" aria-label="Kipróbálom a munkafelületen: ${esc(label)}">Kipróbálom</a>`;
-    const outcomes = example.outcomes.map((outcome, index) => `<li><b>${esc(outcome.label)}:</b> ${esc(outcomeText(example, index))}${trial(index, outcome.label)}</li>`);
-    return `<figure class="help-example"><pre class="help-code" data-language="${example.language}" tabindex="0" aria-label="Kódpélda"><code>${code}</code></pre><figcaption>${rowsOf(example)}:<ul>${outcomes.join('')}</ul></figcaption></figure>`;
+        ? `<button type="button" class="help-try" data-help-try="${esc(id)}" data-help-outcome="${index}" aria-label="Kipróbálom a Kód lépésben: ${esc(label)}">Kipróbálom a Kód lépésben</button>`
+        : `<a class="help-try" href="${helpTrialHref(id, index)}" aria-label="Kipróbálom a munkafelületen: ${esc(label)}">Kipróbálom</a>`;
+    // ADR-141 (T2): the outcome and its trial on one row (a grid), the trial never wrapped under the text.
+    const outcomes = example.outcomes.map((outcome, index) => `<li><span class="help-outcome"><b>${esc(outcome.label)}:</b> ${esc(outcomeText(example, index))}</span>${trial(index, outcome.label)}</li>`);
+    const note = where === 'workbench' ? '<p class="help-try-note">A „Kipróbálom” a mostani forrást és beállításokat lecseréli; visszavonható.</p>' : '';
+    return `<figure class="help-example"><pre class="help-code" data-language="${example.language}" tabindex="0" aria-label="Kódpélda"><code>${code}</code></pre><figcaption>${rowsOf(example)}:<ul>${outcomes.join('')}</ul>${note}</figcaption></figure>`;
 }
 /** ADR-124 (H3): the ⓘ beside a label: the topic's sentences, its example, and the help page at the topic in a new tab.
  * `withSummary: false` where the same sentences already stand under the control. ADR-141: a button and its bubble, a
  * `popover` floating in the top layer (toggletip.ts pairs and places them), so opening it moves nothing on the page. The
  * wrapper is a span: it may stand in running text, but never inside a <p> (the bubble's blocks would close it). */
+/** The link to a topic on the help page, in a new tab: the bubble's last line, and where a hint already says the
+ *  bubble's sentences (ADR-141, T2: the rule kinds), the hint's. */
+export function helpLink(id, text = 'Részletek a súgóban') {
+    return `<a class="help-link" href="${helpHref(id)}" target="_blank" rel="noopener">${text}${icon('external')}<span class="sr-only"> (új lapon)</span></a>`;
+}
 export function renderInfo(id, name, { withSummary = true } = {}) {
     const topic = TOPICS.get(id);
     if (!topic)
         return '';
-    return `<span class="toggletip" data-help="${esc(id)}"><button type="button" class="info-button" data-info="${esc(id)}" aria-label="Súgó: ${esc(name)}" title="Súgó: ${esc(name)}">${icon('help')}</button><div class="toggletip-panel" popover role="note" aria-label="Súgó: ${esc(name)}"><p class="toggletip-title">${esc(name)}</p>${withSummary ? `<p>${inline(topic.summary)}</p>` : ''}${topic.example ? renderExample(topic.example, id, 'workbench') : ''}<a class="help-link" href="${helpHref(id)}" target="_blank" rel="noopener">Részletek a súgóban${icon('external')}<span class="sr-only"> (új lapon)</span></a></div></span>`;
+    // ADR-141 (T2): a longer example stays on the help page; the bubble then says its sentence (even beside a control that
+    // shows it, so the bubble is never only a link) and links to the example there.
+    const example = topic.example && exampleLines(topic.example) <= BUBBLE_EXAMPLE_LINES ? topic.example : undefined, elsewhere = !!topic.example && !example;
+    const summary = withSummary || elsewhere ? `<p>${inline(topic.summary)}</p>` : '';
+    const link = helpLink(id, elsewhere ? 'Példa és kipróbálás a súgóban' : undefined);
+    return `<span class="toggletip" data-help="${esc(id)}"><button type="button" class="info-button" data-info="${esc(id)}" aria-label="Súgó: ${esc(name)}" title="Súgó: ${esc(name)}">${icon('help')}</button><div class="toggletip-panel" popover role="note" aria-label="Súgó: ${esc(name)}"><p class="toggletip-title">${esc(name)}</p>${summary}${example ? renderExample(example, id, 'workbench') : ''}${link}</div></span>`;
 }
 const CATEGORY = { proven: 'bizonyított', conservative: 'konzervatív', structural: 'szerkezeti', author: 'szerzői' };
 /** ADR-124 (H2): the whole help page, from the topics and the reason-code registry: a contents list with search, one

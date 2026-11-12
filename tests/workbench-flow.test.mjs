@@ -116,8 +116,8 @@ test('link toggle (ADR-024): with an anchor every row shows its direct link as a
 
 test('pin toggle: a board row pins the line at its reference place and says so for screen readers',async()=>{
  const {pinButton}=await import('../public/app/rule-board.js');
- assert.match(pinButton(3,2,false),/data-rule-pin="3" aria-pressed="false" aria-label="A\(z\) #3 sor rögzítése a 3\. helyen"/);
- assert.match(pinButton(3,2,true),/aria-pressed="true" aria-label="A\(z\) #3 sor rögzítésének feloldása \(most a 3\. helyen rögzített\)"/);
+ assert.match(pinButton(3,2,false),/data-rule-pin="3" aria-pressed="false" aria-label="A #3 sor rögzítése a 3\. helyen"/);
+ assert.match(pinButton(3,2,true),/aria-pressed="true" aria-label="A #3 sor rögzítésének feloldása \(most a 3\. helyen rögzített\)"/);
  assert.match(pinButton(3,2,true),/class="icon"[\s\S]*pin-head/,'the pin icon, filled by CSS when pressed');
 });
 

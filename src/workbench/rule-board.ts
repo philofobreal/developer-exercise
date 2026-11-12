@@ -13,7 +13,7 @@ import type {CodeLineExercise,DirectConstraint} from '../../dist/index.js';
 import type {WorkbenchState} from './contracts.js';
 import {createRuleMarks,ruleButton,rulesAvailable} from './rule-panel.js';
 import {icon} from './icons.js';
-import {escapeHtml as esc} from './ui-utilities.js';
+import {article,escapeHtml as esc} from './ui-utilities.js';
 import {formatForIDE,referenceLayout} from '../formatter.js';
 
 const SVG='http://www.w3.org/2000/svg';
@@ -26,23 +26,23 @@ export function linkWith(state:WorkbenchState,anchor:number,id:number):DirectCon
  * empty circle for an unlinked one. */
 export function connectButton(state:WorkbenchState,id:number):string {
  const anchor=state.ruleConnect,button=(kind:string,pressed:boolean,label:string,title:string,content:string):string=>`<button type="button"${disabledAttributes(availability(state,'rule-edit'))} class="board-connect${kind?' link-'+kind:''}" data-rule-connect="${id}"${kind?` data-link="${kind.split(' ')[0]}"`:''} aria-pressed="${pressed}" aria-label="${label}" title="${title}">${content}</button>`;
- if(anchor===undefined)return button('',false,`A(z) #${id} sor kapcsolatai`,'Kattints: kipipálja a sor kapcsolatait. Húzd egy másik sorra: létrehozza vagy megszünteti köztük a kapcsolatot.','<span aria-hidden="true"></span>');
- if(anchor===id)return button('anchor',true,`A(z) #${id} sor a kiinduló sor; megnyomva befejezed`,'Kiinduló sor. Kattints ide vagy nyomj Escape-et a befejezéshez.','<span aria-hidden="true"></span>');
+ if(anchor===undefined)return button('',false,`${article(id,true)} #${id} sor kapcsolatai`,'Kattints: kipipálja a sor kapcsolatait. Húzd egy másik sorra: létrehozza vagy megszünteti köztük a kapcsolatot.','<span aria-hidden="true"></span>');
+ if(anchor===id)return button('anchor',true,`${article(id,true)} #${id} sor a kiinduló sor; megnyomva befejezed`,'Kiinduló sor. Kattints ide vagy nyomj Escape-et a befejezéshez.','<span aria-hidden="true"></span>');
  const link=linkWith(state,anchor,id);
  if(!link)return button('none',false,`Kapcsolat létrehozása: #${id} és #${anchor}`,'Nincs közvetlen kapcsolat a kiinduló sorral; kattintva létrehozod.','<span aria-hidden="true"></span>');
  const side=link.after===anchor?'before':'after',where=side==='before'?'előtt':'után',hard=link.removal==='impossible';
- return button(side+(hard?' link-locked':''),true,`A(z) #${id} sornak a(z) #${anchor} sor ${where} kell állnia; ${hard?'szerkezeti kapcsolat, nem szüntethető meg':'megnyomva megszünteted'}`,hard?'Szerkezeti kapcsolat: nem szüntethető meg.':'Közvetlen kapcsolat a kiinduló sorral; kattintva megszünteted.',icon(hard?'lock':'check'));
+ return button(side+(hard?' link-locked':''),true,`${article(id,true)} #${id} sornak ${article(anchor)} #${anchor} sor ${where} kell állnia; ${hard?'szerkezeti kapcsolat, nem szüntethető meg':'megnyomva megszünteted'}`,hard?'Szerkezeti kapcsolat: nem szüntethető meg.':'Közvetlen kapcsolat a kiinduló sorral; kattintva megszünteted.',icon(hard?'lock':'check'));
 }
 /** A board row's pin (WAI-ARIA toggle button): a pinned line may stand only at its reference
  * position in a solution (`fixed`, ADR-002); the core applies it as a typed `set-fixed` edit. */
 export function pinButton(id:number,index:number,fixed:boolean,gate=''):string {
  const place=`${index+1}. helyen`;
- return `<button type="button"${gate} class="pin-toggle" data-rule-pin="${id}" aria-pressed="${fixed}" aria-label="${fixed?`A(z) #${id} sor rögzítésének feloldása (most a ${place} rögzített)`:`A(z) #${id} sor rögzítése a ${place}`}" title="${fixed?`Rögzített: a megoldásban csak a ${place} állhat. Kattints a feloldáshoz.`:`Rögzítés: a sor a megoldásban csak a ${place} állhat.`}">${icon('pin')}</button>`;
+ return `<button type="button"${gate} class="pin-toggle" data-rule-pin="${id}" aria-pressed="${fixed}" aria-label="${fixed?`${article(id,true)} #${id} sor rögzítésének feloldása (most a ${place} rögzített)`:`${article(id,true)} #${id} sor rögzítése a ${place}`}" title="${fixed?`Rögzített: a megoldásban csak a ${place} állhat. Kattints a feloldáshoz.`:`Rögzítés: a sor a megoldásban csak a ${place} állhat.`}">${icon('pin')}</button>`;
 }
 // ADR-093: the colour keys stay in sight; the longer explanation of the controls folds away.
 const legend='<div class="board-legend"><span class="board-legend-keys"><span class="rule-swatch before" aria-hidden="true"></span>előtte kell állnia <span class="rule-swatch selected" aria-hidden="true"></span>kijelölt <span class="rule-swatch after" aria-hidden="true"></span>utána kell állnia</span><details class="legend-help" data-memory="legend-help"><summary>Jelmagyarázat</summary><p>Láncszem: a sor szabályai. Kör: kipipálja a sor kapcsolatait; pipára kattintva megszünteted, üres körre kattintva létrehozod a kapcsolatot. Rajzszög: a sort a helyére rögzíted, vagy feloldod.</p></details></div>';
 const toggle=(state:WorkbenchState):string=>`<label class="board-toggle"><input type="checkbox" data-board-all ${state.boardAll?'checked':''}> Minden nem szerkezeti szabály rajzolása</label>`;
-const connecting=(state:WorkbenchState):string=>state.ruleConnect!==undefined?`<p class="board-connecting" role="status">A(z) #${state.ruleConnect} sor kapcsolatai kipipálva: kék – előtte kell állnia, borostyán – utána, lakat – szerkezeti. Pipára kattintva megszünteted, üres körre kattintva létrehozod a kapcsolatot. Escape vagy a kiinduló kör: befejezés.</p>`:'';
+const connecting=(state:WorkbenchState):string=>state.ruleConnect!==undefined?`<p class="board-connecting" role="status">${article(state.ruleConnect,true)} #${state.ruleConnect} sor kapcsolatai kipipálva: kék – előtte kell állnia, borostyán – utána, lakat – szerkezeti. Pipára kattintva megszünteted, üres körre kattintva létrehozod a kapcsolatot. Escape vagy a kiinduló kör: befejezés.</p>`:'';
 export function renderRuleBoard(state:WorkbenchState,highlight:(code:string)=>string):string {
  const model=state.authorModel;if(!model||!rulesAvailable(state))return '';
  // ADR-112: the reference rows as the sorter projects them (the formatted source's indentation), not block depth.

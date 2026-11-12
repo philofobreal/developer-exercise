@@ -1,6 +1,6 @@
 # Terv: a ⓘ súgóbuborékok javítása (NY-39)
 
-Állapot: **T1 kész** ([ADR-141](adr/141-floating-help-bubble.md), 2026-11-12, a B5 is), a T2 és a T3 következik. Terv: a felhasználó kérésére („vizsgáld meg az összes infó tooltippet, tárd fel a hibáikat és írj tervet a javításukra”). Kockázati osztály: megjelenítés. A motor, a szabályok és az értékelés nem változik. A megvalósítás az [ADR-141](adr/141-floating-help-bubble.md); az [ADR-135](adr/135-help-trial-and-highlighted-examples.md) helycsinálását váltja fel, az [ADR-124](adr/124-help-from-one-source.md) buborékjának tartalmát megtartja.
+Állapot: **T1 és T2 kész** ([ADR-141](adr/141-floating-help-bubble.md), 2026-11-12), a T3 következik. Terv: a felhasználó kérésére („vizsgáld meg az összes infó tooltippet, tárd fel a hibáikat és írj tervet a javításukra”). Kockázati osztály: megjelenítés. A motor, a szabályok és az értékelés nem változik. A megvalósítás az [ADR-141](adr/141-floating-help-bubble.md); az [ADR-135](adr/135-help-trial-and-highlighted-examples.md) helycsinálását váltja fel, az [ADR-124](adr/124-help-from-one-source.md) buborékjának tartalmát megtartja.
 
 ## Hol van ⓘ (a teljes lista)
 

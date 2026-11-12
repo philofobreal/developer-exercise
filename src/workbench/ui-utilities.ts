@@ -3,6 +3,16 @@ export const escapeHtml=(value:unknown):string=>String(value??'').replace(/[&<>"
 declare global {interface Window {Prism?:{languages:Record<string,unknown>;highlight:(code:string,grammar:unknown,language:string)=>string};}}
 /** ADR-121 (M4): syntax highlighting with the vendored Prism, the one highlighter of the app (sorter rows, rule board,
  *  snippets, editors). JSON uses the JavaScript grammar. Without Prism the code is escaped plain text. */
+/** ADR-141 (T2): the Hungarian article before a number, as the number is read: „az” before egy (1), öt (5), ötven
+ *  (50–59), ötszáz (500–599), ezer (1000–1999) and the thousands and millions they lead (ötezer, egymillió); „a” before
+ *  every other. A row tag (#5) is read the same way („az ötös”). `capital` for the first word of a sentence. */
+export function article(n:number,capital=false):string {
+ let lead=Math.trunc(Math.abs(n));
+ if(lead>=1000){while(lead>=1000)lead=Math.floor(lead/1000);if(lead===1)return capital?'Az':'az';}
+ const digit=lead>=100?Math.floor(lead/100):lead>=10?Math.floor(lead/10):lead;
+ const vowel=digit===5||(lead<10&&lead===1);
+ return vowel?(capital?'Az':'az'):(capital?'A':'a');
+}
 export function highlight(code:string,language:string):string {
  // The global, not `window`: the help page's build highlights in Node with the same vendored Prism (ADR-135).
  try{const prism=(globalThis as {Prism?:Window['Prism']}).Prism,grammar=prism?.languages[language]??(language==='json'?prism?.languages.javascript:undefined);if(prism&&grammar)return prism.highlight(code,grammar,language==='json'?'javascript':language);}catch{}
