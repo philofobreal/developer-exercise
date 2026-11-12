@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased – 2026-11-12 Súgóbuborékok: feltárás és javítási terv; TypeScript-tananyag terve (NY-39, NY-40)
+
+- **A ⓘ súgóbuborékok átvizsgálva** mind a hét helyen, asztalon és telefonon: 13 hiba ([terv](docs/terv-sugo-buborekok.md)). A legsúlyosabbak:
+  - nyitáskor a buborék 300–400 px-rel lejjebb tolja a beállítás választóját;
+  - a Feladat állapota sorában a sor saját válasza („Igen”) a buborék alá kerül;
+  - a magas buborék a ragadós műveletsáv alá csúszik;
+  - a „Bemenetek → szigorú lett” sorban hibás HTML csukott buborékkal is szétszedi a környezetsort.
+
+  A javítás három lépésben, a gombrendszer előtt következik. A felület még nem változott.
+- **Terv egy egymásra épülő TypeScript-tananyagra** ([terv](docs/terv-typescript-tananyag.md)): 20 lecke, amely egyszerre tananyag és a validátor tesztkorpusza. Úgy van megírva, hogy más kódoló ügynök is folytathassa. Az indulásához a felhasználó jóváhagyása kell.
+
 ## Unreleased – 2026-11-12 Gombrendszer: elfogadott terv (ADR-140)
 
 - **Rögzítve az elfogadott gombrendszer:** lecsapott sarok az irány és a döntés gombjain (módváltó, lépéslapok, fő művelet), kerekített minden eszközön és kapcsolón, összevont menü telefonon.

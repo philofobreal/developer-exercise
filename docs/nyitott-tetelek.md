@@ -19,7 +19,9 @@
 
 | ID | Tétel | Típus | Mért hatás (legutóbbi kampány) | Forrás | Következő lépés |
 | --- | --- | --- | --- | --- | --- |
+| NY-39 | **A ⓘ súgóbuborékok hibái** ([terv](terv-sugo-buborekok.md)): nyitáskor eltolják a tartalmat, a Feladat állapota sorában eltakarják a saját válaszukat, a magas buborék a ragadós sáv alá kerül, a fókuszkeret rálóg a címkére; a „Bemenetek → szigorú lett” sorban hibás HTML szétszedi a környezetsort | felület | 13 mért hiba a 7 ⓘ-helyen, asztalon és telefonon (B1–B13) | [ADR-135](adr/135-help-trial-and-highlighted-examples.md) | T1 lebegő réteg eltolás nélkül → T2 elhelyezés és tartalom → T3 a ⓘ gomb és a kapu; ADR-141 |
 | NY-37 | **Gombrendszer frissítése** az elfogadott terv szerint ([ADR-140](adr/140-button-system.md)): lecsapott, ahol dönt; kerekített, ahol dolgozik; összevont menü telefonon | felület | a gombok ma két karakterben élnek (ferde módgombok, lecsípett és kerekített gombok vegyesen) | [ADR-140](adr/140-button-system.md) | D1 komponens és tokenek → D2 módváltó, lépéslapok → D3 fő műveletek → D4 eszközök, sorgombok, választók → D5 telefonos összevont menük → D6 kapuk, képernyőkép-összevetés, lezárás |
+| NY-40 | **Egymásra épülő TypeScript-tananyag, egyben tesztkorpusz** ([terv](terv-typescript-tananyag.md)): 20 lecke 10 modulban egy könyvtári kölcsönzőrendszer felépítésén át; minden lecke korpusz (`curriculum` eredet), a mérés után a jóváhagyottak szállított feladatok | döntés | még nincs mérés | [terv](terv-typescript-tananyag.md) | C0 felmérés és jóváhagyás (a tananyag, a szintek, a kísérleti leckék) → C1 infrastruktúra → C2–C4 fázisok mérési jelentéssel → C5 lezárás; más ügynök (például Codex) is felveheti |
 | NY-38 | **Mért listamagasság a ragadós lábléc fölött** | felület | háromsoros leírásnál vagy 700 px alatti magasságnál a lista alja a lábléc alá kerül, amíg nem görgetnek | [ADR-139](adr/139-result-bar-sticks.md) | csak ha a gombrendszer után is zavaró; a fókusz módot, a panelosztót és a fekvő telefont is kezelni kell |
 | NY-03 | **Hatásösszegzés** a felső szintű függvényekre (`var v = f()`) | generátor | **0 mért rés** (a korábban ide sorolt 31 rés más okú volt, [ADR-069](adr/069-deep-hostile-input-and-own-class-names.md)) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) | csak ha egy mérés esetet mutat |
 | NY-05 | **2d maradéka:** saját objektumot kapó ismeretlen függvény (a referencia megtartása) | generátor | **0 mért rés** (2026-11-04: a korpusz `Object.entries(totals)` tanúja már nem rés, a kampányban sincs ilyen) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md), [ADR-059](adr/059-read-only-builtins.md) | csak ha egy mérés esetet mutat |
@@ -28,13 +30,15 @@
 | NY-13 | **`primitive`/`pure`/`readOnly`:** három egymásra épülő osztályozó | tervezés | nincs | [ADR-050](adr/050-input-contract.md) | nem sürgős |
 | NY-33 | **A v3 egységmodell bekötése a szerzői láncba** (overload-csoport, `});` jellegű lezáró sorok egységként) | tervezés | mért haszon nincs (az NY-04 lezárásakor) | [ADR-079](adr/079-overload-header-blocks.md) | külön epic, saját tervezési körrel |
 
-### Sorrend (2026-11-12)
+### Sorrend (2026-11-12, a súgóbuborékok és a tananyag felvétele után)
 
-1. **NY-37 gombrendszer** (D1–D6), a felhasználó jóváhagyása szerint.
-2. **Valódi tanári kód mérése**: a helyesség és a teljesség következő forrása. A mért korpuszon a rések lényegében elfogytak; ehhez a felhasználótól kell anyag.
-3. **NY-38**, ha a gombrendszer után is zavaró.
-4. **NY-28** (`pages-api`), ha módosítani kell.
-5. **Parkoló, csak mért eset esetén:** NY-33, NY-03, NY-05, NY-08, NY-13.
+1. **NY-39 súgóbuborékok** (T1–T3): a tanárt ma akadályozó hibák, ezért a gombrendszer előtt.
+2. **NY-37 gombrendszer** (D1–D6), a felhasználó jóváhagyása szerint. A ⓘ kerekített sziluettje a D4-ben, a T3 találati területére építve.
+3. **NY-40 TypeScript-tananyag:** a C0 a felhasználó jóváhagyását kéri. A C1–C5 a felülettől független, ezért párhuzamosan is futhat (például Codexszel), az 1–2. ponttal közös fájlja csak a CHANGELOG és ez a jegyzék.
+4. **Valódi tanári kód mérése:** a helyesség és a teljesség következő forrása. A tananyag nem pótolja, mert ugyanaz a szerző írja, aki a mérést; ehhez a felhasználótól kell anyag.
+5. **NY-38**, ha a gombrendszer után is zavaró.
+6. **NY-28** (`pages-api`), ha módosítani kell.
+7. **Parkoló, csak mért eset esetén:** NY-33, NY-03, NY-05, NY-08, NY-13.
 
 ## Elfogadott korlátok (nem rések, nem javítandók)
 
