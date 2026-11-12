@@ -78,7 +78,7 @@
 - **view.ts `actionBar`:** egy szerkezet, három lépés.
 - **Rögzített maradék:**
   - a lépéssor ma is a nézet része, a kontextussáv csak elrendezés;
-  - a „16 féle doboz” teljes összevonása három felületre (panel, beágyazott, lebegő) a CSS-ben még nem történt meg: az értesítés egységes, a panelek nem. Ez hátralévő munka.
+  - a „16 féle doboz” teljes összevonása három felületre (panel, beágyazott, lebegő) a CSS-ben még nem történt meg: az értesítés egységes, a panelek nem. Ez hátralévő munka. Lezárta az [ADR-138](138-three-surfaces.md).
 
 ## Bizonyíték
 

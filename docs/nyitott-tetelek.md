@@ -24,7 +24,6 @@
 | NY-08 | **Érték-perturbáció korlátja:** egy literál egyszerre, legfeljebb 96 változat | mérés | a rés felső becslés marad | [ADR-067](adr/067-value-perturbation-in-measurement.md) | csak ha egy rés gyanúsan szándékhű |
 | NY-28 | **Régi, TypeScript-forrás nélküli felületi modul:** `pages-api` (`public/app`, a Local Demo motorja); az `attempt` és a `persistence` migrálva ([ADR-097](adr/097-attempt-and-persistence-migration.md)), a `drag-insert` is ([ADR-095](adr/095-tap-to-place-and-drag-insert-migration.md)), az `api`, a `clipboard` és az `author-session` is ([ADR-134](adr/134-api-clipboard-session-migration.md)) | tervezés | 1 modul; a lista rögzített (`workbench-sources.test.mjs`) | [ADR-001](adr/001-typescript-workbench-and-boundaries.md), [ADR-097](adr/097-attempt-and-persistence-migration.md), [ADR-134](adr/134-api-clipboard-session-migration.md) | a `pages-api`, ha módosítani kell |
 | NY-13 | **`primitive`/`pure`/`readOnly`:** három egymásra épülő osztályozó | tervezés | nincs | [ADR-050](adr/050-input-contract.md) | nem sürgős |
-| NY-30 | **Három felület a CSS-ben:** a panel, a beágyazott és a lebegő felület összevonása; az értesítés már egységes | tervezés | a keretes dobozok több, időben eltérően épült változata | [ADR-123](adr/123-steps-reassigned-and-one-skeleton.md) | osztálykészlet a panelekre, a régi változatok kivezetése az elrendezés-kapu mellett |
 | NY-33 | **A v3 egységmodell bekötése a szerzői láncba** (overload-csoport, `});` jellegű lezáró sorok egységként) | tervezés | mért haszon nincs (az NY-04 lezárásakor) | [ADR-079](adr/079-overload-header-blocks.md) | külön epic, saját tervezési körrel |
 
 ## Elfogadott korlátok (nem rések, nem javítandók)
@@ -43,6 +42,7 @@
 
 | Tétel | Lezárta |
 | --- | --- |
+| NY-30: a keretes dobozok három felületre egyszerűsödtek (panel, beágyazott, lebegő; a lépéskeret az oldal hátterén), egy szabállyal felületenként | [ADR-138](adr/138-three-surfaces.md) |
 | NY-31: a súgó példái kimenetelenként kipróbálhatók a munkafelületen, pontosan a súgó tesztjének beállításaival (a buborékból gomb, az oldalról hivatkozás); a kód a buborékban és az oldalon is kiemelt | [ADR-135](adr/135-help-trial-and-highlighted-examples.md) |
 | NY-36: „Számít” mellett a hívó felsorolását is védi a kulcssorrend: visszaadott objektum, kívülről elérhető osztály példányai és statikus kulcsai; ami bizonyítottan bent marad, szabad (`object-reach.ts`). A `class-accounts-ts` (rev 4) „Nem számít” beállítást kapott | [ADR-130](adr/130-key-order-reaches-callers.md) |
 | NY-35: az objektumliterál sora saját kötést is olvashat (`start: origin`, `{ name }`), ha az olvasás bizonyítottan nem futtat kódot és nem dob; egy nem bizonyítottan inicializált lexikális kötés literálonként egyszer (a korpusz rése „Nem számít” mellett bezárult) | [ADR-129](adr/129-object-literal-variable-reads.md) |
