@@ -19,7 +19,6 @@
 
 | ID | Tétel | Típus | Mért hatás (legutóbbi kampány) | Forrás | Következő lépés |
 | --- | --- | --- | --- | --- | --- |
-| NY-39 | **A ⓘ súgóbuborékok hibái** ([terv](terv-sugo-buborekok.md)): nyitáskor eltolják a tartalmat, a Feladat állapota sorában eltakarják a saját válaszukat, a magas buborék a ragadós sáv alá kerül, a fókuszkeret rálóg a címkére; a „Bemenetek → szigorú lett” sorban hibás HTML szétszedi a környezetsort | felület | 13 mért hiba a 7 ⓘ-helyen, asztalon és telefonon (B1–B13) | [ADR-135](adr/135-help-trial-and-highlighted-examples.md) | T1 és T2 kész ([ADR-141](adr/141-floating-help-bubble.md)): a buborék lebeg, semmit nem tol el; elhelyezés, példaméret, „Kipróbálom”, névelő → T3 a ⓘ gomb és a kapu |
 | NY-37 | **Gombrendszer frissítése** az elfogadott terv szerint ([ADR-140](adr/140-button-system.md)): lecsapott, ahol dönt; kerekített, ahol dolgozik; összevont menü telefonon | felület | a gombok ma két karakterben élnek (ferde módgombok, lecsípett és kerekített gombok vegyesen) | [ADR-140](adr/140-button-system.md) | D1 komponens és tokenek → D2 módváltó, lépéslapok → D3 fő műveletek → D4 eszközök, sorgombok, választók → D5 telefonos összevont menük → D6 kapuk, képernyőkép-összevetés, lezárás |
 | NY-40 | **Egymásra épülő TypeScript-tananyag, egyben tesztkorpusz** ([terv](terv-typescript-tananyag.md)): 20 lecke 10 modulban egy könyvtári kölcsönzőrendszer felépítésén át; minden lecke korpusz (`curriculum` eredet), a mérés után a jóváhagyottak szállított feladatok | döntés | még nincs mérés; a terv jóváhagyva (2026-11-12) | [terv](terv-typescript-tananyag.md) | C0 felmérés és jóváhagyás (a tananyag, a szintek, a kísérleti leckék) → C1 infrastruktúra → C2–C4 fázisok mérési jelentéssel → C5 lezárás; más ügynök (például Codex) is felveheti |
 | NY-38 | **Mért listamagasság a ragadós lábléc fölött** | felület | háromsoros leírásnál vagy 700 px alatti magasságnál a lista alja a lábléc alá kerül, amíg nem görgetnek | [ADR-139](adr/139-result-bar-sticks.md) | csak ha a gombrendszer után is zavaró; a fókusz módot, a panelosztót és a fekvő telefont is kezelni kell |
@@ -32,7 +31,7 @@
 
 ### Sorrend (2026-11-12, a súgóbuborékok és a tananyag felvétele után)
 
-1. **NY-39 súgóbuborékok** (T1–T3): a tanárt ma akadályozó hibák, ezért a gombrendszer előtt.
+1. ~~NY-39 súgóbuborékok~~ – lezárva ([ADR-141](adr/141-floating-help-bubble.md)).
 2. **NY-37 gombrendszer** (D1–D6), a felhasználó jóváhagyása szerint. A ⓘ kerekített sziluettje a D4-ben, a T3 találati területére építve.
 3. **NY-40 TypeScript-tananyag:** a C0 a felhasználó jóváhagyását kéri. A C1–C5 a felülettől független, ezért párhuzamosan is futhat (például Codexszel), az 1–2. ponttal közös fájlja csak a CHANGELOG és ez a jegyzék.
 4. **Valódi tanári kód mérése:** a helyesség és a teljesség következő forrása. A tananyag nem pótolja, mert ugyanaz a szerző írja, aki a mérést; ehhez a felhasználótól kell anyag.
@@ -56,6 +55,7 @@
 
 | Tétel | Lezárta |
 | --- | --- |
+| NY-39: a ⓘ súgóbuborék a tartalom fölött lebeg, semmit nem tol el, és az első képkockától a helyén van (nem villan fel a bal felső sarokban); a képen belül, a ragadós sávok fölött áll; 8 sornál hosszabb példa a súgóoldalon; „Kipróbálom a Kód lépésben”; helyes névelő; a fókuszkeret nem ér a címkéhez; érintésnél 44 px-es cél; egy kapu minden ⓘ-helyre | [ADR-141](adr/141-floating-help-bubble.md) |
 | NY-30: a keretes dobozok három felületre egyszerűsödtek (panel, beágyazott, lebegő; a lépéskeret az oldal hátterén), egy szabállyal felületenként | [ADR-138](adr/138-three-surfaces.md) |
 | NY-31: a súgó példái kimenetelenként kipróbálhatók a munkafelületen, pontosan a súgó tesztjének beállításaival (a buborékból gomb, az oldalról hivatkozás); a kód a buborékban és az oldalon is kiemelt | [ADR-135](adr/135-help-trial-and-highlighted-examples.md) |
 | NY-36: „Számít” mellett a hívó felsorolását is védi a kulcssorrend: visszaadott objektum, kívülről elérhető osztály példányai és statikus kulcsai; ami bizonyítottan bent marad, szabad (`object-reach.ts`). A `class-accounts-ts` (rev 4) „Nem számít” beállítást kapott | [ADR-130](adr/130-key-order-reaches-callers.md) |

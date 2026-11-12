@@ -1,6 +1,6 @@
-# ADR-141 – A ⓘ buboréka lebeg, és semmit nem tol el (NY-39, T1–T2)
+# ADR-141 – A ⓘ buboréka lebeg, és semmit nem tol el (NY-39)
 
-Állapot: **elfogadva** (2026-11-12). A felhasználó jóváhagyta a [javítási tervet](../terv-sugo-buborekok.md) („rendben, mehet”). Kockázati osztály: megjelenítés; a motor, a szabályok és az értékelés nem változott. Az [ADR-135](135-help-trial-and-highlighted-examples.md) helycsinálását váltja fel, az [ADR-124](124-help-from-one-source.md) buborékjának tartalmát megtartja. A terv T2 és T3 lépése ezt az ADR-t egészíti ki.
+Állapot: **elfogadva** (2026-11-12). A felhasználó jóváhagyta a [javítási tervet](../terv-sugo-buborekok.md) („rendben, mehet”). Kockázati osztály: megjelenítés; a motor, a szabályok és az értékelés nem változott. Az [ADR-135](135-help-trial-and-highlighted-examples.md) helycsinálását váltja fel, az [ADR-124](124-help-from-one-source.md) buborékjának tartalmát megtartja. A terv T2 és T3 lépése lent egészíti ki; a három lépéssel az NY-39 lezárult.
 
 ## Kontextus
 
@@ -53,7 +53,6 @@ A mérés (hét hely, asztal és telefon) a [tervben](../terv-sugo-buborekok.md)
 - **Kikerült** a régi helycsinálás (`TIP_HOSTS`, a margó) az `interactions.ts`-ből, és a `continuity.ts` ⓘ-kivétele: a buborék már nem `details.menu`.
 - **Nincs párhuzamos állapot:** a nyitott buborékot csak a modul tartja nyilván, a böngésző `toggle` eseményéből.
 - **Rögzített maradék:**
-  - a T3-ban következik: a fókuszkeret távolsága a címkétől, a `title` és a 44 px-es érintési terület;
   - a nyitott buborék akadálymentességi vizsgálata csak a buborékra szól. Az alatta lévő oldalt csukott buborékkal vizsgáljuk, mert a buborék takarása átmeneti, és a fókusz nem juthat alá. Az egész oldal vizsgálata nyitott buborékkal itt is 0 hibát adott, de egy másik betűkészletnél (CI) a takart vezérlő más lenne.
 
 ## Bizonyíték
@@ -105,3 +104,53 @@ A felhasználó jóváhagyta („rendben, folytasd”).
 - **Böngészős teszt** ([browser-workbench.playwright.py](../../tests/browser-workbench.playwright.py)):
   - `help_toggletips`: a kulcssorrend buborékában nincs kód, ott a mondat és a link; a bemenetekében a példa;
   - `help_trial`: a „Kipróbálom a Kód lépésben” a bemenetek példáját szigorú szerződéssel tölti be; a 2. és 3. sor cseréjét az Ellenőrzés elutasítja, ahogy a súgó mondja.
+
+## T3: a ⓘ gomb és az átfogó teszt (2026-11-12)
+
+A felhasználó jóváhagyta („mehet”).
+
+- **A fókuszkeret nem ér a címkéhez (B1):** a címke és a ⓘ köze 6 px, a ⓘ fókuszkerete 1 px-re áll a gombtól (3 px vastag). Előtte a köz 2 px volt, a keret 3 px-re állt, így 4 px-et takart a címke utolsó betűjéből.
+- **Nincs kettős súgó (B8):** a `title` attribútum kikerült. Egérrel eddig a böngésző saját „Súgó: …” felirata is feljött a buborék fölé. A gomb neve (`aria-label`) maradt.
+- **Érintőképernyőn 44×44 px a cél (B9), az [ADR-140](140-button-system.md) mérete szerint.**
+  - A 28 px-es gomb körül egy láthatatlan keret (`::before`, 8 px minden oldalon) adja.
+  - A címke és a ⓘ köze érintőképernyőn 8 px, így a keret nem veszi el a címkére szánt koppintást.
+  - A beállítás választója 8 px-re kerül a címkesortól (eddig 6 px volt, a keret 2 px-et belelógott volna).
+  - A „Bemenetek → szigorú lett” sorban a „Bemenetek: ⓘ” saját sort kap, 8 px-re a mondattól, és a mondat sorai magasabbak. Eddig a „2. sor” gomb közvetlenül a ⓘ alatt állt, 0 px-re.
+
+  Egérrel az elrendezés nem változott.
+
+- **A buborék az első képkockától a helyén van (a felhasználó jelezte, 2026-11-12: „felvillannak balfelül … és utána ugranak csak oda”).**
+  - **Az ok:** a T1 a böngésző saját nyitására (`popovertarget`) bízta a megjelenést, és a buborék a későbbi `toggle` eseményben kapott helyet. Közben a böngésző egy képkockát a bal felső sarokban (0, 0) rajzolt ki, a mérés szerint minden ⓘ-nél.
+  - **A javítás:** a ⓘ kattintását a modul maga kezeli (`show`). Ugyanabban a feladatban nyitja meg és helyezi el a buborékot, így két kirajzolás között már csak a végleges hely látszik. Billentyű és érintés ugyanezen az úton megy.
+  - **A `popovertarget` attribútum marad** a párosításhoz és ahhoz, hogy a külső kattintásos bezárás a gombot a buborék részének tekintse.
+  - **Tartalék:** minden más nyitás (`beforetoggle`) láthatatlan (`data-placing`), amíg helyet nem kap; a háttér-újrarajzolás utáni visszanyitás is a `show` úton megy.
+
+### Két terv a 44 px-hez
+
+1. **A gomb maga 44 px.** Elvetve: minden címkesor és kérdéssor magasabb lenne, a Feladat állapota három sora telefonon 16 px-rel nőne, asztalon pedig fölösleges.
+2. **Láthatatlan keret durva mutatón (választott).** A látvány és az asztali elrendezés nem változik. A kerettel szomszédos vezérlőkkel való ütközést a kapu méri; ahol ütközött (a választó, a „2. sor”), ott a köz nőtt, nem a keret csökkent.
+
+### Bizonyíték (T3)
+
+A **böngészős kapu** (`toggletips_everywhere`, [browser-workbench.playwright.py](../../tests/browser-workbench.playwright.py)) minden ⓘ-t megnyit:
+- **helyek:** a beállítások, a leletlista fejléce, a csoportosított projektkontextus-lelet, a bemeneti sor, a Feladat állapota három kérdése és a Minősítés;
+- **körülmények:** asztalon (1280×900) és telefonon (390×844, érintéssel), világos és sötét témában.
+
+Mindegyiknél ellenőrzi:
+- nincs natív `title`;
+- a fókuszkeret nem éri el a címke szövegét;
+- érintésnél a gomb középpontjától 21 px-re mind a négy irányban a gomb a cél, a címke utolsó betűje nem, és a keret más vezérlővel nem fed át;
+- nyitáskor semmi nem mozdul;
+- az első kirajzolt képkockán a buborék már a végleges helyén áll, billentyűvel és egérrel vagy érintéssel nyitva is (`FIRST_FRAME`);
+- a buborék a képen belül van;
+- Escape bezár, és a fókusz visszatér;
+- a külső kattintás és a Tab-kilépés is bezár.
+
+**A kapu előbb a javítás előtti állapoton futott, és bukott:**
+- asztalon a B8 és a B1 miatt („a native title bubble”, „the focus ring reaches the label (329 < 333)”);
+- ezek javítása után telefonon a B9 miatt („no target at -21,0”);
+- a 44 px-es keret első változatán a címkére, majd a „2. sor” gombra és a választóra lógott.
+
+Mindegyik javítva.
+
+**A felvillanás:** a javítás előtt a mérés mind a négy kipróbált ⓘ-nél (0, 0)-ban rajzolta az első képkockát. A javítás után az első képkocka a végleges helyen van. **Mutációs próba:** ha a modul a kattintást ismét a böngészőre hagyja, és a láthatatlan nyitást is kiveszem, a kapu elbukik: „first painted at [0, 0], placed at [339, 631]”.

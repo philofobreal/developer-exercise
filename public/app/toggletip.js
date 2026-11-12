@@ -28,7 +28,11 @@ function place(button, panel) {
     panel.style.left = `${Math.round(left)}px`;
     panel.style.top = `${Math.round(under ? box.bottom + GAP : box.top - GAP - shown)}px`;
     panel.dataset.side = under ? 'below' : 'above';
+    panel.removeAttribute('data-placing');
 }
+/** Opens the bubble where it belongs in one task: shown, then placed before the browser paints a frame (opened by the
+ *  browser and placed on its later `toggle` event, the first frame stood at the top left corner). */
+function show(button, panel) { panel.showPopover(); place(button, panel); }
 export function installToggletips(root) {
     let open = null, frame = 0;
     const tips = () => [...root.querySelectorAll('.toggletip')];
@@ -54,6 +58,24 @@ export function installToggletips(root) {
             place(button, panel);
         });
     }
+    // The button opens and closes its bubble itself (the browser's own `popovertarget` action would show it a frame before
+    // it is placed); the attribute stays for the pairing and the light dismiss, which counts the button as the bubble's.
+    root.addEventListener('click', event => {
+        const button = event.target instanceof Element ? event.target.closest('.toggletip > .info-button') : null, pair = button?.parentElement && parts(button.parentElement);
+        if (!button || !pair)
+            return;
+        event.preventDefault();
+        if (pair.panel.matches(':popover-open'))
+            pair.panel.hidePopover();
+        else
+            show(button, pair.panel);
+    });
+    // Any other opening stays invisible until it is placed (data-placing, style.css).
+    root.addEventListener('beforetoggle', event => {
+        const panel = event.target;
+        if (panel instanceof HTMLElement && panel.matches('.toggletip-panel') && event.newState === 'open' && !panel.matches(':popover-open'))
+            panel.setAttribute('data-placing', '');
+    }, true);
     root.addEventListener('toggle', event => {
         const panel = event.target;
         if (!(panel instanceof HTMLElement) || !panel.matches('.toggletip-panel'))
@@ -69,7 +91,8 @@ export function installToggletips(root) {
             return;
         }
         open = { help: tip.dataset.help ?? '', index: tips().filter(item => item.dataset.help === tip.dataset.help).indexOf(tip) };
-        place(pair.button, panel);
+        if (panel.hasAttribute('data-placing'))
+            place(pair.button, panel);
     }, true);
     // The focus leaving the bubble and its button closes it: nothing under it is reached while it covers it (WCAG 2.4.11).
     // A click on the bubble's own text moves the focus nowhere (no related target) and leaves it open.
@@ -92,6 +115,6 @@ export function installToggletips(root) {
                 return;
             const tip = tips().filter(item => item.dataset.help === again.help)[again.index], pair = tip && parts(tip);
             if (pair)
-                pair.panel.showPopover();
+                show(pair.button, pair.panel);
         } };
 }

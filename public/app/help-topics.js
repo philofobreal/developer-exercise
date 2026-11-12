@@ -206,7 +206,7 @@ export function renderInfo(id, name, { withSummary = true } = {}) {
     const example = topic.example && exampleLines(topic.example) <= BUBBLE_EXAMPLE_LINES ? topic.example : undefined, elsewhere = !!topic.example && !example;
     const summary = withSummary || elsewhere ? `<p>${inline(topic.summary)}</p>` : '';
     const link = helpLink(id, elsewhere ? 'Példa és kipróbálás a súgóban' : undefined);
-    return `<span class="toggletip" data-help="${esc(id)}"><button type="button" class="info-button" data-info="${esc(id)}" aria-label="Súgó: ${esc(name)}" title="Súgó: ${esc(name)}">${icon('help')}</button><div class="toggletip-panel" popover role="note" aria-label="Súgó: ${esc(name)}"><p class="toggletip-title">${esc(name)}</p>${summary}${example ? renderExample(example, id, 'workbench') : ''}${link}</div></span>`;
+    return `<span class="toggletip" data-help="${esc(id)}"><button type="button" class="info-button" data-info="${esc(id)}" aria-label="Súgó: ${esc(name)}">${icon('help')}</button><div class="toggletip-panel" popover role="note" aria-label="Súgó: ${esc(name)}"><p class="toggletip-title">${esc(name)}</p>${summary}${example ? renderExample(example, id, 'workbench') : ''}${link}</div></span>`;
 }
 const CATEGORY = { proven: 'bizonyított', conservative: 'konzervatív', structural: 'szerkezeti', author: 'szerzői' };
 /** ADR-124 (H2): the whole help page, from the topics and the reason-code registry: a contents list with search, one

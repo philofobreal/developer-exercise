@@ -181,7 +181,7 @@ export function renderInfo(id:string,name:string,{withSummary=true}:{withSummary
  const example=topic.example&&exampleLines(topic.example)<=BUBBLE_EXAMPLE_LINES?topic.example:undefined,elsewhere=!!topic.example&&!example;
  const summary=withSummary||elsewhere?`<p>${inline(topic.summary)}</p>`:'';
  const link=helpLink(id,elsewhere?'Példa és kipróbálás a súgóban':undefined);
- return `<span class="toggletip" data-help="${esc(id)}"><button type="button" class="info-button" data-info="${esc(id)}" aria-label="Súgó: ${esc(name)}" title="Súgó: ${esc(name)}">${icon('help')}</button><div class="toggletip-panel" popover role="note" aria-label="Súgó: ${esc(name)}"><p class="toggletip-title">${esc(name)}</p>${summary}${example?renderExample(example,id,'workbench'):''}${link}</div></span>`;
+ return `<span class="toggletip" data-help="${esc(id)}"><button type="button" class="info-button" data-info="${esc(id)}" aria-label="Súgó: ${esc(name)}">${icon('help')}</button><div class="toggletip-panel" popover role="note" aria-label="Súgó: ${esc(name)}"><p class="toggletip-title">${esc(name)}</p>${summary}${example?renderExample(example,id,'workbench'):''}${link}</div></span>`;
 }
 
 /** A reason code of the analysis, as the registry gives it (the build passes the registry in). */

@@ -639,10 +639,19 @@ button.btn.link-action:hover:not(:disabled) {background:var(--blue-pale);border-
 .toggletip>.info-button {width:28px;min-width:28px;height:28px;min-height:28px;padding:0;border:0;background:transparent;color:var(--accent-text);justify-content:center}
 .toggletip>.info-button:hover:not(:disabled),.toggletip>.info-button[aria-expanded=true] {border:0;background:var(--blue-pale);color:var(--accent-text)}
 .toggletip>.info-button .icon {width:16px;height:16px}
+/* ADR-141 (T3): the ring 1 px off the button (3 px wide), inside the 6 px gap to the label: it never covers a letter. */
+.toggletip>.info-button:focus-visible {outline-offset:1px}
+/* ADR-141 (T3): on a touch screen the ⓘ is a 44 px target (an invisible frame around the 28 px button), and the gap to
+ * its label grows to 8 px so the frame never takes a tap meant for the label. The layout does not change otherwise. */
+@media (pointer:coarse) {
+ .toggletip>.info-button {position:relative}
+ .toggletip>.info-button::before {content:'';position:absolute;inset:-8px}
+}
 /* ADR-141 (T1): the bubble is a popover in the top layer, placed beside its button by toggletip.ts (left, top and the
  * height of the room it has); it moves nothing, and above the sticky bars it is never under one. */
 .toggletip-panel {position:fixed;inset:auto;margin:0;overflow:auto;overscroll-behavior:contain;width:min(380px,calc(100vw - 32px));min-width:0;gap:8px;padding:12px;font-size:12px;font-weight:400;line-height:1.55;letter-spacing:0;text-transform:none;white-space:normal;color:var(--text);text-align:left}
 .toggletip-panel:popover-open {display:grid}
+.toggletip-panel[data-placing] {visibility:hidden}
 .toggletip-title {font-weight:650;color:var(--n-90)}
 .toggletip-panel>p {margin:0}
 /* The code example scrolls inside the bubble: a grid item may not grow the bubble to its longest line. */
@@ -660,11 +669,18 @@ button.btn.link-action:hover:not(:disabled) {background:var(--blue-pale);border-
 .help-example li {display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 10px;margin:2px 0}
 .help-example li>.help-try {margin-left:0}
 .help-try-note {margin:6px 0 0;color:var(--muted);font-size:11px}
-.inputs-label {display:inline-flex;align-items:center;gap:2px;white-space:nowrap}
-.setting-head,.task-question,.diagnostics-head,.insight-heading {display:flex;align-items:center;gap:2px}
+.inputs-label {display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.setting-head,.task-question,.diagnostics-head,.insight-heading {display:flex;align-items:center;gap:6px}
 .setting-head>label {margin:0}
 .diagnostics-head>h3 {margin:0}
-.diagnostic-message .toggletip {margin-left:2px}
+.diagnostic-message .toggletip {margin-left:6px}
+/* ADR-141 (T3): on a touch screen the gap grows to 8 px with the ⓘ's 44 px frame (after the rules above, which it overrides). */
+@media (pointer:coarse) {.setting-head,.task-question,.diagnostics-head,.insight-heading,.inputs-label {gap:8px}.diagnostic-message .toggletip {margin-left:8px}
+ /* In the inputs line the ⓘ's frame would reach the „2. sor” button on the wrapped line under it: the label takes its own
+  * line, 8 px above the sentence, whose lines are tall enough to keep its buttons apart. */
+ .inputs-override {line-height:2}.inputs-override>.inputs-label {display:flex;width:max-content;margin-bottom:8px}
+ /* A setting's control starts 8 px under its label row, out of the ⓘ's frame (6 px before). */
+ .preflight-setting>.setting-head+select {margin-top:8px}}
 /* ADR-124 (H2): the help page, with the workbench's tokens and type: a contents list with search beside the text. */
 .help-page {background:var(--bg);color:var(--text)}
 .help-header {display:flex;align-items:center;gap:14px;padding:12px 24px;border-bottom:1px solid var(--border)}

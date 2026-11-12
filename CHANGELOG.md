@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-11-12 A ⓘ gomb: fókuszkeret, egy súgó, 44 px érintésre (ADR-141, NY-39 lezárva)
+
+- **A fókuszkeret nem takarja a címke utolsó betűjét:** a ⓘ 6 px-re áll a címkétől, a kerete közelebb a gombhoz.
+- **A buborék nem villan fel a bal felső sarokban:** megnyitáskor rögtön a helyén jelenik meg. Eddig egy pillanatra a képernyő bal felső sarkában látszott, és csak utána ugrott a helyére.
+- **Egérrel egy súgó jelenik meg:** a böngésző saját „Súgó: …” felirata már nem jön fel a buborék fölé.
+- **Érintőképernyőn a ⓘ 44×44 px-es cél,** a látvány változása nélkül. Ehhez telefonon a ⓘ 8 px-re került a címkétől, a beállítás választója 8 px-re a címkesortól, a „Bemenetek → szigorú lett” sorban pedig a „Bemenetek: ⓘ” saját sort kapott. Így a nagyobb cél egy szomszédos gomb koppintását sem veszi el.
+- **Egy új teszt minden ⓘ-t ellenőriz** asztalon és telefonon, világos és sötét témában. Ezzel a súgóbuborékok javítása (NY-39) lezárult.
+
 ## Unreleased – 2026-11-12 Súgóbuborékok: elhelyezés és tartalom (ADR-141, NY-39 T2)
 
 - **Kisebb buborékok:** a buborékban legfeljebb 8 soros példa áll. A hosszabb példák (Objektumkulcsok sorrendje, Hordozhatóság, Osztálymezők létrehozása) a súgóoldalon vannak; a buborék ilyenkor egy mondatot mond, és „Példa és kipróbálás a súgóban ↗” linkkel zárul.

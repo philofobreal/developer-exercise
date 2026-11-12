@@ -1155,6 +1155,86 @@ def stale_check_failure(page):
         expect(page.locator('[data-check]')).to_be_enabled();expect(page.locator('.report')).not_to_contain_text('Nem eldönthető')
     finally:page.unroute('**/api/evaluate',intercept)
 
+
+# ADR-141 (T3): every ⓘ on the workbench, opened as the author meets it, on a desktop and a phone, in both themes.
+TIP_CHECK='''(tip)=>{
+ const button=tip.querySelector(':scope > .info-button'),panel=tip.querySelector(':scope > .toggletip-panel'),wrong=[];
+ if(button.hasAttribute('title'))wrong.push('a native title bubble beside ours');
+ // The text before the ⓘ in its own line (its label), and the focus ring around the button: they may not touch.
+ const range=document.createRange();range.setStart(tip.parentElement,0);range.setEndBefore(tip);
+ const text=[...range.getClientRects()].filter(r=>r.width>0&&Math.abs(r.top+r.height/2-(button.getBoundingClientRect().top+button.getBoundingClientRect().height/2))<14);
+ const cs=getComputedStyle(button),ring=parseFloat(cs.outlineWidth)+parseFloat(cs.outlineOffset),b=button.getBoundingClientRect();
+ const label=text.length?text.reduce((a,r)=>r.right>a.right?r:a):null;
+ if(label&&b.left-ring<label.right-0.5)wrong.push(`the focus ring reaches the label (${Math.round(b.left-ring)} < ${Math.round(label.right)})`);
+ if(matchMedia('(pointer:coarse)').matches){
+  // A 44 px target around the button's centre, and not over the label's last letter.
+  const x=b.left+b.width/2,y=b.top+b.height/2;
+  for(const [dx,dy] of [[-21,0],[21,0],[0,-21],[0,21]]){const hit=document.elementFromPoint(x+dx,y+dy);if(hit!==button&&!button.contains(hit))wrong.push(`no target at ${dx},${dy}: ${hit?.className||hit?.tagName}`);}
+  if(label){const hit=document.elementFromPoint(label.right-2,label.top+label.height/2);if(hit===button||button.contains(hit))wrong.push('the target covers the label');}
+  // Nor over another control: a tap on the select under it reaches the select.
+  const box={left:x-22,right:x+22,top:y-22,bottom:y+22};
+  for(const other of document.querySelectorAll('button,select,input,textarea,a[href],summary')){
+   if(tip.contains(other)||!other.getClientRects().length)continue;const r=other.getBoundingClientRect();
+   if(r.left<box.right&&r.right>box.left&&r.top<box.bottom&&r.bottom>box.top)wrong.push(`the target overlaps ${other.tagName.toLowerCase()}.${other.className}`);
+  }
+ }
+ return wrong;}'''
+# ADR-141 (T3): the position of an opening bubble in the first frame it is painted (it flashed at the top left corner
+# when it was placed on the browser's later toggle event).
+FIRST_FRAME='''()=>{if(window.__tipFrames)return;window.__tipFrames=[];document.addEventListener('beforetoggle',event=>{const panel=event.target;
+ if(!(panel instanceof Element)||!panel.matches('.toggletip-panel')||event.newState!=='open')return;let frames=0;
+ const tick=()=>{if(panel.matches(':popover-open')){const style=getComputedStyle(panel);if(style.visibility!=='hidden'&&style.display!=='none'){const r=panel.getBoundingClientRect();window.__tipFrames.push([Math.round(r.left),Math.round(r.top)]);return;}}if(++frames<30)requestAnimationFrame(tick);};
+ requestAnimationFrame(tick);},true);}'''
+def toggletips_everywhere(browser,url):
+    """ADR-141 (T3): the ⓘ of every place, on a desktop and a phone, light and dark: opening it moves nothing; the bubble
+    stands inside the screen; the focus ring stays off the label; on a touch screen the target is 44 px and leaves the
+    label alone; there is no native title bubble; it is painted where it belongs from its first frame (by keyboard, mouse
+    and touch); Escape, an outside click and Tab out each close it and Escape returns the focus. The places: the settings, the findings' head, a grouped project-context finding, the inputs line, the three
+    task questions and the qualification."""
+    seen=set()
+    for theme in ('light','dark'):
+        for name,viewport,touch in (('desktop',{'width':1280,'height':900},False),('phone',{'width':390,'height':844},True)):
+            context=browser.new_context(viewport=viewport,color_scheme=theme,**({'is_mobile':True,'has_touch':True} if touch else {}));page=context.new_page()
+            def check(where):
+                tips=page.locator('.toggletip')
+                for i in range(tips.count()):
+                    tip=tips.nth(i)
+                    if not tip.is_visible():continue
+                    help_id=tip.get_attribute('data-help');label=f'{theme} {name} {where} {help_id}';seen.add(help_id)
+                    button=tip.locator('.info-button');panel=tip.locator('.toggletip-panel')
+                    button.scroll_into_view_if_needed();page.keyboard.press('Shift');button.focus()
+                    wrong=tip.evaluate(TIP_CHECK);assert not wrong,f'{label}: {wrong}'
+                    page.evaluate(FIRST_FRAME);page.evaluate('window.__tipFrames.length=0')
+                    before=page.evaluate(PAGE_LAYOUT);page.keyboard.press('Enter');expect(panel).to_be_visible()
+                    page.wait_for_function('()=>(document.querySelector(".toggletip-panel:popover-open")?.style.top??"")!==""')
+                    page.wait_for_function('()=>window.__tipFrames.length>0')
+                    final=panel.evaluate('p=>{const r=p.getBoundingClientRect();return [Math.round(r.left),Math.round(r.top)]}')
+                    assert page.evaluate('window.__tipFrames[0]')==final,f"{label}: first painted at {page.evaluate('window.__tipFrames[0]')}, placed at {final}"
+                    assert page.evaluate(PAGE_LAYOUT)==before,f'{label}: opening moved the page'
+                    assert not page.evaluate(BUBBLE_MISPLACED),f'{label}: {page.evaluate(BUBBLE_MISPLACED)}'
+                    page.keyboard.press('Escape');expect(panel).to_be_hidden();expect(button).to_be_focused()
+                    page.evaluate('window.__tipFrames.length=0')
+                    if touch:button.tap()
+                    else:button.click()
+                    expect(panel).to_be_visible();page.wait_for_function('()=>window.__tipFrames.length>0')
+                    assert page.evaluate('window.__tipFrames[0]')==panel.evaluate('p=>{const r=p.getBoundingClientRect();return [Math.round(r.left),Math.round(r.top)]}'),f'{label}: a pointer opening flashed'
+                    page.mouse.click(2,viewport['height']//2);expect(panel).to_be_hidden()
+                    button.focus();page.keyboard.press('Enter');expect(panel).to_be_visible()
+                    for _ in range(14):
+                        page.keyboard.press('Tab')
+                        if not tip.evaluate('t=>t.contains(document.activeElement)'):break
+                    expect(panel).to_be_hidden()
+            try:
+                page.goto(url);expect(page.locator('[data-step="source"]')).to_have_attribute('aria-current','step')
+                page.locator('[data-source-kind="code"]').click();page.locator('[data-author="language"]').select_option('typescript')
+                page.locator('#author-editor').fill("import { x } from './m';\nimport { y } from './n';\nconsole.log(x + y);");page.locator('[data-author-check]').click()
+                expect(page.locator('.toggletip[data-help="project-context"]')).to_have_count(1);check('source')
+                page.locator('[data-author="language"]').select_option('javascript')
+                page.locator('#author-editor').fill('const box = { a: 1 };\nconst p = new Proxy(box, {});\nconst a = p.a;\nconsole.log(a);');page.locator('[data-author-apply]').click()
+                current(page,'rules');analysis_options(page);expect(page.locator('[data-inputs-override] .toggletip')).to_have_count(1);check('rules')
+            finally:context.close()
+    assert {'findings','project-context','inputs','keyOrder','fillable','checkable','fair','qualification'}<=seen,seen
+
 try:
     for _ in range(100):
         try:urllib.request.urlopen(BASE+'/api/exercises',timeout=.5);break
@@ -1207,6 +1287,7 @@ try:
             reset(page,BASE);case('node sample loading preserves newer reference edits',lambda:stale_source_sample(page))
             for name,action in [('author format preserves newer edits',lambda:stale_format(page,True)),('solution format preserves newer edits',lambda:stale_format(page,False)),('stale check failure cannot replace newer attempt',lambda:stale_check_failure(page))]:
                 reset(page,BASE);case('node '+name,action)
+            case('node every ⓘ: nothing moves, inside the screen, ring off the label, 44 px on touch, closes three ways',lambda:toggletips_everywhere(browser,BASE))
             for width in [320,390,768]:
                 mobile=watch(browser.new_context(viewport={'width':width,'height':900},is_mobile=True,has_touch=True));target=mobile.new_page();target.on('pageerror',lambda error:errors.append(str(error)))
                 try:
