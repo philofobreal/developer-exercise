@@ -46,8 +46,10 @@ def last_visible(page,rows):
     """Farthest draggable row visible together with the first one; long tasks
     would otherwise need edge auto-scroll, which a single drag_to cannot do."""
     page.locator('.solution-zone').evaluate('(zone)=>{zone.scrollTop=0}')
-    # Stay clear of the 27 px edge band where the drag adapter auto-scrolls.
-    zone=page.locator('.solution-zone').bounding_box();bottom=min(zone['y']+zone['height'],page.viewport_size['height'])-40
+    # Stay clear of the 27 px edge band where the drag adapter auto-scrolls. ADR-139: the result bar sticks to the bottom
+    # of the screen, so what is visible ends at its top.
+    zone=page.locator('.solution-zone').bounding_box();bar=page.locator('.evaluation-bar').bounding_box()
+    bottom=min(zone['y']+zone['height'],page.viewport_size['height'],bar['y'] if bar else page.viewport_size['height'])-40
     for i in range(rows.count()-1,-1,-1):
         box=rows.nth(i).bounding_box()
         if box and box['y']+box['height']<=bottom:return rows.nth(i),int(rows.nth(i).get_attribute('data-index'))

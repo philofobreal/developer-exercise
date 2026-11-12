@@ -293,6 +293,23 @@ def header_logo_fits(browser):
             page.locator('[data-step="source"]').click()
             state=page.evaluate(HEADER_STATE);assert state['fits'] and state['page']<=width,f'{width}px, wide font: {state}'
         finally:context.close()
+def result_bar_sticks(browser):
+    """ADR-139: the result bar (Ellenőrzés) sticks to the bottom of the screen in practice and in the author's Try step, at
+    every width, as a step's action bar does: with the page at its top the bar is on the screen, at the bottom or (its
+    step ending sooner) at its own place."""
+    for viewport,touch in (({'width':1280,'height':640},False),({'width':1440,'height':700},False),({'width':390,'height':700},True)):
+        context=watch(browser.new_context(viewport=viewport,**({'is_mobile':True,'has_touch':True} if touch else {})));page=context.new_page()
+        try:
+            reset(page,BASE)
+            def stuck(where):
+                page.evaluate('window.scrollTo(0,0)')
+                box=page.locator('.evaluation-bar').bounding_box();height=page.evaluate('innerHeight')
+                assert page.evaluate('document.documentElement.scrollHeight')>height,f'{where}: the page is longer than the screen'
+                # Stuck at the bottom, or (its step ending above the bottom) at its own place: never below the screen.
+                assert box['y']>=0 and box['y']+box['height']<=height+1,f"{viewport['width']}px {where}: the result bar is off the screen ({box}, {height})"
+            practice(page);page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva');stuck('practice')
+            page.locator('[data-mode="author"]').click();build(page,rules_source);to_try(page);page.locator('[data-all]').click();stuck('author try')
+        finally:context.close()
 def background_render_keeps_menu(page):
     """ADR-136: no answer redraws the page under the author's first click: the starting policy is resolved before the
     first render (held, the page waits for it). A later background answer (a changed setting's resolution) redraws the
@@ -1151,6 +1168,7 @@ try:
             case('node the four view buttons are switched off; the key turns them back on',lambda:view_switches_off(browser))
             case('node a menu opened before a background answer stays open',lambda:background_render_keeps_menu(page))
             case('node the app bar keeps the wordmark wherever it fits, EDITOR beside it on the desktop',lambda:header_logo_fits(browser))
+            case('node the result bar sticks to the bottom in practice and in Try, at every width',lambda:result_bar_sticks(browser))
             case('node a long wait offers Megszakítás after 10 s and the page works on',lambda:activity_abort(browser,BASE,False))
             case('pages the compiler download is named; Megszakítás restarts the worker, exercises still check',lambda:activity_abort(browser,f'http://127.0.0.1:{static.server_port}/developer-exercise/',True))
             reset(page,BASE);case('node admission preserves newer reference edits',lambda:stale_author_admission(page))

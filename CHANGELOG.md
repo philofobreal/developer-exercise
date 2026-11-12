@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased – 2026-11-11 Az értékelősáv minden szélességen ragad (ADR-139)
+
+- **A gyakorlás és a Próba lépés lábléce** (az ítélet és az Ellenőrzés gomb) asztali nézetben is a képernyő aljára ragad, mint a feladatkészítés műveletsávja. Eddig csak telefonon ragadt.
+
+## Unreleased – 2026-11-11 NY-30: három felület a CSS-ben (ADR-138)
+
+- **A keretes dobozok három felületre egyszerűsödtek:** panel, beágyazott és lebegő, egy-egy szabállyal. A lépés kerete az oldal hátterén marad.
+- **Látható változás csak kicsi:** szögletes sarok mindenhol; sötét témában a menük és a súgóbuborékok kiemelt hátteret kapnak, így jobban elválnak az oldaltól.
+
 ## Unreleased – 2026-11-11 A logó felirata telefonon is látszik; „EDITOR” a „Studio” helyett (ADR-137)
 
 - **A „CodeLineSorter” felirat telefonon is látszik,** ahol elfér. A sáv méri, hogy elfér-e, és csak annyit enged, amennyit muszáj: előbb a négyzetes jelet, aztán kisebb betűt használ. Minden mért telefonszélességen (320–430 px) látszik.

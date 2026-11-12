@@ -297,8 +297,10 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 .panel-title progress::-moz-progress-bar {background:var(--blue)}
 .pane-clipboard {display:flex;gap:2px}
 .pane-clipboard button {width:var(--control-h);min-width:var(--control-h);padding:0;border-color:transparent;background:transparent}
-.drop-zone {height:clamp(320px,calc(100dvh - 380px),640px);max-height:640px}
-.evaluation-bar {margin-top:14px;padding:0;border:1px solid var(--yellow-line);background:var(--yellow-pale);align-items:stretch;gap:0}
+/* ADR-139: the lists end above the sticky result bar (62 px) also when the task's description takes two lines. */
+.drop-zone {height:clamp(320px,calc(100dvh - 400px),640px);max-height:640px}
+/* ADR-139: the result bar sticks to the bottom at every width, as a step's action bar does (it stuck only on a phone). */
+.evaluation-bar {position:sticky;bottom:0;z-index:15;margin-top:14px;padding:0;border:1px solid var(--yellow-line);background:var(--yellow-pale);align-items:stretch;gap:0}
 .evaluation-bar .report {padding:10px 14px 10px 0;border:0;background:transparent;align-items:center;border-radius:0}
 .report-symbol,.evaluation-bar .report-symbol {align-self:stretch;width:46px;flex:0 0 46px;height:auto;min-height:44px;margin:-10px 0;border:0;border-radius:0;background:var(--yellow);color:var(--yellow-ink)}
 /* Accepted is green in both themes (ADR-105): the one success colour, never a selection or a step. */

@@ -264,7 +264,7 @@ try:
             page.locator('[data-author-format]').click();expect(page.locator('.author-status')).to_contain_text('Formázva');page.locator('[data-author-apply]').click();expect(page.locator('[data-board-line]')).to_have_count(439,timeout=20_000);to_try(page);expect(page.locator('.solution-zone .code-row')).to_have_count(439)
             page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_contain_text('Elfogadva')
             m=model(page);assert len(m['blocks'])>20;assert len([x for x in m['lines'] if x['functionBlock']])>200
-            page.locator('.solution-zone').evaluate('(x)=>x.scrollTop=3000');saved=page.locator('.solution-zone').evaluate('(x)=>x.scrollTop');visible_index=page.locator('.solution-zone').evaluate('(zone)=>Math.floor(zone.scrollTop/zone.querySelector(".code-row").getBoundingClientRect().height)+3');row_action('down',visible_index);assert abs(page.locator('.solution-zone').evaluate('(x)=>x.scrollTop')-saved)<2
+            page.locator('.solution-zone').evaluate('(x)=>x.scrollTop=3000');saved=page.locator('.solution-zone').evaluate('(x)=>x.scrollTop');visible_index=page.locator('.solution-zone').evaluate('(zone)=>{const box=zone.getBoundingClientRect();return [...zone.querySelectorAll(".code-row[data-index]")].filter(row=>{const r=row.getBoundingClientRect();return r.top>=box.top+8&&r.bottom<=box.bottom-8;})[2].dataset.index}');row_action('down',visible_index);assert abs(page.locator('.solution-zone').evaluate('(x)=>x.scrollTop')-saved)<2
         case('full TS service, AST hierarchy and long-list scroll',full_ts)
         page.screenshot(path=str(ARTIFACTS/'matrix-node.png'))
         def pages():
