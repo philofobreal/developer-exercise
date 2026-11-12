@@ -724,7 +724,9 @@ def authorKeyOrder(page):
     page.locator('[data-step="rules"]').click();analysis_options(page);return page.locator('[data-preflight="keyOrder"]').input_value()
 # ADR-141: where every control and answer of the page stands (an open ⓘ bubble floats over the page and moves none of it);
 # the sticky bars stand where the screen is, not on the page.
-PAGE_LAYOUT='''()=>[...document.querySelectorAll('#workbench-main :is(button,select,input,textarea,a[href],summary,.task-verdict,.task-text,.inline-hint)')].filter(el=>!el.closest('.toggletip-panel,.action-bar,.evaluation-bar')&&el.getClientRects().length).map(el=>{const r=el.getBoundingClientRect();return (el.className||el.tagName)+'@'+[Math.round(r.left+scrollX),Math.round(r.top+scrollY)].join(',')})'''
+# Only what is painted: the content of a closed details has boxes in Chromium although it is not shown, and a newer
+# Chromium (the CI runner's) gave one a box during the opening (CI: "lengths 32 → 33", nothing moved).
+PAGE_LAYOUT='''()=>[...document.querySelectorAll('#workbench-main :is(button,select,input,textarea,a[href],summary,.task-verdict,.task-text,.inline-hint)')].filter(el=>!el.closest('.toggletip-panel,.action-bar,.evaluation-bar')&&el.checkVisibility()&&!el.closest('details:not([open]) > :not(summary)')).map(el=>{const r=el.getBoundingClientRect();return (el.className||el.tagName)+'@'+[Math.round(r.left+scrollX),Math.round(r.top+scrollY)].join(',')})'''
 # ADR-141: what is wrong with the open bubble's place: outside the screen's 16 px margin, cut by its bottom, widening the page.
 BUBBLE_MISPLACED='''()=>{const panel=document.querySelector('.toggletip-panel:popover-open');if(!panel)return ['no open bubble'];
  const r=panel.getBoundingClientRect(),width=document.documentElement.clientWidth,wrong=[];
@@ -1174,7 +1176,7 @@ TIP_CHECK='''(tip)=>{
   // Nor over another control: a tap on the select under it reaches the select.
   const box={left:x-22,right:x+22,top:y-22,bottom:y+22};
   for(const other of document.querySelectorAll('button,select,input,textarea,a[href],summary')){
-   if(tip.contains(other)||!other.getClientRects().length)continue;const r=other.getBoundingClientRect();
+   if(tip.contains(other)||!other.checkVisibility()||other.closest('details:not([open]) > :not(summary)'))continue;const r=other.getBoundingClientRect();
    if(r.left<box.right&&r.right>box.left&&r.top<box.bottom&&r.bottom>box.top)wrong.push(`the target overlaps ${other.tagName.toLowerCase()}.${other.className}`);
   }
  }
