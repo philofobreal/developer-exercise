@@ -724,7 +724,7 @@ def authorKeyOrder(page):
     page.locator('[data-step="rules"]').click();analysis_options(page);return page.locator('[data-preflight="keyOrder"]').input_value()
 # ADR-141: where every control and answer of the page stands (an open ⓘ bubble floats over the page and moves none of it);
 # the sticky bars stand where the screen is, not on the page.
-PAGE_LAYOUT='''()=>[...document.querySelectorAll('#workbench-main :is(button,select,input,textarea,a[href],summary,.task-verdict,.task-text,.inline-hint)')].filter(el=>!el.closest('.toggletip-panel,.action-bar,.evaluation-bar')&&el.getClientRects().length).map(el=>{const r=el.getBoundingClientRect();return [Math.round(r.left+scrollX),Math.round(r.top+scrollY)].join(',')})'''
+PAGE_LAYOUT='''()=>[...document.querySelectorAll('#workbench-main :is(button,select,input,textarea,a[href],summary,.task-verdict,.task-text,.inline-hint)')].filter(el=>!el.closest('.toggletip-panel,.action-bar,.evaluation-bar')&&el.getClientRects().length).map(el=>{const r=el.getBoundingClientRect();return (el.className||el.tagName)+'@'+[Math.round(r.left+scrollX),Math.round(r.top+scrollY)].join(',')})'''
 # ADR-141: what is wrong with the open bubble's place: outside the screen's 16 px margin, cut by its bottom, widening the page.
 BUBBLE_MISPLACED='''()=>{const panel=document.querySelector('.toggletip-panel:popover-open');if(!panel)return ['no open bubble'];
  const r=panel.getBoundingClientRect(),width=document.documentElement.clientWidth,wrong=[];
@@ -1185,6 +1185,17 @@ FIRST_FRAME='''()=>{if(window.__tipFrames)return;window.__tipFrames=[];document.
  if(!(panel instanceof Element)||!panel.matches('.toggletip-panel')||event.newState!=='open')return;let frames=0;
  const tick=()=>{if(panel.matches(':popover-open')){const style=getComputedStyle(panel);if(style.visibility!=='hidden'&&style.display!=='none'){const r=panel.getBoundingClientRect();window.__tipFrames.push([Math.round(r.left),Math.round(r.top)]);return;}}if(++frames<30)requestAnimationFrame(tick);};
  requestAnimationFrame(tick);},true);}'''
+# ADR-141 (T3): how many times the workbench has been drawn (a render replaces #app's children). An answer arriving in
+# the background redraws the page (ADR-136); the gate measures between renders, never across one.
+RENDERS="()=>{if(!window.__drawn){window.__drawn={n:0};new MutationObserver(()=>window.__drawn.n++).observe(document.querySelector('#app'),{childList:true});}return window.__drawn.n;}"
+def settle(page):
+    """Waits for a quiet page: no request in flight, the fonts loaded and no render for 300 ms (a slow runner answers
+    later; a late font reflows the text)."""
+    page.wait_for_load_state('networkidle');page.evaluate('()=>document.fonts.ready.then(()=>true)');drawn=page.evaluate(RENDERS)
+    for _ in range(30):
+        page.wait_for_timeout(300);now=page.evaluate(RENDERS)
+        if now==drawn:return
+        drawn=now
 def toggletips_everywhere(browser,url):
     """ADR-141 (T3): the ⓘ of every place, on a desktop and a phone, light and dark: opening it moves nothing; the bubble
     stands inside the screen; the focus ring stays off the label; on a touch screen the target is 44 px and leaves the
@@ -1204,13 +1215,22 @@ def toggletips_everywhere(browser,url):
                     button=tip.locator('.info-button');panel=tip.locator('.toggletip-panel')
                     button.scroll_into_view_if_needed();page.keyboard.press('Shift');button.focus()
                     wrong=tip.evaluate(TIP_CHECK);assert not wrong,f'{label}: {wrong}'
-                    page.evaluate(FIRST_FRAME);page.evaluate('window.__tipFrames.length=0')
-                    before=page.evaluate(PAGE_LAYOUT);page.keyboard.press('Enter');expect(panel).to_be_visible()
-                    page.wait_for_function('()=>(document.querySelector(".toggletip-panel:popover-open")?.style.top??"")!==""')
-                    page.wait_for_function('()=>window.__tipFrames.length>0')
-                    final=panel.evaluate('p=>{const r=p.getBoundingClientRect();return [Math.round(r.left),Math.round(r.top)]}')
+                    page.evaluate(FIRST_FRAME)
+                    for attempt in range(3):
+                        # Measured between renders: a background answer that redraws the page meanwhile is not the bubble's doing.
+                        settle(page);button.focus();drawn=page.evaluate(RENDERS);page.evaluate('window.__tipFrames.length=0')
+                        before=page.evaluate(PAGE_LAYOUT);page.keyboard.press('Enter');expect(panel).to_be_visible()
+                        page.wait_for_function('()=>(document.querySelector(".toggletip-panel:popover-open")?.style.top??"")!==""')
+                        page.wait_for_function('()=>window.__tipFrames.length>0')
+                        final=panel.evaluate('p=>{const r=p.getBoundingClientRect();return [Math.round(r.left),Math.round(r.top)]}')
+                        after=page.evaluate(PAGE_LAYOUT)
+                        if page.evaluate(RENDERS)==drawn:break
+                        page.keyboard.press('Escape');expect(panel).to_be_hidden()
+                    else:raise AssertionError(f'{label}: the page kept redrawing; nothing measured')
                     assert page.evaluate('window.__tipFrames[0]')==final,f"{label}: first painted at {page.evaluate('window.__tipFrames[0]')}, placed at {final}"
-                    assert page.evaluate(PAGE_LAYOUT)==before,f'{label}: opening moved the page'
+                    if after!=before:
+                        moved=[(a,b) for a,b in zip(before,after) if a!=b][:4]
+                        raise AssertionError(f'{label}: opening moved the page {moved} (lengths {len(before)} → {len(after)})')
                     assert not page.evaluate(BUBBLE_MISPLACED),f'{label}: {page.evaluate(BUBBLE_MISPLACED)}'
                     page.keyboard.press('Escape');expect(panel).to_be_hidden();expect(button).to_be_focused()
                     page.evaluate('window.__tipFrames.length=0')
