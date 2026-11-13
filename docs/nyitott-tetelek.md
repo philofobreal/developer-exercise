@@ -19,7 +19,7 @@
 
 | ID | Tétel | Típus | Mért hatás (legutóbbi kampány) | Forrás | Következő lépés |
 | --- | --- | --- | --- | --- | --- |
-| NY-37 | **Gombrendszer és vizuális irány** ([ADR-140](adr/140-button-system.md), [ADR-143](adr/143-plates-and-soft-surfaces.md)): lecsapott lap minden feliratos gombon, kerekített ikon- és sorgombok, lágy felületek, összevont menü telefonon | felület | a D3 után: a gombok lapok, a felületek lágyak, az állapot pirula, a választók csoportok; hátra van az ikon- és sorgombok, a ⓘ és a tipográfia | [ADR-143](adr/143-plates-and-soft-surfaces.md) | D1, D2, D3 kész (a D3 a választócsoportokkal együtt) → **D4 ikon- és sorgombok, ⓘ, tipográfia** → D5 telefonos összevont menük → D6 lezárás. Minden lépés külön push ([ADR-142](adr/142-fast-deploy-and-local-gate.md)) |
+| NY-37 | **Gombrendszer és vizuális irány** ([ADR-140](adr/140-button-system.md), [ADR-143](adr/143-plates-and-soft-surfaces.md)): lecsapott lap minden feliratos gombon, kerekített ikon- és sorgombok, lágy felületek, összevont menü telefonon | felület | a D3 után: a gombok lapok, a felületek lágyak, az állapot pirula, a választók csoportok; **a felhasználó szerint a lap átmenete régies, és a vágott sarkok íve nem jó (D3b)**; hátra van az ikon- és sorgombok, a ⓘ és a tipográfia | [ADR-143](adr/143-plates-and-soft-surfaces.md) | D1, D2, D3 kész (a D3 a választócsoportokkal együtt) → **D3b a lap arca átmenet nélkül és a vágott sarkok alakja (a felhasználó kérése)** → D4 ikon- és sorgombok, ⓘ, tipográfia → D5 telefonos összevont menük → D6 lezárás. Minden lépés külön push ([ADR-142](adr/142-fast-deploy-and-local-gate.md)) |
 | NY-40 | **Egymásra épülő TypeScript-tananyag, egyben tesztkorpusz** ([terv](terv-typescript-tananyag.md)): 20 lecke 10 modulban egy könyvtári kölcsönzőrendszer felépítésén át; minden lecke korpusz (`curriculum` eredet), a mérés után a jóváhagyottak szállított feladatok | döntés | még nincs mérés; a terv jóváhagyva (2026-11-12) | [terv](terv-typescript-tananyag.md) | C0 felmérés és jóváhagyás (a tananyag, a szintek, a kísérleti leckék) → C1 infrastruktúra → C2–C4 fázisok mérési jelentéssel → C5 lezárás; más ügynök (például Codex) is felveheti |
 | NY-41 | **„A(z)” a tanulói visszajelzésben és a szerzői üzenetekben:** a munkafelület már helyes névelőt ír ([ADR-141](adr/141-floating-help-bubble.md)), a motor és a szerzői elemzés üzenetei még nem („A(z) 3. sor …”) | felület | 56 előfordulás a `src/core`-ban (a tanuló látja), 9 a `src/author`-ban | [ADR-141](adr/141-floating-help-bubble.md) | a gombrendszer után; a mag saját névelő-segédet kap (a mag nem függhet a felülettől); a szám és a sorjel eldönthető, az idézett kódsor előtt „a(z)” marad; teljes kör |
 | NY-42 | **A kapu alsó határa a leghosszabb sor:** a `browser-workbench` (374 mp) és a három hosszú egységtesztfájl (168, 128 és 104 mp) nem osztható szét | tervezés | felületi változás kb. 7 perc, teljes kör kb. 12 perc; felosztással kb. 5, illetve 9 perc lenne elérhető | [ADR-142](adr/142-fast-deploy-and-local-gate.md) | csak ha a 7, illetve 12 perc zavar; a munkafelület-sor esetei közös oldalon, egymás után futnak, ezért a felosztás tervezést kér |
@@ -34,12 +34,13 @@
 
 Felülvizsgálva 2026-11-13-án: minden nyitott tétel aktuális. Azóta lezárult az NY-38 ([ADR-144](adr/144-lists-end-above-the-result-bar.md)); két új tétel került fel (NY-41, NY-42).
 
-1. **NY-37, D4–D6** (ikon- és sorgombok, a ⓘ és a „Kipróbálom” gomb, tipográfia; telefonos összevont menük; lezárás). A D4-ben megvizsgálandó: telefonon, a szerző Próba lépésében a sor végi ikonok egy esetben a kód fölé kerültek ([ADR-143](adr/143-plates-and-soft-surfaces.md), D3 maradék).
-2. **NY-40 TypeScript-tananyag.** A C0 (felmérés) bármikor elvégezhető, és nem ütközik a felületi munkával; a C1–C5 a gombrendszer után, vagy egy másik ügynökkel (például Codexszel) párhuzamosan. A tananyag minden lépése a teljes kört futtatja (kb. 12 perc).
-3. **NY-41** névelő a tanulói visszajelzésben: kicsi, de a magot érinti (teljes kör).
-4. **Valódi tanári kód mérése:** a helyesség és a teljesség következő forrása; a felhasználótól kell hozzá anyag. A tananyag nem pótolja.
-5. **NY-42**, ha a kapu ideje zavar; **NY-28** (`pages-api`), ha módosítani kell.
-6. **Parkoló, csak mért eset esetén:** NY-33, NY-03, NY-05, NY-08, NY-13.
+1. **NY-37, D3b:** a lap arca átmenet nélkül és a vágott sarkok alakja ([ADR-143](adr/143-plates-and-soft-surfaces.md), „Újranyitva”). A D4 előtt, mert a D4 gombjai ugyanerre az arcra épülnek. Bemutatóval indul; a felhasználó választ.
+2. **NY-37, D4–D6** (ikon- és sorgombok, a ⓘ és a „Kipróbálom” gomb, tipográfia; telefonos összevont menük; lezárás). A D4-ben megvizsgálandó: telefonon, a szerző Próba lépésében a sor végi ikonok egy esetben a kód fölé kerültek ([ADR-143](adr/143-plates-and-soft-surfaces.md), D3 maradék).
+3. **NY-40 TypeScript-tananyag.** A C0 (felmérés) bármikor elvégezhető, és nem ütközik a felületi munkával; a C1–C5 a gombrendszer után, vagy egy másik ügynökkel (például Codexszel) párhuzamosan. A tananyag minden lépése a teljes kört futtatja (kb. 12 perc).
+4. **NY-41** névelő a tanulói visszajelzésben: kicsi, de a magot érinti (teljes kör).
+5. **Valódi tanári kód mérése:** a helyesség és a teljesség következő forrása; a felhasználótól kell hozzá anyag. A tananyag nem pótolja.
+6. **NY-42**, ha a kapu ideje zavar; **NY-28** (`pages-api`), ha módosítani kell.
+7. **Parkoló, csak mért eset esetén:** NY-33, NY-03, NY-05, NY-08, NY-13.
 
 ## Elfogadott korlátok (nem rések, nem javítandók)
 

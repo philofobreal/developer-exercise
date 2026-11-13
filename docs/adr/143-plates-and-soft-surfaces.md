@@ -146,6 +146,19 @@ A felhasználó döntése: „jóváhagyom, mehet a D3 a választócsoportokkal 
 - **Telefonon, a szerző Próba lépésében a sor végi ikonok egy esetben a kód fölé kerültek** (hosszú sor; a képernyőképek útján: egy sor rögzítése az Elemzés lépésben, majd a Próba). Az alapesetben az érintőképernyő elrejti őket; a kiváltó feltételt nem vizsgáltam meg. A D3 előtti képeken ugyanígy látszik, tehát nem ez a lépés okozta; a sorgombok a D4 tárgya.
 - **A súgóbuborék ⓘ gombjának nyitott állapota szögletes;** a D4 tárgya.
 
+## Újranyitva: a lap arca és a vágott sarok alakja (2026-11-13, D3b előtt)
+
+A felhasználó az éles felületet látva két döntést kifogásolt:
+
+- **Az arc:** „a gradiensek a gombokban nagyon 2000-es évek dizájn. nem tetszik. találd ki a modern változatukat.”
+- **A vágott sarok:** „a gombok lecsapott bal felső és jobb alsó részei sem jól vannak kerekítve”, pontosítva: „chrome-ban láttam és rendes, arányos kerekítés legyen a két lecsapott saroknál, azaz sarkanként két kerekítés legyen, ami a szögeknek megfelelően kanyarodik”.
+
+Mit jelent ez a döntésekre:
+
+- **A „finom függőleges átmenet” megszűnik;** a D3b bemutatóján legalább három átmenet nélküli arc közül választ a felhasználó.
+- **A `corner-shape` nem tudja a kért alakot.** A kérés valódi ferde letörés, amelynek mindkét csúcsa külön kerekített; a `superellipse` egyetlen ívet rajzol, a `bevel` csúcsa éles. A „Technika” pont (CSS `corner-shape`, SVG nélkül) ezért újra eldöntendő a D3b-ben: a kivágott forma a keretvonalat, az árnyékot és a fókuszkeretet is érinti.
+- **Ami nem változik:** minden feliratos gomb lap, a sűrűség, a szerepek (teli, sárga, bekapcsolt, letiltott), a felirat nélküli gomb kerekítése.
+
 ## Rögzített maradék
 
 - **Safari és Firefox** a vágás helyett kerekítést mutat, amíg a `corner-shape` nem érkezik meg; az iPades tanulók így látják.
