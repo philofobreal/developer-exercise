@@ -85,11 +85,11 @@ button:hover:not(:disabled) {background:var(--n-20);border-color:var(--n-46)}but
 .author-flow {max-width:1500px;margin:0 auto;width:100%}
 .stepper {margin:0 0 18px}.stepper ol {list-style:none;margin:0;padding:0;display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
 .stepper li {display:flex;align-items:center}.step-arrow {color:var(--n-48)}
-.step {min-height:52px;padding:8px 14px;gap:10px;justify-content:flex-start;text-align:left;border-radius:var(--radius);background:var(--n-12)}
+.step {min-height:52px;padding:8px 14px;gap:10px;justify-content:flex-start;text-align:left}
 .step .step-number {display:grid;place-items:center;width:26px;height:26px;border-radius:50%;border:1px solid var(--a-38);color:var(--a-78);font-weight:700;font-size:12px;flex-shrink:0}
 .step-text {display:grid;gap:1px}.step-text b {font-size:13px;color:var(--n-92)}.step-text small {color:var(--muted);font-size:11px}
-.step.current {position:relative;border-color:var(--accent);background:var(--a-14);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 45%,transparent),0 0 22px -8px var(--accent)}.step.current::after {content:'';position:absolute;left:12px;right:12px;bottom:-1px;height:2px;border-radius:2px;background:var(--accent);box-shadow:0 0 10px var(--accent)}.step.current .step-number {background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.step.locked {opacity:.6}.step.stale .step-text small {color:var(--w-80)}
+.step.current {position:relative}.step.current::after {content:'';position:absolute;left:12px;right:12px;bottom:-1px;height:2px;border-radius:2px;background:var(--accent);box-shadow:0 0 10px var(--accent)}.step.current .step-number {background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.step.stale .step-text small {color:var(--w-80)}
 .step-panel {margin-top:4px}
 .stale-notice {display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;border-color:var(--w-36);background:var(--w-14)}.stale-notice p {margin:0}.stale-notice div {display:flex;gap:8px;flex-wrap:wrap}
 .step-nav {display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:22px 0 10px}
@@ -164,9 +164,7 @@ button:hover:not(:disabled) {background:var(--n-20);border-color:var(--n-46)}but
 /* ADR-096: class names in highlighted code keep 4.5:1 on every row background (Prism's own red does not). */
 :is(#app,.help-page) .token.class-name {color:var(--d-76)}
 /* Frame (ADR-105): the mock's character on the ADR-104 tokens. Blue is the selection and the main step forward, yellow the one
- * check action and the language mark; skewed mode tabs and a chamfered corner on the strongest actions. A shape is drawn with a
- * transform or a background gradient, never clip-path, so the focus outline keeps its full rectangle. */
-:root {--cut:13px;--skew:-14deg}
+ * check action and the language mark. The buttons' shape is the plate's (ADR-143, below, with the button component). */
 .header {position:relative;min-height:64px;padding:10px 24px 10px 36px;border-bottom:1px solid var(--border);background:var(--n-08);display:flex;align-items:center;gap:20px}
 .header::before {content:'';position:absolute;inset:0 auto 0 0;width:8px;background:var(--blue)}
 .brand {display:flex;align-items:center;gap:12px;flex-shrink:0}
@@ -175,21 +173,14 @@ button:hover:not(:disabled) {background:var(--n-20);border-color:var(--n-46)}but
 .brand strong {font-size:20px;font-weight:800;letter-spacing:-.4px;color:var(--n-96)}
 .brand small {padding-left:12px;border-left:1px solid var(--n-48);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--n-66)}
 .mode-tabs {display:flex;gap:6px;margin:0 auto}
-.mode-tabs button {min-width:190px;padding:0 24px;border:1px solid var(--n-36);border-radius:0;background:var(--n-08);color:var(--n-90);transform:skewX(var(--skew))}
-.mode-tabs button>* {transform:skewX(calc(-1 * var(--skew)))}
-.mode-tabs button:hover:not(:disabled) {background:var(--blue-pale);border-color:var(--blue)}
-.mode-tabs button.active,.mode-tabs button.active:hover:not(:disabled) {background:var(--blue);border-color:var(--blue);color:var(--blue-ink)}
+.mode-tabs button {position:relative;min-width:190px;padding:0 24px}
 .header-actions {display:flex;align-items:center;gap:8px;margin-left:auto}
-.header-actions>button,.menu>summary {background:var(--n-08);border-color:var(--n-36);border-radius:0}
 .icon-only {padding:0;width:var(--control-h);min-width:var(--control-h)}.icon-only>span:empty {display:none}
 .preview-toggle {color:var(--accent-text)}
 /* Buttons: square, a clear border; the hover is the mock's blue outline. */
 button {border-radius:0;border-color:var(--n-36)}
 button:hover:not(:disabled) {background:var(--blue-pale);border-color:var(--blue);color:var(--accent-text)}
-.primary,.primary:hover:not(:disabled) {--fill:var(--blue);background:linear-gradient(315deg,transparent calc(var(--cut) * .7071),var(--fill) calc(var(--cut) * .7071 + .5px));background-origin:border-box;background-repeat:no-repeat;border-color:transparent;color:var(--blue-ink);box-shadow:none}
-.primary:hover:not(:disabled) {--fill:var(--blue-hover);color:var(--blue-ink)}
-.primary.check,.primary.check:hover:not(:disabled) {--fill:var(--yellow);color:var(--yellow-ink);min-width:150px}
-.primary.check:hover:not(:disabled) {--fill:var(--yellow-hover)}
+.primary.check {min-width:150px}
 .segment {display:flex;max-width:100%;gap:0;padding:0;border:0;background:transparent;border-radius:0}
 .segment button {border:1px solid var(--n-36);background:var(--n-08);color:var(--n-80)}
 .segment button+button {border-left:0}
@@ -243,16 +234,14 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 .stepper {margin:0 0 20px}
 .stepper ol {list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 .stepper li {display:flex;min-width:0}
-.stepper .step {width:100%;min-height:46px;padding:6px 18px;gap:12px;justify-content:flex-start;text-align:left;border:0;background:var(--n-20);color:var(--n-80)}
-.stepper .step:hover:not(:disabled) {background:var(--n-24);color:var(--n-92)}
-.stepper .step.current,.stepper .step.current:hover:not(:disabled) {--fill:var(--blue);background:linear-gradient(315deg,transparent calc(var(--cut) * .7071),var(--fill) calc(var(--cut) * .7071 + .5px));background-origin:border-box;background-repeat:no-repeat;color:var(--blue-ink)}
-.stepper .step .step-number {display:grid;place-items:center;width:auto;min-width:22px;height:auto;border:0;border-radius:0;background:none;box-shadow:none;color:inherit;font:800 13px var(--mono)}
-.stepper .step.current {box-shadow:none;border:0}.stepper .step.current::after,.stepper .step::after {content:none}
+.stepper .step {--plate-h:58px;width:100%;min-height:58px;padding:6px 18px;gap:12px;justify-content:flex-start;text-align:left}
+.stepper .step .step-number {display:grid;place-items:center;width:auto;min-width:24px;height:auto;border:0;border-radius:0;background:none;box-shadow:none;color:inherit;font:800 17px var(--mono);letter-spacing:-.06em}
+.stepper .step.current::after,.stepper .step::after {content:none}
 .step-number .icon {width:18px;height:18px;color:var(--accent-text)}
 .step-text {display:grid;gap:0}
 .step-text b {font-size:14px;font-weight:750}
 .step-text small {font-size:11px;color:inherit;opacity:.8}
-.step.locked {opacity:.55}.step.stale .step-text small {color:var(--w-80);opacity:1}
+.step.stale .step-text small {color:var(--w-80);opacity:1}
 /* Section bar: the step's title with the mock's blue square, its controls on the right. */
 .section-bar {display:flex;align-items:center;justify-content:space-between;gap:12px 18px;flex-wrap:wrap;margin:0 0 16px}
 .section-bar h2,.solution-editor .editor-heading :is(h2,h3) {display:flex;align-items:center;gap:12px;margin:0;font-size:18px;font-weight:800;letter-spacing:-.2px}
@@ -314,7 +303,7 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 .workspace-help {margin-top:22px;padding-top:10px;border-top:1px solid var(--border)}
 .help-body p {margin:6px 0;font-size:12px;line-height:1.7;color:var(--muted);max-width:900px}
 .formatter-status {font-family:var(--mono);font-size:11px}
-@media(max-width:1200px) {main {padding:22px 20px}.header {padding-left:30px;gap:14px}.mode-tabs button {min-width:150px;padding:0 16px}.practice-shell {grid-template-columns:232px minmax(0,1fr)}.theme-toggle span,.menu>summary span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.theme-toggle,.menu>summary {width:var(--control-h);padding:0;justify-content:center}}
+@media(max-width:1200px) {main {padding:22px 20px}.header {padding-left:30px;gap:14px}.mode-tabs button {min-width:150px;padding:0 16px}.practice-shell {grid-template-columns:232px minmax(0,1fr)}.theme-toggle,.menu>summary {--plate-cut:0}.theme-toggle span,.menu>summary span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.theme-toggle,.menu>summary {width:var(--control-h);padding:0;justify-content:center}}
 /* ADR-116: a phone on its side (740–930 × 340–430) takes the narrow layout too; the block after the last rule keeps it to one row per bar. */
 @media(max-width:850px),(max-height:500px) and (orientation:landscape) {
  .header {flex-wrap:wrap;padding:8px 14px 8px 22px;gap:8px 10px}.header::before {width:5px}
@@ -333,7 +322,7 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
  main,.learner-preview main {padding:16px 12px 20px}
  .task-heading h1 {font-size:20px}
  .task-heading {margin-bottom:12px}
- .stepper {margin-bottom:14px}.stepper ol {gap:3px}.stepper .step {min-height:42px;padding:4px 8px;gap:6px}.step-number {display:none}.step-text b {font-size:12px}
+ .stepper {margin-bottom:14px}.stepper ol {gap:4px}.stepper .step {--plate-h:42px;min-height:42px;padding:4px 8px;gap:6px}.step-number {display:none}.step-text b {font-size:12px}
  .author,.solution-editor {padding:14px}
  .section-bar h2 {font-size:16px}
  .toolbar {gap:8px}
@@ -343,10 +332,10 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
  .editor-heading {flex-wrap:wrap}
 }
 .author .board-toggle {display:flex;align-items:center;gap:8px;margin:0}.author .board-toggle input {display:inline-block;width:16px;min-height:0;height:16px;margin:0;padding:0}
-@media(max-width:650px) {.toolbar {flex-wrap:wrap}.toolbar-start {display:contents}.toolbar-start .try-tabs {display:flex;flex:1 0 100%;width:100%}.toolbar-start .try-tabs button {flex:1}.toolbar-start .code-view-switch {flex:0 0 auto;width:auto;margin-left:0}.workspace-actions {width:auto;flex-wrap:nowrap;margin-left:auto}.workspace-actions button,.code-view-switch button {flex:0 0 auto;width:var(--control-h);padding:0}.workspace-actions button>span,.code-view-switch button>span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
+@media(max-width:650px) {.toolbar {flex-wrap:wrap}.toolbar-start {display:contents}.toolbar-start .try-tabs {display:flex;flex:1 0 100%;width:100%}.toolbar-start .try-tabs button {flex:1}.toolbar-start .code-view-switch {flex:0 0 auto;width:auto;margin-left:0}.workspace-actions {width:auto;flex-wrap:nowrap;margin-left:auto}.workspace-actions button,.code-view-switch button {flex:0 0 auto;width:var(--control-h);padding:0;--plate-cut:0}.workspace-actions button>span,.code-view-switch button>span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
 .eyebrow {font:700 11px var(--ui);letter-spacing:.4px;text-transform:none;color:var(--n-74)}
 .try-rules {padding:8px 12px}.try-rules .board-heading {align-items:center}
-@media(max-width:650px) {.header-actions .preview-toggle {width:38px;min-width:38px;padding:0}.header-actions .preview-toggle>span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.brand strong {font-size:18px}}
+@media(max-width:650px) {.header-actions .preview-toggle {width:38px;min-width:38px;padding:0;--plate-cut:0}.header-actions .preview-toggle>span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.brand strong {font-size:18px}}
 .brand-tail {color:var(--accent-text)}
 @media(max-width:400px) {.brand strong {font-size:16px}.brand {gap:8px}.header-actions {gap:5px}}
 @media(max-width:400px) {:is(.header-actions,.mode-tabs) {--control-h:34px}.header-actions .menu-panel {--control-h:44px}.icon-only,.theme-toggle,.menu>summary,.header-actions .preview-toggle {width:var(--control-h);min-width:var(--control-h)}.mode-tabs button {padding:0 8px}}
@@ -493,7 +482,7 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 @media (max-width:640px){.diagnostic {grid-template-columns:auto minmax(0,1fr)}.diagnostic-message,.diagnostic-origin {grid-column:1 / -1}}
 /* ADR-116 (M1): the header never runs off the screen: below 1000 px the learner-view toggle keeps only its icon. ADR-137:
    the logo's EDITOR label stays wherever the row fits it (header-fit.ts). */
-@media(max-width:1000px) {.header-actions .preview-toggle {width:38px;min-width:38px;padding:0}.header-actions .preview-toggle>span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
+@media(max-width:1000px) {.header-actions .preview-toggle {width:38px;min-width:38px;padding:0;--plate-cut:0}.header-actions .preview-toggle>span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
 /* ADR-116 (M1): in the wide layout the exercise list is a sidebar, never a closed drop-down: a list closed on a narrow screen stays visible
  * when the screen widens (it left an empty sidebar), and its heading does not toggle it. */
 @media(min-width:851px) and (not ((max-height:500px) and (orientation:landscape))) {
@@ -510,18 +499,18 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
  .mode-tabs {order:0;width:auto;flex:0 1 auto;min-width:0;margin:0 auto 0 6px;padding:0 4px;gap:4px}
  .mode-tabs button {flex:0 1 auto;min-width:0;padding:0 12px}
  .header-actions {gap:6px;flex:none}
- :is(.header-actions>button,.header-actions .menu>summary,.header-actions .preview-toggle) {width:var(--control-h);min-width:var(--control-h);padding:0;justify-content:center}
+ :is(.header-actions>button,.header-actions .menu>summary,.header-actions .preview-toggle) {width:var(--control-h);min-width:var(--control-h);padding:0;justify-content:center;--plate-cut:0}
  :is(.header-actions .preview-toggle,.theme-toggle,.header-actions .menu>summary)>span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
  main,.learner-preview main {padding:8px 14px 12px}
  .validation-notice {margin-bottom:8px;padding:3px 8px;gap:8px}.validation-notice>span {white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.validation-notice {--control-h:30px}
  .task-heading {display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin-bottom:8px}
  .task-heading h1 {min-width:0;max-width:100%;margin:0;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
  .task-heading .description {flex-basis:100%;margin:0;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
- .stepper {margin-bottom:8px}.stepper ol {gap:3px}.stepper .step {min-height:36px;height:36px;padding:0 10px;gap:6px}.step-text small,.step-number {display:none}.step-text b {font-size:13px}
+ .stepper {margin-bottom:8px}.stepper ol {gap:4px}.stepper .step {--plate-h:36px;min-height:36px;height:36px;padding:0 10px;gap:6px}.step-text small,.step-number {display:none}.step-text b {font-size:13px}
  .author,.solution-editor {padding:12px}
  .toolbar {flex-wrap:nowrap;gap:6px;margin-bottom:8px}.toolbar-start {display:flex;gap:6px;min-width:0}
  .workspace-actions {width:auto;margin-left:auto;flex-wrap:nowrap}
- :is(.workspace-actions,.code-view-switch) button {flex:0 0 auto;width:var(--control-h);padding:0;justify-content:center}
+ :is(.workspace-actions,.code-view-switch) button {flex:0 0 auto;width:var(--control-h);padding:0;justify-content:center;--plate-cut:0}
  :is(.workspace-actions,.code-view-switch) button>span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
  .drop-zone {height:calc(100dvh - 100px);min-height:150px;max-height:none}
  .task-heading h1 {order:1}.task-heading .task-meta {order:2}.task-heading .link-action {order:3;margin:0;min-height:30px}.task-heading .description {order:4}
@@ -555,20 +544,48 @@ button.btn.icon-only {width:var(--control-h);min-width:var(--control-h);padding-
 .menu-panel button.btn {justify-content:flex-start}
 button.btn.link-action {border-color:transparent;background:transparent;color:var(--accent-text);padding-inline:6px}
 button.btn.link-action:hover:not(:disabled) {background:var(--blue-pale);border-color:transparent}
-/* ADR-140 (D1): the component's rounded silhouette and its states. The tools are rounded: every .btn but the step's main
- * action (.primary keeps its cut corner until D3), and the menu buttons. The mode switch and the step plates are D2's.
- * - The radius follows the height the place asked for: 8 px from 36 px up, 6 px at 28 px.
- * - Pressed (aria-pressed): a pale blue plate, a blue line and a 2 px mark under the label, so not the colour alone says it.
- * - Disabled, whether :disabled or aria-disabled with its reason (ADR-120): one muted plate. A busy button is not disabled
- *   to the eye: its spinner says it works.
- * - Pressed down: the plate moves 1 px. */
-:root {--btn-r:8px;--btn-mark:2px}
-:is(button.btn:not(.primary),.menu>summary) {border-radius:min(var(--btn-r),calc(var(--control-h) * .22))}
+/* ADR-140 (D1), ADR-143 (D2): the plate. Every labelled button is one: the tools, the menu buttons, the mode switch, the
+ * step plates and the step's main action. Hidden here: the shape, the face, the roles and the states.
+ * - Shape: the top left and bottom right corners are cut, softly (corner-shape; a browser that does not know it rounds
+ *   them, so the asymmetry stays). The cut follows the plate's height (--plate-h; the height the place asked for unless
+ *   the plate names its own): 28% of it on the cut corners, 14% on the other two.
+ * - A button without a visible label is rounded: .icon-only, and wherever a rule hides the label it also sets
+ *   `--plate-cut:0` on the button: the one switch between the two shapes (the layout gate checks both ways).
+ * - Face: a faint vertical gradient, a hairline, a soft shadow; in the dark theme a lighter top edge instead of a shadow.
+ * - Roles: solid blue (the step's main action, the current step), amber (the learner's check); at most two filled plates
+ *   stand on a screen. On (aria-pressed: a toggle, the chosen mode): a pale plate, a blue line and a 2 px mark under the
+ *   label, so not the colour alone says it.
+ * - Disabled, whether :disabled, aria-disabled with its reason (ADR-120) or a locked step: one muted plate, no shadow. A
+ *   busy button is not disabled to the eye: its spinner says it works. Pressed down, the plate moves 1 px. */
+:root {--btn-r:8px;--btn-mark:2px;
+ --plate-top:var(--n-08);--plate-bottom:var(--n-16);--plate-line:var(--n-34);--plate-line-hover:var(--a-36);--plate-hover:var(--a-16);
+ --plate-shadow:0 1px 2px rgba(25,45,87,.10),0 2px 6px rgba(25,45,87,.05);
+ --plate-on-top:var(--n-08);--plate-on-bottom:var(--blue-pale);
+ --plate-solid-top:color-mix(in srgb,var(--blue) 86%,#fff);--plate-amber-top:color-mix(in srgb,var(--yellow) 72%,#fff)}
+@media (prefers-color-scheme:dark) {:root:not([data-theme=light]) {--plate-top:var(--n-24);--plate-bottom:var(--n-18);--plate-line:var(--n-40);--plate-hover:var(--a-20);--plate-shadow:inset 0 1px 0 rgba(255,255,255,.07);--plate-on-top:var(--a-28);--plate-on-bottom:var(--a-20)}}
+:root[data-theme=dark] {--plate-top:var(--n-24);--plate-bottom:var(--n-18);--plate-line:var(--n-40);--plate-hover:var(--a-20);--plate-shadow:inset 0 1px 0 rgba(255,255,255,.07);--plate-on-top:var(--a-28);--plate-on-bottom:var(--a-20)}
+:is(button.btn:not(.link-action),.menu>summary,.mode-tabs button,.stepper .step) {
+ --plate-even:calc(min(var(--btn-r),var(--plate-h,var(--control-h)) * .22) * (1 - var(--plate-cut,1)));
+ border:1px solid var(--plate-line);background:linear-gradient(var(--plate-top),var(--plate-bottom));color:var(--text);box-shadow:var(--plate-shadow);
+ border-radius:calc(var(--plate-h,var(--control-h)) * .28 * var(--plate-cut,1) + var(--plate-even)) calc(var(--plate-h,var(--control-h)) * .14 * var(--plate-cut,1) + var(--plate-even));
+ corner-shape:superellipse(calc(1 - .65 * var(--plate-cut,1))) round}
+:is(button.btn:not(.link-action),.menu>summary,.mode-tabs button,.stepper .step):hover:not(:disabled,[aria-disabled=true],.locked) {border-color:var(--plate-line-hover);background:linear-gradient(var(--plate-top),var(--plate-hover));color:var(--text)}
+:is(button.btn,.menu>summary).icon-only {--plate-cut:0}
+button.btn.link-action {border-radius:min(var(--btn-r),calc(var(--control-h) * .22))}
 .segment button:first-child {border-start-start-radius:min(var(--btn-r),calc(var(--control-h) * .22));border-end-start-radius:min(var(--btn-r),calc(var(--control-h) * .22))}
 .segment button:last-child {border-start-end-radius:min(var(--btn-r),calc(var(--control-h) * .22));border-end-end-radius:min(var(--btn-r),calc(var(--control-h) * .22))}
-button.btn[aria-pressed=true],button.btn[aria-pressed=true]:hover:not(:disabled) {position:relative;background:var(--blue-pale);border-color:var(--blue);color:var(--accent-text)}
-button.btn[aria-pressed=true]::after {content:'';position:absolute;inset:auto 9px 4px;height:var(--btn-mark);background:currentColor;border-radius:1px}
-button.btn:not(.primary,.link-action):is(:disabled,[aria-disabled=true]):not([aria-busy=true]) {opacity:1;color:var(--muted);background:var(--raised);border-color:var(--border);cursor:not-allowed}
+/* Roles. */
+button.btn.primary,button.btn.primary:hover:not(:disabled,[aria-disabled=true]),.stepper .step.current,.stepper .step.current:hover:not(:disabled,[aria-disabled=true],.locked) {background:linear-gradient(var(--plate-solid-top),var(--blue));border-color:var(--blue-hover);color:var(--blue-ink)}
+button.btn.primary:hover:not(:disabled,[aria-disabled=true]),.stepper .step.current:hover:not(:disabled,[aria-disabled=true],.locked) {background:linear-gradient(var(--blue),var(--blue-hover))}
+button.btn.primary.check,button.btn.primary.check:hover:not(:disabled,[aria-disabled=true]) {background:linear-gradient(var(--plate-amber-top),var(--yellow));border-color:var(--yellow-line);color:var(--yellow-ink)}
+button.btn.primary.check:hover:not(:disabled,[aria-disabled=true]) {background:linear-gradient(var(--yellow-hover),var(--yellow))}
+button.btn.primary {--control-h:44px}
+/* A phone on its side has 360 px of height: the main action keeps the 40 px its neighbours have there. */
+@media(max-height:500px) and (orientation:landscape) {button.btn.primary {--control-h:40px}}
+:is(button.btn,.mode-tabs button)[aria-pressed=true],:is(button.btn,.mode-tabs button)[aria-pressed=true]:hover:not(:disabled) {position:relative;background:linear-gradient(var(--plate-on-top),var(--plate-on-bottom));border-color:var(--blue);color:var(--accent-text)}
+:is(button.btn,.mode-tabs button)[aria-pressed=true]::after {content:'';position:absolute;inset:auto 9px 4px;height:var(--btn-mark);background:currentColor;border-radius:1px}
+/* States. */
+:is(button.btn:not(.link-action),.stepper .step):is(:disabled,[aria-disabled=true],.locked):not([aria-busy=true]) {opacity:1;color:var(--muted);background:var(--raised);border-color:var(--border);box-shadow:none;cursor:not-allowed}
 button.btn.link-action:is(:disabled,[aria-disabled=true]):not([aria-busy=true]) {opacity:1;color:var(--muted);cursor:not-allowed}
 button.btn:active:not(:disabled,[aria-disabled=true]) {transform:translateY(1px)}
 .rule-panel,.rule-inspector,.task-heading {--control-h:var(--control-h-sm)}
@@ -638,7 +655,7 @@ button.btn:active:not(:disabled,[aria-disabled=true]) {transform:translateY(1px)
  .header {flex-wrap:nowrap}
  .header {gap:6px;padding-left:12px;padding-right:10px}
  .mode-tabs {order:0;width:auto;flex:0 0 auto;margin:0 auto 0 0;padding:0;gap:4px}
- .mode-tabs button {flex:0 0 auto;width:var(--control-h);min-width:var(--control-h);padding:0}
+ .mode-tabs button {flex:0 0 auto;width:var(--control-h);min-width:var(--control-h);padding:0;--plate-cut:0}
  .mode-tabs button>span:not(.icon) {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 }
 @media(min-width:1100px) and (not ((max-height:500px) and (orientation:landscape))) {

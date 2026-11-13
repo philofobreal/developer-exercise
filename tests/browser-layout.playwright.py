@@ -1,6 +1,6 @@
 """Layout gate (ADR-116, M1): the practice view and the author's Try step on desktop, laptop, tablet and phone (upright and on its side),
 in the light and the dark theme. It checks what a machine can measure, not taste: the page never scrolls sideways, no header control runs
-off the screen, every toolbar control in view has one height, every action button (ADR-117) has one type style and at most three heights, a phone on its side keeps the header and the toolbar to one row and shows the
+off the screen, every toolbar control in view has one height, every action button (ADR-117) has one type style and at most three heights, every plate (ADR-143) has its shape and its face and at most two are filled, a phone on its side keeps the header and the toolbar to one row and shows the
 lists on the first screen, focus gives the lists at least 40 % of the height, and a task list closed on a narrow screen is visible when the
 screen widens. Screenshots of every view land in test-results/layout-*.png."""
 import os,socket,subprocess,time,urllib.request
@@ -20,10 +20,24 @@ MEASURE="""()=>{const shown=s=>[...document.querySelectorAll(s)].filter(e=>e.off
   toolRows:new Set(shown('.toolbar button').map(b=>Math.round(box(b).top+box(b).height/2))).size,
   // ADR-117 (U1): the action-button component and its relatives (segment, menu, mode switch)
   controls:shown('button.btn,.segment button,.menu>summary,.mode-tabs button').map(b=>{const s=getComputedStyle(b);return [Math.round(box(b).height),s.fontSize,s.fontWeight];}),
-  // ADR-140 (D1): the tools are rounded, by the height they have (8 px from 36 px up, 6 px at 28 px); a pressed one
-  // carries a 2 px mark under its label
-  square:shown('button.btn:not(.primary),.menu>summary').filter(b=>{const r=parseFloat(getComputedStyle(b).borderTopLeftRadius),h=box(b).height;return Math.abs(r-Math.min(8,h*.22))>.6;}).map(b=>(b.getAttribute('aria-label')||b.textContent.trim())+' '+getComputedStyle(b).borderTopLeftRadius+' at '+Math.round(box(b).height)),
-  pressed:shown('button.btn[aria-pressed=true]').map(b=>{const mark=getComputedStyle(b,'::after');return [(b.getAttribute('aria-label')||b.textContent.trim()),mark.content!=='none'&&mark.height==='2px'&&parseFloat(mark.width)>8];}),
+  // ADR-143 (D2): every plate (a tool, a menu button, a mode tab, a step plate, the main action). One with a visible label
+  // has the cut (28% of its height on the top left corner, 14% on the top right, the soft corner where the browser knows
+  // corner-shape); one without a visible label is evenly rounded. A pressed one carries a 2 px mark under its label.
+  plates:shown('button.btn:not(.link-action),.menu>summary,.mode-tabs button,.stepper .step').map(b=>{const s=getComputedStyle(b),h=parseFloat(s.getPropertyValue('--plate-h'))||box(b).height;
+   const labelled=[...b.querySelectorAll('span,b,small')].some(e=>e.textContent.trim()&&box(e).width>1&&box(e).height>1&&getComputedStyle(e).visibility!=='hidden');
+   const tl=parseFloat(s.borderTopLeftRadius),tr=parseFloat(s.borderTopRightRadius),soft=CSS.supports('corner-shape','bevel')?s.getPropertyValue('corner-top-left-shape'):'unsupported';
+   // the computed corner is a superellipse with its exponent: .35 is the soft cut, 1 is `round`
+   const curve=soft==='round'?1:parseFloat(soft.replace('superellipse(','')),shaped=k=>soft==='unsupported'||Math.abs(curve-k)<.01;
+   const right=labelled?Math.abs(tl-h*.28)<=1&&Math.abs(tr-h*.14)<=1&&shaped(.35):Math.abs(tl-tr)<.1&&Math.abs(tl-Math.min(8,h*.22))<=.6&&shaped(1);
+   return right?null:`${b.getAttribute('aria-label')||b.textContent.trim().slice(0,24)} (${labelled?'labelled':'no label'}): ${s.borderTopLeftRadius}/${s.borderTopRightRadius} ${soft} at ${Math.round(h)}`;}).filter(Boolean),
+  faceless:shown('button.btn:not(.link-action),.menu>summary,.mode-tabs button,.stepper .step').filter(b=>!b.matches(':disabled,[aria-disabled=true],.locked')&&!getComputedStyle(b).backgroundImage.includes('gradient')).map(b=>b.getAttribute('aria-label')||b.textContent.trim().slice(0,24)),
+  // at most two filled plates on a screen: the current step and the main action. Filled = the face ends in a solid brand colour
+  // (resting or hovered), whichever element carries it; comparing whole faces missed a third one while the pointer was on a step.
+  filled:(()=>{const probe=document.createElement('i');document.documentElement.append(probe);
+   const solid=['--blue','--blue-hover','--yellow'].map(t=>{probe.style.color=`var(${t})`;return getComputedStyle(probe).color;});probe.remove();
+   const face=b=>{const s=getComputedStyle(b),stops=s.backgroundImage.match(/(?:rgba?|color)\([^()]*\)/g);return stops?stops[stops.length-1]:s.backgroundColor;};
+   return shown('button,summary').filter(b=>solid.includes(face(b))).map(b=>b.getAttribute('aria-label')||b.textContent.trim().slice(0,24));})(),
+  pressed:shown(':is(button.btn,.mode-tabs button)[aria-pressed=true]').map(b=>{const mark=getComputedStyle(b,'::after');return [(b.getAttribute('aria-label')||b.textContent.trim()),mark.content!=='none'&&mark.height==='2px'&&parseFloat(mark.width)>8];}),
   zoneTop:Math.round(box(document.querySelector('.drop-zone')).top),
   zones:shown('.drop-zone').map(z=>Math.round(box(z).height)),
   // the lists side by side share their height; stacked, their heights add up
@@ -35,9 +49,11 @@ def check(page,name,side,focused=False):
     assert not m['offscreen'],f"{name}: header controls off the screen: {m['offscreen']}"
     assert m['tools'] and max(m['tools'])-min(m['tools'])<=1,f"{name}: toolbar controls of different heights {m['tools']}"
     heights=sorted({h for h,_,_ in m['controls']});fonts=sorted({(f,w) for _,f,w in m['controls']})
-    assert len(heights)<=3,f"{name}: buttons in {len(heights)} heights {heights} (at most 3: default, small, header)"
+    assert len(heights)<=3,f"{name}: buttons in {len(heights)} heights {heights} (at most 3: default, small, and the header's or the main action's)"
     assert len(fonts)==1,f"{name}: buttons in {len(fonts)} type styles {fonts} (one: 13 px, 600)"
-    assert not m['square'],f"{name}: tools without the component's rounding: {m['square']}"
+    assert not m['plates'],f"{name}: plates with the wrong shape: {m['plates']}"
+    assert not m['faceless'],f"{name}: plates without the plate's face: {m['faceless']}"
+    assert len(m['filled'])<=2,f"{name}: more than two filled plates on the screen: {m['filled']}"
     assert all(marked for _,marked in m['pressed']),f"{name}: a pressed button without its mark: {m['pressed']}"
     if focused:assert m['pressed'],f"{name}: the focus toggle is pressed in focus mode"
     if side:

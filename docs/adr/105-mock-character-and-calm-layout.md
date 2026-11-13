@@ -1,6 +1,6 @@
 # ADR-105 – A mock karaktere és egy nyugodtabb felület: formák, kék–sárga, grafit sötét téma, témaváltó
 
-Állapot: **elfogadva** (2026-11-06). Az ADR-104 2., 3. és 5. pontját és a „nem átvett” táblázat két sorát (ferde gombok, sötét paletta) felülírja.
+Állapot: **elfogadva** (2026-11-06). Az ADR-104 2., 3. és 5. pontját és a „nem átvett” táblázat két sorát (ferde gombok, sötét paletta) felülírja. **A ferde módváltót és a lecsípett sarkú gombokat az [ADR-143](143-plates-and-soft-surfaces.md) D2 lépése váltotta fel (2026-11-13).**
 
 A felhasználó visszajelzése az F1 után:
 - a ferde és a lecsípett sarkú gombok a dizájn részei;

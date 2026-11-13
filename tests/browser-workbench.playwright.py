@@ -1201,7 +1201,7 @@ def settle(page):
 def button_states(page):
     """ADR-140 (D1): the button component's states. A disabled button is one muted plate whether it is :disabled or
     aria-disabled with its reason; a busy one is not disabled to the eye; a pressed one is a pale plate with a mark."""
-    state=page.evaluate("""()=>{const look=b=>{const s=getComputedStyle(b);return {opacity:s.opacity,cursor:s.cursor,background:s.backgroundColor,color:s.color};};
+    state=page.evaluate("""()=>{const look=b=>{const s=getComputedStyle(b);return {opacity:s.opacity,cursor:s.cursor,background:s.backgroundColor+' '+s.backgroundImage,shadow:s.boxShadow,color:s.color};};
      const host=document.querySelector('.toolbar')||document.querySelector('#workbench-main'),make=(attributes)=>{const b=document.createElement('button');b.type='button';b.className='btn';b.textContent='x';for(const [k,v] of Object.entries(attributes))b.setAttribute(k,v);host.append(b);return b;};
      const plain=make({}),off=make({disabled:''}),reason=make({'aria-disabled':'true','data-disabled-reason':'ok'}),busy=make({disabled:'','aria-busy':'true'}),on=make({'aria-pressed':'true'});
      const result={plain:look(plain),off:look(off),reason:look(reason),busy:look(busy),on:look(on),mark:getComputedStyle(on,'::after').height};
@@ -1212,6 +1212,9 @@ def button_states(page):
     assert state['off']['background']==state['reason']['background'] and state['off']['color']==state['reason']['color'],'the two kinds of disabled look the same'
     assert state['busy']['cursor']=='progress' and state['busy']['opacity']=='1' and state['busy']['background']==state['plain']['background'],state['busy']
     assert state['on']['background']!=state['plain']['background'] and state['mark']=='2px',state
+    # ADR-143 (D2): a plate has a face (a gradient and a shadow); the disabled one is flat.
+    assert 'gradient' in state['plain']['background'] and state['plain']['shadow']!='none',state['plain']
+    assert 'gradient' not in state['off']['background'] and state['off']['shadow']=='none',state['off']
 def toggletips_everywhere(browser,url):
     """ADR-141 (T3): the ⓘ of every place, on a desktop and a phone, light and dark: opening it moves nothing; the bubble
     stands inside the screen; the focus ring stays off the label; on a touch screen the target is 44 px and leaves the

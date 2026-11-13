@@ -1,6 +1,6 @@
 # ADR-143 – Vizuális irány: lecsapott lap minden feliratos gombon, lágy felületek
 
-Állapot: **az irány elfogadva, a megvalósítás a bemutató jóváhagyására vár** (2026-11-13). A felhasználó egy saját gombmintát mutatott („Rounded Industrial Buttons”, CleanActive 02.1), és a három, valódi felületen kipróbált változat közül a harmadikat választotta: „mehet a 3. változat, a panelek is lágyuljanak”. Kockázati osztály: megjelenítés. Módosítja az [ADR-140](140-button-system.md) sziluett-szabályát (a lecsapott sarok ott csak a döntés gombjaié volt) és az [ADR-138](138-three-surfaces.md) szögletes sarkait; a három felület és a gombkomponens szerkezete marad.
+Állapot: **elfogadva, megvalósítás folyamatban** (2026-11-13; a bemutatót a felhasználó jóváhagyta: „jóváhagyom, mehet a D2”; a D2 kész, lásd lent). A felhasználó egy saját gombmintát mutatott („Rounded Industrial Buttons”, CleanActive 02.1), és a három, valódi felületen kipróbált változat közül a harmadikat választotta: „mehet a 3. változat, a panelek is lágyuljanak”. Kockázati osztály: megjelenítés. Módosítja az [ADR-140](140-button-system.md) sziluett-szabályát (a lecsapott sarok ott csak a döntés gombjaié volt) és az [ADR-138](138-three-surfaces.md) szögletes sarkait; a három felület és a gombkomponens szerkezete marad.
 
 ## Kontextus
 
@@ -57,6 +57,45 @@ A jelölt stílus a szállított stíluslapra töltve, a valódi felületen: Kó
 - **D5–D6:** változatlanul a telefonos összevont menük és a lezárás.
 
 Minden lépés külön push, `npm run gate` után ([ADR-142](142-fast-deploy-and-local-gate.md)).
+
+## D2: a lap minden feliratos gombon (2026-11-13)
+
+- **Egy lapszabály** (`public/style.css`, „the plate”) adja az alakot, az arcot, a szerepeket és az állapotokat az eszközgomboknak, a menügomboknak, a módváltónak, a lépéslapoknak és a fő műveleteknek. A régi ferde módváltó, a lecsípett sarkú fő művelet és a lépéslapok külön szabályai, valamint a `--cut` és a `--skew` token megszűntek.
+- **Az alak a hely magasságát követi:** a vágás a `--control-h` (a lépéslapon a saját `--plate-h`) 28, illetve 14%-a. Mért értékek: 36 px-en 10 és 5 px, a 44 px-es fő műveleten 12 és 6 px, az 58 px-es lépéslapon 16 és 8 px.
+- **Felirat nélküli gomb kerekített.** Ahol egy szabály elrejti a feliratot (keskeny fejléc, telefon, fekvő telefon), ugyanott `--plate-cut:0` áll: ez az egyetlen kapcsoló a két alak között.
+- **Szerepek:**
+  - teli kék: a lépés fő művelete és az aktuális lépés;
+  - sárga: a tanuló „Ellenőrzés” gombja;
+  - bekapcsolt (a kapcsolók és a kiválasztott mód): halvány lap, kék vonal, 2 px-es jel;
+  - letiltott és zárolt lépés: egy tompa, lapos lap, árnyék nélkül.
+- **A fő művelet 44 px magas** (a többi gomb 36 px). Fekvő telefonon 40 px marad, mint a szomszédai: 44 px-rel a fókusz mód listái a 360 px-es képernyő 40%-a alá estek volna (143 px a 144 helyett).
+
+### Két terv az alak kapcsolására („design it twice”)
+
+1. **Két tulajdonság a felirat nélküli helyeken** (`--plate-r` és `--plate-corners`). Elvetve: hat helyen kellett a kettőt együtt beállítani, és az egyik kihagyása fél alakot adott.
+2. **Egy kapcsoló (`--plate-cut`, választott):** a sugár és a sarokforma ugyanabból a számból számol, ezért fél állapot nincs.
+
+### Tervezési review (docs/design-review.md)
+
+- **A lapszabály elrejti** a vágás arányát, a sarokformát, az arc átmenetét és árnyékát, a szerepek színeit és a letiltott megjelenést. **A hívó** (egy hely szabálya) a magasságot adja meg, és azt, hogy van-e látható felirat.
+- **design, rögzítve:** a felirat elrejtése és a `--plate-cut:0` két külön deklaráció ugyanabban a szabályban; a CSS nem tudja a látható feliratból levezetni. Az elrendezés-kapu minden nézetben méri, hogy a felirat nélküli lap kerekített, a feliratos vágott.
+
+### Eltérés a tervtől és maradék
+
+- **A választócsoport kiválasztott része még teli kék** (Forráskód | CodeLine JSON, Vizuális | JSON). Emiatt a Kód és az Elemzés lépésben három teli kék elem látszik, nem kettő. A csoport a D4-ben kap új alakot; a „legfeljebb két teli lap” szabályt a kapu addig a Próba és a Gyakorlás nézetben méri.
+- **A menü tételei is lapok** (a bemutató szerint); telefonon 44 px magasak.
+- **A lépéslap vágása 16 és 8 px,** nem a bemutató kézzel beírt 18 és 7 px-e: a lépéslap is a közös arányt követi, külön szám nélkül.
+
+### Bizonyíték
+
+- **Elrendezés-kapu** ([browser-layout.playwright.py](../../tests/browser-layout.playwright.py)), 6 képernyőméret × 2 téma × 4 nézet:
+  - minden feliratos lap vágott (a magasság 28 és 14%-a, lágy sarokkal, ahol a böngésző ismeri), minden felirat nélküli kerekített;
+  - minden lapnak arca van (átmenet);
+  - legfeljebb két teli lap áll a képernyőn;
+  - a bekapcsolt gomb és a kiválasztott mód jelet visel.
+- **Állapotok** ([browser-workbench.playwright.py](../../tests/browser-workbench.playwright.py), `button_states`): a lapnak átmenete és árnyéka van, a letiltott lapos.
+- **Mutációs ellenőrzés:** a sarokforma törlése, az ikongomb és a telefonos módváltó kapcsolójának törlése, a lapos arc, egy harmadik teli lap és a jel törlése mind megbuktatja a kaput.
+- **Javított mérés:** a „legfeljebb két teli lap” ellenőrzés először a teljes arcot hasonlította össze, és nem vette észre a harmadik teli lapot, amíg az egér egy lépéslapon állt. Most az arc záró színét veti össze a márkaszínekkel.
 
 ## Rögzített maradék
 

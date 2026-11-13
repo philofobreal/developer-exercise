@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased – 2026-11-13 Lecsapott sarkú lap minden feliratos gombon (ADR-143, D2)
+
+- **Minden feliratos gomb ugyanaz a lecsapott sarkú lap:** az eszközsor, a fejléc gombjai, a menü, a módváltó, a lépéslapok és a fő műveletek. Finom átmenet, hajszálvonal és lágy árnyék; sötét témában árnyék helyett világosabb felső él.
+- **A módváltó már nem ferde.** A kiválasztott mód halvány kék lap, kék vonallal és egy 2 px-es jellel.
+- **A lépéslapok lapok:** az aktuális teli kék, a kész lépés világos, a zárolt tompa és lapos.
+- **A lépés fő művelete nagyobb** (44 px, a többi gomb 36 px), hogy elsőre az látsszon. Fekvő telefonon 40 px marad.
+- **Felirat nélküli gomb kerekített** marad (ikongombok, telefonon a fejléc és az eszközsor gombjai).
+- **Safari és Firefox** a vágás helyén kerekítést mutat, amíg a sarokformát nem ismeri; a gomb aszimmetriája megmarad.
+- **Még hátravan:** a választócsoportok (Forráskód | CodeLine JSON, Vizuális | JSON) kiválasztott része még teli kék; új alakjuk a D4 lépésben érkezik.
+
 ## Unreleased – 2026-11-13 Vizuális irány: lecsapott lap minden feliratos gombon, lágy felületek (ADR-143)
 
 - **Rögzítve a választott irány** egy saját gombminta alapján: minden feliratos gomb lecsapott sarkú lap, az ikon- és sorgombok kerekítettek, a panelek lágy sarkot kapnak. A gombok a mai méretükben maradnak, hogy a kódból ne vegyenek el helyet.
