@@ -11,6 +11,7 @@ import {article,escapeHtml as esc,editorShell,highlight,syncEditors} from './ui-
 import {icon,type IconName} from './icons.js';
 import {createViewContinuity} from './continuity.js';
 import {installHeaderFit} from './header-fit.js';
+import {installListFit} from './list-fit.js';
 import {installWorkbenchKeyboard,installAuthoringFlows,installMenus,installDisabledGuard} from './interactions.js';
 import {installToggletips} from './toggletip.js';
 import {authorDraftPending,canUndoReplace,refreshAuthorStatus} from './author-workspace.js';
@@ -40,7 +41,7 @@ const tool=(attribute:string,label:string,name:IconName,extra=''):string=>{
 const actionBar=(label:string,start:string,status:string,end:string):string=>`<div class="action-bar" role="group" aria-label="${label}"><div class="action-start">${start}</div>${status||'<span class="action-status"></span>'}<div class="action-end">${end}</div></div>`;
 const languageName=(language:string):string=>language==='typescript'?'TypeScript':'JavaScript';
 export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:WorkbenchOptions){
- const continuity=createViewContinuity(root),fitHeader=installHeaderFit(root),tips=installToggletips(root);
+ const continuity=createViewContinuity(root),fitHeader=installHeaderFit(root),fitLists=installListFit(root),tips=installToggletips(root);
  root.addEventListener('click',event=>{if(!(event.target instanceof Element)||!event.target.closest('[data-dismiss-notice]'))return;try{localStorage.setItem(DEMO_NOTICE,'seen');}catch{}root.querySelector('[data-validation-notice]')?.remove();root.querySelector<HTMLElement>('#workbench-main')?.focus({preventScroll:true});});installWorkbenchKeyboard(root);installDisabledGuard(root);installMenus(root);installSurface(root,()=>render());codeView(root);paneSplit(root);installPaneSplit(root,()=>drawRuleArcs(root,state));installAuthoringFlows(root,state,render,format);
  addEventListener('resize',()=>{drawRuleArcs(root,state);syncEditors(root);});
  // ADR-090: a code list scrolls sideways as one; its rule arcs follow the row controls pinned at its right edge.
@@ -250,7 +251,7 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:Wor
   const fill=(selector:string,value:string):void=>{const editor=root.querySelector<HTMLTextAreaElement>(selector);if(editor)editor.value=value;};
   fill('#author-editor',state.author.source);fill('#model-editor',state.modelDraft);fill('#code-editor',at()?.draft??'');
   refreshAuthorStatus(root,state);syncEditors(root);drawRuleArcs(root,state);
-  root.dataset.renderedExercise=state.active??'';root.dataset.renderedView=v;root.dataset.renderedMode=state.mode;fitHeader();scroll.restore(key);continuity.restore(key+':'+v+(v==='model'?':'+(state.rulesView??'visual'):v==='author'?':'+(state.sourceKind??'code'):''));tips.rendered({background});
+  root.dataset.renderedExercise=state.active??'';root.dataset.renderedView=v;root.dataset.renderedMode=state.mode;fitHeader();fitLists();scroll.restore(key);continuity.restore(key+':'+v+(v==='model'?':'+(state.rulesView??'visual'):v==='author'?':'+(state.sourceKind??'code'):''));tips.rendered({background});
  }
  return {render};
 }

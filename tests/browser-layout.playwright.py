@@ -1,6 +1,6 @@
 """Layout gate (ADR-116, M1): the practice view and the author's Try step on desktop, laptop, tablet and phone (upright and on its side),
 in the light and the dark theme. It checks what a machine can measure, not taste: the page never scrolls sideways, no header control runs
-off the screen, every toolbar control in view has one height, every action button (ADR-117) has one type style and at most three heights, every plate (ADR-143) has its shape and its face and at most two are filled (also on the Kód and the Elemzés step), every surface has its soft corner with nothing square standing in it, a status chip is a flat pill, a segmented choice is one group with one chosen part, a phone on its side keeps the header and the toolbar to one row and shows the
+off the screen, every toolbar control in view has one height, every action button (ADR-117) has one type style and at most three heights, every plate (ADR-143) has its shape and its face and at most two are filled (also on the Kód and the Elemzés step), every surface has its soft corner with nothing square standing in it, a status chip is a flat pill, a segmented choice is one group with one chosen part, the lists end above the sticky result bar wherever the screen leaves them room (ADR-144), a phone on its side keeps the header and the toolbar to one row and shows the
 lists on the first screen, focus gives the lists at least 40 % of the height, and a task list closed on a narrow screen is visible when the
 screen widens. Screenshots of every view land in test-results/layout-*.png."""
 import os,socket,subprocess,time,urllib.request
@@ -145,6 +145,63 @@ def views(page,name,side):
     check(page,name+'-author-try',side);focus(page,name+'-author-try',side)
     page.locator('[data-mode="practice"]').click();expect(page.locator('[data-check]')).to_be_visible()
     check(page,name+'-practice',side);focus(page,name+'-practice',side)
+# ADR-144 (NY-38): where the lists end and where the result bar starts, with the page as it stands.
+FIT="""()=>{const bar=document.querySelector('.evaluation-bar').getBoundingClientRect(),zones=[...document.querySelectorAll('.drop-zone')].filter(e=>e.checkVisibility()).map(e=>e.getBoundingClientRect());
+ return {height:Math.round(zones[0].height),bottom:Math.max(...zones.map(r=>r.bottom)),barTop:bar.top,barBottom:bar.bottom,view:innerHeight,side:new Set(zones.map(r=>Math.round(r.top))).size===1};}"""
+def settled(page):
+    """Two frames: the measurement runs in the frame after a size changes."""
+    page.evaluate('()=>new Promise(done=>requestAnimationFrame(()=>requestAnimationFrame(done)))')
+def fits(page,name,least=False):
+    """Side by side, the lists end above the result bar with the page at its top, and reach down to it (the bar's own
+    margin and the pane's line between them) unless they stand at their least or greatest height. `least`: the room may be under the
+    lists' least height here, and then the page scrolls."""
+    page.evaluate('scrollTo(0,0)');settled(page);f=page.evaluate(FIT)
+    assert f['side'],f"{name}: the lists stand side by side"
+    assert f['view']-4<=f['barBottom']<=f['view']+1,f"{name}: the result bar stands at the bottom of the screen ({f['barBottom']} of {f['view']})"
+    if not(least and f['height']==180):assert f['bottom']<=f['barTop']+.5,f"{name}: {round(f['bottom']-f['barTop'])} px of the lists stand under the result bar"
+    if 180<f['height']<640:assert f['barTop']-f['bottom']<=20,f"{name}: the lists end {round(f['barTop']-f['bottom'])} px above the result bar"
+    return f
+def lists_above_bar(browser):
+    """ADR-144 (NY-38): on a low laptop screen, a laptop, a desktop and a tablet on its side, in the author's Try step and
+    in practice, before and after a check (the bar grows with a result) the lists end above the result bar. The room is
+    measured, not a constant: a block that pushes the lists down and a detail opened in the bar shorten them. Where the
+    room is under 180 px the lists keep 180 px. On a phone on its side a list and its title fill the screen above the bar."""
+    for width,height,touch in [(1366,600,False),(1366,650,False),(1280,720,False),(1440,900,False),(1024,768,True)]:
+        context=browser.new_context(viewport={'width':width,'height':height},is_mobile=touch,has_touch=touch);page=context.new_page();name=f'{width}x{height}'
+        page.goto(BASE);expect(page.locator('[data-step="source"]')).to_have_attribute('aria-current','step')
+        menu=page.locator('details.open-menu')
+        if menu.get_attribute('open') is None:menu.locator('summary').click()
+        example=page.locator('[data-start-example] option').nth(1).get_attribute('value');page.locator('[data-start-example]').select_option(example)
+        page.locator('[data-author-apply]').click();expect(page.locator('[data-step="rules"]')).to_have_attribute('aria-current','step')
+        page.locator('[data-step="try"]').click();expect(page.locator('.solution-zone')).to_be_visible();fits(page,name+' author Try')
+        page.locator('[data-check]').click();expect(page.locator('.report')).not_to_have_class('report idle');fits(page,name+' author Try, checked')
+        page.locator('[data-mode="practice"]').click();expect(page.locator('[data-check]')).to_be_visible();idle=fits(page,name+' practice')
+        # what stands above the lists is measured: 70 px more above them is 70 px less for them
+        page.evaluate("()=>{const block=document.createElement('div');block.id='pushed';block.style.height='70px';document.querySelector('.task-heading').before(block);}")
+        pushed=fits(page,name+' practice, pushed down',least=True)
+        if idle['height']-70>180 and idle['height']<640:assert abs(idle['height']-70-pushed['height'])<=1,f"{name}: the lists were {idle['height']} px and are {pushed['height']} px with 70 px more above them"
+        page.evaluate("()=>document.querySelector('#pushed').remove()")
+        page.locator('[data-check]').click();expect(page.locator('.report')).not_to_have_class('report idle');checked=fits(page,name+' practice, checked')
+        # the bar is measured too: a detail opened in it leaves the lists above it
+        detail=page.locator('.evaluation-bar details').first;expect(detail).to_be_visible()
+        detail.locator('summary').click();opened=fits(page,name+' practice, a detail open in the bar',least=True)
+        assert opened['barTop']<checked['barTop']-1,f"{name}: the opened detail made the bar higher"
+        context.close()
+    # under 180 px of room the lists keep 180 px and the page scrolls (500 px and lower is the low, wide layout of a phone on its side)
+    context=browser.new_context(viewport={'width':1366,'height':520});page=context.new_page();page.goto(BASE)
+    page.locator('[data-mode="practice"]').click();expect(page.locator('[data-check]')).to_be_visible();settled(page)
+    assert page.evaluate(FIT)['height']==180,f"a 520 px high window leaves the lists {page.evaluate(FIT)['height']} px, not their least 180 px"
+    context.close()
+    # a phone on its side: scrolled to a list's title, the list ends above the bar, before and after a check
+    context=browser.new_context(viewport={'width':780,'height':360},is_mobile=True,has_touch=True);page=context.new_page();page.goto(BASE)
+    page.locator('[data-mode="practice"]').click();expect(page.locator('[data-check]')).to_be_visible()
+    for state in ['idle','checked']:
+        if state=='checked':page.locator('[data-check]').click();expect(page.locator('.report')).not_to_have_class('report idle')
+        settled(page);page.evaluate("()=>document.querySelector('.panel-title').scrollIntoView({block:'start'})");settled(page);f=page.evaluate(FIT)
+        assert page.evaluate("()=>Math.abs(document.querySelector('.panel-title').getBoundingClientRect().top)")<=1,'the list title stands at the top of the screen'
+        assert f['bottom']<=f['barTop']+.5,f"phone on its side, {state}: {round(f['bottom']-f['barTop'])} px of the lists stand under the result bar"
+    context.close()
+    print('PASS layout: the lists end above the result bar on five screens, before and after a check; the room is measured',flush=True)
 def sidebar(browser):
     """ADR-116: a task list closed on a narrow screen is still the sidebar when the screen widens (it was an empty column)."""
     page=browser.new_context(viewport={'width':780,'height':900}).new_page();page.goto(BASE)
@@ -164,7 +221,7 @@ try:
                 for name,width,height,touch,side in VIEWPORTS:
                     context=browser.new_context(viewport={'width':width,'height':height},is_mobile=touch,has_touch=touch,color_scheme=scheme)
                     views(context.new_page(),f'{scheme}-{name}',side);context.close()
-            sidebar(browser)
+            sidebar(browser);lists_above_bar(browser)
             print('PASS layout total: every view in both themes',flush=True)
         finally:browser.close()
 finally:

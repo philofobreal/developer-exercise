@@ -9,6 +9,7 @@ import { article, escapeHtml as esc, editorShell, highlight, syncEditors } from 
 import { icon } from './icons.js';
 import { createViewContinuity } from './continuity.js';
 import { installHeaderFit } from './header-fit.js';
+import { installListFit } from './list-fit.js';
 import { installWorkbenchKeyboard, installAuthoringFlows, installMenus, installDisabledGuard } from './interactions.js';
 import { installToggletips } from './toggletip.js';
 import { authorDraftPending, canUndoReplace, refreshAuthorStatus } from './author-workspace.js';
@@ -43,7 +44,7 @@ const tool = (attribute, label, name, extra = '') => {
 const actionBar = (label, start, status, end) => `<div class="action-bar" role="group" aria-label="${label}"><div class="action-start">${start}</div>${status || '<span class="action-status"></span>'}<div class="action-end">${end}</div></div>`;
 const languageName = (language) => language === 'typescript' ? 'TypeScript' : 'JavaScript';
 export function createWorkbenchView({ root, state, ex, at, attempt, scroll, format }) {
-    const continuity = createViewContinuity(root), fitHeader = installHeaderFit(root), tips = installToggletips(root);
+    const continuity = createViewContinuity(root), fitHeader = installHeaderFit(root), fitLists = installListFit(root), tips = installToggletips(root);
     root.addEventListener('click', event => { if (!(event.target instanceof Element) || !event.target.closest('[data-dismiss-notice]'))
         return; try {
         localStorage.setItem(DEMO_NOTICE, 'seen');
@@ -293,6 +294,7 @@ export function createWorkbenchView({ root, state, ex, at, attempt, scroll, form
         root.dataset.renderedView = v;
         root.dataset.renderedMode = state.mode;
         fitHeader();
+        fitLists();
         scroll.restore(key);
         continuity.restore(key + ':' + v + (v === 'model' ? ':' + (state.rulesView ?? 'visual') : v === 'author' ? ':' + (state.sourceKind ?? 'code') : ''));
         tips.rendered({ background });

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-11-13 A listák a ragadós lábléc fölött érnek véget (ADR-144, NY-38 lezárva)
+
+- **A két kódlista alja nem kerül az „Ellenőrzés” sávja alá.** Eddig alacsony laptopképernyőn (1366×650) a listák alsó másfél sora, ellenőrzés után több is, a sáv alatt maradt, amíg az oldalt nem görgették. A Pages-en az első látogatáskor (a Local Demo értesítéssel) ez minden szokásos képernyőn így volt.
+- **A listák kitöltik a helyüket a sávig.** A szerzői Próba lépésben így több sor látszik (1366×768-on 368 helyett 442 px).
+- **Ellenőrzés után a listák alja a megnövő sávhoz igazodik** (kb. 22 px-rel rövidebbek lesznek); a sorok a helyükön maradnak.
+- **Fekvő telefonon** a lista a címsorához görgetve a sáv fölött ér véget; eddig 5–6 px, ellenőrzés után közel 30 px került alá.
+- **Nagyon alacsony ablakban** (kb. 520 px) a lista legalább 180 px marad, és az oldal görget, mint eddig.
+
 ## Unreleased – 2026-11-13 Lágy felületek, pirula alakú állapotcímkék, új választócsoport (ADR-143, D3)
 
 - **A dobozok sarka lekerekített:** a lépés kerete 12 px, a panelek 10 px, a beágyazott dobozok 8 px, a menük és a súgóbuborékok 12 px sugarat kaptak. A mezők sarka 8 px.

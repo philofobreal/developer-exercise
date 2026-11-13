@@ -1,6 +1,6 @@
 # ADR-139 – Az értékelősáv minden szélességen ragad
 
-Állapot: **elfogadva** (2026-11-11). A felhasználó kérése: „a gyakorló nézetben is a lábléc hasonlóan ragadós legyen, mint a feladat készítése nézetben”. Kockázati osztály: megjelenítés.
+Állapot: **elfogadva** (2026-11-11). **A listák magasságának képletét és a rögzített maradékot az [ADR-144](144-lists-end-above-the-result-bar.md) váltotta fel (2026-11-13): a hely mért.** A felhasználó kérése: „a gyakorló nézetben is a lábléc hasonlóan ragadós legyen, mint a feladat készítése nézetben”. Kockázati osztály: megjelenítés.
 
 ## Kontextus
 
