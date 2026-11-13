@@ -1,4 +1,6 @@
-name: Verify and publish
+# ADR-142: the whole regression, on every push and pull request. It reports beside the Pages deploy
+# (pages.yml) and does not gate it: a failure here is a signal to fix, not a held-back release.
+name: Verify
 on:
   push:
   pull_request:
@@ -6,8 +8,9 @@ on:
 permissions:
   contents: read
 concurrency:
+  # A newer push holds everything an older one did: the older run is cancelled, not queued.
   group: verify-${{ github.ref }}-${{ github.event_name }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -38,16 +41,3 @@ jobs:
           name: browser-diagnostics
           path: test-results/
           if-no-files-found: ignore
-      - name: Upload the exact tested Pages directory
-        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
-  deploy:
-    needs: verify
-    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    uses: ./.github/workflows/pages.yml

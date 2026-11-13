@@ -16,6 +16,7 @@
     "build:pages": "npm run build && node scripts/build-pages.mjs && node dist-tools/stage-python-probe.js",
     "verify:pages": "npm run build:pages && node --test tests/pages-build.test.mjs tests/pages-api.test.mjs",
     "check:all": "npm run check",
+    "gate": "npm run build:pages && node dist-tools/gate.js",
     "test:browser:matrix": "python -X utf8 tests/browser-matrix.playwright.py",
     "test:browser:all": "npm run test:browser && npm run test:browser:server && npm run test:browser:matrix && npm run test:browser:drag && npm run test:browser:workbench && npm run test:browser:engine && npm run test:browser:typescript && npm run test:browser:python && npm run test:browser:a11y && npm run test:browser:layout",
     "test:browser:a11y": "python -X utf8 tests/browser-a11y.playwright.py",

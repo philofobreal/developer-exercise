@@ -21,7 +21,7 @@ A generátor, a validátor és a felület ebben a feladatban **nem változik**.
    - ez a fájl.
 
    Az AGENTS.md szabályai minden itteni lépésnél érvényesek.
-2. **Kiinduló állapot:** `npm ci`, majd `npm run check:all`. Zöldnek kell lennie, mielőtt bármit változtatsz. Ha nem zöld, állj meg, és jelentsd.
+2. **Kiinduló állapot:** `npm ci`, majd `npm run gate -- --full`. Zöldnek kell lennie, mielőtt bármit változtatsz. Ha nem zöld, állj meg, és jelentsd. Minden push előtt `npm run gate` ([ADR-142](adr/142-fast-deploy-and-local-gate.md)).
 3. **Jóváhagyási pontok.** Ezeknél kérdezd meg a felhasználót, és várj a válaszra:
    - a tananyag témaköre és sorrendje (C0);
    - a szintbesorolás (`level`);
@@ -243,16 +243,16 @@ function lateFee(loan: Loan): number {
 | Lépés | Tartalom | Kimenet | Kész, ha |
 | --- | --- | --- | --- |
 | **C0 Felmérés és jóváhagyás** | Kis próbák a scratch-ben (nem kommitolva): (a) a TS 5.8.3 elemzi-e a tervezett elemeket; (b) mit tesz az első kapu `toSorted`, `Symbol.dispose`, szabványos dekorátor esetén; (c) fut-e a `using` az orákulumban Node 22-n; (d) az orákulum `asynchronous` módja egy `Promise.all` leckén. A tananyagtábla bemutatása a felhasználónak | Táblázat a jelentés elején; a felhasználó döntése a témakörről, a sorrendről, a szintekről és a kísérleti leckékről | A felhasználó jóváhagyta; a kísérleti leckék sorsa eldőlt |
-| **C1 Infrastruktúra** | Mappa, `tsconfig`, manifest és típusa, `curriculum-programs.mjs`, `curriculum.test.mjs`, `build-curriculum.ts`; egyetlen lecke: `ts-lib-02-late-fee`. ADR-142 (a tananyag mint korpusz, az eredet szétválasztása, a rések alapszintje) | Zöld `check:all`, egy lecke a korpuszban | Az ADR tervezési review-ja kész (két terv, mit rejt el a modul, hívók) |
+| **C1 Infrastruktúra** | Mappa, `tsconfig`, manifest és típusa, `curriculum-programs.mjs`, `curriculum.test.mjs`, `build-curriculum.ts`; egyetlen lecke: `ts-lib-02-late-fee`. A következő szabad ADR (a tananyag mint korpusz, az eredet szétválasztása, a rések alapszintje) | Zöld `check:all`, egy lecke a korpuszban | Az ADR tervezési review-ja kész (két terv, mit rejt el a modul, hívók) |
 | **C2 A fázis** | M1–M4 leckéi a szöveggel; mérés; alapszint; jelentés | `docs/tananyag-meres.md` (leckénként: sorrendek, elfogadott, rés, minősítés, a rések oka) | A jelentés a felhasználónál; a szállítás eldőlt |
 | **C3 B fázis** | M5–M7 | A jelentés bővül | Ugyanaz |
 | **C4 C fázis** | M8–M10, a C0 döntése szerint | Ugyanaz | Ugyanaz |
-| **C5 Lezárás** | A rések nyitott tételként (generátor típus, mért hatással); CHANGELOG; a jegyzékben NY-40 lezárva | Új NY-sorok | `check:all` zöld; a böngészős sor csak akkor kell, ha a felület változott (itt nem) |
+| **C5 Lezárás** | A rések nyitott tételként (generátor típus, mért hatással); CHANGELOG; a jegyzékben NY-40 lezárva | Új NY-sorok | `npm run gate` zöld (a korpusz és a példák változása a teljes kört futtatja, [ADR-142](adr/142-fast-deploy-and-local-gate.md)) |
 
 **Parancsok:**
 
 ```bash
-npm run check:all
+npm run gate
 ```
 
 ```bash

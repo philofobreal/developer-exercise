@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased – 2026-11-13 Gyors telepítés és gyors helyi ellenőrzés (ADR-142)
+
+- **A Pages a push után néhány perccel frissül,** nem 25–30 perc múlva: a telepítés már nem várja meg a teszteket. A teljes tesztkör mellette fut, és később jelez.
+- **Új parancs push előtt: `npm run gate`.** Egyszer épít, aztán csak azt futtatja, amit a változás igényel, a böngészős sorokat egyszerre négyet:
+  - dokumentumváltozás: kb. 20 másodperc (eddig kb. 26 perc);
+  - felületi változás: kb. 7 perc (eddig kb. 26 perc);
+  - a motor, a szerzői elemzés, a példák vagy az eszközök változása: a teljes kör, kb. 12 perc (eddig kb. 26 perc).
+- **Egy teszt sem maradt ki vagy gyengült:** a `npm run gate -- --full` és a CI továbbra is mindent futtat.
+
 ## Unreleased – 2026-11-12 A ⓘ gomb: fókuszkeret, egy súgó, 44 px érintésre (ADR-141, NY-39 lezárva)
 
 - **A fókuszkeret nem takarja a címke utolsó betűjét:** a ⓘ 6 px-re áll a címkétől, a kerete közelebb a gombhoz.

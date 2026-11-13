@@ -1,16 +1,39 @@
-name: Deploy verified Pages artifact
+# ADR-142: Pages is published from the build alone. The tests ran before the push (npm run gate) and run again
+# in ci.yml beside this workflow; neither holds the deploy back.
+name: Publish Pages
 on:
-  workflow_call:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
 permissions:
   contents: read
-  pages: write
-  id-token: write
 concurrency:
   group: github-pages
   cancel-in-progress: false
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Build the static site
+        run: npm run build:pages
+      - name: Generated contracts and browser outputs match their sources
+        run: git diff --exit-code -- dist public/app public/samples/typescript src/core/schema-check.ts
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

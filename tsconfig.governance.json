@@ -20,6 +20,8 @@
     "scripts/architecture-rules.ts",
     "scripts/verify-architecture.ts",
     "scripts/stage-python-probe.ts",
-    "scripts/build-typescript-samples.ts"
+    "scripts/build-typescript-samples.ts",
+    "scripts/gate-plan.ts",
+    "scripts/gate.ts"
   ]
 }

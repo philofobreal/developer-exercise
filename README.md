@@ -55,6 +55,8 @@ A forráskód-, megoldás- és JSON-szerkesztőben másolás és beillesztés go
 ## Ellenőrzések
 
 ```sh
+npm run gate                # push előtt: egyszer épít, aztán azt futtatja, amit a változás igényel (ADR-142)
+npm run gate -- --full      # a teljes kör, mint a CI-ban
 npm run check:all           # build, minden Node-teszt, öt referenciaaudit
 npm run verify:pages        # külön, célzott Pages-build és artifacttesztek
 python -m venv .venv

@@ -6,25 +6,34 @@ Repository: [philofobreal/developer-exercise](https://github.com/philofobreal/de
 
 ```sh
 npm ci
-npm run check:all
-npm run test:browser:all
+npm run gate
 ```
 
-A `check:all` elkészíti az `_site/` statikus kiadást. Önálló build: `npm run build:pages`. A böngészős kör előfeltétele a README-ben dokumentált Python/Playwright telepítés.
+A `gate` egyszer épít (ebből lesz az `_site/` statikus kiadás), aztán azt futtatja, amit a változás igényel ([ADR-142](adr/142-fast-deploy-and-local-gate.md)). A teljes kör: `npm run gate -- --full` (vagy külön a `npm run check:all` és a `npm run test:browser:all`). Önálló build: `npm run build:pages`. A böngészős kör előfeltétele a README-ben dokumentált Python/Playwright telepítés.
 
 Az artifact relatív belépési útvonalakat, helyi Prismet, JS Beautify-t, TypeScript compilert, Acorn JS-parsert, tiszta strukturális validátort, példafeladatokat és a publikált `schema.json` fájlt tartalmazza. Node-szerver nem kerül bele. A valódi HTTP-alapú teszt `/developer-exercise/` alól tölti be; a sikeres gyökérútvonalas megnyitás önmagában nem elég.
 
 ## GitHub Actions
 
-A `.github/workflows/ci.yml` push, pull request vagy kézi indítás esetén:
+Két, egymástól független workflow fut ([ADR-142](adr/142-fast-deploy-and-local-gate.md)):
 
-1. Lockfile alapján telepít (`npm ci`), előkészíti a Python/Chromium környezetet.
-2. Egyszer futtatja a teljes Node-kört és a referenciaauditot; ugyanebből a buildből származik az `_site/`.
-3. Futtatja mind az öt böngészős szkriptet: offline, valódi HTTP, Node/Pages mátrix, drag és szerzői/preview munkafolyamatok.
-4. Siker után, kizárólag `main`/`master` ágon és nem PR-eseménynél feltölti az ellenőrzött Pages-artifactot.
-5. A `needs: verify` függőségű deploy job meghívja a `.github/workflows/pages.yml` újrafelhasználható workflow-t. Az nem épít és nem tesztel újra; ugyanazt az artifactot publikálja.
+**`.github/workflows/pages.yml` („Publish Pages”)**, a `main`/`master` ágra érkező pushra vagy kézi indításra:
 
-Sikertelen build vagy bármely teszthiba után nincs Pages-feltöltés/deployment. A diagnosztikai artifact ettől függetlenül megőrződik. A Pages-beállításban **GitHub Actions** legyen a kiadási forrás. A deploy job `pages: write`, `id-token: write` jogosultságot kap; a tesztjob csak olvasási jogosultságot.
+1. Lockfile alapján telepít (`npm ci`), és megépíti az `_site/` kiadást (`npm run build:pages`).
+2. Ellenőrzi, hogy a generált kimenetek egyeznek a forrásukkal.
+3. Feltölti és telepíti a Pages-artifactot.
+
+Teszt nem fut benne: a telepítés a push után néhány perccel kész.
+
+**`.github/workflows/ci.yml` („Verify”)**, minden pushra, pull requestre vagy kézi indításra:
+
+1. Lockfile alapján telepít, előkészíti a Python/Chromium környezetet.
+2. Futtatja a teljes Node-kört és a referenciaauditot (`check:all`), majd minden böngészős sort (`test:browser:all`).
+3. A diagnosztikai artifactot mindig megőrzi.
+
+Az ellenőrzés a telepítést **nem tartja vissza**: mellette fut, és később jelez. Ha piros, javítani kell, de a webhely addigra frissült; a hibát a push előtti helyi kapu tartja távol. Egy újabb push megszakítja az előző, még futó ellenőrzést.
+
+A Pages-beállításban **GitHub Actions** legyen a kiadási forrás. A telepítő job `pages: write`, `id-token: write` jogosultságot kap; az építő és az ellenőrző job csak olvasási jogosultságot.
 
 A helyi Git origin még mutathat korábbi névre; ellenőrzés: `git remote -v`. A távoli beállítást a helyi audit nem módosítja automatikusan. Új repository létrehozása nem szükséges.
 
