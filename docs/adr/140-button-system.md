@@ -1,6 +1,6 @@
 # ADR-140 – Gombrendszer: lecsapott, ahol dönt; kerekített, ahol dolgozik; összevont, ahol szűk
 
-Állapot: **elfogadva, megvalósítás ütemezve** (2026-11-12). A felhasználó kérte a gombok újragondolását egy saját mintaoldal (lekerekített, lecsapott sarkú gombok) alapján, és a bemutatott javaslatot jóváhagyta: „jó, tetszik. tartsuk meg, rögzítsük és ütemezzük be”. A javaslat oldala: <https://claude.ai/artifact/MEDMKex5kLG4uBp2eRnTpU> (privát). Kockázati osztály: megjelenítés. Az [ADR-104](104-spectral-design-system.md) (F1) és az F1b karakter (ferde, lecsípett gombok) továbbvitele; az UI1 gombkomponensét (4 szerep, 3 méret) tartja meg.
+Állapot: **elfogadva, megvalósítás folyamatban** (2026-11-12; a D1 kész 2026-11-13-án, lásd lent). A felhasználó kérte a gombok újragondolását egy saját mintaoldal (lekerekített, lecsapott sarkú gombok) alapján, és a bemutatott javaslatot jóváhagyta: „jó, tetszik. tartsuk meg, rögzítsük és ütemezzük be”. A javaslat oldala: <https://claude.ai/artifact/MEDMKex5kLG4uBp2eRnTpU> (privát). Kockázati osztály: megjelenítés. Az [ADR-104](104-spectral-design-system.md) (F1) és az F1b karakter (ferde, lecsípett gombok) továbbvitele; az UI1 gombkomponensét (4 szerep, 3 méret) tartja meg.
 
 ## Döntés
 
@@ -42,4 +42,40 @@ A megvalósítás az NY-37 tétel ([nyitott-tetelek.md](../nyitott-tetelek.md)),
 - **D5:** telefonos összevont menük;
 - **D6:** kapuk és lezárás.
 
-Mindegyik lépés után teljes ellenőrzés és képernyőkép-összevetés jön.
+Mindegyik lépés külön push: `npm run gate` ([ADR-142](142-fast-deploy-and-local-gate.md)) és képernyőkép-összevetés.
+
+## D1: a komponens kerekített sziluettje és állapotai (2026-11-13)
+
+- **Kerekített minden eszköz:** minden `.btn`, kivéve a lépés fő műveletét (`.primary`, a lecsípett sarka a D3-ig marad), és a menügombok.
+  - A sugár a gomb magasságát követi: 36 px-től 8 px, 28 px-nél 6 px (`min(8px, magasság × 0,22)`), így a kis gomb magától kisebb sugarat kap.
+  - Az összetartozó választók (`.segment`) csak a külső sarkukon kerekítettek; a végleges alakjuk a D4-é.
+  - A módváltó és a lépéslapok változatlanok (D2).
+- **Bekapcsolt gomb** (`aria-pressed`): halvány kék lap, kék vonal és 2 px-es jel a felirat alatt. A fókusz és a teljes képernyő gombja eddig teli kék volt, a „Sor szabályai” halvány: most egyformák.
+- **Letiltott gomb:** egyetlen tompa lap, akár `:disabled`, akár okkal letiltott (`aria-disabled`, ADR-120). Eddig az egyik 55%-os, a másik 50%-os átlátszóságú volt.
+- **Dolgozó gomb** nem látszik letiltottnak: a forgó jel mutatja, hogy dolgozik.
+- **Lenyomva** a lap 1 px-t mozdul.
+- **A magasságok nem változtak.** A 48/40/32 px-es méretek a D3-ban (fő művelet) és a D4-ben (eszközök) jönnek, ahol a családjuk alakot kap.
+
+### Eltérés a D1 tervétől
+
+- **A lecsapott sziluett osztálya a D2-be került,** az első használatához: a D1-ben egyetlen gomb sem viselte volna, így ellenőrizni sem lehetett volna. A böngésző támogatását megmértem: a helyi Chromium (153) ismeri a `corner-shape`-et és a `superellipse()` értéket.
+
+### Tervezési review (D1)
+
+- **Egy helyen él** a kerekítés, a bekapcsolt jel és a letiltott lap (a `style.css` gombkomponens-szakasza, az ADR-117 szabályai mellett). A fókusz-, a teljes képernyő- és a szabálypanel-gomb saját bekapcsolt szabályai megszűntek.
+- **A méretet továbbra is a hely mondja meg** (`--control-h`, ADR-117); a sugár ebből számol, külön méretosztály nincs.
+- **Rögzített maradék:** a sorgombok (`.rule-toggle`, `.pin-toggle`) saját bekapcsolt stílusa a D4-ig marad.
+
+### Bizonyíték (D1)
+
+- **Elrendezés-kapu** ([browser-layout.playwright.py](../../tests/browser-layout.playwright.py)), minden nézetben, hat képernyőméreten, mindkét témában:
+  - minden látható eszköz sugara a magasságához illik;
+  - minden bekapcsolt gomb viseli a 2 px-es jelet;
+  - fókusz módban a fókuszgomb bekapcsolt.
+
+  Mutációs próba: a kerekítés nélkül a kapu elbukik („tools without the component's rounding”).
+- **Böngészős teszt** (`button_states`, [browser-workbench.playwright.py](../../tests/browser-workbench.playwright.py)):
+  - a kétféle letiltott gomb egyformán néz ki, és más, mint az alap;
+  - a dolgozó gomb nem néz ki letiltottnak;
+  - a bekapcsolt gomb lapja más, és jelet visel.
+- **Képernyőkép-összevetés:** 28 nézet előtte és utána (asztal és telefon, világos és sötét).

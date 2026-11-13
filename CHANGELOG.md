@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-13 Gombrendszer, 1. lépés: kerekített eszközök és egységes állapotok (ADR-140, D1)
+
+- **Az eszközgombok és a menügombok enyhén kerekítettek** (8 px, a kis gombok 6 px). A lépés fő művelete, a módváltó és a lépéslapok még a régi alakjukban vannak; ezek a következő lépésekben kapnak lecsapott sarkot.
+- **A bekapcsolt gomb mindenhol egyforma:** halvány kék lap, kék vonal és egy 2 px-es jel a felirat alatt (Sor szabályai, Fókusz, teljes képernyő). Eddig a Fókusz és a teljes képernyő teli kék volt.
+- **A letiltott gomb mindenhol egyforma** tompa lap; a dolgozó gomb nem néz ki letiltottnak.
+
 ## Unreleased – 2026-11-13 Gyors telepítés és gyors helyi ellenőrzés (ADR-142)
 
 - **A Pages a push után néhány perccel frissül,** nem 25–30 perc múlva: a telepítés már nem várja meg a teszteket. A teljes tesztkör mellette fut, és később jelez.

@@ -364,7 +364,7 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 #app[data-surface=focus] .task-meta {flex-wrap:nowrap}
 #app[data-surface=focus] .toolbar {margin-bottom:10px}
 #app[data-surface=focus] .solution-editor {padding:12px}
-.focus-toggle[aria-pressed=true],.fullscreen-toggle[aria-pressed=true] {background:var(--blue);border-color:var(--blue);color:var(--blue-ink)}
+
 /* Code views (ADR-106): editor, a dense continuous list; cards, separate tiles with large targets.
  * :where keeps them structural, so row states (selected, graded, picked) still decide the colours. */
 @media(pointer:fine) {:where(#app[data-code-view=editor]) .panes {--row:28px}:where(#app[data-code-view=cards]) .panes {--row:40px}}
@@ -398,7 +398,7 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 .rule-inspector .try-rule-panel {margin:0;padding:12px 14px}
 .rule-inspector .rule-panel {margin:0;padding:0;border:0;background:transparent}
 .rule-inspector .rule-columns {grid-template-columns:minmax(0,1fr)}
-.inspector-toggle[aria-pressed=true] {background:var(--blue-pale);border-color:var(--blue);color:var(--accent-text)}
+
 .board-connecting {margin:0 0 8px}
 @media(max-width:1100px) {
  .try-body.with-inspector {grid-template-columns:minmax(0,1fr)}
@@ -555,6 +555,22 @@ button.btn.icon-only {width:var(--control-h);min-width:var(--control-h);padding-
 .menu-panel button.btn {justify-content:flex-start}
 button.btn.link-action {border-color:transparent;background:transparent;color:var(--accent-text);padding-inline:6px}
 button.btn.link-action:hover:not(:disabled) {background:var(--blue-pale);border-color:transparent}
+/* ADR-140 (D1): the component's rounded silhouette and its states. The tools are rounded: every .btn but the step's main
+ * action (.primary keeps its cut corner until D3), and the menu buttons. The mode switch and the step plates are D2's.
+ * - The radius follows the height the place asked for: 8 px from 36 px up, 6 px at 28 px.
+ * - Pressed (aria-pressed): a pale blue plate, a blue line and a 2 px mark under the label, so not the colour alone says it.
+ * - Disabled, whether :disabled or aria-disabled with its reason (ADR-120): one muted plate. A busy button is not disabled
+ *   to the eye: its spinner says it works.
+ * - Pressed down: the plate moves 1 px. */
+:root {--btn-r:8px;--btn-mark:2px}
+:is(button.btn:not(.primary),.menu>summary) {border-radius:min(var(--btn-r),calc(var(--control-h) * .22))}
+.segment button:first-child {border-start-start-radius:min(var(--btn-r),calc(var(--control-h) * .22));border-end-start-radius:min(var(--btn-r),calc(var(--control-h) * .22))}
+.segment button:last-child {border-start-end-radius:min(var(--btn-r),calc(var(--control-h) * .22));border-end-end-radius:min(var(--btn-r),calc(var(--control-h) * .22))}
+button.btn[aria-pressed=true],button.btn[aria-pressed=true]:hover:not(:disabled) {position:relative;background:var(--blue-pale);border-color:var(--blue);color:var(--accent-text)}
+button.btn[aria-pressed=true]::after {content:'';position:absolute;inset:auto 9px 4px;height:var(--btn-mark);background:currentColor;border-radius:1px}
+button.btn:not(.primary,.link-action):is(:disabled,[aria-disabled=true]):not([aria-busy=true]) {opacity:1;color:var(--muted);background:var(--raised);border-color:var(--border);cursor:not-allowed}
+button.btn.link-action:is(:disabled,[aria-disabled=true]):not([aria-busy=true]) {opacity:1;color:var(--muted);cursor:not-allowed}
+button.btn:active:not(:disabled,[aria-disabled=true]) {transform:translateY(1px)}
 .rule-panel,.rule-inspector,.task-heading {--control-h:var(--control-h-sm)}
 @media(pointer:coarse) {.task-heading {--control-h:36px}}
 /* ADR-118 (M1b): on a touch screen the sorter rows carry no controls over the code: a tap picks the row, and its actions

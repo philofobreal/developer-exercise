@@ -20,6 +20,10 @@ MEASURE="""()=>{const shown=s=>[...document.querySelectorAll(s)].filter(e=>e.off
   toolRows:new Set(shown('.toolbar button').map(b=>Math.round(box(b).top+box(b).height/2))).size,
   // ADR-117 (U1): the action-button component and its relatives (segment, menu, mode switch)
   controls:shown('button.btn,.segment button,.menu>summary,.mode-tabs button').map(b=>{const s=getComputedStyle(b);return [Math.round(box(b).height),s.fontSize,s.fontWeight];}),
+  // ADR-140 (D1): the tools are rounded, by the height they have (8 px from 36 px up, 6 px at 28 px); a pressed one
+  // carries a 2 px mark under its label
+  square:shown('button.btn:not(.primary),.menu>summary').filter(b=>{const r=parseFloat(getComputedStyle(b).borderTopLeftRadius),h=box(b).height;return Math.abs(r-Math.min(8,h*.22))>.6;}).map(b=>(b.getAttribute('aria-label')||b.textContent.trim())+' '+getComputedStyle(b).borderTopLeftRadius+' at '+Math.round(box(b).height)),
+  pressed:shown('button.btn[aria-pressed=true]').map(b=>{const mark=getComputedStyle(b,'::after');return [(b.getAttribute('aria-label')||b.textContent.trim()),mark.content!=='none'&&mark.height==='2px'&&parseFloat(mark.width)>8];}),
   zoneTop:Math.round(box(document.querySelector('.drop-zone')).top),
   zones:shown('.drop-zone').map(z=>Math.round(box(z).height)),
   // the lists side by side share their height; stacked, their heights add up
@@ -33,6 +37,9 @@ def check(page,name,side,focused=False):
     heights=sorted({h for h,_,_ in m['controls']});fonts=sorted({(f,w) for _,f,w in m['controls']})
     assert len(heights)<=3,f"{name}: buttons in {len(heights)} heights {heights} (at most 3: default, small, header)"
     assert len(fonts)==1,f"{name}: buttons in {len(fonts)} type styles {fonts} (one: 13 px, 600)"
+    assert not m['square'],f"{name}: tools without the component's rounding: {m['square']}"
+    assert all(marked for _,marked in m['pressed']),f"{name}: a pressed button without its mark: {m['pressed']}"
+    if focused:assert m['pressed'],f"{name}: the focus toggle is pressed in focus mode"
     if side:
         assert m['toolRows']==1,f"{name}: the toolbar takes {m['toolRows']} rows on a phone on its side"
         if not focused:
