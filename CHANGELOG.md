@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-11-13 Lágy felületek, pirula alakú állapotcímkék, új választócsoport (ADR-143, D3)
+
+- **A dobozok sarka lekerekített:** a lépés kerete 12 px, a panelek 10 px, a beágyazott dobozok 8 px, a menük és a súgóbuborékok 12 px sugarat kaptak. A mezők sarka 8 px.
+- **Az állapot pirula alakú, lapos címke** (például „Még nem készült modell”, „Elemzéssel igazolt”, „Publikálható”, Preview Validation), hogy ne lehessen gombnak nézni.
+- **A választók (Forráskód | CodeLine JSON, Vizuális | JSON) egy kerekített csoportot alkotnak.** A kiválasztott rész halvány kék lap, kék vonallal; eddig teli kék volt. Így egy képernyőn legfeljebb két teli gomb látszik: az aktuális lépés és a lépés fő művelete.
+- **Telefonon a kódsor kártyájának sarka tiszta:** a fogantyú és a sorszám oszlopa eddig a kártya sarkán és alján kilógott. A kártya ehhez 2 px-rel magasabb lett; a fogantyú 44 px-es érintési célja megmaradt.
+- **Új ellenőrzés a tesztekben:** lekerekített sarokban nem állhat szögletes elem; ezt minden nézetben, mindkét témában méri.
+
 ## Unreleased – 2026-11-13 Lecsapott sarkú lap minden feliratos gombon (ADR-143, D2)
 
 - **Minden feliratos gomb ugyanaz a lecsapott sarkú lap:** az eszközsor, a fejléc gombjai, a menü, a módváltó, a lépéslapok és a fő műveletek. Finom átmenet, hajszálvonal és lágy árnyék; sötét témában árnyék helyett világosabb felső él.

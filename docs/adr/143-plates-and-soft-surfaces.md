@@ -1,6 +1,6 @@
 # ADR-143 – Vizuális irány: lecsapott lap minden feliratos gombon, lágy felületek
 
-Állapot: **elfogadva, megvalósítás folyamatban** (2026-11-13; a bemutatót a felhasználó jóváhagyta: „jóváhagyom, mehet a D2”; a D2 kész, lásd lent). A felhasználó egy saját gombmintát mutatott („Rounded Industrial Buttons”, CleanActive 02.1), és a három, valódi felületen kipróbált változat közül a harmadikat választotta: „mehet a 3. változat, a panelek is lágyuljanak”. Kockázati osztály: megjelenítés. Módosítja az [ADR-140](140-button-system.md) sziluett-szabályát (a lecsapott sarok ott csak a döntés gombjaié volt) és az [ADR-138](138-three-surfaces.md) szögletes sarkait; a három felület és a gombkomponens szerkezete marad.
+Állapot: **elfogadva, megvalósítás folyamatban** (2026-11-13; a bemutatót a felhasználó jóváhagyta: „jóváhagyom, mehet a D2”; a D2 és a D3 kész, lásd lent). A felhasználó egy saját gombmintát mutatott („Rounded Industrial Buttons”, CleanActive 02.1), és a három, valódi felületen kipróbált változat közül a harmadikat választotta: „mehet a 3. változat, a panelek is lágyuljanak”. Kockázati osztály: megjelenítés. Módosítja az [ADR-140](140-button-system.md) sziluett-szabályát (a lecsapott sarok ott csak a döntés gombjaié volt) és az [ADR-138](138-three-surfaces.md) szögletes sarkait; a három felület és a gombkomponens szerkezete marad.
 
 ## Kontextus
 
@@ -96,6 +96,55 @@ Minden lépés külön push, `npm run gate` után ([ADR-142](142-fast-deploy-and
 - **Állapotok** ([browser-workbench.playwright.py](../../tests/browser-workbench.playwright.py), `button_states`): a lapnak átmenete és árnyéka van, a letiltott lapos.
 - **Mutációs ellenőrzés:** a sarokforma törlése, az ikongomb és a telefonos módváltó kapcsolójának törlése, a lapos arc, egy harmadik teli lap és a jel törlése mind megbuktatja a kaput.
 - **Javított mérés:** a „legfeljebb két teli lap” ellenőrzés először a teljes arcot hasonlította össze, és nem vette észre a harmadik teli lapot, amíg az egér egy lépéslapon állt. Most az arc záró színét veti össze a márkaszínekkel.
+
+## D3: lágy felületek, mezők, állapotcímkék és választócsoportok (2026-11-13)
+
+A felhasználó döntése: „jóváhagyom, mehet a D3 a választócsoportokkal együtt”. A választócsoportok a D4-ből kerültek előre, mert a D2 után a Kód és az Elemzés lépésben a kiválasztott részük volt a harmadik teli kék elem.
+
+- **A három felület sarka token** (az [ADR-138](138-three-surfaces.md) egy-egy szabályában): a lépés kerete 12 px, a panel 10 px, a betét 8 px, a lebegő felület 12 px. A mező 8 px, a kis doboz (`--radius`: kódrészlet, szabály hozzáadása, megerősítés, kártyasor) 6 px.
+- **Két doboz bekerült a panelek közé** (Vizsgálati és Elemzési beállítások, Tanulói adatok és kiadás); a saját keretük és hátterük megszűnt.
+- **A listapanel egy lekerekített doboz két részben:** a címsor felül, a lista alul kerekített. A címsor színes csíkja a címsor saját háttere lett (eddig a cím `::before` eleme volt), így a sarok magától levágja.
+- **Az értékelősáv** a panel sarkát kapja, és a színes blokkját a sarokra vágja.
+- **Az értesítések** (Local Demo, piszkozat, elavult modell, szünetelő szerkesztés) a betét sarkát kapják; a 4 px-es csíkjuk a sarokkal fordul.
+- **A sor szabályainak panelje** kerekített; fiókként (keskeny képernyőn) szögletes marad, mert a képernyő szélén áll.
+- **Az állapot pirula:** az állapotcímke, a szabályjelvény, a minősítés, a „Publikálható” és a Preview Validation jelvény, a zárolt beállítás címkéje. Lapos: nincs árnyéka és átmenete, így nem nézhető gombnak. A nyelv jelvénye (JS, TS) szögletes maradt: azonosító, nem állapot.
+- **A választócsoport** (Forráskód | CodeLine JSON, Vizuális | JSON) egy kerekített csoport, akkora, mint a mellette álló gombok. A kiválasztott rész kis lap a bekapcsolt gomb arcával (halvány lap, kék vonal), a többi lapos. Érintésre egy rész a csoport teljes magasságában válaszol. A 2 px-es jel itt nincs: a kiválasztott részt a kerete és a lapja különbözteti meg, nem csak a színe.
+- **Kártyanézet (telefon, tablet):** a kártya belül akkora, mint egy sor, a kerete ezen felül van (érintésre 46 px a korábbi 44 helyett); az első része a kártya sarkát követi. Eddig a keret a belsejéből vett el 2 px-t, ezért a fogantyú és a számoszlop a kártya alján és sarkán kilógott.
+  - **Első változat, visszavonva:** a fogantyút a kártya belsejéhez igazítottam (42 px). A kapu két böngészős sora megbukott rajta, mert az érintési cél 44 px alá esett.
+- **Megszűnt** a D1 átmeneti szabálya (a választócsoport két szélső gombjának kerekítése) és egy halott szabály (`.mode-switch button.active`), amelyet a lapszabály már a D2-ben felülírt.
+
+### Két terv a sarkok tisztán tartására („design it twice”)
+
+1. **Minden lekerekített doboz levágja a tartalmát** (`overflow:clip` a felületek szabályában). Elvetve: a fókuszkeretet, a lebegő súgót és a vízszintesen görgethető kódsort is levágná; a kártyasoron a hosszú kódsor vége eltűnne.
+2. **A doboz csak ott vág, ahol a tartalma a széléig ér** (értékelősáv, listapanel, folyamatjelző), **máshol a belső elem követi a sarkot** (címsor, kártyafogantyú) (választott). Hogy egy új elem ne lógjon ki észrevétlenül, a kapu minden nézetben méri.
+
+### Tervezési review (docs/design-review.md)
+
+- **A felületszabályok elrejtik** a sarok méretét is (eddig a keretet és a hátteret); egy komponens szabálya nem ír sarkot. A címkék, a mezők és az értesítések sarka szintén egy-egy szabály; a komponensek saját `border-radius` sorai megszűntek.
+- **design, rögzítve:** a `.panel-title` és az utána álló `.ide-pane` két doboz, amely együtt ad egy lekerekített panelt; a kapcsolatuk egy szomszéd-szelektor (`.panel-title+.ide-pane`). Egy közös burkoló elem tisztább volna, de a nézetmodulokat érintené.
+- **design, rögzítve:** a kapu felületlistája megismétli a stíluslap listáit. Egy új felületet mindkét helyre fel kell venni; a kapu így azt bizonyítja, hogy a felsoroltak sarkát későbbi szabály nem írja felül (az ADR-138 előtt ez volt a hiba).
+
+### Bizonyíték
+
+- **Elrendezés-kapu** ([browser-layout.playwright.py](../../tests/browser-layout.playwright.py)); a Kód és az Elemzés lépés is bekerült, így 6 képernyőméret × 2 téma × 6 nézet:
+  - minden felület a tokenje szerinti sarkot viseli;
+  - lekerekített sarokban nem áll szögletes elem (minden nézetben, az oldal teljes hosszában);
+  - az állapotcímke lapos pirula;
+  - a választócsoport akkora, mint a szomszédos gombok, egy kiválasztott része van, csak annak van arca, és minden része a csoport széléig válaszol;
+  - legfeljebb két teli lap áll a képernyőn, most már a Kód és az Elemzés lépésben is.
+- **Mutációs ellenőrzés:** tíz rontás, mind megbuktatja a kaput:
+  - az értékelősáv vágásának törlése; a címsor csíkja újra szögletes gyerekelemként; a kártyafogantyú sarkának törlése (szögletes elem a sarokban);
+  - egy panel sarkának későbbi felülírása; a mezők szabályának törlése (felület a sarka nélkül);
+  - szögletes jelvény (nem pirula);
+  - a kiválasztott rész arc nélkül; a rész csak önmagán válaszol (választócsoport);
+  - a kiválasztott rész teli kék, kétféleképpen (harmadik teli lap a Kód lépésben).
+- **Egyszeri pixelmérés** (nem része a kapunak, mert képolvasó könyvtárat kívánna): 58 nézetben minden lekerekített doboz sarokpixelét összevetettem a környezetével. A felületeken nem talált eltérést. A kapu a `::before` és `::after` rajzot nem látja; ezt a mérés fedte le.
+- **Képernyőkép-összevetés:** 15 nézet, világos és sötét téma, asztal és telefon, a változtatás előtt és után.
+
+### Maradék
+
+- **Telefonon, a szerző Próba lépésében a sor végi ikonok egy esetben a kód fölé kerültek** (hosszú sor; a képernyőképek útján: egy sor rögzítése az Elemzés lépésben, majd a Próba). Az alapesetben az érintőképernyő elrejti őket; a kiváltó feltételt nem vizsgáltam meg. A D3 előtti képeken ugyanígy látszik, tehát nem ez a lépés okozta; a sorgombok a D4 tárgya.
+- **A súgóbuborék ⓘ gombjának nyitott állapota szögletes;** a D4 tárgya.
 
 ## Rögzített maradék
 

@@ -1,6 +1,6 @@
 """Layout gate (ADR-116, M1): the practice view and the author's Try step on desktop, laptop, tablet and phone (upright and on its side),
 in the light and the dark theme. It checks what a machine can measure, not taste: the page never scrolls sideways, no header control runs
-off the screen, every toolbar control in view has one height, every action button (ADR-117) has one type style and at most three heights, every plate (ADR-143) has its shape and its face and at most two are filled, a phone on its side keeps the header and the toolbar to one row and shows the
+off the screen, every toolbar control in view has one height, every action button (ADR-117) has one type style and at most three heights, every plate (ADR-143) has its shape and its face and at most two are filled (also on the Kód and the Elemzés step), every surface has its soft corner with nothing square standing in it, a status chip is a flat pill, a segmented choice is one group with one chosen part, a phone on its side keeps the header and the toolbar to one row and shows the
 lists on the first screen, focus gives the lists at least 40 % of the height, and a task list closed on a narrow screen is visible when the
 screen widens. Screenshots of every view land in test-results/layout-*.png."""
 import os,socket,subprocess,time,urllib.request
@@ -38,10 +38,73 @@ MEASURE="""()=>{const shown=s=>[...document.querySelectorAll(s)].filter(e=>e.off
    const face=b=>{const s=getComputedStyle(b),stops=s.backgroundImage.match(/(?:rgba?|color)\([^()]*\)/g);return stops?stops[stops.length-1]:s.backgroundColor;};
    return shown('button,summary').filter(b=>solid.includes(face(b))).map(b=>b.getAttribute('aria-label')||b.textContent.trim().slice(0,24));})(),
   pressed:shown(':is(button.btn,.mode-tabs button)[aria-pressed=true]').map(b=>{const mark=getComputedStyle(b,'::after');return [(b.getAttribute('aria-label')||b.textContent.trim()),mark.content!=='none'&&mark.height==='2px'&&parseFloat(mark.width)>8];}),
-  zoneTop:Math.round(box(document.querySelector('.drop-zone')).top),
+  zoneTop:Math.round(box(document.querySelector('.drop-zone')??document.body).top),
   zones:shown('.drop-zone').map(z=>Math.round(box(z).height)),
   // the lists side by side share their height; stacked, their heights add up
   lists:(z=>z.length?Math.round(new Set(z.map(e=>Math.round(box(e).top))).size>1?z.reduce((s,e)=>s+box(e).height,0):Math.max(...z.map(e=>box(e).height))):0)(shown('.drop-zone'))};}"""
+# ADR-143 (D3): nothing square stands in a rounded corner. For every box in view with a corner of 5 px or more, the point
+# just inside its bounding box and outside its curve must not be painted by one of its descendants (a ground, or a border
+# whose strip the point lies in). Hit testing knows the curve and what an ancestor clips; it does not see ::before and
+# ::after, so a stripe is drawn as the box's own background.
+CORNERS=r"""()=>{const name=e=>e.tagName.toLowerCase()+(e.id?'#'+e.id:'')+(typeof e.className==='string'&&e.className.trim()?'.'+e.className.trim().split(/\s+/).slice(0,2).join('.'):'');
+ const alpha=c=>{if(c==='transparent')return 0;const m=c.match(/\(([^)]+)\)/);if(!m)return 1;const p=m[1].split(/[\s,/]+/).filter(Boolean);return /^rgba?$/.test(c.split('(')[0])?(p.length>3?parseFloat(p[3]):1):(c.includes('/')?parseFloat(p[p.length-1]):1);};
+ // a descendant paints at a point with its ground, or with a border whose strip the point lies in
+ const paints=(e,px,py)=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();if(s.visibility==='hidden')return false;if(alpha(s.backgroundColor)>0||s.backgroundImage!=='none')return true;
+  const on=k=>parseFloat(s['border'+k+'Width'])>0&&s['border'+k+'Style']!=='none'&&alpha(s['border'+k+'Color'])>0,w=k=>parseFloat(s['border'+k+'Width']);
+  return on('Left')&&px<r.left+w('Left')||on('Right')&&px>r.right-w('Right')||on('Top')&&py<r.top+w('Top')||on('Bottom')&&py>r.bottom-w('Bottom');};
+ const out=new Set();
+ for(const box of document.querySelectorAll('body *')){const r=box.getBoundingClientRect();if(r.width<12||r.height<12||!box.checkVisibility())continue;const s=getComputedStyle(box);
+  for(const [k,x,y,dx,dy] of [['TopLeft',r.left,r.top,1,1],['TopRight',r.right,r.top,-1,1],['BottomRight',r.right,r.bottom,-1,-1],['BottomLeft',r.left,r.bottom,1,-1]]){
+   const raw=s['border'+k+'Radius'];let rad=parseFloat(raw);if(raw.includes('%'))rad=Math.min(r.width,r.height)*rad/100;rad=Math.min(rad,r.width/2,r.height/2);if(!(rad>=5))continue;
+   const d=Math.max(.75,rad*.12),px=x+dx*d,py=y+dy*d;if(px<0||py<0||px>=innerWidth||py>=innerHeight)continue;
+   if(!document.elementsFromPoint(x+dx*rad,y+dy*rad).includes(box))continue;
+   const poke=document.elementsFromPoint(px,py).find(e=>e!==box&&box.contains(e)&&paints(e,px,py));
+   if(poke)out.add(`${name(box)} ${k} (${Math.round(rad)}px): ${name(poke)}`);}}
+ return [...out];}"""
+# ADR-143 (D3): every surface in view has its token's corner (a later rule once squared most panels, ADR-138); a status
+# chip is a flat pill; a text field has the field's corner; a segmented choice is one group as high as the controls, with
+# exactly one chosen part that has a face while the others have none, and each part answers over the group's whole height.
+SURFACES="""()=>{const shown=s=>[...document.querySelectorAll(s)].filter(e=>e.checkVisibility()&&e.getBoundingClientRect().width>0);
+ const root=getComputedStyle(document.documentElement),token=t=>parseFloat(root.getPropertyValue(t)),name=e=>e.tagName.toLowerCase()+'.'+[...e.classList].slice(0,2).join('.');
+ const radii=e=>{const s=getComputedStyle(e);return ['TopLeft','TopRight','BottomRight','BottomLeft'].map(k=>parseFloat(s['border'+k+'Radius']));};
+ const kinds=[['--r-frame','.author,.solution-editor'],['--r-panel','.model-overview,.rule-panel,.model-insight,.rule-board,.try-rules,.source-diagnostics,.task-status,.help-topic,.analysis-options,.learner-data,.evaluation-bar'],
+  ['--r-inset','.dependency-details,.rule-item,.board-list,.feedback-details,.rule-kinds,.help-code,.validation-notice,.draft-notice,.stale-notice,.edit-paused'],['--r-float','.menu-panel,.activity,.toggletip-panel:popover-open'],
+  ['--r-field','#app :is(input:not([type=checkbox],[type=radio],[type=file],[hidden]),select)']];
+ const square=kinds.flatMap(([t,list])=>shown(list).filter(e=>radii(e).some(r=>Math.abs(r-token(t))>.1)).map(e=>`${name(e)}: ${radii(e)} for ${t} ${token(t)}`));
+ const chips=shown('.context-label,.rule-badge,.verification-badge,.publish-badge,.mode-badge,.lock-label').filter(e=>{const s=getComputedStyle(e),h=e.getBoundingClientRect().height;
+  return radii(e).some(r=>r<h/2)||s.boxShadow!=='none'||s.backgroundImage!=='none';}).map(name);
+ const segments=shown('.segment').flatMap(g=>{const parts=[...g.querySelectorAll('button')],r=g.getBoundingClientRect(),control=parseFloat(getComputedStyle(g).getPropertyValue('--control-h'));
+  const faced=parts.filter(b=>getComputedStyle(b).backgroundImage.includes('gradient')),chosen=parts.filter(b=>b.classList.contains('active')),bad=[];
+  if(Math.abs(r.height-control)>1)bad.push(`${name(g)}: ${r.height} px high beside ${control} px controls`);
+  if(chosen.length!==1||faced.length!==1||faced[0]!==chosen[0])bad.push(`${name(g)}: ${chosen.length} chosen, ${faced.length} with a face`);
+  for(const b of parts){const c=b.getBoundingClientRect(),x=c.left+c.width/2;if(r.top<0||r.bottom>innerHeight)continue;
+   for(const y of [r.top+1.5,r.bottom-1.5])if(document.elementFromPoint(x,y)?.closest('button')!==b)bad.push(`${name(g)}: "${b.textContent.trim()}" does not answer at the group's edge`);}
+  return bad;});
+ return {square,chips,segments};}"""
+def surfaces(page,name):
+    """The soft surfaces of the view in front (ADR-143, D3), down the whole page."""
+    s=page.evaluate(SURFACES)
+    assert not s['square'],f"{name}: surfaces without their corner: {s['square']}"
+    assert not s['chips'],f"{name}: status chips that are not flat pills: {s['chips']}"
+    assert not s['segments'],f"{name}: segmented choices: {s['segments']}"
+    top,height,view=page.evaluate('[scrollY,document.documentElement.scrollHeight,innerHeight]');found=set();y=0
+    while True:
+        page.evaluate('y=>scrollTo(0,y)',y);found|=set(page.evaluate(CORNERS))
+        if y+view>=height:break
+        y+=view-80
+    page.evaluate('y=>scrollTo(0,y)',top)
+    assert not found,f"{name}: something square stands in a rounded corner: {sorted(found)}"
+def step(page,name):
+    """An author step without the lists (Kód, Elemzés és szabályok): the plates, the roles and the surfaces."""
+    page.mouse.move(0,0);m=page.evaluate(MEASURE);page.screenshot(path=str(ARTIFACTS/f'layout-{name}.png'))
+    assert m['scroll']<=m['width'],f"{name}: the page scrolls sideways ({m['scroll']} > {m['width']})"
+    assert not m['offscreen'],f"{name}: header controls off the screen: {m['offscreen']}"
+    assert not m['plates'],f"{name}: plates with the wrong shape: {m['plates']}"
+    assert not m['faceless'],f"{name}: plates without the plate's face: {m['faceless']}"
+    assert len(m['filled'])<=2,f"{name}: more than two filled plates on the screen: {m['filled']}"
+    assert all(marked for _,marked in m['pressed']),f"{name}: a pressed button without its mark: {m['pressed']}"
+    surfaces(page,name)
+    print(f"PASS layout: {name} {m['width']}x{m['height']} filled {len(m['filled'])}",flush=True)
 def check(page,name,side,focused=False):
     m=page.evaluate(MEASURE)
     page.screenshot(path=str(ARTIFACTS/f'layout-{name}.png'))
@@ -64,6 +127,7 @@ def check(page,name,side,focused=False):
     # ADR-123 (UI4): an upright phone keeps the app bar to one row (one 44 px touch control and its padding; two rows were ~110 px).
     if not side and not focused and m['width']<=650:assert m['header']<=66,f"{name}: the header is {m['header']} px high: more than one row on an upright phone"
     if focused:assert m['lists']>=.4*m['height'],f"{name}: focus leaves the lists {m['lists']} px of {m['height']}"
+    surfaces(page,name)
     print(f"PASS layout: {name} {m['width']}x{m['height']} header {m['header']} tools {sorted(set(m['tools']))} rows {m['toolRows']} lists {m['zones']}",flush=True)
 def focus(page,name,side):
     page.locator('[data-focus]').click();expect(page.locator('#app')).to_have_attribute('data-surface','focus')
@@ -74,7 +138,9 @@ def views(page,name,side):
     menu=page.locator('details.open-menu')
     if menu.get_attribute('open') is None:menu.locator('summary').click()
     example=page.locator('[data-start-example] option').nth(1).get_attribute('value');page.locator('[data-start-example]').select_option(example)
+    step(page,name+'-author-source')
     page.locator('[data-author-apply]').click();expect(page.locator('[data-step="rules"]')).to_have_attribute('aria-current','step')
+    step(page,name+'-author-rules')
     page.locator('[data-step="try"]').click();expect(page.locator('.solution-zone')).to_be_visible()
     check(page,name+'-author-try',side);focus(page,name+'-author-try',side)
     page.locator('[data-mode="practice"]').click();expect(page.locator('[data-check]')).to_be_visible()
