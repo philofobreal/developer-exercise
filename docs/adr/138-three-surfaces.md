@@ -1,6 +1,6 @@
 # ADR-138 – Három felület a CSS-ben: panel, beágyazott, lebegő (NY-30)
 
-Állapot: **elfogadva** (2026-11-11). A felhasználó a következő tételt kérte; az NY-30 az [ADR-123](123-steps-reassigned-and-one-skeleton.md) (UI4) rögzített maradéka volt. Kockázati osztály: megjelenítés. A működés nem változott.
+Állapot: **elfogadva** (2026-11-11). **A szögletes sarkokat az [ADR-143](143-plates-and-soft-surfaces.md) lágyra módosítja (2026-11-13, megvalósítás a D3-ban);** a három felület és az egy-egy szabály marad. A felhasználó a következő tételt kérte; az NY-30 az [ADR-123](123-steps-reassigned-and-one-skeleton.md) (UI4) rögzített maradéka volt. Kockázati osztály: megjelenítés. A működés nem változott.
 
 ## Kontextus
 

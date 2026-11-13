@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased – 2026-11-13 Vizuális irány: lecsapott lap minden feliratos gombon, lágy felületek (ADR-143)
+
+- **Rögzítve a választott irány** egy saját gombminta alapján: minden feliratos gomb lecsapott sarkú lap, az ikon- és sorgombok kerekítettek, a panelek lágy sarkot kapnak. A gombok a mai méretükben maradnak, hogy a kódból ne vegyenek el helyet.
+- **Bemutató készült** a valódi felületen, világos és sötét témában, asztalon és telefonon. A felület még nem változott: a megvalósítás a bemutató jóváhagyása után indul (D2–D4).
+
 ## Unreleased – 2026-11-13 Gombrendszer, 1. lépés: kerekített eszközök és egységes állapotok (ADR-140, D1)
 
 - **Az eszközgombok és a menügombok enyhén kerekítettek** (8 px, a kis gombok 6 px). A lépés fő művelete, a módváltó és a lépéslapok még a régi alakjukban vannak; ezek a következő lépésekben kapnak lecsapott sarkot.
