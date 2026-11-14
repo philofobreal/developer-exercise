@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-14 A gombrendszer lezárva (ADR-140, D6)
+
+- **Kilenc lépésben elkészült a gombrendszer és a vizuális irány** (D1–D5b): letört lap a feliratos gombokon, kerek ikon- és sorgombok, sík tónusú arc, a lapot követő fókuszkeret, lágy felületek, legalább 12 px-es szöveg, telefonos menük, egy keretbe fogott munkaterület.
+- **Az ADR-140 rögzíti, mi áll az eredeti döntésből és mi változott útközben,** és mely kapuk őrzik.
+- **Ez a lépés a felületen semmit nem változtat.**
+
 ## Unreleased – 2026-11-14 „A” vagy „az”, nem „a(z)” (ADR-148, NY-41)
 
 - **A visszajelzések helyes névelőt írnak:** „A 4. sornak a 3. sor előtt kell állnia”, „Az 5. sor…”, „az „if (x) {” sort…”. Eddig „A(z) 4. sor a(z) 3. sor előtt kell állnia” állt.

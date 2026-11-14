@@ -291,5 +291,7 @@ A felhasználó a bemutató négy arca és két sarokváltozata közül választ
 
 ## Rögzített maradék
 
+A gombrendszert az [ADR-140 lezárása](140-button-system.md#lezárás-d6-2026-11-14) zárja (2026-11-14).
+
 - **Régebbi böngészők** (Chrome és Edge 135 előtt, Safari 18.4 előtt, Firefox a `shape()` megérkezése előtt) a letörés helyett lekerekített téglalapot mutatnak (D3b). A D3b előtt a vágott sarok csak Chromium-alapú böngészőben látszott.
 - **A minta állapotszínei gombként** (zöld, sárga, piros, türkiz, lila lap) nem kerülnek be: a felületen ezek jelzések.

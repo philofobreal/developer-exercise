@@ -1,6 +1,6 @@
 # ADR-140 – Gombrendszer: lecsapott, ahol dönt; kerekített, ahol dolgozik; összevont, ahol szűk
 
-Állapot: **elfogadva, megvalósítás folyamatban** (2026-11-12; a D1 kész 2026-11-13-án, lásd lent). **A sziluett-szabályt az [ADR-143](143-plates-and-soft-surfaces.md) módosította (2026-11-13):** a lecsapott sarok minden feliratos gombé, nem csak a döntés gombjaié; a D2–D4 lépések ott vannak újraosztva. **A rajzolás technikája is ott változott (D3b):** a lap `clip-path: shape()` kivágás egy rétegen, sík tónussal; továbbra is JavaScript és gombonkénti SVG nélkül. A felhasználó kérte a gombok újragondolását egy saját mintaoldal (lekerekített, lecsapott sarkú gombok) alapján, és a bemutatott javaslatot jóváhagyta: „jó, tetszik. tartsuk meg, rögzítsük és ütemezzük be”. A javaslat oldala: <https://claude.ai/artifact/MEDMKex5kLG4uBp2eRnTpU> (privát). Kockázati osztály: megjelenítés. Az [ADR-104](104-spectral-design-system.md) (F1) és az F1b karakter (ferde, lecsípett gombok) továbbvitele; az UI1 gombkomponensét (4 szerep, 3 méret) tartja meg.
+Állapot: **lezárva** (2026-11-14, D6; elfogadva 2026-11-12-én). A megvalósítás kilenc lépésben elkészült; hogy a döntésből mi áll ma és mi változott útközben, azt a [Lezárás](#lezárás-d6-2026-11-14) szakasz mondja meg. **A sziluett-szabályt az [ADR-143](143-plates-and-soft-surfaces.md) módosította (2026-11-13):** a lecsapott sarok minden feliratos gombé, nem csak a döntés gombjaié; a D2–D4 lépések ott vannak újraosztva. **A rajzolás technikája is ott változott (D3b):** a lap `clip-path: shape()` kivágás egy rétegen, sík tónussal; továbbra is JavaScript és gombonkénti SVG nélkül. A felhasználó kérte a gombok újragondolását egy saját mintaoldal (lekerekített, lecsapott sarkú gombok) alapján, és a bemutatott javaslatot jóváhagyta: „jó, tetszik. tartsuk meg, rögzítsük és ütemezzük be”. A javaslat oldala: <https://claude.ai/artifact/MEDMKex5kLG4uBp2eRnTpU> (privát). Kockázati osztály: megjelenítés. Az [ADR-104](104-spectral-design-system.md) (F1) és az F1b karakter (ferde, lecsípett gombok) továbbvitele; az UI1 gombkomponensét (4 szerep, 3 méret) tartja meg.
 
 ## Döntés
 
@@ -80,3 +80,52 @@ Mindegyik lépés külön push: `npm run gate` ([ADR-142](142-fast-deploy-and-lo
   - a dolgozó gomb nem néz ki letiltottnak;
   - a bekapcsolt gomb lapja más, és jelet visel.
 - **Képernyőkép-összevetés:** 28 nézet előtte és utána (asztal és telefon, világos és sötét).
+
+## Lezárás (D6, 2026-11-14)
+
+A felhasználó jóváhagyta a lezárást („mehet az NY-44 és NY-45 közös kidolgozása, de előtte a D6”). Ez a szakasz azt rögzíti, mi áll a döntésből, mi változott útközben, és mi őrzi.
+
+### A lépések
+
+| Lépés | Mi készült | Commit | Hol van leírva |
+| --- | --- | --- | --- |
+| D1 | kerekített eszközök, állapotonként egy megjelenés | c9ccbdc | ez az ADR |
+| D2 | letört lap minden feliratos gombon | f08e111 | [ADR-143](143-plates-and-soft-surfaces.md) |
+| D3 | lágy felületek, mezők, állapotcímkék, választócsoportok | 793947f | ADR-143 |
+| D3b | sík tónusú lap, valódi letörés két kerekített csúccsal | a5841bb | ADR-143 |
+| D4a | a többi gomb, a fókuszkeret a lapot követi, távolságok | 185e534 | ADR-143 |
+| D4b | semmi 12 px alatt, a kód 13 px | b490a50 | ADR-143 |
+| D5 | telefonon egy fejlécmenü, mért eszközfeliratok | 672ed97 | [ADR-145](145-narrow-screen-menus.md) |
+| D5b | a munkaterület egy keret, állítható szabálypanel | f02132d | [ADR-146](146-workspace-frame-and-rule-panel-split.md) |
+| D6 | lezárás | ez a commit | ez a szakasz |
+
+### A döntés és ami ma áll
+
+| A döntés 2026-11-12-én | Ami ma áll | Miért változott |
+| --- | --- | --- |
+| lecsapott sarok csak az irány és a döntés gombjain | lecsapott sarok **minden feliratos** gombon; a felirat nélküli (ikon- és sor-) gomb kerek | a felhasználó döntése a D2 bemutatója után (ADR-143) |
+| nézetenként legfeljebb egy kitöltött gomb | legfeljebb **kettő** (a lépés fő művelete és az aktív lépéslap) | a lépéslap is kitöltött lett; a kapu kettőt enged |
+| bekapcsolt állapot: halvány kék lap, kék vonal, 2 px-es jelzővonal | így áll | – |
+| állapotok minden családban (alap, lenyomva, dolgozik, letiltva, törlés) | így áll; a letiltott gomb üres lap hajszálvonallal | a sík arc mellett a letiltott állapotnak más jel kellett (D3b) |
+| telefonon a munkamenet, a téma és a teljes képernyő egy menü alatt | a munkamenet és a téma egy ☰ alatt; **a teljes képernyő kint maradt**; a menügomb mindig ikon | a felhasználó döntése a D5 bemutatója után (ADR-145) |
+| telefonon az Újrakezdés, a Fókusz és a súgó a „Továbbiak” alatt | az Újrakezdés és a súgóhoz vezető sor a ⋯ alatt, ahol súgó is van; **a Fókusz kint maradt**; a felirat ott látszik, ahol a sorban elfér | a felhasználó döntése; a felirat mért, nem töréspont (ADR-145) |
+| CSS `corner-shape`, ahol a böngésző ismeri | `clip-path: shape()` egy rétegen; régebbi böngészőben lekerekített téglalap | a `corner-shape` csak Chromiumban élt, és a letörés csúcsa nem volt kerekíthető (D3b) |
+| nincs gombonkénti SVG és JavaScript | így áll | – |
+
+Ami a döntésben nem szerepelt, de a gombrendszerrel együtt készült el: a lágy felületek és a felülettokenek (D3), a tipográfia alsó határa (D4b), a listacím sávjának lekerekített alja, a nyelvjelvények színe (NY-48), a munkaterület kerete és a szabálypanel elválasztója (ADR-146).
+
+### Ami őrzi
+
+- **Elrendezés-kapu** ([browser-layout.playwright.py](../../tests/browser-layout.playwright.py)), 75 eset, minden nézetben és mindkét témában: a lap körvonala (letörés felirattal, kerek anélkül); sík arc, amelyen a felirat olvasható (4,5:1); legfeljebb két kitöltött gomb; egy betűtípus-stílus és legfeljebb három magasság; a fókuszkeret a lapot követi; a felületek sarka a tokené, és semmi szögletes nem áll benne; pirula alakú állapotcímkék; egy csoportot alkotó választók; 12 px-es alsó határ, 13 px-es kód; a munkaterület kerete; a nyelvjelvények színe.
+- **Munkafelület-csomag** ([browser-workbench.playwright.py](../../tests/browser-workbench.playwright.py)): a gombok állapotai (`button_states`), a telefonos menük (`header_menu`, `toolbar_menu`), a keret és az elválasztók (`rules_split`).
+- **Akadálymentességi vizsgálat** és a **stíluslap egységtesztje** (lezárt blokkok, nincs 12 px alatti betű).
+
+### Képernyőkép-összevetés
+
+A lezáráskor 16 nézetről készült kép a gombmunka előtti állapotból (15105c9) és a mostaniból, egymás mellett: a három szerzői lépés, a gyakorlás ellenőrzés előtt és után (sötét és világos téma, 1440×900), valamint telefonon (390×844) a Próba, a gyakorlás és a fejlécmenü. A képeket a felhasználó megkapta; a tárolóba nem kerültek be. A mostani állapot képeit az elrendezés-kapu minden futáskor újra elkészíti (`test-results`).
+
+### Ami nyitva maradt
+
+- **Régi stílusszabályok** a lap szabályai alatt (például a menügomb régi kerete és háttere): hogy melyik halott már, azt nem mértem ki, ezért nem töröltem. Törlésük külön lépés lenne, nézetenkénti stílus-összevetéssel.
+- **A súgóoldal** saját stíluslapot használ; a gombrendszer szabályai ott annyiban élnek, amennyiben a közös tokenekből következnek. A kapu a súgóoldal gombjait nem méri.
+- **Régebbi böngészők** a letörés helyett lekerekített téglalapot mutatnak (ADR-143, rögzített maradék).
