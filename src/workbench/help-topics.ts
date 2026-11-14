@@ -157,8 +157,8 @@ const VERDICT:Readonly<Record<CheckExample['outcomes'][number]['verdict'],string
 export function renderExample(example:HelpExample,id:string,where:'workbench'|'page'):string {
  const code=highlightLines(example.source,example.language).map((line,index)=>`<span class="help-line"><span class="help-ln" aria-hidden="true">${index+1}</span>${line||' '}</span>`).join('');
  const trial=(index:number,label:string):string=>where==='workbench'
-  ?`<button type="button" class="help-try" data-help-try="${esc(id)}" data-help-outcome="${index}" aria-label="Kipróbálom a Kód lépésben: ${esc(label)}">Kipróbálom a Kód lépésben</button>`
-  :`<a class="help-try" href="${helpTrialHref(id,index)}" aria-label="Kipróbálom a munkafelületen: ${esc(label)}">Kipróbálom</a>`;
+  ?`<button type="button" class="btn help-try" data-help-try="${esc(id)}" data-help-outcome="${index}" aria-label="Kipróbálom a Kód lépésben: ${esc(label)}">Kipróbálom a Kód lépésben</button>`
+  :`<a class="btn help-try" href="${helpTrialHref(id,index)}" aria-label="Kipróbálom a munkafelületen: ${esc(label)}">Kipróbálom</a>`;
  // ADR-141 (T2): the outcome and its trial on one row (a grid), the trial never wrapped under the text.
  const outcomes=example.outcomes.map((outcome,index)=>`<li><span class="help-outcome"><b>${esc(outcome.label)}:</b> ${esc(outcomeText(example,index))}</span>${trial(index,outcome.label)}</li>`);
  const note=where==='workbench'?'<p class="help-try-note">A „Kipróbálom” a mostani forrást és beállításokat lecseréli; visszavonható.</p>':'';

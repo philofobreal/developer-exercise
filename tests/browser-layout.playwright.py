@@ -1,6 +1,6 @@
 """Layout gate (ADR-116, M1): the practice view and the author's Try step on desktop, laptop, tablet and phone (upright and on its side),
 in the light and the dark theme. It checks what a machine can measure, not taste: the page never scrolls sideways, no header control runs
-off the screen, every toolbar control in view has one height, every action button (ADR-117) has one type style and at most three heights, every plate (ADR-143) has its outline (a bevel with a label, round without one), a flat face its label reads on, and at most two are filled (also on the Kód and the Elemzés step), every surface has its soft corner with nothing square standing in it, a status chip is a flat pill, a segmented choice is one group with one chosen part, the lists end above the sticky result bar wherever the screen leaves them room (ADR-144), a phone on its side keeps the header and the toolbar to one row and shows the
+off the screen, every toolbar control in view has one height, every action button (ADR-117) has one type style and at most three heights, every plate (ADR-143) has its outline (a bevel with a label, round without one), a flat face its label reads on, and at most two are filled (also on the Kód and the Elemzés step), every surface has its soft corner with nothing square standing in it, a status chip is a flat pill, a segmented choice is one group with one chosen part, plates in a row stand apart and their focus ring follows them, no button has a square corner, the lists end above the sticky result bar wherever the screen leaves them room (ADR-144), a phone on its side keeps the header and the toolbar to one row and shows the
 lists on the first screen, focus gives the lists at least 40 % of the height, and a task list closed on a narrow screen is visible when the
 screen widens. Screenshots of every view land in test-results/layout-*.png."""
 import os,socket,subprocess,time,urllib.request
@@ -12,7 +12,7 @@ proc=subprocess.Popen(['node','server.mjs'],cwd=ROOT,env={**os.environ,'HOST':'1
 # name, width, height, touch, phone on its side
 VIEWPORTS=[('desktop',1440,900,False,False),('laptop',1280,720,False,False),('tablet',880,1100,True,False),('phone',390,844,True,False),('phone-side',780,360,True,True),('phone-side-wide',915,412,True,True)]
 MEASURE=r"""()=>{const shown=s=>[...document.querySelectorAll(s)].filter(e=>e.offsetParent&&getComputedStyle(e).visibility!=='hidden');
- const box=e=>e.getBoundingClientRect(),PLATES='button.btn:not(.link-action),.menu>summary,.mode-tabs button,.stepper .step';
+ const box=e=>e.getBoundingClientRect(),PLATES='button.btn:not(.link-action),a.btn,.menu>summary,.mode-tabs button,.stepper .step',label=b=>b.getAttribute('aria-label')||b.textContent.trim().slice(0,24);
  const rgb=c=>(c.match(/rgba?\(([^)]+)\)/)||['','0,0,0,0'])[1].split(/[\s,/]+/).filter(Boolean).map(Number),alpha=c=>{const p=rgb(c);return p.length>3?p[3]:1;};
  const light=c=>{const [r,g,b]=rgb(c).map(v=>{v/=255;return v<=.03928?v/12.92:((v+.055)/1.055)**2.4;});return .2126*r+.7152*g+.0722*b;},contrast=(a,b)=>{const [x,y]=[light(a),light(b)].sort((p,q)=>q-p);return (x+.05)/(y+.05);};
  return {scroll:document.documentElement.scrollWidth,width:innerWidth,height:innerHeight,
@@ -36,9 +36,16 @@ MEASURE=r"""()=>{const shown=s=>[...document.querySelectorAll(s)].filter(e=>e.of
   faceless:shown(PLATES).filter(b=>!b.matches(':disabled,[aria-disabled=true],.locked')).filter(b=>{const f=getComputedStyle(b,'::after');return alpha(f.backgroundColor)===0||(f.backgroundImage!=='none'&&b.getAttribute('aria-pressed')!=='true')||getComputedStyle(b).boxShadow!=='none';}).map(b=>b.getAttribute('aria-label')||b.textContent.trim().slice(0,24)),
   // the label reads on its face: 4.5 to 1 (axe cannot see a face drawn by a pseudo-element, so this is measured here)
   dim:shown(PLATES).filter(b=>!b.matches(':disabled,[aria-disabled=true],.locked')).map(b=>[b.getAttribute('aria-label')||b.textContent.trim().slice(0,24),contrast(getComputedStyle(b).color,getComputedStyle(b,'::after').backgroundColor)]).filter(([,c])=>c<4.5).map(([n,c])=>`${n}: ${c.toFixed(2)}`),
+  // ADR-143 (D4a): plates of one group in one row stand apart (the editor's tools touched), and a button that is not a plate is soft
+  // too: no square corner (a drag handle is part of its row; a task row keeps its stripe side straight)
+  tight:(()=>{const all=shown(PLATES).filter(b=>!b.closest('.segment')),out=[],group=b=>b.parentElement.matches('details,li')?b.parentElement.parentElement:b.parentElement;
+   for(const a of all){const ra=box(a);for(const b of all){if(a===b||group(a)!==group(b))continue;const rb=box(b);if(Math.abs((ra.top+ra.bottom)-(rb.top+rb.bottom))/2>Math.min(ra.height,rb.height)/2)continue;const gap=rb.left-ra.right;if(gap>-1&&gap<4)out.push(`${label(a)} | ${label(b)}: ${Math.round(gap*10)/10} px`);}}
+   return out;})(),
+  square:shown('button').filter(b=>!b.matches(PLATES+',.drag-handle,.segment button')).filter(b=>{const s=getComputedStyle(b),r=['TopLeft','TopRight','BottomRight','BottomLeft'].map(k=>parseFloat(s['border'+k+'Radius']));
+   return (b.matches('.task')?[r[1],r[2]]:r).some(v=>!(v>0));}).map(b=>(b.className||'button')+' '+label(b)),
   // every role's label reads on its face, resting and hovered (a hover is not in view while this runs)
   roles:(()=>{const probe=document.createElement('i');document.documentElement.append(probe);const of=t=>{probe.style.color=`var(${t})`;return getComputedStyle(probe).color;};
-   const bad=[['--text','--plate'],['--text','--plate-hover'],['--accent-text','--plate-on'],['--blue-ink','--blue'],['--blue-ink','--blue-hover'],['--yellow-ink','--yellow'],['--yellow-ink','--yellow-hover']].map(([ink,face])=>[ink,face,contrast(of(ink),of(face))]).filter(([,,c])=>c<4.5).map(([ink,face,c])=>`${ink} on ${face}: ${c.toFixed(2)}`);
+   const bad=[['--text','--plate'],['--text','--plate-hover'],['--accent-text','--plate-on'],['--blue-ink','--blue'],['--blue-ink','--blue-hover'],['--yellow-ink','--yellow'],['--yellow-ink','--yellow-hover'],['--d-76','--d-18'],['--d-92','--d-34']].map(([ink,face])=>[ink,face,contrast(of(ink),of(face))]).filter(([,,c])=>c<4.5).map(([ink,face,c])=>`${ink} on ${face}: ${c.toFixed(2)}`);
    probe.remove();return bad;})(),
   // at most two filled plates on a screen: the current step and the main action. Filled = the face is a solid brand colour
   // (resting or hovered), whichever element carries it.
@@ -104,6 +111,24 @@ def surfaces(page,name):
         y+=view-80
     page.evaluate('y=>scrollTo(0,y)',top)
     assert not found,f"{name}: something square stands in a rounded corner: {sorted(found)}"
+FOCUSED=r"""()=>{const b=document.activeElement;if(!b||!b.matches('button.btn:not(.link-action),a.btn,.menu>summary,.mode-tabs button,.stepper .step'))return null;
+ const s=getComputedStyle(b),ring=getComputedStyle(b,'::before');
+ return {label:b.getAttribute('aria-label')||b.textContent.trim().slice(0,24),lined:b.matches('[aria-pressed=true],:disabled,[aria-disabled=true],.locked'),visible:b.matches(':focus-visible'),outline:s.outlineStyle,
+  shaped:ring.content!=='none'&&ring.clipPath.startsWith('shape(evenodd')&&!/, 0\)$/.test(ring.backgroundColor),moves:(ring.clipPath.match(/move to/g)||[]).length,inset:ring.top,known:CSS.supports('clip-path','shape(from 0 0,line to 1px 1px)')};}"""
+def focus_ring(page,name):
+    """ADR-143 (D4a): the focus ring of a plate follows its outline (an outline is a rounded rectangle and stood off the
+    bevel). Reached by keyboard: a plate without a line and one with a line (the chosen mode), which shows both rings."""
+    seen={};page.evaluate("()=>document.querySelector('.skip-link').focus()")  # the keyboard's way starts at the top of the page
+    for _ in range(40):
+        page.keyboard.press('Tab');f=page.evaluate(FOCUSED)
+        if f:seen.setdefault(f['lined'],f)
+        if len(seen)==2:break
+    page.evaluate('()=>document.activeElement?.blur()')
+    assert set(seen)=={False,True},f"{name}: the keyboard reaches a plate without a line and one with a line: {seen}"
+    for lined,f in seen.items():
+        assert f['visible'],f"{name}: {f['label']} is focused by keyboard"
+        if f['known']:assert f['outline']=='none' and f['shaped'] and f['inset']=='-6px' and f['moves']==(3 if lined else 1),f"{name}: the focus ring of {f['label']} follows the plate: {f}"
+        else:assert f['outline']!='none',f"{name}: without shape() {f['label']} keeps its outline: {f}"
 def step(page,name):
     """An author step without the lists (Kód, Elemzés és szabályok): the plates, the roles and the surfaces."""
     page.mouse.move(0,0);m=page.evaluate(MEASURE);page.screenshot(path=str(ARTIFACTS/f'layout-{name}.png'))
@@ -113,9 +138,12 @@ def step(page,name):
     assert not m['faceless'],f"{name}: plates without a flat face: {m['faceless']}"
     assert not m['dim'],f"{name}: labels under 4.5 to 1 on their plate: {m['dim']}"
     assert not m['roles'],f"{name}: a role's label under 4.5 to 1 on its face: {m['roles']}"
+    assert not m['tight'],f"{name}: plates closer than 4 px in a row: {m['tight']}"
+    assert not m['square'],f"{name}: buttons with a square corner: {m['square']}"
     assert len(m['filled'])<=2,f"{name}: more than two filled plates on the screen: {m['filled']}"
     assert all(marked for _,marked in m['pressed']),f"{name}: a pressed button without its line and mark: {m['pressed']}"
     surfaces(page,name)
+    if name.endswith('author-source'):focus_ring(page,name)
     print(f"PASS layout: {name} {m['width']}x{m['height']} filled {len(m['filled'])}",flush=True)
 def check(page,name,side,focused=False):
     m=page.evaluate(MEASURE)
@@ -130,6 +158,8 @@ def check(page,name,side,focused=False):
     assert not m['faceless'],f"{name}: plates without a flat face: {m['faceless']}"
     assert not m['dim'],f"{name}: labels under 4.5 to 1 on their plate: {m['dim']}"
     assert not m['roles'],f"{name}: a role's label under 4.5 to 1 on its face: {m['roles']}"
+    assert not m['tight'],f"{name}: plates closer than 4 px in a row: {m['tight']}"
+    assert not m['square'],f"{name}: buttons with a square corner: {m['square']}"
     assert len(m['filled'])<=2,f"{name}: more than two filled plates on the screen: {m['filled']}"
     assert all(marked for _,marked in m['pressed']),f"{name}: a pressed button without its line and mark: {m['pressed']}"
     if focused:assert m['pressed'],f"{name}: the focus toggle is pressed in focus mode"

@@ -1,6 +1,6 @@
 # ADR-143 – Vizuális irány: lecsapott lap minden feliratos gombon, lágy felületek
 
-Állapot: **elfogadva, megvalósítás folyamatban** (2026-11-13; a bemutatót a felhasználó jóváhagyta: „jóváhagyom, mehet a D2”; a D2, a D3 és a D3b kész, lásd lent). **A lap arcát és a vágott sarok alakját és technikáját a D3b felülírta** (a „Döntés” két pontja: átmenet, vonal, árnyék; `corner-shape`). A felhasználó egy saját gombmintát mutatott („Rounded Industrial Buttons”, CleanActive 02.1), és a három, valódi felületen kipróbált változat közül a harmadikat választotta: „mehet a 3. változat, a panelek is lágyuljanak”. Kockázati osztály: megjelenítés. Módosítja az [ADR-140](140-button-system.md) sziluett-szabályát (a lecsapott sarok ott csak a döntés gombjaié volt) és az [ADR-138](138-three-surfaces.md) szögletes sarkait; a három felület és a gombkomponens szerkezete marad.
+Állapot: **elfogadva, megvalósítás folyamatban** (2026-11-13; a bemutatót a felhasználó jóváhagyta: „jóváhagyom, mehet a D2”; a D2, a D3, a D3b és a D4a kész, lásd lent). **A lap arcát és a vágott sarok alakját és technikáját a D3b felülírta** (a „Döntés” két pontja: átmenet, vonal, árnyék; `corner-shape`). A felhasználó egy saját gombmintát mutatott („Rounded Industrial Buttons”, CleanActive 02.1), és a három, valódi felületen kipróbált változat közül a harmadikat választotta: „mehet a 3. változat, a panelek is lágyuljanak”. Kockázati osztály: megjelenítés. Módosítja az [ADR-140](140-button-system.md) sziluett-szabályát (a lecsapott sarok ott csak a döntés gombjaié volt) és az [ADR-138](138-three-surfaces.md) szögletes sarkait; a három felület és a gombkomponens szerkezete marad.
 
 ## Kontextus
 
@@ -143,8 +143,36 @@ A felhasználó döntése: „jóváhagyom, mehet a D3 a választócsoportokkal 
 
 ### Maradék
 
-- **Telefonon, a szerző Próba lépésében a sor végi ikonok egy esetben a kód fölé kerültek** (hosszú sor; a képernyőképek útján: egy sor rögzítése az Elemzés lépésben, majd a Próba). Az alapesetben az érintőképernyő elrejti őket; a kiváltó feltételt nem vizsgáltam meg. A D3 előtti képeken ugyanígy látszik, tehát nem ez a lépés okozta; a sorgombok a D4 tárgya.
+- ~~Telefonon, a szerző Próba lépésében a sor végi ikonok egy esetben a kód fölé kerültek.~~ **Helyesbítés (D4a):** ez nem a termék hibája volt, hanem a mérésé. Csak a teljes oldalas képernyőképen jelenik meg: a rögzítés idejére kiesik az érintőképernyő-emuláció, és a sorgombok egy képkockára előjönnek. Ugyanannak az állapotnak a látható képernyős képén és a számított stílusban a sorgombok rejtve vannak.
 - **A súgóbuborék ⓘ gombjának nyitott állapota szögletes;** a D4 tárgya.
+
+## D4a: a többi gomb, a fókuszkeret, a távolságok (2026-11-14)
+
+A felhasználó jóváhagyta a lépést („jóváhagyom, mehet a D4a, az eltérések maradjanak”), és közben egy képet küldött a „Formázás” gombról: „remélem ezek a képen látható furcsa hoverek és a gombok közti távolságok is majd javulni fognak valamikor”. A képen két hiba látszott; mindkettő bekerült ebbe a lépésbe.
+
+- **A fókuszkeret követi a lapot:** 3 px széles gyűrű, 2 px-re a laptól, a letöréssel együtt. Eddig körvonal (`outline`) volt, azaz lekerekített téglalap, amely a letört saroknál elállt a gombtól. A gyűrű a vonal rétegében készül; ha a lapnak vonala is van (bekapcsolt, letiltott), fókuszban mindkét gyűrű a fókusz színét kapja. A kényszerített színek, a `shape()` nélküli böngésző és a dolgozó lap megtartja a körvonalat.
+- **A szerkesztő eszközei 6 px-re állnak egymástól.** A „Formázás”, a másolás és a beillesztés eddig összeért (0 px): a csoportnak nem volt saját elrendezése, és amíg az ikongombok keret nélküliek voltak, ez nem látszott.
+- **Egy régi szabály rámutatáskor szegélyt rajzolt a „Formázás” köré** (`.editor-tools button.labeled-tool:hover`): téglalap alakú vonal a letört lap körül. Megszűnt a csoport többi régi keretszabályával együtt.
+- **A „veszély” szerep visszakerült:** a szabályt eltávolító gomb halványpiros lap sötétpiros felirattal. A D2 óta a lapszabály felülírta a régi piros hátteret (nyugalomban szürke volt, rámutatva piros téglalap jelent meg mögötte); ezt akkor nem vettem észre, mert egy teszt sem nézte.
+- **A nem-lap gombok is lágyak:** az alap gomb sarka 6 px (eddig 0), így az „Ugrás … sorra” gombok és a sorgombok is kerekítettek. A feladatlista sora a csíkja felől egyenes marad.
+- **A ⓘ kör:** rámutatva és nyitva kör alakú a kiemelése (eddig négyzet volt).
+- **A „Kipróbálom” kis lap:** a buborékban gomb, a súgóoldalon hivatkozás (`a.btn`); mindkettő ugyanaz a lap, kis méretben.
+
+### Tervezési review (docs/design-review.md)
+
+- **A lapszabály most a fókuszkeretet is elrejti;** a hívó semmit nem állít hozzá. A gyűrű a körvonal két eltolt példánya (5 és 2 px-rel kijjebb), ugyanabból a sarokleírásból.
+- **design, rögzítve:** a `::before` most három dolgot szolgál (vonal, fókuszgyűrű, forgó jel). A szabályok sorrendje dönt: a forgó jel mindent kizár, a fókusz a vonalat magába foglalja. Negyedik szerepet már ne kapjon.
+- **design, rögzítve:** a hivatkozás-lap (`a.btn`) a gombok alapstílusát (kurzor, elrendezés) a közös vezérlőszabályból kapja; a `button` elemre írt régi szabályok rá nem vonatkoznak.
+
+### Bizonyíték
+
+- **Elrendezés-kapu** ([browser-layout.playwright.py](../../tests/browser-layout.playwright.py)):
+  - egy csoport egy sorban álló lapjai legalább 4 px-re állnak egymástól;
+  - egyetlen gombnak sincs szögletes sarka (kivétel a sor fogantyúja és a feladatsor csík felőli oldala);
+  - billentyűvel elérve a lap fókuszkerete a lapot követi: a vonal nélküli lapon egy gyűrű, a vonalason kettő; a körvonal ki van kapcsolva.
+- **Állapotok** (`button_states`): a fő művelet, az ellenőrzés és az eltávolító művelet mindegyikének saját arca van, és a felirata legalább 4,5 : 1 arányban elüt tőle.
+- **Mutációs ellenőrzés:** hét rontás, mind megbuktatja a megfelelő tesztet: összeérő eszközök; szögletes sima gombok; szögletes ⓘ; a körvonal vissza a lapra; egy gyűrű a vonalas lapon; az eltávolító gomb arc nélkül; az eltávolító gomb halvány felirattal.
+- **Közeli képek** mindkét témában: a fókuszban álló „Formázás”, a kiválasztott mód fókuszban, a nyitott ⓘ, az eltávolítás megerősítése, a sor szabályai, a súgóoldal „Kipróbálom” gombjai.
 
 ## Újranyitva: a lap arca és a vágott sarok alakja (2026-11-13, D3b előtt)
 

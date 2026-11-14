@@ -1202,12 +1202,15 @@ def settle(page):
 def button_states(page):
     """ADR-140 (D1), ADR-143 (D3b): the plate's states. A plate is one flat tone: no gradient, no shadow, no line. A disabled
     one is a hollow plate (a line, no face, a muted label) whether it is :disabled or aria-disabled with its reason; a busy
-    one is not disabled to the eye; a pressed one has another face, a line and a 2 px mark."""
+    one is not disabled to the eye; a pressed one has another face, a line and a 2 px mark; the main action, the check and the
+    removing action each have a face of their own that their label reads on."""
     state=page.evaluate("""()=>{const look=b=>{const s=getComputedStyle(b),f=getComputedStyle(b,'::after'),l=getComputedStyle(b,'::before');
       return {opacity:s.opacity,cursor:s.cursor,color:s.color,shadow:s.boxShadow,ground:s.backgroundColor+' '+s.backgroundImage,face:f.backgroundColor,image:f.backgroundImage,mark:f.backgroundSize,line:l.content!=='none'&&!/, 0\\)$/.test(l.backgroundColor)&&!b.hasAttribute('data-busy-shown')};};
      const host=document.querySelector('.toolbar')||document.querySelector('#workbench-main'),make=(attributes)=>{const b=document.createElement('button');b.type='button';b.className='btn';b.textContent='x';for(const [k,v] of Object.entries(attributes))b.setAttribute(k,v);host.append(b);return b;};
      const plain=make({}),off=make({disabled:''}),reason=make({'aria-disabled':'true','data-disabled-reason':'ok'}),busy=make({disabled:'','aria-busy':'true'}),on=make({'aria-pressed':'true'});
-     const result={plain:look(plain),off:look(off),reason:look(reason),busy:look(busy),on:look(on)};
+     const rgb=c=>c.match(/[\\d.]+/g).slice(0,3).map(Number),light=c=>{const [r,g,b]=rgb(c).map(v=>{v/=255;return v<=.03928?v/12.92:((v+.055)/1.055)**2.4;});return .2126*r+.7152*g+.0722*b;};
+     const reads=cls=>{const b=make({});b.className='btn '+cls;const a=light(getComputedStyle(b).color),f=light(getComputedStyle(b,'::after').backgroundColor),face=getComputedStyle(b,'::after').backgroundColor;b.remove();return [cls,(Math.max(a,f)+.05)/(Math.min(a,f)+.05),face];};
+     const result={plain:look(plain),off:look(off),reason:look(reason),busy:look(busy),on:look(on),roles:['primary','primary check','danger'].map(reads)};
      for(const b of [plain,off,reason,busy,on])b.remove();return result;}""")
     clear=lambda colour:colour.replace(' ','') in ('rgba(0,0,0,0)','transparent')
     plain=state['plain']
@@ -1219,6 +1222,10 @@ def button_states(page):
     assert all(state['off'][k]==state['reason'][k] for k in ('face','line','color')),'the two kinds of disabled look the same'
     assert state['busy']['cursor']=='progress' and state['busy']['opacity']=='1' and state['busy']['face']==plain['face'] and not state['busy']['line'],state['busy']
     assert state['on']['face']!=plain['face'] and state['on']['line'] and 'gradient' in state['on']['image'] and state['on']['mark'].endswith(' 2px'),state['on']
+    # the roles (the main action, the learner's check, an action that removes): each has its own face, and its label reads on it
+    faces=[face for _,_,face in state['roles']]
+    assert len(set(faces+[plain['face']]))==4,('every role has its own face',state['roles'],plain['face'])
+    assert all(ratio>=4.5 for _,ratio,_ in state['roles']),('a role label under 4.5 to 1 on its face',state['roles'])
 def toggletips_everywhere(browser,url):
     """ADR-141 (T3): the ⓘ of every place, on a desktop and a phone, light and dark: opening it moves nothing; the bubble
     stands inside the screen; the focus ring stays off the label; on a touch screen the target is 44 px and leaves the

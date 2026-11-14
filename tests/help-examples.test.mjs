@@ -81,7 +81,7 @@ test('one text: a setting’s hint is its help summary; the bubble links to the 
  assert.ok(bubble.includes(helpSummary('keyOrder').slice(0,40)),'a bubble without its example says its sentence');
  assert.match(bubble,/>Példa és kipróbálás a súgóban<svg/);assert.doesNotMatch(bubble,/help-code/);
  const inputs=renderInfo('inputs','Bemenetek',{withSummary:false});
- assert.match(inputs,/A 2\. és 3\. sor cseréje:<ul><li><span class="help-outcome"><b>Szigorú:<\/b> elutasítva<\/span><button type="button" class="help-try" data-help-try="inputs" data-help-outcome="0" aria-label="Kipróbálom a Kód lépésben: Szigorú">Kipróbálom a Kód lépésben<\/button><\/li><li><span class="help-outcome"><b>Érvényes egyszerű adat:<\/b> elfogadva<\/span><button[^>]*data-help-outcome="1"[^>]*>Kipróbálom a Kód lépésben<\/button><\/li><\/ul><p class="help-try-note">A „Kipróbálom” a mostani forrást és beállításokat lecseréli; visszavonható\.<\/p>/);
+ assert.match(inputs,/A 2\. és 3\. sor cseréje:<ul><li><span class="help-outcome"><b>Szigorú:<\/b> elutasítva<\/span><button type="button" class="btn help-try" data-help-try="inputs" data-help-outcome="0" aria-label="Kipróbálom a Kód lépésben: Szigorú">Kipróbálom a Kód lépésben<\/button><\/li><li><span class="help-outcome"><b>Érvényes egyszerű adat:<\/b> elfogadva<\/span><button[^>]*data-help-outcome="1"[^>]*>Kipróbálom a Kód lépésben<\/button><\/li><\/ul><p class="help-try-note">A „Kipróbálom” a mostani forrást és beállításokat lecseréli; visszavonható\.<\/p>/);
  assert.equal(renderInfo('nincs-ilyen','x'),'');
 });
 

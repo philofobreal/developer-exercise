@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased – 2026-11-14 A fókuszkeret követi a gombot, a gombok nem érnek össze, a többi gomb is lágy (ADR-143, D4a)
+
+- **A fókuszkeret a gomb alakját követi,** a letört sarokkal együtt. Eddig lekerekített téglalap volt, amely a letörésnél elállt a gombtól.
+- **A „Formázás” és a mellette álló két ikongomb között 6 px a távolság;** eddig összeértek.
+- **A „Formázás” köré rámutatáskor már nem rajzolódik téglalap alakú szegély.**
+- **A szabályt eltávolító gomb újra piros** (halványpiros lap, sötétpiros felirat); egy korábbi lépés óta szürke volt.
+- **Minden gomb lágy sarkú:** az „Ugrás … sorra” gombok, a sorgombok és a ⓘ kiemelése is (ez utóbbi kör, eddig négyzet volt).
+- **A „Kipróbálom” ugyanolyan kis gomb** a súgóbuborékban és a súgóoldalon.
+
 ## Unreleased – 2026-11-13 Sík gombok, valódi letörés két kerekített csúccsal (ADR-143, D3b)
 
 - **A gombokon nincs többé átmenet, vonal és árnyék:** minden gomb egyetlen sík tónus. Az alapgomb halványszürke, a fő művelet és az aktuális lépés sík kék, az „Ellenőrzés” sík sárga.

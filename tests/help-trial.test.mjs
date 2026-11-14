@@ -49,8 +49,8 @@ test('the help page address names a trial; anything else names none',()=>{
 test('an example renders a Kipróbálom per outcome: a button in the workbench, a link to it on the page',()=>{
  const topic=helpTopics().find(entry=>entry.id==='keyOrder');
  const bubble=renderExample(topic.example,topic.id,'workbench'),page=renderExample(topic.example,topic.id,'page');
- assert.equal(bubble.match(/<button type="button" class="help-try" data-help-try="keyOrder" data-help-outcome="\d"/g)?.length,topic.example.outcomes.length);
- assert.equal(page.match(/<a class="help-try" href="\.\.\/index\.html#kiprobalom=keyOrder\.\d"/g)?.length,topic.example.outcomes.length);
+ assert.equal(bubble.match(/<button type="button" class="btn help-try" data-help-try="keyOrder" data-help-outcome="\d"/g)?.length,topic.example.outcomes.length);
+ assert.equal(page.match(/<a class="btn help-try" href="\.\.\/index\.html#kiprobalom=keyOrder\.\d"/g)?.length,topic.example.outcomes.length);
  assert.doesNotMatch(page,/<button/);
  // prism.css paints any `language-` element with its own light background: in the dark theme the listing's light tokens
  // then stood on a light ground (contrast 1.28, the a11y gate).
