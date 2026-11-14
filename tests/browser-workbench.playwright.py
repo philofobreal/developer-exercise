@@ -840,7 +840,8 @@ def technology_filter(browser,url):
         expect(page.locator('.task-picker nav > .tech-filter')).to_have_attribute('role','group');expect(page.get_by_role('group',name='JavaScript (ECMAScript)').get_by_role('button',name='ES2015 13 feladat',exact=True)).to_have_attribute('data-technology','ecmascript 2015')
         graded=page.locator('.task[data-task="grade-ts"]');expect(graded.locator('.tech-chip')).to_have_text(['TS 1.0','ES5']);expect(graded.locator('.task-file')).to_have_attribute('aria-label','TypeScript')
         assert 'TypeScript' not in graded.locator('small').inner_text() and 'JavaScript' not in page.locator('.task[data-task="celsius-js"] small').inner_text(),'the chips stand where the language name stood'
-        # ADR-154: in the tree an item names its level after its labels; beside two labels the level wraps into a second line
+        # ADR-154, NY-60: in the tree an item names its level after its labels. On a desktop it fits beside two labels with a few
+        # pixels to spare; another machine's fonts can take them, so beside two labels a second line is allowed
         heights=page.evaluate("()=>[...document.querySelectorAll('.task[data-task]')].map(item=>[item.dataset.task,item.querySelectorAll('.tech-chip').length,Math.round(item.getBoundingClientRect().height)])")
         assert len(heights)==16 and all(chips>=1 and height<=(72 if chips==1 else 90) for _,chips,height in heights),('every item is labelled; no taller than two lines of title and one of labels, or two beside two labels',heights)
         earlier=page.locator('[data-technology-earlier]');expect(earlier).to_be_disabled()
@@ -896,7 +897,13 @@ def curriculum_tree(browser,url):
         expect(page.locator('nav[aria-label="Feladatok"] h4').get_by_role('button',name='Gyűjtemények 5 feladat',exact=True)).to_have_attribute('aria-expanded','false')
         assert page.evaluate("()=>[...document.querySelectorAll('[data-branch]')].every(b=>b.getAttribute('aria-expanded')==='true'?document.getElementById(b.getAttribute('aria-controls'))?.previousElementSibling===b.parentElement:!b.hasAttribute('aria-controls'))"),'an open branch names the body under its heading; a closed one names none'
         # an item names its level after its labels
-        expect(page.locator('.task[data-task="celsius-js"] small')).to_have_text(re.compile(r'^ES2015\s*· Kezdő · v\d+$'))
+        expect(page.locator('.task[data-task="celsius-js"] small')).to_have_text(re.compile(r'^ES2015\s*· Kezdő$'))
+        # NY-60: the open exercise's arrow stands beside its title, out of the flow: the label line is as wide in the open item as
+        # in the others, and an exercise stands 14 px in under its module (with more the level did not fit beside two labels)
+        lines=page.evaluate("()=>[...document.querySelectorAll('.task[data-task]')].map(item=>[item.classList.contains('selected'),getComputedStyle(item).paddingLeft,item.querySelector('.icon')?getComputedStyle(item.querySelector('.icon')).position:''])")
+        assert lines[0]==[True,'14px','absolute'] and all(line==[False,'14px',''] for line in lines[1:]),lines
+        assert page.evaluate("()=>{const item=document.querySelector('.task.selected'),arrow=item.querySelector('.icon').getBoundingClientRect(),range=document.createRange();range.selectNodeContents(item.querySelector('strong'));return [...range.getClientRects()].every(box=>box.right<=arrow.left||box.bottom<=arrow.top||box.top>=arrow.bottom)}"),'the open exercise\'s title keeps clear of its arrow'
+        assert page.evaluate("()=>{const [open,other]=[...document.querySelectorAll('.task[data-task]')].map(item=>item.querySelector('small'));const room=small=>small.parentElement.parentElement.getBoundingClientRect().right-small.getBoundingClientRect().left;return Math.abs(room(open)-room(other))<1}"),'the label line starts and may end at the same place in the open item and in another'
         # pressed, a module opens and keeps the focus; pressed again it closes
         module=page.locator('[data-branch="javascript/gyujtemenyek"]');module.click();expect(module).to_have_attribute('aria-expanded','true');expect(module).to_be_focused()
         assert page.evaluate(drawn)[5:]==['stats-js','stats-reduce-js','profiles-js','word-count-js','fib-memo-js'],page.evaluate(drawn)

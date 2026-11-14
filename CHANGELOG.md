@@ -7,6 +7,7 @@
 - **A szint szövegként áll a listaelemen** („· Közepes”); a szint szerinti csoportokat a fa váltotta fel.
 - **Tananyagjegyzék** (`curriculum/curriculum.json`): a fa szerkezete egy fájlban, a feladatokon kívül. A szerver (`GET /api/curriculum`) és a Local Demo a listával együtt adja.
 - **Jegyzék nélkül a lista úgy áll, mint eddig** (szint szerint); a jegyzékből kimaradó feladat a „További feladatok” ágba kerül.
+- **A fa listaeleme tömörebb (NY-60):** nem írja ki a verziószámot, és a nyitott feladat nyila a címe mellé került. Asztalon így minden elem címkéje egysoros.
 
 ## Unreleased – 2026-11-14 Három felületi javítás: nincs aláhúzás gombban, varratmentes panelsáv, egy oszlopban álló sorikonok (ADR-153, NY-59)
 

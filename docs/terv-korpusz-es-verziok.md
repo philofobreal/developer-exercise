@@ -284,11 +284,11 @@ Minden lépés külön jóváhagyás után indul, saját ADR-rel és tervezési 
 | **G2 Jelölés a felületen** (kész, [ADR-152](adr/152-technology-labels-in-the-practice-list.md)) | bemutató (jelvények, szűrő, összesítő, két változat) → választás → megvalósítás | megjelenítés | böngészős tesztek, a11y |
 | **G3 A fa** (kész, [ADR-154](adr/154-curriculum-tree-in-the-practice-list.md)) | tananyagjegyzék, a 16 feladat elhelyezése, bemutató (két változat) → megvalósítás | megjelenítés, katalógus | böngészős tesztek |
 | **G4 Eszközlánc** | TypeScript 6.0.3; az ellenőrzés könyvtára ES2025; `using` és szabványos dekorátor az ellenőrzésben; a CI Node-verziója | szerzői elemzés, orákulum, eszközök | teljes kör zöld, változatlan alapszint; Local Demo méretek mérve |
-| **G5 Tananyag-infrastruktúra** | az NY-40 C1 lépése, három ágra; egy-egy próbalecke | mérés | a korpuszban három lecke |
+| **G5 Tananyag-infrastruktúra** | az NY-40 C1 lépése, három ágra; egy-egy próbalecke | mérés | a korpuszban három lecke; a leírásuk az NY-61 szabványa szerint |
 | **G6 JS és TS, A fázis** | JS 1–12, TS M1–M4 | mérés, példák | mérési jelentés; szállítási döntés |
 | **G7 JS és TS, B–C fázis** | JS 13–20, TS M5–M10 | mérés, példák | ugyanaz |
 | **G8 RxJS** | típusok az ellenőrzéshez (szerver és Local Demo), 8 lecke korpuszként, rés mérése | szerzői elemzés, mérés | jelentés; döntés a szállításról és a 4.3 második lépéséről |
-| **G9 Lezárás** | lefedettségi jelentés, a rések jegyzéktételként, CHANGELOG | dokumentum | a jegyzékben NY-40, NY-44, NY-45 lezárva vagy maradéka megnevezve |
+| **G9 Lezárás** | lefedettségi jelentés, a rések jegyzéktételként, CHANGELOG; minden szállított feladat leírása megfelel az NY-61 szabványának | dokumentum | a jegyzékben NY-40, NY-44, NY-45 lezárva vagy maradéka megnevezve |
 
 - **Sorrend:** a G1–G3 a mai eszközlánccal elvégezhető, és már a 16 feladaton látható eredményt ad. A G4 a G6 ES2023 utáni leckéi előtt kell.
 - **Idő:** a G1, a G4 és minden tananyaglépés a teljes kört futtatja (kb. 12 perc lépésenként).
@@ -330,6 +330,7 @@ A felhasználó kérése (2026-11-14): minden adósság, amelyet a terv lépése
 | --- | --- | --- | --- |
 | ~~NY-49~~ | TypeScript `namespace`: hibásan felcserélhető exportált tagok (1.6) | generátorhiba | **kész** ([ADR-150](adr/150-namespace-exported-function-keeps-its-place.md), v58) |
 | **NY-50** | az orákulum három korlátja: hamis reflexiójelzés `Symbol.` olvasásra, szöveges dekorátor-összevetés, `Symbol.dispose` hiánya | nélkülük a 15., 17. és 18. TS-lecke hamis hibát vagy semmit nem mér | a G5 előtt; a `Symbol.dispose` a G4-gyel |
+| **NY-61** | **Feladatleírások:** oktatási cél, gyakorlás és számonkérés minden meglévő és készülő feladatnál; ma a leírás a kódot és a felcserélhető sorokat írja le | a leckék terve (4. szakasz) a leírásról csak annyit mond, hogy magyar és a tanuló látja | a szabvány és a 16 meglévő leírás a G4 után, a G5 előtt (különben a 48 új lecke leírását át kellene írni); az új leckéké a G5–G8-ban; ellenőrzés a G9-ben |
 | **NY-51** | **RxJS teljes lefedettsége:** a nyilvános felület 173 exportjából a 8 lecke 17-et használ. Hátra van: a lusta létrehozás modellje, az időalapú operátorok (virtuális idő az orákulumban), a forró és hideg folyam, az ütemezők, a teljes operátortábla, és egy kampányfajta, amely RxJS-programokat generál. A cél: bármilyen oktatói RxJS-kódra helyes és minél teljesebb modell | a G8 csak a szinkron magot fedi | a G8 mérése után, három lépésben: lusta létrehozás → idő → teljes tábla és kampány |
 | **NY-52** | **Általános library-ismeret:** típuscsomag szállítása és a hívások leírása library-nként egységes módon, méretkerettel a Local Demóban | a G8 az RxJS-t egyedi esetként köti be | a második library (Angular) előtt |
 | **NY-53** | **Verziók karbantartása:** több library-verzió egymás mellett (RxJS 8 vagy 9 stabil megjelenésekor); a natív TypeScript-fordító, amint betölthető felületet ad; évente az új ECMAScript-kiadás (elemtábla, könyvtár, Node) | a G4 és a G8 egy-egy verziót rögzít | eseményhez kötve; évente júliusban felülvizsgálat |

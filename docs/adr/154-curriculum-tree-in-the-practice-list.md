@@ -16,6 +16,8 @@
   - **Mikor nyitott egy ág:** ha az olvasó megnyitotta; ha becsukta, csukott. Amihez nem nyúlt, az akkor nyitott, ha a nyitott feladatot tartalmazza, vagy ha a listát szűrő szűkíti (a szűkített lista rövid, és amit talált, annak látszania kell).
   - Az olvasó választása az oldal életéig tart; újratöltés után a fa úgy áll, ahogy megnyílik.
 - **A szint szövegként áll a listaelemen** a jelvények után („· Közepes”); a csoportosítást a fa vette át (2. ajánlás). Szint szerinti szűrő nincs.
+  - **A fában a listaelem nem írja ki a verziószámot** (NY-60, a felhasználó jóváhagyta 2026-11-14-én). A tanuló a szint alapján választ, nem a kiadás száma alapján; a kettő együtt nem fért ki két jelvény mellé. Fa nélküli listában a verziószám marad.
+  - **A feladat 14 px-rel áll beljebb a modulja alatt,** és **a nyitott feladat nyila a címe mellett áll,** a sor folyásán kívül: a címkesor így a nyitott elemben is ugyanolyan széles, mint a többiben.
 - **A fát a tananyagjegyzék adja** (`curriculum/curriculum.json`): témakörök, moduljaik, egy modul feladatai sorrendben. Nem a feladat mondja meg, hol áll.
   - Ugyanaz a feladat önállóan is megáll, exportálva és importálva is; egy modul átnevezése nem kér új kiadást egyetlen feladattól sem.
   - **A 16 szállított feladat helye** (4. ajánlás): JavaScript – Alapok (5), Gyűjtemények (5), Algoritmusok (2); TypeScript – Ráhangoló (4).
@@ -53,7 +55,7 @@ Hogyan nyit és csuk egy ág:
 - **A kapu tanulsága (első futás: 1 piros a 17-ből):** a Local Demo jegyzékolvasását először a megjelenítési modulba tettem (közvetlen letöltés a főszálon). Az architektúra-kapu megfogta: a megjelenítés egyetlen átviteli kapuja a szerver-API adaptere. A letöltés a Local Demo motorjába került, a háttérszál mögé, mint a feladatlistáé.
 - **design, rögzítve:** új felső szintű mappa (`curriculum/`). A G5 ide teszi a leckék csomagjait; az [NY-40 terv](../terv-typescript-tananyag.md) jegyzéke ezzel a fájllal egyesül.
 - **design, rögzítve:** az ág lenyomása a megjelenített állapotot (`aria-expanded`) olvassa ki, és azt fordítja meg; a vezérlő így nem számolja újra a fát. A régiós kirajzolásnál (Refaktor F4) ez Intent lesz.
-- **A mutációs próba tanulsága:** a csukott ág tartalmát két helyen is kihagytam (a mezők építésekor és a kirajzoláskor); az egyik fölösleges volt, kikerült.
+- **A mutációs próba tanulsága:** a csukott ág tartalmát két helyen is kihagytam (a mezők építésekor és a kirajzoláskor); az egyik fölösleges volt, kikerült. Az NY-60-nál a cím és a nyíl távolságát nem őrizte teszt; bekerült.
 - **A markup-szerződés** egy új művelettel bővült (`branch`).
 
 ## Bizonyíték
@@ -62,11 +64,16 @@ Hogyan nyit és csuk egy ág:
 - **Böngészős teszt** ([browser-workbench.playwright.py](../../tests/browser-workbench.playwright.py), `curriculum_tree`, a szerveren és a Pages-builden): a megnyíló fa; a csukott ág nem rajzol; az ág nyit, csuk és megtartja a fókuszt (egérrel, Enterrel, szóközzel); feladatválasztás után a nem érintett ág követi a nyitott feladatot; a kézzel becsukott témakör csukva marad; újranyitva a moduljai úgy állnak, ahogy maradtak; újratöltés után minden a kezdeti; telefonon a fa a lista görgetődobozában áll, az ág 44 px magas érintési cél, feladatválasztás után a lista összecsukódik.
 - **A szűrő esete** (`technology_filter`) a fához igazítva: a darabszámok az ágakon állnak; szűrés alatt minden talált ág nyitott; a szűrés feloldása után a fa úgy áll, ahogy az olvasó hagyta.
 - **Mutációs ellenőrzés:** 13 visszarontás a lefordított és a bekötött fájlokon; 12-t megfogtak a tesztek (az olvasó választása nem számít, a szűrő vagy a nyitott feladat nem nyit, egy feladat kétszer állhat, a maradék elvész, fa megnevezett feladat nélkül, a lenyomás nem fordít, nincs szint az elemen, a fa nem rajzolódik, a lenyomás nem csinál semmit, a szerver nem adja a jegyzéket, az oldal nem olvassa be). A túlélő a fölösleges feltétel volt; kivétele után a megmaradt helyet a teszt megfogja.
+- **NY-60:** az egységteszt rögzíti, hogy a fa eleme nem ír verziószámot (a fa nélküli lista igen); a böngészős eset azt, hogy a nyíl a folyáson kívül áll, a nyitott elem címe nem ér alá, a címkesor a nyitott és a többi elemben ugyanott kezdődik és ugyanaddig érhet, a behúzás 14 px. Négy visszarontás, mind megbukik.
 - **Valódi képernyőképek** a megvalósított fáról (asztal, sötét téma, telefon; a munkamenet jelentésében).
 
 ## Korlát
 
-- **A két jelvényes elem egy sorral magasabb lett.** A szint szövege a két jelvény mellé nem fér ki a 239 px széles oldalsávban, ezért új sorba törik: a TypeScript-feladatok eleme 87 px a korábbi 68 helyett (1024 px széles képernyőn, 203 px-es sávban az egy jelvényes elemek egy része is). Egy sorba a verziószám (`v1`) elhagyásával és kisebb behúzással hozható; ez külön döntés.
+- **A címkesor asztalon egysoros, kis tartalékkal; keskeny oldalsávban a két jelvényes elemé kétsoros.**
+  - Az első változatban (verziószámmal, 20 px-es behúzással, a nyíllal a sorban) a két jelvényes elem 87 px magas lett a korábbi 68 helyett. Az NY-60 után asztalon (239 px-es oldalsáv) mind a 16 elem címkéje egysoros (51 vagy 68 px).
+  - A leghosszabb címke („TS 2.0 ES2018 · Közepes”) 170 px-t kér, és 178 px áll rendelkezésére: **8 px a tartalék.** Más gép betűtípusa ezt elviheti; akkor a szint új sorba törik, semmi nem romlik el. A teszt ezért két jelvény mellett megenged egy második sort.
+  - 1024 px széles képernyőn (203 px-es oldalsáv) a két jelvényes elem címkéje kétsoros marad (28 px hiányzik); az egy jelvényeseké ott is egysoros lett.
+  - Az ajánlásom („verziószám el, kisebb behúzás”) önmagában nem lett volna elég: a nyitott elemben a nyíl 24 px-t vett el a sorból. A mérés mutatta meg; ezért került a nyíl a cím mellé.
 - **A soha nem érintett ág a nyitott feladatot követi:** ha az olvasó egy modult kézzel megnyit, majd másik témakörből választ feladatot, az előző témakör (amelyhez nem nyúlt) becsukódik; újranyitva a kézzel megnyitott modul nyitva áll.
 - **A csukott ág feladatait a böngésző oldalon belüli keresése nem találja meg.**
 - **A fa a szállított tananyagé.** A szerző saját feladatainak fába rendezése és a tanulónak szóló leckeszöveg az NY-57.

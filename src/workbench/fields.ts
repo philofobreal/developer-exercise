@@ -6,7 +6,8 @@ import {matchesTechnology,technologiesOf,technologyGroups,technologyLabel,type T
 import {curriculumTree,type Branch,type Curriculum,type OpenedBranches} from './curriculum.js';
 interface Field {id:string;type:string;title?:string;language?:string;revision?:number;childIds?:string[];[key:string]:unknown;}
 interface Context {escape?:(value:unknown)=>string;activeId?:string;
- /** ADR-154: in the tree an exercise names its own level (the level groups are gone there). */
+ /** ADR-154: in the tree an exercise names its own level (the level groups are gone there), and not its revision
+ *  (NY-60: the level, not the revision, is what a learner chooses by; both did not fit beside two labels). */
  levels?:boolean;}
 type Renderer=(field:Field,render:(id:string)=>string,context:Context)=>string;
 export function createFieldRegistry(){
@@ -35,7 +36,7 @@ export function renderTechnologyFilter(exercises:readonly ExerciseSummary[],chos
 export const fieldRegistry=createFieldRegistry()
  .register('container',(field,render)=>(field.childIds??[]).map(render).join(''))
  .register('group',(field,render)=>`<section class="field-group"><h3 class="side-title">${escapeHtml(field.title)}<span>${field.childIds?.length??0}</span></h3><div class="task-list">${(field.childIds??[]).map(render).join('')}</div></section>`)
- .register('exercise',(field,_render,{activeId,levels})=>`<button type="button" class="task ${field.id===activeId?'selected':''}" data-task="${escapeHtml(field.id)}" ${field.id===activeId?'aria-current="page"':''}><span class="task-file ${field.language==='typescript'?'ts':'js'}" role="img" aria-label="${languageName(field)}" title="${languageName(field)}">${field.language==='typescript'?'TS':'JS'}</span><span class="task-content"><strong>${escapeHtml(field.title)}</strong><small>${technologyChips(field)||languageName(field)}${levels&&LEVEL_NAME[String(field.level)]?' · '+LEVEL_NAME[String(field.level)]:''} · v${field.revision??1}</small></span>${field.id===activeId?icon('arrow'):''}</button>`)
+ .register('exercise',(field,_render,{activeId,levels})=>`<button type="button" class="task ${field.id===activeId?'selected':''}" data-task="${escapeHtml(field.id)}" ${field.id===activeId?'aria-current="page"':''}><span class="task-file ${field.language==='typescript'?'ts':'js'}" role="img" aria-label="${languageName(field)}" title="${languageName(field)}">${field.language==='typescript'?'TS':'JS'}</span><span class="task-content"><strong>${escapeHtml(field.title)}</strong><small>${technologyChips(field)||languageName(field)}${levels?LEVEL_NAME[String(field.level)]?' · '+LEVEL_NAME[String(field.level)]:'':` · v${field.revision??1}`}</small></span>${field.id===activeId?icon('arrow'):''}</button>`)
  // ADR-154: a branch of the curriculum tree (a topic, or a module under it): a button that opens and closes it, with
  // the number of exercises under it; closed, its content is not drawn.
  .register('branch',(field,render)=>{

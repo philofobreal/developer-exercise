@@ -84,15 +84,16 @@ test('the list draws the tree: a button per branch, the open exercise\'s path op
  assert.equal((html.match(/ id="/g)??[]).length,new Set([...html.matchAll(/ id="([^"]+)"/g)].map(m=>m[1])).size,'every id is its own');
 });
 
-test('in the tree an exercise names its own level after its labels; without a level it names none',()=>{
+test('in the tree an exercise names its own level after its labels, and not its revision; without a level it names none',()=>{
  const html=draw('d',{js:true,'js/basics':true,'js/lists':true});
- assert.match(html,/data-task="a"[^>]*>.*?<small><span class="tech-chip ecmascript">ES2015<\/span> · Kezdő · v1<\/small>/);
- assert.match(html,/data-task="c"[^>]*>.*?<small><span class="tech-chip ecmascript">ES2015<\/span> · Közepes · v1<\/small>/);
- assert.match(html,/data-task="d"[^>]*>.*?<small><span class="tech-chip ecmascript">ES2020<\/span> · Haladó · v1<\/small>/);
- assert.match(html,/data-task="e"[^>]*>.*?<small><span class="tech-chip ecmascript">ES2015<\/span> · v1<\/small>/);
- // without a tree the level is the group's heading, as before (ADR-101), and the item does not repeat it
+ assert.match(html,/data-task="a"[^>]*>.*?<small><span class="tech-chip ecmascript">ES2015<\/span> · Kezdő<\/small>/);
+ assert.match(html,/data-task="c"[^>]*>.*?<small><span class="tech-chip ecmascript">ES2015<\/span> · Közepes<\/small>/);
+ assert.match(html,/data-task="d"[^>]*>.*?<small><span class="tech-chip ecmascript">ES2020<\/span> · Haladó<\/small>/);
+ assert.match(html,/data-task="e"[^>]*>.*?<small><span class="tech-chip ecmascript">ES2015<\/span><\/small>/);
+ assert.doesNotMatch(html,/· v\d/,'NY-60: no revision on a tree item');
+ // without a tree the level is the group's heading, as before (ADR-101), and the item names its revision, not its level
  const flat=createFieldRenderer(LIST,value=>String(value),'d');
- assert.match(flat,/<h3 class="side-title">Kezdő<span>3<\/span><\/h3>/);assert.doesNotMatch(flat,/· Kezdő ·|data-branch/);
+ assert.match(flat,/<h3 class="side-title">Kezdő<span>3<\/span><\/h3>/);assert.doesNotMatch(flat,/· Kezdő|data-branch/);assert.match(flat,/data-task="a"[^>]*>.*?<small><span class="tech-chip ecmascript">ES2015<\/span> · v1<\/small>/);
  assert.equal(createFieldRenderer(LIST,value=>String(value),'d',undefined,{curriculum:readCurriculum(null)}),flat,'an empty curriculum draws the list as no curriculum does');
 });
 
