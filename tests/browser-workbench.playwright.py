@@ -797,18 +797,68 @@ def focus_bar_and_full_screen_return(page):
     page.evaluate("()=>{const enter=Element.prototype.requestFullscreen;Element.prototype.requestFullscreen=function(...args){return new Promise(resolve=>setTimeout(resolve,300)).then(()=>enter.apply(this,args));};}")
     page.locator('[data-focus]').click();page.locator('[data-focus]').click();page.wait_for_timeout(900);page.wait_for_function(settled,arg=[None,False])
     assert page.evaluate(state)=={'surface':None,'native':False}
+def rules_split(browser,url):
+    """ADR-146: the tools and the panels are one frame, and the rule panel docks in it behind a separator of its own.
+    The separator moves by pointer and by keyboard the way it moves on the screen (left widens the panel), within
+    20-50 % of the lists and the panel together, is remembered apart from the lists' split, and leaves that alone.
+    Docked, the panel is as high as the lists and scrolls in itself: opening it does not change the frame's height. On a
+    narrower screen it is the sheet it was, without a separator."""
+    context=watch(browser.new_context(viewport={'width':1440,'height':900}));page=context.new_page();failures=[];page.on('pageerror',lambda error:failures.append(str(error)))
+    boxes="()=>{const b=s=>{const e=document.querySelector(s);if(!e)return null;const r=e.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height}};return {frame:b('.workspace'),bar:b('.toolbar'),body:b('.try-body'),lists:b('.panes'),rules:b('.rule-inspector'),pool:b('#pool-pane')}}"
+    try:
+        reset(page,url);build(page,rules_source);to_try(page);page.locator('[data-all]').click()
+        # the tools: what changes the attempt on the left, what changes the view on the right, all inside the frame
+        tools=page.evaluate("()=>[...document.querySelectorAll('.workspace-actions>button')].map(b=>({name:[...b.attributes].find(a=>a.name.startsWith('data-')).name.slice(5),left:b.getBoundingClientRect().left,right:b.getBoundingClientRect().right}))")
+        assert [tool['name'] for tool in tools]==['reset','all','rule-panel-toggle','focus'],tools
+        closed=page.evaluate(boxes);assert tools[2]['left']-tools[1]['right']>100 and closed['frame']['right']-tools[3]['right']<24,('the view tools stand at the frame\'s right end',tools,closed['frame'])
+        assert closed['rules'] is None and page.locator('[data-pane-split="rules"]').count()==0
+        page.locator('.inspector-toggle').click();panel=page.locator('.rule-inspector');expect(panel).to_be_visible()
+        split=page.locator('[data-pane-split="rules"]');lists=page.locator('[data-pane-split="lists"]')
+        for name,value in [('role','separator'),('aria-valuemin','20'),('aria-valuemax','50'),('aria-valuenow','28'),('aria-controls','try-rule-panel'),('aria-orientation','vertical')]:expect(split).to_have_attribute(name,value)
+        expect(lists).to_have_attribute('aria-valuenow','40')
+        opened=page.evaluate(boxes);share=lambda b:b['rules']['width']/b['body']['width']*100
+        assert abs(share(opened)-28)<1,('the panel takes its share',share(opened))
+        assert abs(opened['frame']['height']-closed['frame']['height'])<=1,('opening the panel leaves the frame as high as it was',closed['frame'],opened['frame'])
+        assert abs(opened['rules']['top']-opened['lists']['top'])<=1 and abs(opened['rules']['bottom']-opened['lists']['bottom'])<=1,('the panel is as high as the lists',opened)
+        # a line's rules are longer than the panel: it scrolls in itself, the frame does not grow
+        page.locator('.solution-zone [data-rule-line]').nth(3).click();expect(page.locator('.rule-inspector .rule-panel')).to_be_visible()
+        assert page.evaluate("()=>{const p=document.querySelector('.rule-inspector');return p.scrollHeight>p.clientHeight+20}"),'the rules of a line are longer than the panel'
+        assert abs(page.evaluate(boxes)['frame']['height']-closed['frame']['height'])<=1,'the panel\'s content does not size the frame'
+        # by pointer: 180 px to the left widens the panel by that much; the lists' split stays
+        box=split.bounding_box();page.mouse.move(box['x']+6,box['y']+80);page.mouse.down();page.mouse.move(box['x']-174,box['y']+80,steps=6);page.mouse.up()
+        value=int(split.get_attribute('aria-valuenow'));dragged=page.evaluate(boxes)
+        assert 38<=value<=44 and abs(share(dragged)-value)<1 and abs(dragged['rules']['width']-opened['rules']['width']-180)<16,(value,opened['rules'],dragged['rules'])
+        expect(lists).to_have_attribute('aria-valuenow','40');assert abs(dragged['pool']['width']/dragged['lists']['width']*100-40)<1.5,dragged
+        # by keyboard: the separator goes where the arrow points
+        split.focus();page.keyboard.press('ArrowLeft');expect(split).to_have_attribute('aria-valuenow',str(value+2));left=page.evaluate(boxes)['rules']['left'];assert left<dragged['rules']['left'],(left,dragged['rules'])
+        page.keyboard.press('ArrowRight');expect(split).to_have_attribute('aria-valuenow',str(value));page.keyboard.press('Home');expect(split).to_have_attribute('aria-valuenow','50')
+        assert abs(share(page.evaluate(boxes))-50)<1;page.keyboard.press('End');expect(split).to_have_attribute('aria-valuenow','20')
+        narrowest=page.evaluate(boxes);assert narrowest['rules']['width']>=280,('the panel keeps a width its rows can be read in',narrowest['rules'])
+        page.keyboard.press('ArrowLeft');page.keyboard.press('ArrowLeft');page.keyboard.press('ArrowLeft');expect(split).to_have_attribute('aria-valuenow','26')
+        # remembered apart from the lists' split
+        lists.focus();page.keyboard.press('ArrowRight');expect(lists).to_have_attribute('aria-valuenow','42');expect(split).to_have_attribute('aria-valuenow','26')
+        page.reload();current(page,'source');build(page,rules_source);to_try(page);page.locator('.inspector-toggle').click()
+        expect(page.locator('[data-pane-split="rules"]')).to_have_attribute('aria-valuenow','26');expect(page.locator('[data-pane-split="lists"]')).to_have_attribute('aria-valuenow','42')
+        assert abs(share(page.evaluate(boxes))-26)<1
+        # a narrower screen: the sheet over the page, as high as the screen, and no separator for it
+        page.set_viewport_size({'width':1024,'height':768});expect(page.locator('.rule-inspector')).to_be_visible()
+        assert page.evaluate("getComputedStyle(document.querySelector('[data-pane-split=\"rules\"]')).display")=='none','beside the sheet the separator is gone, for the keyboard too'
+        sheet=page.evaluate(boxes)['rules'];assert sheet['height']>=760 and abs(sheet['right']-1024)<=1,sheet
+        page.set_viewport_size({'width':390,'height':800});sheet=page.evaluate(boxes)['rules'];assert sheet['height']>=120 and sheet['bottom']<=801,('a phone: the sheet has its own height',sheet)
+        assert not failures,failures
+    finally:context.close()
 def split_and_full_screen_focus(page):
     """ADR-107: the separator moves the split by pointer and keyboard and is remembered; Focus fills the
     screen with no page or workspace scroll, also with the inspector and the feedback open."""
     build(page,rules_source);to_try(page);page.locator('[data-all]').click()
-    split=page.locator('[data-pane-split]');pool=page.locator('#pool-pane');expect(split).to_have_attribute('aria-valuenow','40')
+    split=page.locator('[data-pane-split="lists"]');pool=page.locator('#pool-pane');expect(split).to_have_attribute('aria-valuenow','40')
     box=split.bounding_box();page.mouse.move(box['x']+6,box['y']+60);page.mouse.down();page.mouse.move(box['x']+206,box['y']+60,steps=6);page.mouse.up()
     value=int(split.get_attribute('aria-valuenow'));assert 50<value<80,value
     split.focus();page.keyboard.press('ArrowLeft');expect(split).to_have_attribute('aria-valuenow',str(value-2));page.keyboard.press('Home');expect(split).to_have_attribute('aria-valuenow','20')
-    width=pool.bounding_box()['width'];page.reload();current(page,'source');build(page,rules_source);to_try(page);expect(page.locator('[data-pane-split]')).to_have_attribute('aria-valuenow','20');assert abs(page.locator('#pool-pane').bounding_box()['width']-width)<3
-    page.locator('[data-pane-split]').focus();page.keyboard.press('End')
+    width=pool.bounding_box()['width'];page.reload();current(page,'source');build(page,rules_source);to_try(page);expect(page.locator('[data-pane-split="lists"]')).to_have_attribute('aria-valuenow','20');assert abs(page.locator('#pool-pane').bounding_box()['width']-width)<3
+    page.locator('[data-pane-split="lists"]').focus();page.keyboard.press('End')
     for _ in range(20):page.keyboard.press('ArrowLeft')
-    expect(page.locator('[data-pane-split]')).to_have_attribute('aria-valuenow','40')
+    expect(page.locator('[data-pane-split="lists"]')).to_have_attribute('aria-valuenow','40')
     no_scroll='()=>({page:document.documentElement.scrollHeight-innerHeight,app:document.querySelector("#app").scrollHeight-document.querySelector("#app").clientHeight})'
     page.locator('[data-all]').click();page.locator('[data-focus]').click();expect(page.locator('#app')).to_have_attribute('data-surface','focus')
     open_rules(page);page.locator('[data-check]').click();expect(page.locator('.report')).not_to_have_class(re.compile('idle'))
@@ -1455,6 +1505,7 @@ try:
             case('node focus mode without the Fullscreen API: overlay, Escape leaves',lambda:focus_without_fullscreen_api(browser))
             reset(page,BASE);case('node two code views, remembered, with their row geometry',lambda:code_views(page))
             reset(page,BASE);case('node pane separator and full-screen focus without scroll',lambda:split_and_full_screen_focus(page))
+            case('node the tools and the panels are one frame; the rule panel docks behind a separator of its own',lambda:rules_split(browser,BASE))
             reset(page,BASE);case('node focus bar and the return to the full-screen page',lambda:focus_bar_and_full_screen_return(page))
             reset(page,BASE);case('node first gate: a definite language error stays on the source step',lambda:source_gate(page))
             reset(page,BASE);case('node second gate: stale source keeps the Try step closed',lambda:second_gate(page))

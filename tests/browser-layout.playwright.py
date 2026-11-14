@@ -91,7 +91,7 @@ CORNERS=r"""()=>{const name=e=>e.tagName.toLowerCase()+(e.id?'#'+e.id:'')+(typeo
 SURFACES="""()=>{const shown=s=>[...document.querySelectorAll(s)].filter(e=>e.checkVisibility()&&e.getBoundingClientRect().width>0);
  const root=getComputedStyle(document.documentElement),token=t=>parseFloat(root.getPropertyValue(t)),name=e=>e.tagName.toLowerCase()+'.'+[...e.classList].slice(0,2).join('.');
  const radii=e=>{const s=getComputedStyle(e);return ['TopLeft','TopRight','BottomRight','BottomLeft'].map(k=>parseFloat(s['border'+k+'Radius']));};
- const kinds=[['--r-frame','.author,.solution-editor'],['--r-panel','.model-overview,.rule-panel,.model-insight,.rule-board,.try-rules,.source-diagnostics,.task-status,.help-topic,.analysis-options,.learner-data,.evaluation-bar'],
+ const kinds=[['--r-frame','.author,.solution-editor,.workspace'],['--r-panel','.model-overview,.rule-panel,.model-insight,.rule-board,.try-rules,.source-diagnostics,.task-status,.help-topic,.analysis-options,.learner-data,.evaluation-bar'],
   ['--r-inset','.dependency-details,.rule-item,.board-list,.feedback-details,.rule-kinds,.help-code,.validation-notice,.draft-notice,.stale-notice,.edit-paused'],['--r-float','.menu-panel,.activity,.toggletip-panel:popover-open'],
   ['--r-field','#app :is(input:not([type=checkbox],[type=radio],[type=file],[hidden]),select)']];
  const square=kinds.flatMap(([t,list])=>shown(list).filter(e=>radii(e).some(r=>Math.abs(r-token(t))>.1)).map(e=>`${name(e)}: ${radii(e)} for ${t} ${token(t)}`));
@@ -158,8 +158,23 @@ def step(page,name):
     surfaces(page,name)
     if name.endswith('author-source'):focus_ring(page,name)
     print(f"PASS layout: {name} {m['width']}x{m['height']} filled {len(m['filled'])}",flush=True)
+FRAME=r"""()=>{const frame=document.querySelector('.workspace');if(!frame)return ['no frame'];
+ const box=e=>e.getBoundingClientRect(),f=box(frame),bad=[],inner=[...frame.querySelectorAll('.toolbar,.try-body,.solution-editor')].filter(e=>e.getClientRects().length);
+ // the tool strip and the panels fill the frame from edge to edge, one under the other, with nothing between them
+ for(const e of inner){const b=box(e);if(Math.abs(b.left-f.left-1)>1||Math.abs(f.right-1-b.right)>1)bad.push(`${e.className.split(' ')[0]} does not span the frame (${Math.round(b.left-f.left)}, ${Math.round(f.right-b.right)})`);}
+ const bar=frame.querySelector('.toolbar'),body=frame.querySelector('.try-body');
+ if(bar&&body&&body.getClientRects().length){const note=frame.querySelector('.board-connecting'),gap=box(body).top-box(bar).bottom-(note&&note.getClientRects().length?box(note).height:0);if(Math.abs(gap)>1)bad.push(`the panels stand ${Math.round(gap)} px under the tool strip`);
+  if(Math.abs(box(body).bottom-(f.bottom-1))>1)bad.push(`the panels end ${Math.round(f.bottom-box(body).bottom)} px above the frame's end`);}
+ // a panel in the frame is a dock, not a card: no line of its own on the frame's side, no corner of its own
+ for(const e of frame.querySelectorAll('.panes .panel-title,.panes .ide-pane')){if(!e.getClientRects().length)continue;const s=getComputedStyle(e);
+  if(parseFloat(s.borderLeftWidth)||parseFloat(s.borderRightWidth)||parseFloat(s.borderTopLeftRadius)||parseFloat(s.borderBottomRightRadius))bad.push(`${e.className.split(' ')[0]} is a card of its own`);}
+ // docked beside the lists, the rule panel is exactly as high as they are
+ const rules=frame.querySelector('.rule-inspector'),lists=frame.querySelector('.panes');
+ if(rules&&lists&&getComputedStyle(rules).position!=='fixed'&&(Math.abs(box(rules).top-box(lists).top)>1||Math.abs(box(rules).bottom-box(lists).bottom)>1))bad.push(`the rule panel is ${Math.round(box(rules).height)} px high beside lists of ${Math.round(box(lists).height)}`);
+ return bad;}"""
 def check(page,name,side,focused=False):
     m=page.evaluate(MEASURE)
+    frame=page.evaluate(FRAME);assert not frame,f"{name}: the tools and the panels are not one frame: {frame}"
     page.screenshot(path=str(ARTIFACTS/f'layout-{name}.png'))
     assert m['scroll']<=m['width'],f"{name}: the page scrolls sideways ({m['scroll']} > {m['width']})"
     assert not m['offscreen'],f"{name}: header controls off the screen: {m['offscreen']}"
@@ -267,6 +282,16 @@ def sidebar(browser):
     page.locator('[data-mode="practice"]').click();picker=page.locator('details.task-picker')
     expect(picker).not_to_have_attribute('open','')
     page.set_viewport_size({'width':1280,'height':900});expect(page.locator('[data-task]').first).to_be_visible()
+    # NY-43: the rail is as long as the page beside it and the list in it reaches the screen's end, at the top of the page
+    # and at its end (a height that counted with the header left it 64 px short once the header had scrolled away)
+    rail="()=>{const r=document.querySelector('.library').getBoundingClientRect(),l=document.querySelector('.task-picker'),b=l.getBoundingClientRect(),m=document.querySelector('#workbench-main').getBoundingClientRect();return {rail:r.bottom,list:b.bottom,top:b.top,main:m.bottom,view:innerHeight,long:l.scrollHeight>innerHeight,scroll:scrollY}}"
+    page.set_viewport_size({'width':1366,'height':650});page.locator('details.workspace-help>summary').click();settled(page)
+    for place in ['top','end']:
+        page.evaluate('end=>scrollTo(0,end?document.documentElement.scrollHeight:0)',place=='end');settled(page)
+        r=page.evaluate(rail);assert r['long'],'the task list is longer than this screen'
+        assert r['rail']>=min(r['view'],r['main'])-1 and r['list']>=r['view']-1,f"the task list ends {round(r['view']-r['list'])} px above the screen's end at the page's {place} ({r})"
+        if place=='end':assert r['scroll']>64 and abs(r['top'])<=1,f"scrolled past the header, the list stands at the screen's top ({r})"
+    assert page.evaluate("()=>{const l=document.querySelector('.task-picker');l.scrollTop=l.scrollHeight;const last=[...l.querySelectorAll('[data-task]')].pop().getBoundingClientRect();return last.bottom<=innerHeight&&last.top>=0}"),'the last task is reached by scrolling the list'
     print('PASS layout: a task list closed on a narrow screen is visible in the wide sidebar',flush=True)
     page.context.close()
 try:

@@ -1,6 +1,6 @@
 # ADR-107 – Fókusz mód mint szerkesztőablak, állítható elválasztó és külön nyíló szabálypanel
 
-Állapot: **elfogadva** (2026-11-07). Kockázati osztály: megjelenítés. Az ADR-106 Fókusz módját alakítja át.
+Állapot: **elfogadva** (2026-11-07). **A szabálypanel dokkolását és szélességét az [ADR-146](146-workspace-frame-and-rule-panel-split.md) írja le** (közös keret, saját elválasztó). Kockázati osztály: megjelenítés. Az ADR-106 Fókusz módját alakítja át.
 
 ## Kontextus
 

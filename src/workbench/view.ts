@@ -19,7 +19,7 @@ import {authorDraftPending,canUndoReplace,refreshAuthorStatus} from './author-wo
 import {renderInputsContract,renderPreflightSettings,renderSettingsOrigin,renderSourceDiagnostics} from './preflight-settings.js';
 import {authorDecisions,createRuleMarks,renderModelInsight,ruleCount,renderRuleCause,renderRuleKinds,renderRulePanel,rulesAvailable} from './rule-panel.js';
 import {drawRuleArcs,renderRuleBoard,renderTryConnecting,renderTryRules,tryRowRuleControls} from './rule-board.js';
-import {installPaneSplit,paneSplit} from './pane-split.js';
+import {installPaneSplit,paneSplit,separatorAttributes} from './pane-split.js';
 import {authorPreviewId,continuityKey,jsonPending,renderStepper,staleReason,stepOf,tryAdmission} from './flow.js';
 import {renderTaskStatus,taskStatus} from './task-status.js';
 import {THEME_CHOICES,THEME_LABEL,themeChoice,type ThemeChoice} from './theme.js';
@@ -103,10 +103,11 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:Wor
  }
  function sortView(e:ExerciseSummary,a:AttemptSnapshot):string {
   const pane=paneHeading(),filled=a.answer.filter(id=>id!==null).length;
-  // ADR-107: the two lists with a movable separator; the rule inspector docks beside them only on request.
-  const rules=rulesAvailable(state),open=rules&&!!state.rulePanelOpen,split=paneSplit(root);
-  const separator=`<div class="pane-split" data-pane-split role="separator" tabindex="0" aria-orientation="vertical" aria-controls="pool-pane answer-pane" aria-label="A két lista szélessége: balra vagy jobbra nyíllal állítható" aria-valuemin="20" aria-valuemax="80" aria-valuenow="${split}" title="Húzd a két lista szélességének állításához"></div>`;
-  const inspector=open?`<aside id="try-rule-panel" class="rule-inspector" aria-labelledby="inspector-title"><div class="inspector-head"><${pane} id="inspector-title">${icon('link')}Sor szabályai</${pane}>${tool('data-rule-panel-toggle','','close','class="icon-only" aria-label="Szabálypanel bezárása" title="Bezárás (Escape)"')}</div>${editPaused()}${renderTryRules(state)}<div class="try-rule-panel">${renderRulePanel(state)}</div></aside>`:'';
+  // ADR-107, ADR-146: the two lists with a movable separator; the rule inspector docks beside them only on request,
+  // behind a separator of its own.
+  const rules=rulesAvailable(state),open=rules&&!!state.rulePanelOpen;
+  const separator=`<div class="pane-split" ${separatorAttributes(root,'lists')} aria-controls="pool-pane answer-pane" aria-label="A két lista szélessége: balra vagy jobbra nyíllal állítható" title="Húzd a két lista szélességének állításához"></div>`;
+  const inspector=open?`<div class="pane-split rules-split" ${separatorAttributes(root,'rules')} aria-controls="try-rule-panel" aria-label="A szabálypanel szélessége: balra vagy jobbra nyíllal állítható" title="Húzd a szabálypanel szélességének állításához"></div><aside id="try-rule-panel" class="rule-inspector" aria-labelledby="inspector-title"><div class="inspector-head"><${pane} id="inspector-title">${icon('link')}Sor szabályai</${pane}>${tool('data-rule-panel-toggle','','close','class="icon-only" aria-label="Szabálypanel bezárása" title="Bezárás (Escape)"')}</div>${editPaused()}${renderTryRules(state)}<div class="try-rule-panel">${renderRulePanel(state)}</div></aside>`:'';
   return `${renderTryConnecting(state)}<div class="try-body${open?' with-inspector':''}"><div class="panes"${rules?' data-try-rules':''}><section id="pool-pane" class="pane pool-pane" aria-labelledby="source-title"><div class="panel-title"><div><${pane} id="source-title">Felhasználható sorok</${pane}><span class="count">${a.pool.length}</span></div><div class="pane-clipboard">${tool('data-copy-pool','','copy','class="icon-only" aria-label="Másolás: a felhasználható sorok a vágólapra" title="Másolás"')}</div></div>${zone(e,a,'pool')}</section>${separator}<section id="answer-pane" class="pane answer-pane" aria-labelledby="solution-title"><div class="panel-title"><div><${pane} id="solution-title">Megoldás</${pane}><span class="count">${filled}/${a.answer.length}</span><progress data-arrangement-progress max="${e.lines.length}" value="${filled}" aria-label="Elhelyezett sorok">${filled}/${e.lines.length}</progress></div><div class="pane-clipboard">${tool('data-copy-arrangement data-copy-solution','','copy','class="icon-only" aria-label="Másolás: az összerendezett megoldás a vágólapra" title="Másolás"')}${tool('data-paste-solution','','paste','class="icon-only" aria-label="Beillesztés: megoldás a vágólapról a rendezőbe" title="Beillesztés"')}</div></div>${zone(e,a,'answer')}</section></div>${inspector}</div>`;
  }
  function editView(e:ExerciseSummary,a:AttemptSnapshot):string {
@@ -165,7 +166,8 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:Wor
   const more=compact&&helpBelow,reset=actions?tool('data-reset','Újrakezdés','reset',gate(availability(state,'reset',a))+(more?'':rank(false))):'',fill=fills?tool('data-all','Mintamegoldás kitöltése','file',rank(!rules)):'';
   const tools=more?`${fill}${inspect}${focus}<details class="menu more-menu"><summary aria-label="További eszközök" title="További eszközök">${icon('more')}</summary><div class="menu-panel" role="group" aria-label="További eszközök">${reset}${tool('data-workspace-help','Súgó: kezelés és billentyűzet','help')}</div></details>`:`${reset}${fill}${inspect}${focus}`;
   const start=switches?`<div class="toolbar-start"><div class="segment try-tabs" role="tablist" aria-label="Megoldás">${tab('sort','Rendező','sort')}${tab('edit','Megoldáskód','edit')}</div>${styles}</div>`:'';
-  return `<div class="toolbar">${start}<div class="workspace-actions">${tools}</div></div><div id="panel-try"${switches?` role="tabpanel" aria-labelledby="tab-${v}"`:''}>${v==='edit'?editView(e,a):sortView(e,a)}</div>${v==='sort'?pickBar(a)||reportView(e,a):''}<p class="note" role="status" aria-live="polite">${esc(a.feedback||'')}</p>`;
+  // ADR-146: the tools and the panels they work on are one frame; the result bar and the note stand under it.
+  return `<div class="workspace"><div class="toolbar">${start}<div class="workspace-actions">${tools}</div></div><div id="panel-try"${switches?` role="tabpanel" aria-labelledby="tab-${v}"`:''}>${v==='edit'?editView(e,a):sortView(e,a)}</div></div>${v==='sort'?pickBar(a)||reportView(e,a):''}<p class="note" role="status" aria-live="polite">${esc(a.feedback||'')}</p>`;
  }
  // ── Author step 1: the reference source (code or a whole CodeLine JSON) ──
  function jsonBlock(context:'source'|'rules'):string {

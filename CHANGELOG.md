@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-11-14 A munkaterület egy keret, a szabálypanel szélessége állítható (ADR-146, D5b; NY-43)
+
+- **Az eszközök és a panelek egy keretben állnak:** felül az eszközsáv, alatta a két lista és (kérésre) a szabálypanel. Balra áll, ami a próbálkozást változtatja, jobbra, ami a nézetet.
+- **A „Sor szabályai” panel szélessége állítható,** ugyanúgy, mint a két listáé: húzással vagy a nyilakkal. A böngésző megjegyzi.
+- **A szabálypanel olyan magas, mint a listák,** és önmagában görög; nyitásakor a listák már nem nyúlnak meg.
+- **Javítás, gyakorlás:** a feladatlista oldalsávja az oldal aljára görgetve is leér a képernyő aljáig; eddig 64 px-rel fölötte véget ért.
+
 ## Unreleased – 2026-11-14 Telefonon egy menü a fejlécben, feliratos eszközök ahol elférnek (ADR-145, D5)
 
 - **Telefonon a fejlécben egy menügomb (☰) áll** a munkamenet és a téma gombja helyett. A menü sorai ikonnal és teljes felirattal jelennek meg; a téma hármas választó (Rendszer, Világos, Sötét).
