@@ -17,33 +17,48 @@ export interface InsertionInfo {from:string|undefined;index:number;id:string|und
 export interface InsertionOptions {root:HTMLElement;onInsert:(info:InsertionInfo,boundary:number)=>void;onReturn:(index:number)=>void;onPick?:(info:InsertionInfo|null)=>void;}
 interface PointerGesture extends InsertionInfo {pointerId:number;pointerType:string;startX:number;startY:number;x:number;y:number;moving:boolean;}
 
+/** The boundary a pointer at `y` means among rows whose vertical middles are `middles` (ascending): the index of the
+ *  first row whose middle is below the pointer, or their number when none is. The midpoint rule of every drop and tap
+ *  (ADR-095); a binary search, for a pointer move asks it on every event (ADR-155, T1.3). */
+export function boundaryAt(middles:readonly number[],y:number):number {
+  let low=0,high=middles.length;
+  while(low<high){const middle=(low+high)>>1;if(y<middles[middle]!)high=middle;else low=middle+1;}
+  return low;
+}
 export function createInsertionDrag({root,onInsert,onReturn,onPick}:InsertionOptions):{clear:()=>void} {
   let drag:InsertionInfo|null=null,previewZone:HTMLElement|null=null,previewBoundary:number|null=null;
   const clear=():void=>{
-    root.querySelectorAll('.drop-zone .code-row').forEach(row=>row.classList.remove('drop-shift','drop-prev'));
-    root.querySelectorAll('.drop-zone').forEach(zone=>zone.classList.remove('over'));
+    // Only the rows that carry a preview class: nothing else has one to lose (ADR-155, T1.4).
+    root.querySelectorAll('.code-row.drop-shift,.code-row.drop-prev').forEach(row=>row.classList.remove('drop-shift','drop-prev'));
+    root.querySelectorAll('.drop-zone.over').forEach(zone=>zone.classList.remove('over'));
     root.querySelectorAll('.insert-caret').forEach(el=>el.remove());
     previewZone=null;previewBoundary=null;
   };
   const rowsOf=(zone:Element):HTMLElement[]=>[...zone.querySelectorAll<HTMLElement>(':scope > .code-row')];
-  const position=(zone:Element,event:{clientY:number}):number=>{
-    const rows=rowsOf(zone);
-    if(!rows.length)return 0;
-    const y=event.clientY;
-    for(let i=0;i<rows.length;i++){
-      const r=rows[i]!,rect=r.getBoundingClientRect();
-      const cssTransform=getComputedStyle(r).transform;
-      const transform=cssTransform==='none'?0:new DOMMatrixReadOnly(cssTransform).m42;
-      if(y<rect.top-transform+rect.height/2)return i;
-    }
-    return rows.length;
+  /** ADR-155 (T1.3): where the rows of a list stand, measured once for as long as the list is the same element at the
+   *  same width: every redraw makes new lists, and a width change can wrap nothing here but may change the rows'
+   *  height with the pointer's kind. In the list's own content coordinates, so neither its scrolling nor the
+   *  preview's shift of the rows (a transform) changes them. */
+  const measured=new WeakMap<Element,{width:number;middles:number[]}>();
+  const middlesOf=(zone:HTMLElement):number[]=>{
+    const known=measured.get(zone),width=zone.clientWidth;
+    if(known&&known.width===width)return known.middles;
+    const middles=rowsOf(zone).map(row=>row.offsetTop+row.offsetHeight/2);
+    measured.set(zone,{width,middles});return middles;
   };
+  const position=(zone:HTMLElement,event:{clientY:number}):number=>
+    boundaryAt(middlesOf(zone),event.clientY-zone.getBoundingClientRect().top-zone.clientTop+zone.scrollTop);
   const preview=(zone:HTMLElement,boundary:number):void=>{
     if(previewZone===zone&&previewBoundary===boundary)return;
-    clear();previewZone=zone;previewBoundary=boundary;zone.classList.add('over');
+    // ADR-155 (T1.4): within one list only the rows between the old boundary and the new one change; marking every row
+    // after the boundary again on each step restyled the whole list (44-66 ms of a key press on 482 rows).
+    const same=previewZone===zone,from=same?previewBoundary:null;
+    if(same)root.querySelectorAll('.insert-caret').forEach(el=>el.remove());else{clear();zone.classList.add('over');}
+    previewZone=zone;previewBoundary=boundary;
     if(zone.dataset.zone!=='answer')return;
-    const rows=rowsOf(zone);
-    rows.slice(boundary).forEach(row=>row.classList.add('drop-shift'));
+    const rows=rowsOf(zone),before=from??rows.length;
+    for(let i=Math.min(before,boundary);i<Math.max(before,boundary);i++)rows[i]?.classList.toggle('drop-shift',i>=boundary);
+    if(from!==null&&from>0)rows[from-1]?.classList.remove('drop-prev');
     if(boundary>0)rows[boundary-1]!.classList.add('drop-prev');
     const anchor=rows[boundary],last=rows.at(-1);
     const z=zone.getBoundingClientRect();

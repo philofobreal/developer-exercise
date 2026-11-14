@@ -67,3 +67,21 @@ test('String and token identity remain untouched by insertion; formatting stays 
  assert.equal(c.moveInAnswer(0,2),true);
  assert.deepEqual(c.formattedAnswer().map(x=>x.trim()),['let a = 2;','function f() {','return a;','}']);
 });
+
+// ADR-155 (T1.3): the boundary a pointer means among the rows of a list, by the midpoint rule (ADR-095), found by a
+// binary search over the rows' middles. The definition it must equal: the first row whose middle is below the pointer.
+test('the boundary at a pointer: the first row whose middle is below it, the number of rows when none is',async()=>{
+ const {boundaryAt}=await import('../public/app/drag-insert.js');
+ const first=(middles,y)=>{const index=middles.findIndex(middle=>y<middle);return index<0?middles.length:index;};
+ assert.equal(boundaryAt([],50),0,'an empty list has one boundary');
+ const rows=[19,61,103,145];
+ assert.deepEqual([0,18.9,19,19.1,60.9,61,102,103,144.9,145,1000].map(y=>boundaryAt(rows,y)),[0,0,1,1,1,2,2,3,3,4,4],'exactly on a middle is below it, as before');
+ assert.equal(boundaryAt(rows,-5),0);
+ // every boundary of lists of many sizes and uneven row heights, at, beside and between every middle
+ let seed=42;const random=()=>(seed=(seed*1103515245+12345)%2147483648)/2147483648;
+ for(const count of [1,2,3,7,8,9,64,482]){
+  let top=8;const middles=Array.from({length:count},()=>{const height=30+Math.floor(random()*40),middle=top+height/2;top+=height+6;return middle;});
+  const points=[-10,top+10,...middles.flatMap(middle=>[middle-.5,middle,middle+.5]),...Array.from({length:200},()=>random()*(top+20)-10)];
+  for(const y of points)assert.equal(boundaryAt(middles,y),first(middles,y),`${count} rows, y=${y}`);
+ }
+});
