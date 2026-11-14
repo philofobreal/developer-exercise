@@ -1,6 +1,6 @@
 /** Accessible navigation, draft continuity and action feedback share one UI policy. */
 import type {AttemptSnapshot,ViewName,WorkbenchState} from './contracts.js';
-import {captureAuthorRequest,formatLoaded,replaceDraft} from './author-workspace.js';
+import {captureAuthorRequest,formatLoaded,modelDraftStatus,replaceDraft} from './author-workspace.js';
 import {trackActivity} from './activity.js';
 import {viewSwitchesOffered} from './code-view.js';
 const views:readonly ViewName[]=['sort','edit','author','model'];
@@ -107,8 +107,8 @@ export function installAuthoringFlows(root:HTMLElement,state:WorkbenchState,rend
    const status=root.querySelector<HTMLElement>('[data-editor-status]');if(status){status.textContent='Nem alkalmazott változat';status.classList.add('pending');}
    const tab=root.querySelector<HTMLElement>('[data-view="edit"]');if(tab&&!tab.querySelector('.dirty-dot')){const dot=document.createElement('span');dot.className='dirty-dot';dot.setAttribute('aria-label','Nem alkalmazott változtatás');tab.append(dot);}
   }else if(editor.id==='model-editor'){
-   const applied=state.previews.has(state.active??'')?state.authorModel:undefined,dirty=!!editor.value&&(!applied||editor.value!==JSON.stringify(applied,null,2));
-   const status=root.querySelector<HTMLElement>('[data-model-status]');if(status){status.textContent=dirty?'Nem alkalmazott JSON':applied?'Aktív modell':'Új feladat JSON-ból';status.classList.toggle('pending',dirty);}
+   // ADR-155 (T1.7): one owner says whether the JSON is applied, here with the text as it is typed.
+   const answer=modelDraftStatus(state,editor.value),status=root.querySelector<HTMLElement>('[data-model-status]');if(status){status.textContent=answer.label;status.classList.toggle('pending',answer.pending);}
   }
  });
 

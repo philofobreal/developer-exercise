@@ -97,6 +97,47 @@ test('continuity: every admission is the same author project; practice exercises
  enterMode(state,'practice');assert.equal(continuityKey(state),'trusted:practice');assert.notEqual(continuityKey(state),first);
 });
 
+test('ADR-155 (T1.7): one owner says whether the CodeLine JSON is applied, for the state and for the text as it is typed',async()=>{
+ const {modelDraftStatus,modelJson}=await import('../public/app/author-workspace.js');
+ const state=make();
+ // nothing applied: an empty editor is a new exercise, anything typed is unapplied
+ assert.deepEqual(modelDraftStatus(state),{pending:false,label:'Új feladat JSON-ból'});assert.equal(jsonPending(state),false);
+ assert.deepEqual(modelDraftStatus(state,'{'),{pending:true,label:'Nem alkalmazott JSON'});
+ admit(state,'rules');
+ assert.equal(state.modelDraft,modelJson(state.authorModel));
+ assert.deepEqual(modelDraftStatus(state),{pending:false,label:'Aktív modell'});assert.equal(jsonPending(state),false);
+ // the editor's text while it is typed: the state has not followed yet, the answer already has
+ assert.deepEqual(modelDraftStatus(state,state.modelDraft+' '),{pending:true,label:'Nem alkalmazott JSON'});assert.equal(jsonPending(state),false);
+ assert.deepEqual(modelDraftStatus(state,state.modelDraft),{pending:false,label:'Aktív modell'});
+ assert.deepEqual(modelDraftStatus(state,''),{pending:false,label:'Aktív modell'},'an emptied editor is not a draft');
+ state.modelDraft+=' ';assert.deepEqual(modelDraftStatus(state),{pending:true,label:'Nem alkalmazott JSON'});assert.equal(jsonPending(state),true);
+ // the applied model is the author's preview, whichever exercise is in front (practice shows another)
+ state.modelDraft=modelJson(state.authorModel);enterMode(state,'practice');assert.deepEqual(modelDraftStatus(state),{pending:false,label:'Aktív modell'});
+});
+
+test('ADR-155 (T1.1): a drawing asks once whether the rules can be edited, however many rows it draws',async()=>{
+ const {renderRuleBoard,createRowRuleControls,tryRowRuleControls}=await import('../public/app/rule-board.js');
+ const state=make();admit(state,'try');
+ const line=id=>({id,code:`const v${id} = ${id};`,dependencies:[],fixed:false,functionBlock:0,scopeId:null});
+ state.authorModel={...state.authorModel,lines:Array.from({length:60},(_,i)=>line(i+1))};state.modelDraft=JSON.stringify(state.authorModel,null,2);
+ state.authorInsight={rules:{provenance:'complete',unexplained:0,stale:0,relaxations:[],constraints:[]}};
+ // The question reads the JSON draft (is it applied?): its reads count the questions.
+ let draft=state.modelDraft,asked=0;Object.defineProperty(state,'modelDraft',{get(){asked++;return draft;},set(value){draft=value;},configurable:true});
+ const board=renderRuleBoard(state,code=>code),perQuestion=(()=>{asked=0;tryRowRuleControls(state,1);return asked;})();
+ assert.ok(perQuestion>=1,'the question reads the draft');
+ asked=0;const drawn=renderRuleBoard(state,code=>code);
+ assert.equal((drawn.match(/data-rule-connect=/g)??[]).length,60);assert.equal((drawn.match(/data-rule-pin=/g)??[]).length,60);
+ assert.equal(asked,perQuestion,'the board of 60 rows asks once');assert.equal(drawn,board);
+ asked=0;const controls=createRowRuleControls(state),rows=Array.from({length:60},(_,i)=>controls(i+1));
+ assert.equal(asked,perQuestion,'the sorter\'s 60 rows ask once');
+ // The one answer reaches every row: with an unapplied JSON draft every gated control is disabled, with its reason.
+ draft=draft+' ';
+ const paused=renderRuleBoard(state,code=>code);assert.equal((paused.match(/aria-disabled="true" data-disabled-reason="A CodeLine JSON-ban alkalmazatlan módosítás van/g)??[]).length,120);
+ const pausedRows=Array.from({length:3},(_,i)=>createRowRuleControls(state)(i+1));assert.ok(pausedRows.every(row=>/data-rule-connect="\d+"[^>]*|aria-disabled="true"/.test(row)&&row.includes('aria-disabled="true"')));
+ assert.ok(rows.every(row=>!row.includes('aria-disabled')),'and enabled while the draft is the applied model');
+ assert.equal(controls('blank'),'');
+});
+
 test('link toggle (ADR-024): with an anchor every row shows its direct link as a coloured check, a lock or an empty circle',async()=>{
  const {connectButton,linkWith}=await import('../public/app/rule-board.js');
  const state=make();admit(state,'try');

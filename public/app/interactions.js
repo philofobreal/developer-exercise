@@ -1,4 +1,4 @@
-import { captureAuthorRequest, formatLoaded, replaceDraft } from './author-workspace.js';
+import { captureAuthorRequest, formatLoaded, modelDraftStatus, replaceDraft } from './author-workspace.js';
 import { trackActivity } from './activity.js';
 import { viewSwitchesOffered } from './code-view.js';
 const views = ['sort', 'edit', 'author', 'model'];
@@ -171,11 +171,11 @@ export function installAuthoringFlows(root, state, render, format) {
             }
         }
         else if (editor.id === 'model-editor') {
-            const applied = state.previews.has(state.active ?? '') ? state.authorModel : undefined, dirty = !!editor.value && (!applied || editor.value !== JSON.stringify(applied, null, 2));
-            const status = root.querySelector('[data-model-status]');
+            // ADR-155 (T1.7): one owner says whether the JSON is applied, here with the text as it is typed.
+            const answer = modelDraftStatus(state, editor.value), status = root.querySelector('[data-model-status]');
             if (status) {
-                status.textContent = dirty ? 'Nem alkalmazott JSON' : applied ? 'Aktív modell' : 'Új feladat JSON-ból';
-                status.classList.toggle('pending', dirty);
+                status.textContent = answer.label;
+                status.classList.toggle('pending', answer.pending);
             }
         }
     });

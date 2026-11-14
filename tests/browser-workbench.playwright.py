@@ -622,7 +622,8 @@ def tap_to_place(browser):
     try:
         page.goto(BASE);practice(page)
         first=page.locator('.source-zone .code-row').first;text=first.locator('.code-text').inner_text()
-        # ADR-152: the page is scrolled past the height it has with the task list folded; the render after the tap keeps it there
+        # ADR-152, ADR-155: the page is scrolled past the height it has with the task list folded; the render after the tap keeps
+        # it there (the folded list is opened again before the new page is measured)
         before=page.evaluate("()=>{scrollTo(0,document.querySelector('.source-zone .code-row .drag-handle').getBoundingClientRect().top+scrollY-90);return scrollY}")
         folded=page.evaluate("()=>{const picker=document.querySelector('.task-picker');return document.documentElement.scrollHeight-(picker.offsetHeight-picker.querySelector('summary').offsetHeight)-innerHeight}");assert before>folded+100,(before,folded)
         assert page.evaluate("()=>{const handle=document.querySelector('.source-zone .code-row .drag-handle'),box=handle.getBoundingClientRect();return handle.contains(document.elementFromPoint(box.left+box.width/2,box.top+box.height/2))}"),'the handle is on the screen, under nothing'

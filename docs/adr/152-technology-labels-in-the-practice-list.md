@@ -30,6 +30,7 @@
   - Ha az oldal ennél lejjebb volt görgetve, a böngésző levágta a görgetést, majd a lista visszanyitása eltolta: a kirajzolást kiváltó koppintás kattintása egy másik sorra esett (mérve: a felvett sor azonnal le is került a megoldásba, az oldal 611 px-t ugrott).
   - A szűrő első változata (a lista fölött, a görgetődobozon kívül) 177 px-rel magasabbá tette a nyitott listát, így a hiba a kapu telefonos koppintás-tesztjében is megjelent.
   - Javítás: a kirajzolás a saját idejére rögzíti a gyökérelem magasságát, így az oldal közben nem rövidülhet.
+  - *Módosítva ([ADR-155](155-workbench-quick-gains.md), T1.5): a rögzítés megszűnt, mert az ok megszűnt (a nyitott részek a mérés előtt nyílnak vissza). A teszt maradt.*
 
 ## Két terv („design it twice”)
 

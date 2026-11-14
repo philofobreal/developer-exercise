@@ -20,11 +20,15 @@ const SVG = 'http://www.w3.org/2000/svg';
 export function linkWith(state, anchor, id) {
     return (state.authorInsight?.rules?.constraints ?? []).find(c => c.before === anchor && c.after === id || c.before === id && c.after === anchor);
 }
+/** ADR-120: whether the rules can be edited now, as the attributes of a gated control. The answer compares the whole
+ *  source and the whole JSON draft with the applied model's, so a drawing asks it once and hands it to every row
+ *  (ADR-155, T1.1: asked per row it took 25 ms of a 482-row drawing). */
+const editGate = (state) => disabledAttributes(availability(state, 'rule-edit'));
 /** A row's link toggle: a plain circle without an anchor; with one, a check for a linked row
  * (blue: must stand before the anchor, amber: after it; a lock for a structural link) or an
- * empty circle for an unlinked one. */
-export function connectButton(state, id) {
-    const anchor = state.ruleConnect, button = (kind, pressed, label, title, content) => `<button type="button"${disabledAttributes(availability(state, 'rule-edit'))} class="board-connect${kind ? ' link-' + kind : ''}" data-rule-connect="${id}"${kind ? ` data-link="${kind.split(' ')[0]}"` : ''} aria-pressed="${pressed}" aria-label="${label}" title="${title}">${content}</button>`;
+ * empty circle for an unlinked one. `gate`: the drawing's one answer to "can rules be edited"; a single button asks itself. */
+export function connectButton(state, id, gate = editGate(state)) {
+    const anchor = state.ruleConnect, button = (kind, pressed, label, title, content) => `<button type="button"${gate} class="board-connect${kind ? ' link-' + kind : ''}" data-rule-connect="${id}"${kind ? ` data-link="${kind.split(' ')[0]}"` : ''} aria-pressed="${pressed}" aria-label="${label}" title="${title}">${content}</button>`;
     if (anchor === undefined)
         return button('', false, `${article(id, true)} #${id} sor kapcsolatai`, 'Kattints: kipipálja a sor kapcsolatait. Húzd egy másik sorra: létrehozza vagy megszünteti köztük a kapcsolatot.', '<span aria-hidden="true"></span>');
     if (anchor === id)
@@ -50,8 +54,8 @@ export function renderRuleBoard(state, highlight) {
     if (!model || !rulesAvailable(state))
         return '';
     // ADR-112: the reference rows as the sorter projects them (the formatted source's indentation), not block depth.
-    const marks = createRuleMarks(state), reference = referenceLayout(model.lines), shown = formatForIDE(model.lines.map((line, i) => ({ code: line.code, normalization: line.normalization ?? 'indent', offset: reference.offsets[i] ?? 0 })), { indentSize: reference.indentSize });
-    const rows = model.lines.map((line, index) => `<li class="board-row${marks(line.id)}${state.ruleConnect === line.id ? ' connect-source' : ''}${line.fixed ? ' fixed-row' : ''}" data-board-line="${line.id}">${connectButton(state, line.id)}<span class="board-id">#${line.id}</span><span class="board-index">${index + 1}.</span><pre class="code-text"><code>${highlight(shown[index] ?? line.code)}</code></pre><span class="row-actions">${pinButton(line.id, index, line.fixed, disabledAttributes(availability(state, 'rule-edit')))}${ruleButton(state, line.id)}</span></li>`).join('');
+    const marks = createRuleMarks(state), gate = editGate(state), reference = referenceLayout(model.lines), shown = formatForIDE(model.lines.map((line, i) => ({ code: line.code, normalization: line.normalization ?? 'indent', offset: reference.offsets[i] ?? 0 })), { indentSize: reference.indentSize });
+    const rows = model.lines.map((line, index) => `<li class="board-row${marks(line.id)}${state.ruleConnect === line.id ? ' connect-source' : ''}${line.fixed ? ' fixed-row' : ''}" data-board-line="${line.id}">${connectButton(state, line.id, gate)}<span class="board-id">#${line.id}</span><span class="board-index">${index + 1}.</span><pre class="code-text"><code>${highlight(shown[index] ?? line.code)}</code></pre><span class="row-actions">${pinButton(line.id, index, line.fixed, gate)}${ruleButton(state, line.id)}</span></li>`).join('');
     return `<section class="rule-board" aria-labelledby="rule-board-title"><div class="board-heading"><h3 id="rule-board-title">A referencia sorai és szabályai</h3>${toggle(state)}</div>${legend}${connecting(state)}<p class="board-status" role="status" aria-live="polite" data-board-status>${esc(state.boardStatus ?? '')}</p><div class="board-frame"><svg class="board-arcs" data-board-arcs aria-hidden="true" focusable="false"></svg><ol class="board-list" data-board-list aria-label="A referencia sorai">${rows}</ol></div></section>`;
 }
 /** The Try step's rule inspector head (ADR-107): the same legend and drawing switch as the board. */
@@ -59,8 +63,16 @@ export const renderTryRules = (state) => rulesAvailable(state) ? `<div class="tr
 /** Connecting is an action on the rows, so its instructions stay above the lists, panel open or not. */
 export const renderTryConnecting = (state) => rulesEditable(state) ? connecting(state) : '';
 /** Row controls for a sorter row of the author's preview; nothing for learners or practice. */
-/** A sorter row's rule controls: the rules of the line for either reader; connecting lines is the author's (ADR-147). */
-export const tryRowRuleControls = (state, id) => typeof id === 'number' && rulesAvailable(state) ? ruleButton(state, id) + (rulesEditable(state) ? connectButton(state, id) : '') : '';
+/** The rule controls of a sorter's rows, for one drawing: the rules of the line for either reader; connecting lines is
+ *  the author's (ADR-147). What does not depend on the row is decided once here (ADR-155, T1.1). */
+export function createRowRuleControls(state) {
+    if (!rulesAvailable(state))
+        return () => '';
+    const editable = rulesEditable(state), gate = editable ? editGate(state) : '';
+    return id => typeof id === 'number' ? ruleButton(state, id) + (editable ? connectButton(state, id, gate) : '') : '';
+}
+/** One row's rule controls, where a single row is drawn. */
+export const tryRowRuleControls = (state, id) => createRowRuleControls(state)(id);
 /** What to draw: the selected line's direct rules, and on request every non-structural one. */
 function shownConstraints(state) {
     const line = state.ruleSelection?.line;
@@ -98,17 +110,15 @@ function paintArcs(svg, state, centre, anchor, reach, width, height) {
     }
 }
 /** Board arcs in its gutter; sorter arcs inside each zone, between rows of that zone, left of the
- * row controls (a constraint between the pool and the solution is shown by row highlighting). */
-export function drawRuleArcs(root, state) {
-    const svg = root.querySelector('[data-board-arcs]'), list = root.querySelector('[data-board-list]');
-    if (svg && list) {
-        const width = svg.getBoundingClientRect().width || 56;
-        paintArcs(svg, state, new Map([...list.querySelectorAll('[data-board-line]')].map(row => [Number(row.dataset.boardLine), row.offsetTop + row.offsetHeight / 2])), width, width - 4, width, list.offsetHeight);
-    }
-    if (!rulesAvailable(state) || !root.querySelector('[data-try-rules]'))
-        return;
-    for (const zone of root.querySelectorAll('.drop-zone[data-zone]')) {
-        const rows = [...zone.querySelectorAll(':scope > .code-row')].filter(row => /^\d+$/.test(row.dataset.lineId ?? ''));
+ * row controls (a constraint between the pool and the solution is shown by row highlighting).
+ *
+ * ADR-155 (T1.5): in two halves, so that a drawing lays the page out once for all its lists. The call measures every
+ * list (nothing is written between two measurements) and returns the painting, which only writes. A caller with other
+ * measuring to do does it between the two. */
+export function measureRuleArcs(root, state) {
+    const jobs = [];
+    // A zone's layer is made first: making it is a write, and a write between two measurements costs a layout.
+    const zones = rulesAvailable(state) && root.querySelector('[data-try-rules]') ? [...root.querySelectorAll('.drop-zone[data-zone]')].map(zone => {
         let layer = zone.querySelector(':scope > svg.zone-arcs');
         if (!layer) {
             layer = document.createElementNS(SVG, 'svg');
@@ -119,15 +129,28 @@ export function drawRuleArcs(root, state) {
             layer.dataset.arcPrefix = 'arc-' + (zone.dataset.zone ?? 'zone');
             zone.append(layer);
         }
+        return { zone, layer };
+    }) : [];
+    const svg = root.querySelector('[data-board-arcs]'), list = root.querySelector('[data-board-list]');
+    if (svg && list) {
+        const width = svg.getBoundingClientRect().width || 56;
+        jobs.push({ layer: svg, centre: new Map([...list.querySelectorAll('[data-board-line]')].map(row => [Number(row.dataset.boardLine), row.offsetTop + row.offsetHeight / 2])), anchor: width, reach: width - 4, width, height: list.offsetHeight });
+    }
+    for (const { zone, layer } of zones) {
+        const rows = [...zone.querySelectorAll(':scope > .code-row')].filter(row => /^\d+$/.test(row.dataset.lineId ?? ''));
         // ADR-090: the row controls stay at the zone's right edge while the list scrolls sideways; the arcs
         // follow their visible place (the layer is in the zone's content coordinates).
         // ADR-153 (NY-59c): they stand before the leftmost row controls of the list, whichever row those belong to. The first
         // row alone does not say where: a fixed row's controls can be narrower, and then the arcs ran behind the other rows' icons.
         const lefts = rows.map(row => row.querySelector('.row-actions')).filter((box) => !!box && box.offsetWidth > 0).map(box => box.getBoundingClientRect().left);
         const visible = lefts.length ? Math.min(...lefts) - zone.getBoundingClientRect().left - zone.clientLeft - 6 : zone.clientWidth - 8, anchor = visible + zone.scrollLeft;
-        paintArcs(layer, state, new Map(rows.map(row => [Number(row.dataset.lineId), row.offsetTop + row.offsetHeight / 2])), anchor, Math.min(140, visible - 60), Math.ceil(anchor + 8), zone.scrollHeight);
+        jobs.push({ layer, centre: new Map(rows.map(row => [Number(row.dataset.lineId), row.offsetTop + row.offsetHeight / 2])), anchor, reach: Math.min(140, visible - 60), width: Math.ceil(anchor + 8), height: zone.scrollHeight });
     }
+    return () => { for (const job of jobs)
+        paintArcs(job.layer, state, job.centre, job.anchor, job.reach, job.width, job.height); };
 }
+/** Measures and paints at once: for a redraw of the arcs alone (a list scrolled sideways, a window resized). */
+export const drawRuleArcs = (root, state) => measureRuleArcs(root, state)();
 /** The reference order decides direction: a mandatory rule can only follow it (ADR-018). */
 export function connection(model, a, b) {
     const index = new Map(model.lines.map((line, position) => [line.id, position])), x = index.get(a), y = index.get(b);

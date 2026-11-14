@@ -16,10 +16,10 @@ import {installListFit} from './list-fit.js';
 import {installToolbarFit} from './toolbar-fit.js';
 import {installWorkbenchKeyboard,installAuthoringFlows,installMenus,installDisabledGuard} from './interactions.js';
 import {installToggletips} from './toggletip.js';
-import {authorDraftPending,canUndoReplace,refreshAuthorStatus} from './author-workspace.js';
+import {authorDraftPending,canUndoReplace,modelDraftStatus,refreshAuthorStatus} from './author-workspace.js';
 import {renderInputsContract,renderPreflightSettings,renderSettingsOrigin,renderSourceDiagnostics} from './preflight-settings.js';
 import {authorDecisions,createRuleMarks,renderModelInsight,ruleCount,renderRuleCause,renderRuleKinds,renderRulePanel,rulesAvailable,rulesEditable} from './rule-panel.js';
-import {drawRuleArcs,renderRuleBoard,renderTryConnecting,renderTryRules,tryRowRuleControls} from './rule-board.js';
+import {createRowRuleControls,drawRuleArcs,measureRuleArcs,renderRuleBoard,renderTryConnecting,renderTryRules} from './rule-board.js';
 import {installPaneSplit,paneSplit,separatorAttributes} from './pane-split.js';
 import {authorPreviewId,continuityKey,jsonPending,renderStepper,staleReason,stepOf,tryAdmission} from './flow.js';
 import {renderTaskStatus,taskStatus} from './task-status.js';
@@ -69,11 +69,11 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:Wor
   return marks;
  }
  function zone(e:ExerciseSummary,a:AttemptSnapshot,list:'pool'|'answer'):string {
-  const source=list==='pool',ids=a[list],pretty=source?ids.map(attempt.text):attempt.formattedAnswer(),marks=createRuleMarks(state),graded=source?new Map<number,{items:number[];sure:boolean}>():slotMarks(a);
+  const source=list==='pool',ids=a[list],pretty=source?ids.map(attempt.text):attempt.formattedAnswer(),marks=createRuleMarks(state),ruleControls=createRowRuleControls(state),graded=source?new Map<number,{items:number[];sure:boolean}>():slotMarks(a);
   const rows=ids.map((id,i)=>{
    const blank=id===null,pinned=!source&&attempt.fixed(i),locked=pinned&&!blank,raw=pretty[i]??'';
    const handle=locked?icon('lock'):blank?'·':icon('grip');
-   const actions=tryRowRuleControls(state,id)+(locked?'<span class="fixed-tag">Rögzített</span>':blank?'':source?rowTool(`data-move="${i}"`,'plus',`aria-label="${i+1}. sor beszúrása" title="Beszúrás az első szabad helyre"`):
+   const actions=ruleControls(id)+(locked?'<span class="fixed-tag">Rögzített</span>':blank?'':source?rowTool(`data-move="${i}"`,'plus',`aria-label="${i+1}. sor beszúrása" title="Beszúrás az első szabad helyre"`):
     rowTool(`data-up="${i}"`,'up',`aria-label="${i+1}. sor feljebb helyezése" title="Egy hellyel feljebb"`)+rowTool(`data-down="${i}"`,'down',`aria-label="${i+1}. sor lejjebb helyezése" title="Egy hellyel lejjebb"`)+rowTool(`data-remove="${i}"`,'back',`aria-label="${i+1}. sor visszahelyezése a forráslistába" title="Vissza a felhasználható sorokhoz"`));
    const mark=graded.get(i),diagnosis=mark?` diag-${mark.sure?'error':'possible'}${state.feedbackFocus!==undefined&&mark.items.includes(state.feedbackFocus)?' diag-focus':''}`:'',described=mark?` aria-describedby="${mark.items.map(k=>'feedback-'+k).join(' ')}"`:'';
    const picked=!blank&&state.rowPick?.list===list&&state.rowPick.id===String(id);
@@ -172,9 +172,9 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:Wor
  }
  // ── Author step 1: the reference source (code or a whole CodeLine JSON) ──
  function jsonBlock(context:'source'|'rules'):string {
-  const m=authorPreviewId(state)?state.authorModel:undefined,dirty=jsonPending(state);
+  const m=authorPreviewId(state)?state.authorModel:undefined,draft=modelDraftStatus(state);
   const refresh=context==='rules'&&m?`<div class="draft-notice" data-dependency-refresh><p>${m.authoring?.strategy==='ast-hierarchy'&&!m.authoring.dependencyPolicy?'Régebbi generált modell: a változatlan JSON a korábbi sorfüggőségeket használja. A dependencyHints csak tájékoztató. ':''}Az újraszámítás az itt látható JSON kódsorai alapján lecseréli a generált sorfüggőségeket. A kód, a sor-ID-k, a fixed helyek, a blokkok, a szerzői szabályok és a profilok megmaradnak; a jelentés a Minősítés alatt jelenik meg.</p>${tool('data-model-refresh','Sorfüggőségek újraszámítása','code')}</div>`:'';
-  return `${context==='rules'?renderDependencyTable(m):''}${refresh}<div class="editor-heading"><h3>CodeLine JSON</h3><span data-model-status class="context-label ${dirty?'pending':''}">${dirty?'Nem alkalmazott JSON':m?'Aktív modell':'Új feladat JSON-ból'}</span><div class="editor-tools">${tool('data-copy-model','JSON másolása','copy','aria-label="JSON másolása: a modell a vágólapra"')}${tool('data-paste-model','Beillesztés','paste','aria-label="Beillesztés: JSON-modell a vágólapról"')}${tool('data-import-model','JSON megnyitása…','upload')}${m?tool('data-export-model','JSON exportálása…','download'):''}</div></div><div class="ide-pane">${editorShell('model-editor','model')}</div><div class="editor-actions"><p class="inline-hint">A scopeId, functionBlock és blocks mezőknek konzisztensnek kell maradniuk.</p>${tool('data-model-apply','JSON alkalmazása','arrow','class="primary"')}</div><p class="author-status" data-model-message role="status" aria-live="polite">${esc(state.modelMessage||'Hibás modellnél a korábbi aktív állapot megmarad.')}</p>`;
+  return `${context==='rules'?renderDependencyTable(m):''}${refresh}<div class="editor-heading"><h3>CodeLine JSON</h3><span data-model-status class="context-label ${draft.pending?'pending':''}">${draft.label}</span><div class="editor-tools">${tool('data-copy-model','JSON másolása','copy','aria-label="JSON másolása: a modell a vágólapra"')}${tool('data-paste-model','Beillesztés','paste','aria-label="Beillesztés: JSON-modell a vágólapról"')}${tool('data-import-model','JSON megnyitása…','upload')}${m?tool('data-export-model','JSON exportálása…','download'):''}</div></div><div class="ide-pane">${editorShell('model-editor','model')}</div><div class="editor-actions"><p class="inline-hint">A scopeId, functionBlock és blocks mezőknek konzisztensnek kell maradniuk.</p>${tool('data-model-apply','JSON alkalmazása','arrow','class="primary"')}</div><p class="author-status" data-model-message role="status" aria-live="polite">${esc(state.modelMessage||'Hibás modellnél a korábbi aktív állapot megmarad.')}</p>`;
  }
  /** Author step 1 (ADR-105): what the exercise is (title, language, level, description) in one block; the
   * analysis settings fold away with their current values in the summary; opening a source is one menu. */
@@ -272,16 +272,16 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:Wor
  function render({background=false}:{background?:boolean}={}):void {
   const v=state.view,learner=!!state.learnerPreview,key=continuityKey(state);
   continuity.capture({background});scroll.capture();
-  // ADR-152: the window keeps its scroll position over a render. Until the remembered disclosures are open again the
-  // new page can be shorter than the old one (the folded task list of a phone), and the measuring below lays it out in
-  // that state: the browser would clamp the scroll, and the tap that caused the render would land on another row.
-  root.style.minHeight=root.offsetHeight+'px';
   root.classList.toggle('learner-preview',learner);root.classList.toggle('author-mode',state.mode==='author'&&!learner);
   root.innerHTML=header()+(learner?learnerShell():state.mode==='practice'?practiceShell():authorShell());
   const fill=(selector:string,value:string):void=>{const editor=root.querySelector<HTMLTextAreaElement>(selector);if(editor)editor.value=value;};
   fill('#author-editor',state.author.source);fill('#model-editor',state.modelDraft);fill('#code-editor',at()?.draft??'');
-  refreshAuthorStatus(root,state);syncEditors(root);drawRuleArcs(root,state);
-  root.dataset.renderedExercise=state.active??'';root.dataset.renderedView=v;root.dataset.renderedMode=state.mode;fitHeader();fitToolbar();fitLists();scroll.restore(key);continuity.restore(key+':'+v+(v==='model'?':'+(state.rulesView??'visual'):v==='author'?':'+(state.sourceKind??'code'):''));root.style.minHeight='';tips.rendered({background});
+  refreshAuthorStatus(root,state);root.dataset.renderedExercise=state.active??'';root.dataset.renderedView=v;root.dataset.renderedMode=state.mode;
+  // ADR-155 (T1.5): everything the new page is made of is written first, the remembered open details among it; then
+  // the page is measured, with as little written in between as the measurers allow; then what the measurements feed.
+  const focus=continuity.restore(key+':'+v+(v==='model'?':'+(state.rulesView??'visual'):v==='author'?':'+(state.sourceKind??'code'):''));
+  syncEditors(root);const paintArcs=measureRuleArcs(root,state);fitHeader();fitToolbar();fitLists();scroll.restore(key);
+  paintArcs();focus();tips.rendered({background});
  }
  return {render};
 }

@@ -99,6 +99,14 @@ export function setLearnerData(state, field, value) {
 export const learnerLevel = (state) => ({ learnerFeedback: state.author.learnerFeedback ?? 'positions' });
 const nextRequest = (state) => state.authorRequestGeneration = (state.authorRequestGeneration ?? 0) + 1;
 const previewId = (state) => state.previews.keys().next().value;
+/** ADR-155 (T1.7): the CodeLine JSON draft against the applied model, decided here alone (this module owns the model's
+ *  text, `modelJson`). `pending`: the draft says something the applied model does not, or nothing is applied and
+ *  something is typed. `label`: how the editor's heading says it. `draft`: the editor's own text while it is typed
+ *  (the state follows it within the same event); without it, the state's. */
+export function modelDraftStatus(state, draft = state.modelDraft) {
+    const model = previewId(state) ? state.authorModel : undefined, pending = !!draft && (!model || draft !== modelJson(model));
+    return { pending, label: pending ? 'Nem alkalmazott JSON' : model ? 'Aktív modell' : 'Új feladat JSON-ból' };
+}
 /** Capture at user intent, before file/clipboard/network I/O; the latest reference action wins. */
 export function captureAuthorRequest(state) {
     const generation = nextRequest(state), current = captureAuthorAdmission(state);

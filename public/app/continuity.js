@@ -1,4 +1,9 @@
-/** A DOM replacement must not discard focus, selection or expanded explanations. */
+/** A DOM replacement must not discard focus, selection or expanded explanations.
+ *
+ * ADR-155 (T1.5): `restore` works in two halves. The call opens again what was open, at once: the page is then measured
+ * as the reader left it (measured with the remembered details still closed it was shorter, which once cost a jump of
+ * the window's scroll, ADR-152). It returns the focusing, which the view calls after its measuring: a control the
+ * fitting hid must not take the focus, and focusing lays the page out. */
 /** ADR-136: the open header or step menu (`details.menu` named by its `…-menu` class), so a render the reader did not
  *  cause (an answer arriving in the background) leaves it open; a render after an action closes it as before. */
 const menuName = (menu) => [...menu.classList].find(name => name.endsWith('-menu'));
@@ -42,22 +47,24 @@ export function createViewContinuity(root) {
                         menu.open = true;
                 }
             openMenus = [];
-            if (!focused)
-                return;
-            const control = root.querySelector(focused.selector);
-            if (!control)
-                return;
-            // A row of a menu the render closed cannot take the focus: its menu's button does (ADR-145).
-            const menu = control.closest('details.menu'), element = (menu && !menu.open ? menu.querySelector(':scope > summary') : null) ?? control;
-            // Navigation keeps its button focused; editor selection is restored only within its view.
-            if (same || control.matches('[data-view],[data-task]')) {
-                element.focus({ preventScroll: true });
-                if (same && focused.selection && (element instanceof HTMLTextAreaElement || element instanceof HTMLInputElement)) {
-                    try {
-                        element.setSelectionRange(...focused.selection);
+            return () => {
+                if (!focused)
+                    return;
+                const control = root.querySelector(focused.selector);
+                if (!control)
+                    return;
+                // A row of a menu the render closed cannot take the focus: its menu's button does (ADR-145).
+                const menu = control.closest('details.menu'), element = (menu && !menu.open ? menu.querySelector(':scope > summary') : null) ?? control;
+                // Navigation keeps its button focused; editor selection is restored only within its view.
+                if (same || control.matches('[data-view],[data-task]')) {
+                    element.focus({ preventScroll: true });
+                    if (same && focused.selection && (element instanceof HTMLTextAreaElement || element instanceof HTMLInputElement)) {
+                        try {
+                            element.setSelectionRange(...focused.selection);
+                        }
+                        catch { }
                     }
-                    catch { }
                 }
-            }
+            };
         } };
 }

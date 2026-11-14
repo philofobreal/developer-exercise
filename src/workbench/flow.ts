@@ -7,7 +7,7 @@
  * after it marks them stale until it is applied or discarded. Practice: the trusted exercises,
  * `sort` | `edit` only. Learner preview is UI isolation inside the author's try step. */
 import type {AttemptSnapshot,Mode,ViewName,WorkbenchState} from './contracts.js';
-import {authorDraftPending,evidenceStale,modelJson} from './author-workspace.js';
+import {authorDraftPending,evidenceStale,modelDraftStatus} from './author-workspace.js';
 import {activateView} from './interactions.js';
 import {taskStatus} from './task-status.js';
 import {escapeHtml as esc} from './ui-utilities.js';
@@ -23,10 +23,8 @@ export const authorPreviewId=(state:WorkbenchState):string|null=>state.previews.
  * a rebuild) yields a new preview id, but it is still the one author project; a practice exercise
  * is its own identity. */
 export const continuityKey=(state:WorkbenchState):string=>(state.mode==='author'?'author-project':state.active??'none')+':'+state.mode;
-export function jsonPending(state:WorkbenchState):boolean {
- const model=authorPreviewId(state)?state.authorModel:undefined;
- return !!state.modelDraft&&(!model||state.modelDraft!==modelJson(model));
-}
+/** The CodeLine JSON holds an unapplied change (author-workspace decides it, ADR-155). */
+export const jsonPending=(state:WorkbenchState):boolean=>modelDraftStatus(state).pending;
 /** Why the steps after the source no longer show the latest author intent, or ''. */
 export function staleReason(state:WorkbenchState):string {
  if(!authorPreviewId(state))return '';
