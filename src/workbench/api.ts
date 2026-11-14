@@ -29,6 +29,9 @@ async function jsonRequest(url:string,body:unknown):Promise<unknown> {
  finally{inFlight.delete(controller);}
 }
 export const getExercises=async():Promise<unknown>=>{const response=await fetch('/api/exercises');if(!response.ok)throw new Error(`HTTP ${response.status}`);return (refusal(await response.json()) as {exercises?:unknown}).exercises;};
+/** ADR-151: whether the server serves authoring to this client. An unanswered question counts as no: the page then
+ *  offers practice only, and nothing it shows would be refused. */
+export const authorAccess=async():Promise<boolean>=>{try{const response=await fetch('/api/access');return response.ok&&(await response.json() as {authoring?:unknown}).authoring===true;}catch{return false;}};
 export const compileDraft=(body:unknown):Promise<unknown>=>jsonRequest('/api/author/compile',body);
 /** ADR-113: the first gate on the source only; no draft is made. */
 export const checkSource=(body:unknown):Promise<unknown>=>jsonRequest('/api/author/check',body);

@@ -24,6 +24,7 @@ The application has explicit authoring, compilation, evaluation and presentation
 | Input adapter | createInsertionDrag | native/pointer/touch/keyboard, marker, midpoint, animation compensation, focus and announcement |
 | Presentation | render, field registry | escaped HTML, Prism, editors and extensible hierarchy |
 | API adapters | author/preview/evaluate contracts | server calls or explicitly local Pages demonstration |
+| Client address | clientAddress(request, trustedProxies); trustedProxyCount(value) | who the client is behind the operator's reverse proxies (the forwarded-address header, its list format, the counting from the right); the rate limit and the author gate ask for one address ([ADR-151](adr/151-public-server-practice-only.md)) |
 | Deployment | one verify job → reusable deploy | exact tested artifact, failure gating, restricted publication permission |
 
 These are deep modules in Ousterhout's sense: a small interface hides a coherent policy. Separating persistence and author lifecycle removes policy from event handlers; splitting files alone is not the architectural objective. The learner DOM never receives the trusted dependency graph. Author preview models may display their own dependency tables; successful grading returns a content-verified token witness, without disclosing trusted ordering edges. The core does not know browsers, parsers, CSS or formatting libraries.

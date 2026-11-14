@@ -5,6 +5,7 @@ import path from 'node:path';
 import {ServiceError} from './catalog.mjs';
 import {AuthoringError} from '../author/generator.mjs';
 import {authorRefusal} from '../../dist/server/author-gate.js';
+import {clientAddress} from '../../dist/server/client-address.js';
 const mime={'.woff2':'font/woff2','.txt':'text/plain; charset=utf-8','.ts':'text/plain; charset=utf-8','.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.map':'application/json; charset=utf-8'};
 const headers={
   'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer',
@@ -14,12 +15,13 @@ function json(res,status,data){res.writeHead(status,{'Content-Type':'application
 async function readJson(req,limit){const parts=[];let size=0;
   for await(const chunk of req){size+=chunk.length;if(size>limit)throw new ServiceError(413,'Payload too large');parts.push(chunk);}
   try{return JSON.parse(Buffer.concat(parts).toString('utf8'));}catch{throw new ServiceError(400,'Invalid JSON');}}
-/** `authorToken`: when set, the author API requires it as a bearer token; otherwise it is loopback-only (ADR-027). */
-export function createApplication({catalog,staticRoot,authorToken}){
+/** `authorToken`: when set, the author API requires it as a bearer token; otherwise it is loopback-only (ADR-027).
+ * `trustedProxies`: how many reverse proxies the operator runs in front (ADR-151); 0 when reached directly. */
+export function createApplication({catalog,staticRoot,authorToken,trustedProxies=0}){
   const rate=new Map();
   const server=createServer(async(req,res)=>{
     for(const [name,value] of Object.entries(headers))res.setHeader(name,value);
-    const ip=req.socket.remoteAddress??'',now=Date.now(),counter=rate.get(ip)??{since:now,count:0};
+    const ip=clientAddress(req,trustedProxies),author={token:authorToken,client:ip},now=Date.now(),counter=rate.get(ip)??{since:now,count:0};
     if(now-counter.since>60_000){counter.since=now;counter.count=0;}
     rate.set(ip,counter);if(req.method==='POST'&&++counter.count>120)return json(res,429,{error:'Too many requests'});
     if(rate.size>2000)for(const [key,v] of rate)if(now-v.since>60_000)rate.delete(key);
@@ -29,14 +31,17 @@ export function createApplication({catalog,staticRoot,authorToken}){
     try{
       if(req.method==='GET'&&route==='/api/exercises')return json(res,200,{exercises:catalog.list()});
       if(req.method==='POST'&&route==='/api/evaluate')return json(res,200,catalog.evaluate(await readJson(req,1024*1024)));
+      // ADR-151: whether this client may author, so the page offers authoring only where the server would serve it.
+      // The answer grants nothing: every author route decides again.
+      if(req.method==='GET'&&route==='/api/access')return json(res,200,{authoring:!authorRefusal(req,author)});
       // ADR-108 (E7): the policy resolution is a safe query (language and settings only), so GET.
       if(req.method==='GET'&&route==='/api/author/policy'){
-        const refusal=authorRefusal(req,{token:authorToken});if(refusal)return json(res,refusal.status,{error:refusal.error});
+        const refusal=authorRefusal(req,author);if(refusal)return json(res,refusal.status,{error:refusal.error});
         let request;try{request=JSON.parse(new URL(req.url??'/','http://localhost').searchParams.get('request')??'{}');}catch{return json(res,400,{error:'Invalid policy request'});}
         return json(res,200,catalog.resolvePolicy(request));
       }
       if(req.method==='POST'&&route.startsWith('/api/author/')){
-        const refusal=authorRefusal(req,{token:authorToken});if(refusal)return json(res,refusal.status,{error:refusal.error});
+        const refusal=authorRefusal(req,author);if(refusal)return json(res,refusal.status,{error:refusal.error});
         // A 436-line TypeScript service generates a >64KiB CodeLine JSON model.
         // Keep payload bounded, but do not prevent editing the documented 500-line models.
         const body=await readJson(req,1024*1024);

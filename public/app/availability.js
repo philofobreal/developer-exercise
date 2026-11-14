@@ -2,10 +2,12 @@ import { authorDraftPending, evidenceStale } from './author-workspace.js';
 import { jsonPending } from './flow.js';
 import { hasLocalSave } from './persistence.js';
 import { escapeHtml } from './ui-utilities.js';
-const ACTIONS = ['author-apply', 'author-check', 'load-local', 'reset', 'rule-edit'];
+const ACTIONS = ['author-apply', 'author-check', 'authoring', 'format-solution', 'load-local', 'reset', 'rule-edit'];
 const isAction = (value) => ACTIONS.includes(value);
 const enabled = { state: 'enabled' };
 const disabled = (reason) => ({ state: 'disabled', reason });
+/** What a request for authoring is told where it is not served (a link from the help page can still ask). */
+export const AUTHORING_NOT_SERVED = 'A feladatkészítés ezen a szerveren nem érhető el. A gyakorlás használható.';
 export function availability(state, action, attempt) {
     switch (action) {
         case 'author-apply':
@@ -16,6 +18,9 @@ export function availability(state, action, attempt) {
             return enabled;
         case 'author-check':
             return state.author.source.trim() ? enabled : disabled('Nincs forrás: írj be kódot, vagy nyiss meg egy példát vagy fájlt.');
+        case 'authoring':
+        case 'format-solution':
+            return state.authoring === false ? { state: 'hidden' } : enabled;
         case 'load-local':
             return hasLocalSave() ? enabled : disabled('Ebben a böngészőben még nincs mentett munka. A Mentés a böngészőbe után nyitható meg.');
         case 'reset':

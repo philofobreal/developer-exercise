@@ -32,6 +32,8 @@ export function abortPending():void {
  worker?.terminate();call=undefined;worker=undefined;stopped=true;
 }
 export const getExercises=engine('getExercises');
+/** The Local Demo runs the author engine in the visitor's own browser: authoring is always offered. */
+export const authorAccess=async():Promise<boolean>=>true;
 export const compileDraft=engine('compileDraft');
 export const editRules=engine('editRules');
 export const resolvePolicy=engine('resolvePolicy');

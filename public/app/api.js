@@ -39,6 +39,15 @@ async function jsonRequest(url, body) {
 }
 export const getExercises = async () => { const response = await fetch('/api/exercises'); if (!response.ok)
     throw new Error(`HTTP ${response.status}`); return refusal(await response.json()).exercises; };
+/** ADR-151: whether the server serves authoring to this client. An unanswered question counts as no: the page then
+ *  offers practice only, and nothing it shows would be refused. */
+export const authorAccess = async () => { try {
+    const response = await fetch('/api/access');
+    return response.ok && (await response.json()).authoring === true;
+}
+catch {
+    return false;
+} };
 export const compileDraft = (body) => jsonRequest('/api/author/compile', body);
 /** ADR-113: the first gate on the source only; no draft is made. */
 export const checkSource = (body) => jsonRequest('/api/author/check', body);

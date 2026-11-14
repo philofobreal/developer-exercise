@@ -13,8 +13,10 @@ const sameOrigin=(origin:string,host:string|undefined):boolean=>{try{return new 
  * - Cross-site browser requests are refused in every mode (CSRF).
  * - With a configured token only `Authorization: Bearer <token>` is accepted.
  * - Without a token only a loopback client addressing a loopback host is accepted, which also
- *   refuses DNS-rebinding pages that reach 127.0.0.1 under a foreign name. */
-export function authorRefusal(req:Pick<IncomingMessage,'headers'|'socket'>,{token}:{token?:string|undefined}={}):AuthorRefusal|null {
+ *   refuses DNS-rebinding pages that reach 127.0.0.1 under a foreign name.
+ * `client` is the request's client address when the caller knows it better than the socket does (behind trusted
+ * proxies the socket's peer is the proxy, often on loopback; ADR-151). */
+export function authorRefusal(req:Pick<IncomingMessage,'headers'|'socket'>,{token,client=req.socket.remoteAddress??''}:{token?:string|undefined;client?:string}={}):AuthorRefusal|null {
   const site=req.headers['sec-fetch-site'];
   if(site!==undefined&&site!=='same-origin'&&site!=='none')return CROSS_SITE;
   const origin=req.headers.origin;
@@ -23,6 +25,6 @@ export function authorRefusal(req:Pick<IncomingMessage,'headers'|'socket'>,{toke
     const given=/^Bearer (.+)$/.exec(req.headers.authorization??'')?.[1]??'';
     return timingSafeEqual(digest(given),digest(token))?null:{status:401,error:'A szerzői API hitelesítést igényel.'};
   }
-  if(LOOPBACK_ADDRESSES.has(req.socket.remoteAddress??'')&&LOOPBACK_HOSTS.has(hostName(req.headers.host)))return null;
+  if(LOOPBACK_ADDRESSES.has(client)&&LOOPBACK_HOSTS.has(hostName(req.headers.host)))return null;
   return {status:403,error:'A szerzői API token nélkül csak helyi gépről érhető el (CODELINE_AUTHOR_TOKEN).'};
 }

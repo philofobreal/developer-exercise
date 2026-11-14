@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased – 2026-11-14 A szerver nyilvános címen: a látogató címe, és csak gyakorlás (ADR-151)
+
+- **Cél:** a motor (a validátor és a szerzői elemzés) a szerveren maradjon, ne a látogató böngészőjében fusson. Ez az első lépés; a kitelepítés maga még nincs kész (NY-59, NY-60).
+- **Proxy mögött a kéréskorlát látogatónként számol.** Új beállítás: `CODELINE_TRUSTED_PROXIES` (a szerver előtti saját proxyk száma, alapérték 0).
+- **A szerzői kapu a látogató címéből dönt,** ezért a saját gépen futó proxy mögül érkező látogató nem számít helyi szerzőnek.
+- **Ahol a szerver nem ad szerzői szolgáltatást, a lap csak gyakorlás:** nincs módváltó, „Saját feladat ebből” és „Formázás”; a háttérben sincs elutasított kérés. A helyi szerző lapja nem változott.
+- **A `typescript` futásidejű függőség lett,** mert a szerver futás közben tölti be.
+- **A validátor, a szabályok és az értékelés nem változott.**
+
 ## Unreleased – 2026-11-14 Javítva: a névtér exportált függvénye a helyén marad (ADR-150, NY-49, v58)
 
 - **Hibás elfogadás javítva.** A modell eddig elfogadta, hogy egy TypeScript `namespace` exportált függvénye az exportált változók elé vagy közé kerüljön, pedig a névtér objektumának kulcssorrendje megváltozik (`["penalty","bonus","total"]` → `["total","penalty","bonus"]`). A hívások eredménye azonos volt.

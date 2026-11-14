@@ -4,7 +4,7 @@ import {learnerLevel,refreshAuthorStatus,captureAuthorRequest,authorRequest,star
 import {NEW_DRAFT_SETTINGS,setPreflightOption,settingsKey,settingsRequest} from './app/preflight-settings.js';
 import {revealLine,article} from './app/ui-utilities.js';
 import {readRuleEdit,readRuleKindEdits,recordRuleRefusal,ruleCount,settleRuleKind,settleRuleSelection} from './app/rule-panel.js';
-import {availability,reasonOf,refreshAvailability} from './app/availability.js';
+import {AUTHORING_NOT_SERVED,availability,reasonOf,refreshAvailability} from './app/availability.js';
 /** ADR-120: the rule editor's own last check (the view and the guard already refused a disabled control). */
 const ruleEditBlocked=state=>reasonOf(availability(state,'rule-edit'));
 import {connection,installRuleBoard,linkWith} from './app/rule-board.js';
@@ -23,7 +23,7 @@ import {createWorkbenchView} from './app/view.js';
 import {practiceOrder} from './app/fields.js';
 import {createInsertionDrag} from './app/drag-insert.js';
 import {createScrollMemory,syncEditors,handleEditorKey,copyToClipboard,escapeHtml} from './app/ui-utilities.js';
-import {formatSource,getExercises,compileDraft,checkSource,editRules,previewDraft,resolvePolicy,evaluate,loadTypeScriptFixture,abortPending} from './app/api.js';
+import {formatSource,getExercises,authorAccess,compileDraft,checkSource,editRules,previewDraft,resolvePolicy,evaluate,loadTypeScriptFixture,abortPending} from './app/api.js';
 // ADR-132 (P2): after 10 s the progress chip offers to stop waiting; the API knows how (a request, or the Local Demo worker).
 setActivityAbort(abortPending);
 const root=document.querySelector('#app');
@@ -48,6 +48,7 @@ function applyEditor(){const result=attempt.applyText(root.querySelector('#code-
  * the latest request wins. */
 let policyKey='';
 function ensurePolicy(){
+ if(state.authoring===false)return;
  const key=settingsKey(state.author);if(key===policyKey)return;policyKey=key;
  // ADR-136: the resolution arrives in the background; a menu the author opened meanwhile stays open.
  resolvePolicy({language:state.author.language,...settingsRequest(state.author)}).then(resolution=>{if(key===policyKey){state.authorPolicy=resolution;view.render({background:true});ensurePolicy();}},()=>{if(key===policyKey)policyKey='';});
@@ -309,11 +310,12 @@ root.addEventListener('change',async ev=>{
 });
 
 /** ADR-135: a help example opens in the Kód step, the bubble closed, the focus on the loaded source. */
-function openHelpTrial(trial){startFromHelp(state,trial);enterMode(state,'author');state.view='author';state.sourceKind='code';render();root.querySelector('#author-editor')?.focus({preventScroll:true});}
+function openHelpTrial(trial){if(state.authoring===false){notify(AUTHORING_NOT_SERVED);return;}startFromHelp(state,trial);enterMode(state,'author');state.view='author';state.sourceKind='code';render();root.querySelector('#author-editor')?.focus({preventScroll:true});}
 /** ADR-136: the policy for the starting draft is asked with the exercise list, so the first render already has it: no
  *  answer redraws the page under the reader's first click. A refusal leaves it to `ensurePolicy`, as before. */
 async function startingPolicy(){const key=settingsKey(state.author);try{state.authorPolicy=await resolvePolicy({language:state.author.language,...settingsRequest(state.author)});policyKey=key;}catch{}}
-async function init(){try{const [exercises]=await Promise.all([getExercises(),startingPolicy()]);state.exercises=practiceOrder(exercises);for(const e of state.exercises)state.attempts.set(e.id,createAttempt(e));if(!state.exercises.length)throw Error('Üres feladatlista.');state.practiceActive=state.exercises[0].id;render();
+// ADR-151: where the server serves no authoring to this client, the page asks for no author policy and opens in practice.
+async function init(){try{const [exercises,authoring]=await Promise.all([getExercises(),authorAccess().then(async served=>{if(served)await startingPolicy();return served;})]);state.authoring=authoring;state.exercises=practiceOrder(exercises);for(const e of state.exercises)state.attempts.set(e.id,createAttempt(e));if(!state.exercises.length)throw Error('Üres feladatlista.');state.practiceActive=state.exercises[0].id;if(!authoring)enterMode(state,'practice');render();
  // ADR-135: the help page's „Kipróbálom” opens the workbench at #kiprobalom=<topic>.<outcome>; the address is cleared after.
  const trial=helpTrialFromHash(location.hash);if(trial){history.replaceState(null,'',location.pathname+location.search);openHelpTrial(trial);}}catch(err){root.innerHTML=`<div class="loading" role="alert">${escapeHtml(err.message)}</div>`;}}
 init();
