@@ -309,6 +309,25 @@ def header_logo_fits(browser):
             page.locator('[data-step="source"]').click()
             state=page.evaluate(HEADER_STATE);assert state['fits'] and state['page']<=width,f'{width}px, wide font: {state}'
         finally:context.close()
+def rule_icons_in_one_column(browser):
+    """ADR-153 (NY-59c): in the Try lists a row's rule icons stand in one column, in a fixed row too: its tag takes the room
+    the three move buttons take in the other rows. The arcs of the selected row stand before the controls of every row, so
+    none runs behind an icon; that holds where a fixed row's controls are narrower too (the tag is shrunk by the test: the
+    first row alone used to say where the arcs stand)."""
+    measure="""()=>{const rows=[...document.querySelectorAll('.solution-zone > .code-row')],left=e=>Math.round(e.getBoundingClientRect().left*10)/10;
+      return {fixed:rows.filter(row=>row.classList.contains('fixed-row')).map(row=>row.dataset.index),icons:[...new Set(rows.map(row=>left(row.querySelector('[data-rule-line]'))))],
+       controls:Math.min(...rows.map(row=>left(row.querySelector('.row-actions')))),arcs:[...document.querySelectorAll('.solution-zone .zone-arcs path.arc')].map(path=>Math.round(path.getBoundingClientRect().right*10)/10)}}"""
+    for shrunk in [False,True]:
+        context=watch(browser.new_context(viewport={'width':1440,'height':900},bypass_csp=shrunk));page=context.new_page()
+        try:
+            reset(page,BASE);build(page,rules_source);pin=page.locator('.board-row[data-board-line="1"] [data-rule-pin]');pin.click();expect(pin).to_have_attribute('aria-pressed','true')
+            to_try(page);page.locator('[data-all]').click();expect(page.locator('.solution-zone .fixed-tag')).to_have_count(1)
+            if shrunk:page.add_style_tag(content='.solution-row .fixed-tag{min-width:0!important}')
+            page.locator('.solution-zone [data-rule-line="5"]').click();expect(page.locator('.solution-zone .zone-arcs path.arc')).not_to_have_count(0)
+            m=page.evaluate(measure);assert m['fixed']==['0'],m
+            assert len(m['icons'])==(2 if shrunk else 1),f"the rule icons of the rows stand at {m['icons']}"
+            assert max(m['arcs'])<=m['controls'],f"an arc runs behind the row controls ({'shrunk tag' if shrunk else 'as drawn'}): {m}"
+        finally:context.close()
 def result_bar_sticks(browser):
     """ADR-139: the result bar (Ellenőrzés) sticks to the bottom of the screen in practice and in the author's Try step, at
     every width, as a step's action bar does: with the page at its top the bar is on the screen, at the bottom or (its
@@ -603,7 +622,12 @@ def tap_to_place(browser):
     try:
         page.goto(BASE);practice(page)
         first=page.locator('.source-zone .code-row').first;text=first.locator('.code-text').inner_text()
+        # ADR-152: the page is scrolled past the height it has with the task list folded; the render after the tap keeps it there
+        before=page.evaluate("()=>{scrollTo(0,document.querySelector('.source-zone .code-row .drag-handle').getBoundingClientRect().top+scrollY-90);return scrollY}")
+        folded=page.evaluate("()=>{const picker=document.querySelector('.task-picker');return document.documentElement.scrollHeight-(picker.offsetHeight-picker.querySelector('summary').offsetHeight)-innerHeight}");assert before>folded+100,(before,folded)
+        assert page.evaluate("()=>{const handle=document.querySelector('.source-zone .code-row .drag-handle'),box=handle.getBoundingClientRect();return handle.contains(document.elementFromPoint(box.left+box.width/2,box.top+box.height/2))}"),'the handle is on the screen, under nothing'
         first.locator('.drag-handle').tap();expect(first).to_have_class(re.compile('picked'));expect(page.locator('[data-move-status]')).to_contain_text('Sor kijelölve')
+        assert page.evaluate('scrollY')==before,(before,page.evaluate('scrollY'))
         first.locator('.drag-handle').tap();expect(page.locator('.code-row.picked')).to_have_count(0);expect(page.locator('[data-move-status]')).to_contain_text('megszüntetve')
         page.locator('.source-zone .code-row').first.locator('.drag-handle').tap()
         slot=page.locator('.solution-zone .code-row.blank-row').nth(1);index=slot.get_attribute('data-index');slot.tap()
@@ -797,6 +821,50 @@ def focus_bar_and_full_screen_return(page):
     page.evaluate("()=>{const enter=Element.prototype.requestFullscreen;Element.prototype.requestFullscreen=function(...args){return new Promise(resolve=>setTimeout(resolve,300)).then(()=>enter.apply(this,args));};}")
     page.locator('[data-focus]').click();page.locator('[data-focus]').click();page.wait_for_timeout(900);page.wait_for_function(settled,arg=[None,False])
     assert page.evaluate(state)=={'surface':None,'native':False}
+def technology_filter(browser,url):
+    """ADR-152 (G2): the technology labels of the practice list. Every exercise shows its labels as chips where the
+    language's name stood (the square before the title names the language). Above the list every label stands with the
+    number of exercises under it: the summary of what the list is made of, and its filter. A label pressed narrows the
+    list to it and keeps the focus; pressed again it lets go; „és a korábbi verziók” takes the older versions of the same
+    technology too. The open exercise stays open. Under a title: from which versions the exercise runs, and for a
+    TypeScript exercise the compiler that checked it. The choice lasts for the page's life."""
+    context=watch(browser.new_context(viewport={'width':1440,'height':900}));page=context.new_page();failures=[];page.on('pageerror',lambda error:failures.append(str(error)))
+    facets="()=>[...document.querySelectorAll('[data-technology]')].map(b=>b.dataset.technology+' '+b.querySelector('b').textContent+' '+b.getAttribute('aria-pressed'))"
+    tasks=lambda:page.locator('.task[data-task]').count();groups="()=>[...document.querySelectorAll('.side-title')].map(h=>h.firstChild.textContent+' '+h.querySelector('span').textContent)"
+    try:
+        reset(page,url);practice(page);opened=page.locator('.task.selected').get_attribute('data-task')
+        assert page.evaluate(facets)==['ecmascript 5 1 false','ecmascript 2015 13 false','ecmascript 2018 1 false','ecmascript 2020 1 false','typescript 1.0 1 false','typescript 2.0 3 false'],page.evaluate(facets)
+        assert tasks()==16 and page.evaluate(groups)==['Kezdő 6','Közepes 7','Haladó 3'],page.evaluate(groups)
+        expect(page.locator('.task-picker nav > .tech-filter')).to_have_attribute('role','group');expect(page.get_by_role('group',name='JavaScript (ECMAScript)').get_by_role('button',name='ES2015 13 feladat',exact=True)).to_have_attribute('data-technology','ecmascript 2015')
+        graded=page.locator('.task[data-task="grade-ts"]');expect(graded.locator('.tech-chip')).to_have_text(['TS 1.0','ES5']);expect(graded.locator('.task-file')).to_have_attribute('aria-label','TypeScript')
+        assert 'TypeScript' not in graded.locator('small').inner_text() and 'JavaScript' not in page.locator('.task[data-task="celsius-js"] small').inner_text(),'the chips stand where the language name stood'
+        assert page.evaluate("()=>{const items=[...document.querySelectorAll('.task[data-task]')];return items.every(item=>item.querySelectorAll('.tech-chip').length>=1&&item.getBoundingClientRect().height<=72)}"),'every item is labelled and no taller than two lines of title and one of labels'
+        earlier=page.locator('[data-technology-earlier]');expect(earlier).to_be_disabled()
+        # a label pressed: the list narrows, the counts of the level groups follow, the focus stays on the label
+        chip=page.locator('[data-technology="typescript 2.0"]');chip.click();expect(chip).to_have_attribute('aria-pressed','true');expect(chip).to_be_focused()
+        assert tasks()==3 and page.evaluate(groups)==['Közepes 2','Haladó 1'],page.evaluate(groups)
+        assert page.locator('[data-technology][aria-pressed="true"]').count()==1
+        # the exercise that was open stays open, though the list no longer shows it
+        assert page.locator('.task.selected').count()==0 and page.locator(f'.task[data-task="{opened}"]').count()==0;expect(page.locator('.task-heading h1')).to_be_visible();expect(page.locator('[data-check]')).to_be_visible()
+        # the older versions too
+        expect(earlier).to_be_enabled();earlier.check();expect(earlier).to_be_focused();assert tasks()==4 and page.evaluate(groups)==['Kezdő 1','Közepes 2','Haladó 1'],page.evaluate(groups)
+        # choosing one of them keeps the filter; its title says from which versions it runs and what checked it
+        page.locator('.task[data-task="class-inventory-ts"]').click();expect(page.locator('.task[data-task="class-inventory-ts"]')).to_have_class('task selected')
+        expect(page.locator('.tech-note')).to_have_text(re.compile(r'^TypeScript 2\.0-tól · ES2018-tól · ellenőrizve: TypeScript \d+\.\d+$'))
+        expect(chip).to_have_attribute('aria-pressed','true');expect(earlier).to_be_checked();assert tasks()==4
+        # another label takes over, keeping the choice of older versions; by keyboard the chosen one lets go
+        other=page.locator('[data-technology="ecmascript 2015"]');other.click();expect(other).to_have_attribute('aria-pressed','true');expect(chip).to_have_attribute('aria-pressed','false');expect(earlier).to_be_checked();assert tasks()==14,tasks()
+        other.focus();page.keyboard.press('Space');expect(other).to_have_attribute('aria-pressed','false');expect(other).to_be_focused();assert tasks()==16;expect(earlier).to_be_disabled();expect(earlier).not_to_be_checked()
+        # a JavaScript exercise names no compiler
+        page.locator('.task[data-task="word-count-js"]').click();expect(page.locator('.tech-note')).to_have_text('ES2020-tól')
+        # the author's own draft is measured too, and nothing checked it for publication
+        page.locator('[data-mode="author"]').click();build(page,'function total(prices) {\n  const fees = prices.map(price => price * 2);\n  return fees.at(-1) ?? 0;\n}')
+        expect(page.locator('.tech-note')).to_have_text('ES2022-től')
+        # the choice lasts for the page's life: a reload starts without one
+        practice(page);chip=page.locator('[data-technology="typescript 2.0"]');chip.click();assert tasks()==3
+        page.reload();expect(page.locator('[data-step="source"]')).to_have_attribute('aria-current','step');practice(page);assert tasks()==16 and page.locator('[data-technology][aria-pressed="true"]').count()==0
+        assert not failures,failures
+    finally:context.close()
 def learner_rules(browser,url,pages):
     """ADR-147: the learner's look at an exercise's rules. Nothing of it stands on the page, or comes with the listing,
     before a first check; the first check brings the tool and a rule button per row, says so, and opens nothing. The
@@ -1346,7 +1414,7 @@ def settle(page):
 def button_states(page):
     """ADR-140 (D1), ADR-143 (D3b): the plate's states. A plate is one flat tone: no gradient, no shadow, no line. A disabled
     one is a hollow plate (a line, no face, a muted label) whether it is :disabled or aria-disabled with its reason; a busy
-    one is not disabled to the eye; a pressed one has another face, a line and a 2 px mark; the main action, the check and the
+    one is not disabled to the eye; a pressed one has another face and a line, and no mark on the face (ADR-153); the main action, the check and the
     removing action each have a face of their own that their label reads on."""
     state=page.evaluate("""()=>{const look=b=>{const s=getComputedStyle(b),f=getComputedStyle(b,'::after'),l=getComputedStyle(b,'::before');
       return {opacity:s.opacity,cursor:s.cursor,color:s.color,shadow:s.boxShadow,ground:s.backgroundColor+' '+s.backgroundImage,face:f.backgroundColor,image:f.backgroundImage,mark:f.backgroundSize,line:l.content!=='none'&&!/, 0\\)$/.test(l.backgroundColor)&&!b.hasAttribute('data-busy-shown')};};
@@ -1365,7 +1433,8 @@ def button_states(page):
         assert clear(state[name]['face']) and state[name]['line'] and state[name]['color']!=plain['color'],(name,'a hollow plate with a muted label',state[name],plain)
     assert all(state['off'][k]==state['reason'][k] for k in ('face','line','color')),'the two kinds of disabled look the same'
     assert state['busy']['cursor']=='progress' and state['busy']['opacity']=='1' and state['busy']['face']==plain['face'] and not state['busy']['line'],state['busy']
-    assert state['on']['face']!=plain['face'] and state['on']['line'] and 'gradient' in state['on']['image'] and state['on']['mark'].endswith(' 2px'),state['on']
+    # ADR-153: a pressed plate has its own face and a line around it; nothing is drawn on the face (no mark under the label)
+    assert state['on']['face']!=plain['face'] and state['on']['line'] and state['on']['image']=='none',state['on']
     # the roles (the main action, the learner's check, an action that removes): each has its own face, and its label reads on it
     faces=[face for _,_,face in state['roles']]
     assert len(set(faces+[plain['face']]))==4,('every role has its own face',state['roles'],plain['face'])
@@ -1600,6 +1669,8 @@ try:
             reset(page,BASE);case('node two code views, remembered, with their row geometry',lambda:code_views(page))
             reset(page,BASE);case('node pane separator and full-screen focus without scroll',lambda:split_and_full_screen_focus(page))
             case('node the tools and the panels are one frame; the rule panel docks behind a separator of its own',lambda:rules_split(browser,BASE))
+            case('node the practice list shows the technology labels, sums them up and narrows to a chosen one',lambda:technology_filter(browser,BASE))
+            case('pages the practice list shows the technology labels, sums them up and narrows to a chosen one',lambda:technology_filter(browser,f'http://127.0.0.1:{static.server_port}/developer-exercise/'))
             case('node the learner sees the rules only after a first check, read-only, where the author allows it',lambda:learner_rules(browser,BASE,False))
             case('pages the learner sees the rules only after a first check, read-only, where the author allows it',lambda:learner_rules(browser,f'http://127.0.0.1:{static.server_port}/developer-exercise/',True))
             reset(page,BASE);case('node focus bar and the return to the full-screen page',lambda:focus_bar_and_full_screen_return(page))
@@ -1611,6 +1682,7 @@ try:
             case('node the four view buttons are switched off; the key turns them back on',lambda:view_switches_off(browser))
             case('node a menu opened before a background answer stays open',lambda:background_render_keeps_menu(page))
             case('node the app bar keeps the wordmark wherever it fits, EDITOR beside it on the desktop',lambda:header_logo_fits(browser))
+            case('node the rule icons of the Try lists stand in one column, the arcs before them',lambda:rule_icons_in_one_column(browser))
             case('node the result bar sticks to the bottom in practice and in Try, at every width',lambda:result_bar_sticks(browser))
             case('node a long wait offers Megszakítás after 10 s and the page works on',lambda:activity_abort(browser,BASE,False))
             case('pages the compiler download is named; Megszakítás restarts the worker, exercises still check',lambda:activity_abort(browser,f'http://127.0.0.1:{static.server_port}/developer-exercise/',True))
@@ -1618,7 +1690,7 @@ try:
             reset(page,BASE);case('node sample loading preserves newer reference edits',lambda:stale_source_sample(page))
             for name,action in [('author format preserves newer edits',lambda:stale_format(page,True)),('solution format preserves newer edits',lambda:stale_format(page,False)),('stale check failure cannot replace newer attempt',lambda:stale_check_failure(page))]:
                 reset(page,BASE);case('node '+name,action)
-            reset(page,BASE);case('node button states: disabled one way, busy not disabled, pressed marked',lambda:button_states(page))
+            reset(page,BASE);case('node button states: disabled one way, busy not disabled, pressed lined and unmarked',lambda:button_states(page))
             case('node every ⓘ: nothing moves, inside the screen, ring off the label, 44 px on touch, closes three ways',lambda:toggletips_everywhere(browser,BASE))
             case('node a phone has one header menu beside full screen: labelled rows, the theme as a choice, focus back to its button',lambda:header_menu(browser,BASE))
             case('node a narrow toolbar labels the tools the row has room for and keeps the rare two behind one icon',lambda:toolbar_menu(browser,BASE))

@@ -16,7 +16,7 @@ async function readJson(req,limit){const parts=[];let size=0;
   for await(const chunk of req){size+=chunk.length;if(size>limit)throw new ServiceError(413,'Payload too large');parts.push(chunk);}
   try{return JSON.parse(Buffer.concat(parts).toString('utf8'));}catch{throw new ServiceError(400,'Invalid JSON');}}
 /** `authorToken`: when set, the author API requires it as a bearer token; otherwise it is loopback-only (ADR-027).
- * `trustedProxies`: how many reverse proxies the operator runs in front (ADR-151); 0 when reached directly. */
+ * `trustedProxies`: how many reverse proxies the operator runs in front (ADR-154); 0 when reached directly. */
 export function createApplication({catalog,staticRoot,authorToken,trustedProxies=0}){
   const rate=new Map();
   const server=createServer(async(req,res)=>{
@@ -31,7 +31,7 @@ export function createApplication({catalog,staticRoot,authorToken,trustedProxies
     try{
       if(req.method==='GET'&&route==='/api/exercises')return json(res,200,{exercises:catalog.list()});
       if(req.method==='POST'&&route==='/api/evaluate')return json(res,200,catalog.evaluate(await readJson(req,1024*1024)));
-      // ADR-151: whether this client may author, so the page offers authoring only where the server would serve it.
+      // ADR-154: whether this client may author, so the page offers authoring only where the server would serve it.
       // The answer grants nothing: every author route decides again.
       if(req.method==='GET'&&route==='/api/access')return json(res,200,{authoring:!authorRefusal(req,author)});
       // ADR-108 (E7): the policy resolution is a safe query (language and settings only), so GET.

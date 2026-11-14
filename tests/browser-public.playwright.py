@@ -1,4 +1,4 @@
-"""ADR-151: the server on a public address offers practice only.
+"""ADR-154: the server on a public address offers practice only.
 A visitor the server would refuse as an author (here: a configured token the page does not send) gets a page without
 authoring: no mode switch, no «Saját feladat ebből», no author-service tool, and no refused request in the background.
 The local author's page is unchanged. Run: python tests/browser-public.playwright.py. Requires Playwright and Chromium.
@@ -51,7 +51,7 @@ try:
         page.close();cases+=1
         # A «Kipróbálom» link from the help page asks for authoring: it is told why not, and the page stays in practice.
         page,trouble=watched(browser,viewport={'width':1400,'height':900})
-        page.goto(PUBLIC+'/#kiprobalom=tsDiagnostics.0',wait_until='domcontentloaded')
+        page.goto(PUBLIC+'/#'+'kiprobalom=tsDiagnostics.0',wait_until='domcontentloaded')
         page.get_by_text('A feladatkészítés ezen a szerveren nem érhető el',exact=False).first.wait_for()
         assert page.locator('[data-step]').count()==0 and page.locator('.code-row').count()>0
         assert not trouble,trouble

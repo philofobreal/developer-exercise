@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "algo-bfs-js",
   "revision": 2,
-  "title": "Legrövidebb út rácson (BFS)",
+  "title": "Legrövidebb út rácson (szélességi keresés, BFS)",
   "description": "Szélességi keresés sorral és bejárt halmazzal. Az öt kezdeti deklaráció tetszőleges sorrendben állhat; a szomszédszámításban nextRow/nextCol és key/inside felcserélhető. A sorok a saját scope-jukban maradnak; a függvény első és utolsó sora rögzített.",
   "level": "advanced",
   "technologies": [{ "id": "ecmascript", "version": "2015" }],

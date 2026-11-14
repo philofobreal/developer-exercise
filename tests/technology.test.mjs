@@ -185,6 +185,10 @@ test('the catalog serves the label with the listing; a draft is measured, an imp
  const listed=Object.fromEntries(catalog.list().map(item=>[item.id,item.technologies]));
  assert.deepEqual(listed['word-count-js'],[{id:'ecmascript',version:'2020'}]);assert.deepEqual(listed['grade-ts'],[{id:'ecmascript',version:'5'},{id:'typescript',version:'1.0'}]);
  assert.ok(Object.values(listed).every(Array.isArray),'every shipped exercise is labelled');
+ // ADR-152: a TypeScript exercise names the compiler that checked it when the catalog admitted it; a JavaScript one does not.
+ const checked=Object.fromEntries(catalog.list().map(item=>[item.id,item.checkedWith]));
+ assert.equal(checked['grade-ts'],ts.versionMajorMinor);assert.equal(checked['class-inventory-ts'],ts.versionMajorMinor);assert.equal(checked['word-count-js'],undefined);
+ assert.equal(Object.values(checked).filter(Boolean).length,4);
  // From source: the measurement, whatever the request says.
  const source='function total(prices) {\n  const fees = prices.map(price => price * 2);\n  const sum = fees.reduce((a, b) => a + b, 0);\n  return sum ?? 0;\n}';
  const draft=await catalog.createDraft({source,language:'javascript',technologies:[{id:'ecmascript',version:'5'}]});
@@ -218,6 +222,11 @@ test('the Local Demo serves and measures the label as the server does; without t
   const api=await import('../_site/app/pages-api.js?technology');
   const listed=Object.fromEntries((await api.getExercises()).map(item=>[item.id,item.technologies]));
   assert.deepEqual(listed['word-count-js'],[{id:'ecmascript',version:'2020'}]);assert.equal(Object.keys(listed).length,16);assert.ok(Object.values(listed).every(Array.isArray));
+  // ADR-152: the publication record names the compiler that checked the served exercises; the page shows it without checking again.
+  const publication=JSON.parse(await readFile(new URL('../_site/examples/publication.json',import.meta.url),'utf8'));
+  assert.deepEqual(publication.compiler,{typescript:ts.versionMajorMinor});
+  const checked=Object.fromEntries((await api.getExercises()).map(item=>[item.id,item.checkedWith]));
+  assert.equal(checked['grade-ts'],ts.versionMajorMinor);assert.equal(checked['word-count-js'],undefined);assert.equal(Object.values(checked).filter(Boolean).length,4);
   const source='function rank(times) {\n  const sorted = [3, 1, 2].toSorted();\n  const last = sorted.at(-1);\n  return [sorted, last, times];\n}';
   const draft=await api.compileDraft({source,language:'javascript',technologies:[{id:'ecmascript',version:'5'}]});
   assert.deepEqual(draft.model.technologies,[{id:'ecmascript',version:'2023'}]);

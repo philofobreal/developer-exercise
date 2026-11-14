@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Framework-free programming line-order exercise engine with verified constraints",
   "scripts": {
-    "build": "node scripts/sync-vendor.mjs && node scripts/sync-schema.mjs && tsc -p tsconfig.json && tsc -p tsconfig.author.json && tsc -p tsconfig.python.json && tsc -p tsconfig.server.json &&tsc -p tsconfig.workbench.json && tsc -p tsconfig.governance.json && node dist-tools/build-typescript-samples.js && node scripts/build-help.mjs",
+    "build": "node scripts/sync-vendor.mjs && node scripts/sync-schema.mjs && tsc -p tsconfig.json && tsc -p tsconfig.author.json && tsc -p tsconfig.python.json && tsc -p tsconfig.server.json && tsc -p tsconfig.standalone.json &&tsc -p tsconfig.workbench.json && tsc -p tsconfig.governance.json && node dist-tools/build-typescript-samples.js && node scripts/build-help.mjs",
     "test": "npm run build:pages && node --test tests/*.test.mjs",
     "start": "npm run build && node server.mjs",
     "check": "npm run test && node dist-tools/verify-architecture.js && node scripts/verify-models.mjs && node scripts/verify-docs.mjs && node scripts/verify-line-endings.mjs",
@@ -14,12 +14,14 @@
     "test:browser:server": "python -X utf8 tests/browser-v7.playwright.py",
     "test:ts-methods": "npm run build && node --test tests/ts-methods.test.mjs tests/http-flow.test.mjs",
     "build:pages": "npm run build && node scripts/build-pages.mjs && node dist-tools/stage-python-probe.js",
+    "build:standalone": "npm run build && node scripts/build-standalone.mjs",
     "verify:pages": "npm run build:pages && node --test tests/pages-build.test.mjs tests/pages-api.test.mjs",
     "check:all": "npm run check",
     "gate": "npm run build:pages && node dist-tools/gate.js",
     "test:browser:matrix": "python -X utf8 tests/browser-matrix.playwright.py",
-    "test:browser:all": "npm run test:browser && npm run test:browser:server && npm run test:browser:matrix && npm run test:browser:drag && npm run test:browser:workbench && npm run test:browser:engine && npm run test:browser:typescript && npm run test:browser:python && npm run test:browser:a11y && npm run test:browser:layout && npm run test:browser:public",
+    "test:browser:all": "npm run test:browser && npm run test:browser:server && npm run test:browser:matrix && npm run test:browser:drag && npm run test:browser:workbench && npm run test:browser:engine && npm run test:browser:typescript && npm run test:browser:python && npm run test:browser:a11y && npm run test:browser:layout && npm run test:browser:perf && npm run test:browser:public && npm run test:browser:standalone",
     "test:browser:a11y": "python -X utf8 tests/browser-a11y.playwright.py",
+    "test:browser:perf": "python -X utf8 tests/browser-perf.playwright.py",
     "test:browser:layout": "python -X utf8 tests/browser-layout.playwright.py",
     "test:browser:drag": "python -X utf8 tests/browser-drag.playwright.py && python -X utf8 tests/browser-drag.playwright.py --code-view=cards",
     "verify:architecture": "npm run build && node dist-tools/verify-architecture.js",
@@ -29,7 +31,8 @@
     "test:python": "npm run build:pages && node --test tests/python-parser.test.mjs",
     "test:browser:python": "python -X utf8 tests/browser-python.playwright.py",
     "test:browser:typescript": "python -X utf8 tests/browser-typescript.playwright.py",
-    "test:browser:public": "python -X utf8 tests/browser-public.playwright.py"
+    "test:browser:public": "python -X utf8 tests/browser-public.playwright.py",
+    "test:browser:standalone": "python -X utf8 tests/browser-standalone.playwright.py"
   },
   "devDependencies": {
     "@fontsource-variable/inter": "5.3.0",
@@ -38,6 +41,7 @@
     "acorn": "8.19.0",
     "ajv": "8.20.0",
     "axe-core": "4.14.0",
+    "esbuild": "0.28.2",
     "js-beautify": "1.13.13"
   },
   "engines": {

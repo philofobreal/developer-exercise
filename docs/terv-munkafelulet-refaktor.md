@@ -1,6 +1,6 @@
 # Terv: a munkafelület refaktorálása – headless alkalmazásmag, gyors kirajzolás, portolhatóság (NY-58)
 
-Állapot: **javaslat, beütemezve** (2026-11-14), a felhasználó kérésére. A taskokra bontást és a végrehajtást egy másik ügynök végzi, ebből a dokumentumból. A fázisok elfogadása, valamint a megjelölt döntési pontok a felhasználóéi.
+Állapot: **beütemezve, az F0 kész** (2026-11-14, [ADR-151](adr/151-workbench-headless-core-foundations.md)), a felhasználó kérésére. A taskokra bontást és a végrehajtást egy másik ügynök végzi, ebből a dokumentumból. A fázisok elfogadása, valamint a megjelölt döntési pontok a felhasználóéi.
 
 **Illesztés a többi tervhez (2026-11-14):** a 10. szakasz rögzíti, mi változott a javaslathoz képest (azonosítók), hol fed át más tételekkel, mi hiányzott belőle, és hol áll a sorrendben. A fázis indulása előtt azt olvasd el.
 

@@ -103,7 +103,7 @@ export function enterView(state:WorkbenchState,attempt:AttemptSnapshot|undefined
  return state.view===next;
 }
 /** Switches mode; each mode keeps its own active exercise and returns to its own view. Where authoring is not
- *  served (ADR-151) the author mode cannot be entered: the call leaves the practice mode as it is. */
+ *  served (ADR-154) the author mode cannot be entered: the call leaves the practice mode as it is. */
 export function enterMode(state:WorkbenchState,mode:Mode):void {
  if(state.mode===mode||(mode==='author'&&state.authoring===false))return;
  const views=state.modeViews??={};

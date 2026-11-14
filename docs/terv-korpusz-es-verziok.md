@@ -281,7 +281,7 @@ Minden lépés külön jóváhagyás után indul, saját ADR-rel és tervezési 
 | Lépés | Tartalom | Kockázati osztály | Kész, ha |
 | --- | --- | --- | --- |
 | **G1 Jelölés** (kész, [ADR-149](adr/149-technology-labels.md)) | mező és készlet (mag), mérőmodul (szerzői elemzés), a 16 feladat jelölése, a lista megkapja | mag, szerzői elemzés | teljes kör zöld; eltérés-teszt |
-| **G2 Jelölés a felületen** | bemutató (jelvények, szűrő, összesítő, két változat) → választás → megvalósítás | megjelenítés | böngészős tesztek, a11y |
+| **G2 Jelölés a felületen** (kész, [ADR-152](adr/152-technology-labels-in-the-practice-list.md)) | bemutató (jelvények, szűrő, összesítő, két változat) → választás → megvalósítás | megjelenítés | böngészős tesztek, a11y |
 | **G3 A fa** | tananyagjegyzék, a 16 feladat elhelyezése, bemutató (két változat) → megvalósítás | megjelenítés, katalógus | böngészős tesztek |
 | **G4 Eszközlánc** | TypeScript 6.0.3; az ellenőrzés könyvtára ES2025; `using` és szabványos dekorátor az ellenőrzésben; a CI Node-verziója | szerzői elemzés, orákulum, eszközök | teljes kör zöld, változatlan alapszint; Local Demo méretek mérve |
 | **G5 Tananyag-infrastruktúra** | az NY-40 C1 lépése, három ágra; egy-egy próbalecke | mérés | a korpuszban három lecke |

@@ -15,7 +15,7 @@ const sameOrigin=(origin:string,host:string|undefined):boolean=>{try{return new 
  * - Without a token only a loopback client addressing a loopback host is accepted, which also
  *   refuses DNS-rebinding pages that reach 127.0.0.1 under a foreign name.
  * `client` is the request's client address when the caller knows it better than the socket does (behind trusted
- * proxies the socket's peer is the proxy, often on loopback; ADR-151). */
+ * proxies the socket's peer is the proxy, often on loopback; ADR-154). */
 export function authorRefusal(req:Pick<IncomingMessage,'headers'|'socket'>,{token,client=req.socket.remoteAddress??''}:{token?:string|undefined;client?:string}={}):AuthorRefusal|null {
   const site=req.headers['sec-fetch-site'];
   if(site!==undefined&&site!=='same-origin'&&site!=='none')return CROSS_SITE;

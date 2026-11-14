@@ -1,9 +1,6 @@
 {
   "legacyJavaScript": [
-    "public/app/attempt.js",
-    "public/app/drag-insert.js",
     "public/app/pages-api.js",
-    "public/app/persistence.js",
     "public/fields.js",
     "public/formatter.js",
     "public/formatting/legacy-beautifier.js",
@@ -54,6 +51,10 @@
     "src/workbench/toggletip.ts": "public/app/toggletip.js",
     "src/workbench/list-fit.ts": "public/app/list-fit.js",
     "src/workbench/toolbar-fit.ts": "public/app/toolbar-fit.js",
-    "src/workbench/learner-rules.ts": "public/app/learner-rules.js"
+    "src/workbench/learner-rules.ts": "public/app/learner-rules.js",
+    "src/workbench/attempt.ts": "public/app/attempt.js",
+    "src/workbench/drag-insert.ts": "public/app/drag-insert.js",
+    "src/workbench/persistence.ts": "public/app/persistence.js",
+    "src/workbench/technology-filter.ts": "public/app/technology-filter.js"
   }
 }

@@ -1,0 +1,62 @@
+{
+ "runs": 7,
+ "passes": 3,
+ "scenarios": {
+  "unit": {
+   "units": 1.0,
+   "task": 43.0,
+   "styles": 1,
+   "layouts": 2,
+   "added": 18001
+  },
+  "type-key": {
+   "units": 0.808,
+   "task": 30.6,
+   "styles": 2,
+   "layouts": 3,
+   "added": 3505
+  },
+  "make-model": {
+   "units": 8.469,
+   "task": 336.1,
+   "styles": 37,
+   "layouts": 12,
+   "added": 9427
+  },
+  "open-try": {
+   "units": 6.44,
+   "task": 264.4,
+   "styles": 10,
+   "layouts": 4,
+   "added": 15498
+  },
+  "key-target": {
+   "units": 2.054,
+   "task": 84.7,
+   "styles": 3,
+   "layouts": 2,
+   "added": 2
+  },
+  "key-place": {
+   "units": 7.675,
+   "task": 322.2,
+   "styles": 15,
+   "layouts": 5,
+   "added": 15503
+  },
+  "drag-move": {
+   "units": 3.818,
+   "task": 184.3,
+   "styles": 6,
+   "layouts": 3,
+   "added": 1
+  },
+  "check": {
+   "units": 10.165,
+   "task": 421.3,
+   "styles": 18,
+   "layouts": 6,
+   "added": 17662
+  }
+ }
+}

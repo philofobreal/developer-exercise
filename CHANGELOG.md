@@ -1,13 +1,44 @@
 # Changelog
 
-## Unreleased – 2026-11-14 A szerver nyilvános címen: a látogató címe, és csak gyakorlás (ADR-151)
+## Unreleased – 2026-11-14 Önálló bemutató oldal: egy fájl, néhány kész feladat (ADR-155)
 
-- **Cél:** a motor (a validátor és a szerzői elemzés) a szerveren maradjon, ne a látogató böngészőjében fusson. Ez az első lépés; a kitelepítés maga még nincs kész (NY-59, NY-60).
+- **Új parancs: `npm run build:standalone`.** Az eredmény egyetlen HTML-fájl (`_standalone/codelinesorter.html`, 882 KiB), amely lemezről is megnyitható, és semmit nem tölt be máshonnan.
+- **Öt kész feladat van benne** (más válogatás a parancs után sorolható fel); a lap csak gyakorlás, az ellenőrzés a böngészőben fut, és az első ellenőrzés után a sorok közti szabályok megnyithatók.
+- **A szerzői elemzés nincs a fájlban:** az a kód, amely a forrásból levezeti a szabályokat. A validátor és a szállított feladatok szabályai benne vannak, olvashatók.
+- **Az ítélet megegyezik a szerverével** (teszt tartja); a lap Local Demónak nevezi magát.
+- **Új fejlesztői függőség: `esbuild`** (csak a csomagoláshoz).
+
+## Unreleased – 2026-11-14 A szerver nyilvános címen: a látogató címe, és csak gyakorlás (ADR-154)
+
+- **Cél:** a motor (a validátor és a szerzői elemzés) a szerveren maradjon, ne a látogató böngészőjében fusson. Ez az első lépés; a kitelepítés maga még nincs kész (NY-60, NY-61).
 - **Proxy mögött a kéréskorlát látogatónként számol.** Új beállítás: `CODELINE_TRUSTED_PROXIES` (a szerver előtti saját proxyk száma, alapérték 0).
 - **A szerzői kapu a látogató címéből dönt,** ezért a saját gépen futó proxy mögül érkező látogató nem számít helyi szerzőnek.
 - **Ahol a szerver nem ad szerzői szolgáltatást, a lap csak gyakorlás:** nincs módváltó, „Saját feladat ebből” és „Formázás”; a háttérben sincs elutasított kérés. A helyi szerző lapja nem változott.
 - **A `typescript` futásidejű függőség lett,** mert a szerver futás közben tölti be.
 - **A validátor, a szabályok és az értékelés nem változott.**
+
+## Unreleased – 2026-11-14 Három felületi javítás: nincs aláhúzás gombban, varratmentes panelsáv, egy oszlopban álló sorikonok (ADR-153, NY-59)
+
+- **Gombban nincs aláhúzás.** A bekapcsolt gomb (a kiválasztott mód, a kapcsolók) felirata alól eltűnt a 2 px-es vonal; az állapotot a halvány kék lap és a kék körvonal jelzi. A zárolt beállítás „Miért?” lenyílója aláhúzás helyett nyilat kapott.
+- **A „Felhasználható sorok” és a „Megoldás” panel színes sávján nincs halvány csík.** Tört képpontarányú kijelzőn (110%, 125%, 175%) a sáv és a lekerekített lába között varrat látszott.
+- **A Próba lépésben a sorok szabályikonjai egy oszlopban állnak,** a rögzített sorokban is, és a szabályívek nem futnak más sorok ikonjai mögé. (Rögzített első sornál minden ív 20 px-rel jobbra került.)
+- **A feladat címe:** „Legrövidebb út rácson (szélességi keresés, BFS)”.
+
+## Unreleased – 2026-11-14 A technológiajelölés látszik és szűr a gyakorló listában (ADR-152, G2)
+
+- **Jelvények a listaelemen** (`TS 2.0`, `ES2018`), ott, ahol eddig a nyelv neve állt; az elem nem lett magasabb.
+- **A lista fölött minden jelvény a feladatok számával:** összesítő és szűrő egyben. Egy jelvény megnyomva a listát rá szűkíti; az „és a korábbi verziók” kapcsolóval a régebbi verziók is megjelennek.
+- **A cím alatt egy mondat:** „TypeScript 2.0-tól · ES2018-tól · ellenőrizve: TypeScript 5.8”. Az „ellenőrizve” az a fordító, amely a feladatot a katalógusba vételkor ellenőrizte.
+- **Javítás: telefonon a kirajzolás megtartja a görgetést.** Nyitott feladatlistával, lejjebb görgetve egy koppintás után az oldal elugorhatott, és a koppintás másik sorra esett; a kirajzolás most a saját idejére rögzíti az oldal magasságát.
+- **A mérőkapu a CI-gépen is zöld** (ADR-151, az ötödik nyitott pont lezárva).
+
+## Unreleased – 2026-11-14 A munkafelület refaktorálásának alapjai: mérőkapu, szabályok, markup-szerződés (ADR-151, NY-58 F0)
+
+- **Mérőkapu a fő szál forró útjaira** (`npm run test:browser:perf`): nyolc forgatókönyv a 482 soros feladaton. A mai alapszint: billentyűs lerakás 322 ms, ellenőrzés 421 ms, a Próba megnyitása 264 ms, húzás mozdulatonként 184 ms; egy lerakás 15 503 DOM-csomópontot rajzol újra.
+- **A kapu szigorú része a darabszám** (stílus-újraszámolás, elrendezés, hozzáadott csomópont), mert futásról futásra azonos; az idő kerete tág (1,6-szoros), mert azonos kódon is 3–37%-ot szór.
+- **Négy új gépi szabály az architektúra-kapuban** (headless határ, DOM-írás csak az adapterben, globális figyelő csak behavior-modulban, kirajzolás közben nincs környezetolvasás), negatív tesztekkel; a K1–K12 szabályok a governance-dokumentumokban.
+- **Markup-szerződés:** a böngészős tesztek által használt 8 azonosító és 150 `data-*` név jegyzéke, teszttel őrizve.
+- **A munkafelület kódja és a látható felület nem változott.** A kapu a mérősort a többi böngészős sor után, egyedül futtatja (kb. 2 perc 20 másodperc).
 
 ## Unreleased – 2026-11-14 Javítva: a névtér exportált függvénye a helyén marad (ADR-150, NY-49, v58)
 

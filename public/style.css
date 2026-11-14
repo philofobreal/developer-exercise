@@ -166,6 +166,13 @@ button:hover:not(:disabled) {background:var(--n-20);border-color:var(--n-46)}but
 .try-rules {padding:8px 12px;margin-bottom:12px}.try-rules .board-legend,.board-legend {display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 14px}.board-legend-keys {display:inline-flex;align-items:center;flex-wrap:wrap;gap:4px}.legend-help summary {cursor:pointer;color:var(--n-80)}.legend-help[open] {flex-basis:100%}.legend-help p {margin:6px 0 0;line-height:1.7}
 .blank-row .code-text {position:relative}.blank-row .code-text::before {content:'';position:absolute;inset:5px 10px 5px 6px;border:1px dashed color-mix(in srgb,var(--accent) 38%,var(--n-30));border-radius:var(--radius);pointer-events:none}.blank-row .code-text::after {content:'+  Sor beszúrása';padding-left:10px;font:12px/var(--row) var(--mono);color:var(--a-66)}
 .workspace-guidance {padding:6px 12px}.workspace-guidance summary {padding:2px 0}.try-rules .board-heading {margin:0}.try-rules .board-legend {margin:4px 0 0}.try-rules .board-status:empty {display:none}.try-rules p:empty {display:none}
+/* ADR-153 (NY-59c): the row's rule icons stand in one column down the list. A fixed row has a tag where the others have
+ * their three move buttons; the tag takes exactly their room (it took less, so the icons before it stood further right). */
+.solution-row .row-actions {--tool-w:24px;--tool-gap:3px}
+.solution-row .fixed-tag {box-sizing:border-box;min-width:calc(3 * var(--tool-w) + 2 * var(--tool-gap));text-align:right;white-space:nowrap}
+@media(max-width:650px) {.solution-row .row-actions {--tool-gap:2px}}
+@media(pointer:coarse) {.solution-row .row-actions {--tool-w:32px}}
+@media(hover:none) {.solution-row .fixed-tag {min-width:0}}
 /* ADR-094: the pool has no right padding, so a pinned row control meets the list's edge and no code shows past it. */
 .source-zone {padding-right:0}.source-row {margin-right:8px}
 @media(max-width:650px) {html {scroll-padding-bottom:150px}.evaluation-bar {position:sticky;bottom:0;z-index:15;max-height:40dvh;overflow:auto;margin-top:12px;box-shadow:0 -12px 24px color-mix(in srgb,var(--shadow) 60%,transparent)}.evaluation-bar .report p {display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.panel-title {flex-wrap:wrap}.pane-clipboard {flex-wrap:nowrap}}
@@ -231,6 +238,23 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 .task-content {min-width:0}
 .task-content strong {display:block;font-size:12px;font-weight:600;line-height:1.4}
 .task small {display:block;font-size:12px;color:var(--n-68);margin-top:2px}
+/* ADR-152 (G2): technology labels. A chip names a version (`TS 2.0`, `ES2018`) with the language's colour as its line.
+ * The filter above the list is also the list's summary: every label with the number of exercises under it; a label
+ * pressed narrows the list to it. */
+.task small:has(.tech-chip) {display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.tech-chip {display:inline-flex;align-items:center;height:18px;padding:0 6px;border:1px solid var(--border);border-radius:9px;background:var(--bg);color:var(--text);font:600 12px/1 var(--mono);white-space:nowrap}
+.tech-chip.typescript {border-color:color-mix(in srgb,var(--lang-ts) 60%,var(--border))}
+.tech-chip.ecmascript {border-color:color-mix(in srgb,var(--lang-js) 75%,var(--border))}
+.tech-filter {display:grid;grid-template-columns:minmax(0,1fr);gap:10px;margin:0 6px 18px}
+.tech-group {display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.tech-group-name {flex:0 0 100%;font-size:12px;font-weight:650;color:var(--n-70)}
+.tech-facet {display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:0 10px;border:1px solid var(--border);border-radius:14px;background:var(--bg);color:var(--text);font:600 12px var(--mono)}
+.tech-facet b {font:500 12px var(--ui);color:var(--muted)}
+.tech-facet[aria-pressed=true] {border-color:var(--blue);background:var(--blue-pale);color:var(--accent-text);box-shadow:inset 0 0 0 1px var(--blue)}
+.tech-facet[aria-pressed=true] b {color:inherit}
+.tech-earlier {display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.tech-note {color:var(--muted)}
+@media(pointer:coarse) {.tech-facet {min-height:36px}}
 /* Heading: the title, then one line of facts (language, rows, what validates). */
 .task-heading {margin:0 0 16px}
 .task-heading h1 {margin:0 0 6px;font-size:24px;font-weight:800;letter-spacing:-.5px;color:var(--n-96);overflow-wrap:anywhere}
@@ -292,7 +316,9 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 .workspace-actions>.inspector-toggle,.workspace-actions:not(:has(>.inspector-toggle))>.focus-toggle {margin-left:auto}
 .workspace-actions>button {background:var(--n-08);color:var(--n-84)}
 /* The list title's coloured stripe (5 x 20 px) ends in a rounded foot: a quarter disc under the bar, its free corner curved. */
-.panel-title {display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px;margin:0;padding:0 6px 0 14px;border:1px solid var(--n-32);border-bottom:0;border-radius:var(--r-panel) var(--r-panel) 0 0;background:radial-gradient(circle at 0 0,var(--stripe,var(--blue)) 4.5px,transparent 5px) 0 15px/5px 5px no-repeat,linear-gradient(var(--stripe,var(--blue)),var(--stripe,var(--blue))) 0 0/5px 15px no-repeat var(--n-14)}
+/* ADR-153 (NY-59b): the stripe's rounded foot is a layer of its own, and it starts one pixel under the bar's end: the
+ * bar covers that pixel. Laid edge to edge the two were smoothed apart on a 125% screen, a pale line across the stripe. */
+.panel-title {display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px;margin:0;padding:0 6px 0 14px;border:1px solid var(--n-32);border-bottom:0;border-radius:var(--r-panel) var(--r-panel) 0 0;background:radial-gradient(circle at 0 1px,var(--stripe,var(--blue)) 4.5px,transparent 5px) 0 14px/5px 6px no-repeat,linear-gradient(var(--stripe,var(--blue)),var(--stripe,var(--blue))) 0 0/5px 15px no-repeat var(--n-14)}
 .panel-title>div {display:flex;align-items:center;gap:10px;min-width:0}
 .panel-title :is(h2,h3) {margin:0;font-size:13px;font-weight:800}
 .answer-pane .panel-title {--stripe:var(--yellow)}
@@ -470,7 +496,12 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 .preflight-setting.locked select {opacity:1;border-style:dashed;cursor:not-allowed}
 .lock-label {margin-left:6px;padding:0 7px;border:1px solid var(--w-40);background:var(--w-18);color:var(--w-80);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
 .lock-why {margin-top:4px;font-size:12px}
-.lock-why>summary {display:inline-flex;min-height:24px;align-items:center;cursor:pointer;color:var(--accent-text);text-decoration:underline;text-underline-offset:2px}
+/* ADR-153 (NY-59a): a disclosure is a button: no underline. Its arrow says that it opens. */
+.lock-why>summary {display:inline-flex;min-height:24px;align-items:center;gap:4px;padding:0 4px;margin-left:-4px;border-radius:6px;cursor:pointer;color:var(--accent-text);list-style:none}
+.lock-why>summary::-webkit-details-marker {display:none}
+.lock-why>summary::after {content:'▾';font-size:12px}
+.lock-why[open]>summary::after {content:'▴'}
+.lock-why>summary:hover {background:var(--blue-pale)}
 .lock-why>p {margin:4px 0 0;line-height:1.55;color:var(--text)}
 .preflight-conflicts {margin:0;padding:10px 12px 10px 30px;border-top:1px solid var(--d-48);background:var(--d-16);color:var(--text);font-size:12px}
 .source-diagnostics {margin:10px 0 0;padding:10px 12px;border-left:4px solid var(--w-40)}
@@ -602,8 +633,8 @@ button.btn.link-action:hover:not(:disabled) {background:var(--blue-pale);border-
  *   --plate-cut moves the first and third corner between the two (the --p-* lengths below).
  * - Face: one flat tone. No gradient, no line, no shadow.
  * - Roles: solid blue (the step's main action, the current step), amber (the learner's check); at most two filled plates
- *   stand on a screen. Danger (an action that removes a rule): a pale red face with a dark red label. On (aria-pressed: a toggle, the chosen mode): a pale blue face, a blue line and a 2 px mark under
- *   the label (drawn on the face), so not the colour alone says it.
+ *   stand on a screen. Danger (an action that removes a rule): a pale red face with a dark red label. On (aria-pressed: a toggle, the chosen mode): a pale blue face and a blue line
+ *   around it, so not the colour alone says it. No line under the label: nothing in a button is underlined (ADR-153).
  * - Disabled, whether :disabled, aria-disabled with its reason (ADR-120) or a locked step: a hollow plate, a hairline and
  *   a muted label on whatever ground it stands (a faint tone alone vanished on a white page). A busy button is not
  *   disabled to the eye: its spinner says it works. Pressed down, the plate moves 1 px.
@@ -613,7 +644,7 @@ button.btn.link-action:hover:not(:disabled) {background:var(--blue-pale);border-
  * - The focus ring follows the plate: a ring 3 px wide, 2 px off it (an outline is a rounded rectangle, which stood off a
  *   bevel). It is drawn in the line's layer, so a focused plate with a line shows both rings in the ring's colour. Forced
  *   colours, a browser without shape() and a busy plate keep the outline. */
-:root {--btn-r:8px;--btn-mark:2px;--plate:var(--n-22);--plate-hover:var(--n-26);--plate-on:var(--a-20);--plate-off-line:var(--n-30)}
+:root {--btn-r:8px;--plate:var(--n-22);--plate-hover:var(--n-26);--plate-on:var(--a-20);--plate-off-line:var(--n-30)}
 @media (prefers-color-scheme:dark) {:root:not([data-theme=light]) {--plate:var(--n-24);--plate-hover:var(--n-30);--plate-off-line:var(--n-34)}}
 :root[data-theme=dark] {--plate:var(--n-24);--plate-hover:var(--n-30);--plate-off-line:var(--n-34)}
 :is(button.btn:not(.link-action),a.btn,.menu>summary,.mode-tabs button,.stepper .step) {
@@ -654,7 +685,6 @@ button.btn.primary {--control-h:44px}
 /* A phone on its side has 360 px of height: the main action keeps the 40 px its neighbours have there. */
 @media(max-height:500px) and (orientation:landscape) {button.btn.primary {--control-h:40px}}
 :is(button.btn:not(.link-action),.mode-tabs button)[aria-pressed=true],:is(button.btn:not(.link-action),.mode-tabs button)[aria-pressed=true]:hover:not(:disabled) {--plate-face:var(--plate-on);--plate-line:var(--blue);color:var(--accent-text)}
-:is(button.btn:not(.link-action),.mode-tabs button)[aria-pressed=true]::after {background:linear-gradient(currentColor,currentColor) 50% calc(100% - 4px)/calc(100% - 18px) var(--btn-mark) no-repeat var(--plate-face)}
 /* States. */
 :is(button.btn:not(.link-action),.stepper .step):is(:disabled,[aria-disabled=true],.locked):not([aria-busy=true]) {--plate-face:transparent;--plate-line:var(--plate-off-line);opacity:1;color:var(--muted);cursor:not-allowed}
 button.btn.link-action:is(:disabled,[aria-disabled=true]):not([aria-busy=true]) {opacity:1;color:var(--muted);cursor:not-allowed}
