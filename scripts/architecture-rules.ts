@@ -19,7 +19,7 @@ const internalOwners:Record<string,readonly string[]>={
 // it runs and is tested without a browser. The list grows as the refactoring moves modules in (store, controller,
 // selectors, gesture machine); adding a module is a design decision, recorded in that phase's ADR.
 // ADR-152: the technology filter was written headless from the start.
-const headless:ReadonlySet<string>=new Set(['src/workbench/attempt.ts','src/workbench/author-session.ts','src/workbench/technology-filter.ts']);
+const headless:ReadonlySet<string>=new Set(['src/workbench/attempt.ts','src/workbench/author-session.ts','src/workbench/technology-filter.ts','src/workbench/curriculum.ts']);
 const browserGlobals:ReadonlySet<string>=new Set(['document','window','Element','HTMLElement','localStorage','sessionStorage','matchMedia','getComputedStyle','requestAnimationFrame']);
 // ADR-151 (K3): raw HTML is written into the page by these modules only (the view, the editor frame's highlighter and
 // the progress chip's fixed skeleton). Everything else builds strings or nodes and hands them over.

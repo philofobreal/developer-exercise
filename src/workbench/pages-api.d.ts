@@ -2,6 +2,7 @@
  *  by name and passes bodies and results through unchanged. */
 export const validationMode:'local-demo';
 export function getExercises():Promise<unknown>;
+export function getCurriculum():Promise<unknown>;
 export function compileDraft(body:unknown):Promise<unknown>;
 export function editRules(body:unknown):Promise<unknown>;
 export function resolvePolicy(body:unknown):Promise<unknown>;

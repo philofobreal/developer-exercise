@@ -37,6 +37,14 @@ async function jsonRequest(url, body) {
         inFlight.delete(controller);
     }
 }
+/** ADR-154: the curriculum manifest of the catalog; a server without one, or one that cannot be reached, has none. */
+export const getCurriculum = async () => { try {
+    const response = await fetch('/api/curriculum');
+    return response.ok ? (await response.json()).curriculum ?? null : null;
+}
+catch {
+    return null;
+} };
 export const getExercises = async () => { const response = await fetch('/api/exercises'); if (!response.ok)
     throw new Error(`HTTP ${response.status}`); return refusal(await response.json()).exercises; };
 export const compileDraft = (body) => jsonRequest('/api/author/compile', body);

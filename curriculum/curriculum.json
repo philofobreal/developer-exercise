@@ -1,0 +1,20 @@
+{
+  "topics": [
+    {
+      "id": "javascript",
+      "title": "JavaScript",
+      "modules": [
+        { "id": "alapok", "title": "Alapok", "exercises": ["celsius-js", "greeting-js", "rectangle-js", "even-odd-js", "vowels-js"] },
+        { "id": "gyujtemenyek", "title": "Gyűjtemények", "exercises": ["stats-js", "stats-reduce-js", "profiles-js", "word-count-js", "fib-memo-js"] },
+        { "id": "algoritmusok", "title": "Algoritmusok", "exercises": ["algo-sort-search-js", "algo-bfs-js"] }
+      ]
+    },
+    {
+      "id": "typescript",
+      "title": "TypeScript",
+      "modules": [
+        { "id": "rahangolo", "title": "Ráhangoló", "exercises": ["grade-ts", "stack-ts", "class-inventory-ts", "class-accounts-ts"] }
+      ]
+    }
+  ]
+}

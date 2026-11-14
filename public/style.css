@@ -224,6 +224,21 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 .task-picker>summary::-webkit-details-marker {display:none}
 .task-picker>summary b {display:none}
 .field-group {margin-bottom:18px}
+/* ADR-154 (G3): the curriculum tree of the practice list. A branch is a row that opens and closes: a topic, and under
+ * it its modules. Its arrow turns when it is open; the number at its end is the exercises under it. */
+.tree-branch.depth-1 {margin-bottom:8px}
+.tree-heading {margin:0;font:inherit}
+.branch {display:flex;width:100%;justify-content:flex-start;gap:8px;min-height:34px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:var(--text);font-size:13px;font-weight:700;text-align:left}
+.depth-2>.tree-heading .branch {min-height:32px;padding-left:20px;font-size:12px;font-weight:650;color:var(--n-70)}
+.branch:hover:not(:disabled) {background:var(--n-20)}
+.branch::before {content:'';flex-shrink:0;width:6px;height:6px;margin:0 2px;border-right:2px solid var(--n-70);border-bottom:2px solid var(--n-70);transform:rotate(-45deg);transition:transform 120ms}
+.branch[aria-expanded=true]::before {transform:rotate(45deg)}
+.branch-title {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.branch-count {margin-left:auto;padding:0 6px;background:var(--n-20);color:var(--n-84);font-size:12px;font-weight:650}
+.depth-2 .task {padding-left:20px}
+.tree-branch.depth-1>.tree-body>.task {padding-left:20px}
+@media(prefers-reduced-motion:reduce) {.branch::before {transition:none}}
+@media(pointer:coarse) {.branch,.depth-2>.tree-heading .branch {min-height:44px}}
 .side-title {display:flex;align-items:center;justify-content:space-between;margin:0 6px 6px;font-size:12px;font-weight:650;color:var(--n-70)}
 .side-title span {padding:0 6px;background:var(--n-20);color:var(--n-84)}
 .task {display:flex;width:100%;align-items:center;justify-content:flex-start;gap:10px;text-align:left;min-height:46px;padding:7px 8px;margin:0 0 2px;border:0;border-left:3px solid transparent;border-radius:0 var(--radius) var(--radius) 0;background:transparent}

@@ -5,7 +5,7 @@ are stubbed. Server/model tests separately cover the real API and validation.
 import base64, json, os, posixpath, re
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-from browser_support import launch, ARTIFACTS
+from browser_support import launch, ARTIFACTS, open_task
 PUBLIC=Path(__file__).resolve().parent.parent/'public'
 def import_map():
     items={}
@@ -60,7 +60,7 @@ with sync_playwright() as p:
     values=page.locator('.solution-zone .code-text code').all_text_contents()
     assert 'const b' in values[1] and 'const a' in values[3],values
     assert page.locator('.insert-caret').count()==0
-    page.locator('[data-task="large"]').click()
+    open_task(page,'large').click()
     page.locator('[data-all]').click()
     assert page.locator('.solution-zone .code-row').count()==220
     page.evaluate("document.querySelector('.solution-zone').scrollTop=3100")

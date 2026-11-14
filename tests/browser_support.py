@@ -52,6 +52,15 @@ def analysis_options(page):
     return box
 
 
+def open_task(page,exercise):
+    """ADR-154: the exercise's button in the practice list. The list is the curriculum's tree and draws only its open
+    branches, so closed branches are opened, first to last, until the button is there."""
+    task=page.locator(f'[data-task="{exercise}"]')
+    for _ in range(12):
+        closed=page.locator('[data-branch][aria-expanded="false"]')
+        if task.count() or not closed.count():break
+        closed.first.click()
+    return task
 def pixels(page,clip):
     """The painted RGB of every device pixel in `clip` (CSS px), row by row: a screenshot at the device's own scale,
     decoded with zlib alone. What a seam of one device pixel looks like is lost in a screenshot scaled to CSS pixels."""

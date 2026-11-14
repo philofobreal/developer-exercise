@@ -4,7 +4,7 @@ explicit staleness; every transition below checks which model the next view star
 import json,os,re,socket,subprocess,threading,time,urllib.request
 from http.server import SimpleHTTPRequestHandler
 from playwright.sync_api import sync_playwright,expect
-from browser_support import ROOT,ARTIFACTS,launch,StaticServer,open_menu,analysis_options,pixel
+from browser_support import ROOT,ARTIFACTS,launch,StaticServer,open_menu,analysis_options,pixel,open_task
 # The generator's current rule version, read from its single definition (ADR-039).
 CURRENT_POLICY=re.search(r"export const DEPENDENCY_POLICY='([^']+)'",(ROOT/'src/author/generator.mjs').read_text(encoding='utf8')).group(1)
 with socket.socket() as sock:sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
@@ -830,41 +830,103 @@ def technology_filter(browser,url):
     TypeScript exercise the compiler that checked it. The choice lasts for the page's life."""
     context=watch(browser.new_context(viewport={'width':1440,'height':900}));page=context.new_page();failures=[];page.on('pageerror',lambda error:failures.append(str(error)))
     facets="()=>[...document.querySelectorAll('[data-technology]')].map(b=>b.dataset.technology+' '+b.querySelector('b').textContent+' '+b.getAttribute('aria-pressed'))"
-    tasks=lambda:page.locator('.task[data-task]').count();groups="()=>[...document.querySelectorAll('.side-title')].map(h=>h.firstChild.textContent+' '+h.querySelector('span').textContent)"
+    tasks=lambda:page.locator('.task[data-task]').count();groups="()=>[...document.querySelectorAll('[data-branch]')].map(b=>b.querySelector('.branch-title').textContent+' '+b.querySelector('.branch-count').firstChild.textContent)"
     try:
         reset(page,url);practice(page);opened=page.locator('.task.selected').get_attribute('data-task')
         assert page.evaluate(facets)==['ecmascript 5 1 false','ecmascript 2015 13 false','ecmascript 2018 1 false','ecmascript 2020 1 false','typescript 1.0 1 false','typescript 2.0 3 false'],page.evaluate(facets)
-        assert tasks()==16 and page.evaluate(groups)==['Kezdő 6','Közepes 7','Haladó 3'],page.evaluate(groups)
+        # ADR-154: the list is the curriculum's tree; only the open exercise's branch is drawn, so every branch is opened to see all
+        assert tasks()==5 and page.evaluate(groups)==['JavaScript 12','Alapok 5','Gyűjtemények 5','Algoritmusok 2','TypeScript 4'],page.evaluate(groups)
+        open_task(page,'no-such-task');assert tasks()==16 and page.evaluate(groups)==['JavaScript 12','Alapok 5','Gyűjtemények 5','Algoritmusok 2','TypeScript 4','Ráhangoló 4'],page.evaluate(groups)
         expect(page.locator('.task-picker nav > .tech-filter')).to_have_attribute('role','group');expect(page.get_by_role('group',name='JavaScript (ECMAScript)').get_by_role('button',name='ES2015 13 feladat',exact=True)).to_have_attribute('data-technology','ecmascript 2015')
         graded=page.locator('.task[data-task="grade-ts"]');expect(graded.locator('.tech-chip')).to_have_text(['TS 1.0','ES5']);expect(graded.locator('.task-file')).to_have_attribute('aria-label','TypeScript')
         assert 'TypeScript' not in graded.locator('small').inner_text() and 'JavaScript' not in page.locator('.task[data-task="celsius-js"] small').inner_text(),'the chips stand where the language name stood'
-        assert page.evaluate("()=>{const items=[...document.querySelectorAll('.task[data-task]')];return items.every(item=>item.querySelectorAll('.tech-chip').length>=1&&item.getBoundingClientRect().height<=72)}"),'every item is labelled and no taller than two lines of title and one of labels'
+        # ADR-154: in the tree an item names its level after its labels; beside two labels the level wraps into a second line
+        heights=page.evaluate("()=>[...document.querySelectorAll('.task[data-task]')].map(item=>[item.dataset.task,item.querySelectorAll('.tech-chip').length,Math.round(item.getBoundingClientRect().height)])")
+        assert len(heights)==16 and all(chips>=1 and height<=(72 if chips==1 else 90) for _,chips,height in heights),('every item is labelled; no taller than two lines of title and one of labels, or two beside two labels',heights)
         earlier=page.locator('[data-technology-earlier]');expect(earlier).to_be_disabled()
-        # a label pressed: the list narrows, the counts of the level groups follow, the focus stays on the label
+        # a label pressed: the list narrows, the counts of the branches follow, the focus stays on the label
         chip=page.locator('[data-technology="typescript 2.0"]');chip.click();expect(chip).to_have_attribute('aria-pressed','true');expect(chip).to_be_focused()
-        assert tasks()==3 and page.evaluate(groups)==['Közepes 2','Haladó 1'],page.evaluate(groups)
+        assert tasks()==3 and page.evaluate(groups)==['TypeScript 3','Ráhangoló 3'],page.evaluate(groups)
         assert page.locator('[data-technology][aria-pressed="true"]').count()==1
         # the exercise that was open stays open, though the list no longer shows it
         assert page.locator('.task.selected').count()==0 and page.locator(f'.task[data-task="{opened}"]').count()==0;expect(page.locator('.task-heading h1')).to_be_visible();expect(page.locator('[data-check]')).to_be_visible()
         # the older versions too
-        expect(earlier).to_be_enabled();earlier.check();expect(earlier).to_be_focused();assert tasks()==4 and page.evaluate(groups)==['Kezdő 1','Közepes 2','Haladó 1'],page.evaluate(groups)
+        expect(earlier).to_be_enabled();earlier.check();expect(earlier).to_be_focused();assert tasks()==4 and page.evaluate(groups)==['TypeScript 4','Ráhangoló 4'],page.evaluate(groups)
         # choosing one of them keeps the filter; its title says from which versions it runs and what checked it
         page.locator('.task[data-task="class-inventory-ts"]').click();expect(page.locator('.task[data-task="class-inventory-ts"]')).to_have_class('task selected')
         expect(page.locator('.tech-note')).to_have_text(re.compile(r'^TypeScript 2\.0-tól · ES2018-tól · ellenőrizve: TypeScript \d+\.\d+$'))
         expect(chip).to_have_attribute('aria-pressed','true');expect(earlier).to_be_checked();assert tasks()==4
         # another label takes over, keeping the choice of older versions; by keyboard the chosen one lets go
         other=page.locator('[data-technology="ecmascript 2015"]');other.click();expect(other).to_have_attribute('aria-pressed','true');expect(chip).to_have_attribute('aria-pressed','false');expect(earlier).to_be_checked();assert tasks()==14,tasks()
-        other.focus();page.keyboard.press('Space');expect(other).to_have_attribute('aria-pressed','false');expect(other).to_be_focused();assert tasks()==16;expect(earlier).to_be_disabled();expect(earlier).not_to_be_checked()
+        other.focus();page.keyboard.press('Space');expect(other).to_have_attribute('aria-pressed','false');expect(other).to_be_focused();expect(earlier).to_be_disabled();expect(earlier).not_to_be_checked()
+        # without a filter the tree is as the reader left it: the JavaScript topic, never pressed, no longer holds the open exercise
+        assert tasks()==4 and page.evaluate(groups)==['JavaScript 12','TypeScript 4','Ráhangoló 4'],page.evaluate(groups)
         # a JavaScript exercise names no compiler
-        page.locator('.task[data-task="word-count-js"]').click();expect(page.locator('.tech-note')).to_have_text('ES2020-tól')
+        open_task(page,'word-count-js').click();expect(page.locator('.tech-note')).to_have_text('ES2020-tól')
         # the author's own draft is measured too, and nothing checked it for publication
         page.locator('[data-mode="author"]').click();build(page,'function total(prices) {\n  const fees = prices.map(price => price * 2);\n  return fees.at(-1) ?? 0;\n}')
         expect(page.locator('.tech-note')).to_have_text('ES2022-től')
         # the choice lasts for the page's life: a reload starts without one
         practice(page);chip=page.locator('[data-technology="typescript 2.0"]');chip.click();assert tasks()==3
-        page.reload();expect(page.locator('[data-step="source"]')).to_have_attribute('aria-current','step');practice(page);assert tasks()==16 and page.locator('[data-technology][aria-pressed="true"]').count()==0
+        page.reload();expect(page.locator('[data-step="source"]')).to_have_attribute('aria-current','step');practice(page);assert page.locator('[data-technology][aria-pressed="true"]').count()==0
+        # ADR-154: and with the tree as it opens, the branches the reader opened forgotten too
+        assert tasks()==5 and page.evaluate(groups)==['JavaScript 12','Alapok 5','Gyűjtemények 5','Algoritmusok 2','TypeScript 4'],page.evaluate(groups)
         assert not failures,failures
     finally:context.close()
+def curriculum_tree(browser,url):
+    """ADR-154 (G3): the practice list is the curriculum's tree. A topic and its modules are buttons that open and close
+    (aria-expanded), each with the number of exercises under it; a closed branch draws none of them. Left alone, a branch
+    is open when it holds the open exercise; pressed, it stays as the reader left it, and the focus stays on it. An item
+    names its level. The catalog sends the manifest beside the list. A reload forgets the reader's choices. On a phone
+    the tree stands in the folded task list."""
+    branches="()=>[...document.querySelectorAll('[data-branch]')].map(b=>b.dataset.branch+' '+b.querySelector('.branch-count').firstChild.textContent+' '+b.getAttribute('aria-expanded'))"
+    drawn="()=>[...document.querySelectorAll('.task[data-task]')].map(item=>item.dataset.task)"
+    start=['javascript 12 true','javascript/alapok 5 true','javascript/gyujtemenyek 5 false','javascript/algoritmusok 2 false','typescript 4 false']
+    context=watch(browser.new_context(viewport={'width':1440,'height':900}));page=context.new_page();failures=[];page.on('pageerror',lambda error:failures.append(str(error)))
+    try:
+        reset(page,url);practice(page)
+        manifest=page.evaluate("async()=>{const api=await import('./app/api.js');return api.getCurriculum()}")
+        assert [topic['id'] for topic in manifest['topics']]==['javascript','typescript'] and manifest['topics'][0]['modules'][0]['exercises'][0]=='celsius-js',manifest
+        # as it opens: the open exercise's topic and module are open, the rest are closed and draw nothing
+        assert page.evaluate(branches)==start,page.evaluate(branches)
+        assert page.evaluate(drawn)==['celsius-js','greeting-js','rectangle-js','even-odd-js','vowels-js'],page.evaluate(drawn)
+        expect(page.locator('.task.selected')).to_have_attribute('data-task','celsius-js');expect(page.locator('.side-title')).to_have_count(0)
+        # a topic is a heading of the list, its module one under it; the button says what the number counts
+        expect(page.locator('nav[aria-label="Feladatok"] h3').get_by_role('button',name='JavaScript 12 feladat',exact=True)).to_have_attribute('aria-expanded','true')
+        expect(page.locator('nav[aria-label="Feladatok"] h4').get_by_role('button',name='Gyűjtemények 5 feladat',exact=True)).to_have_attribute('aria-expanded','false')
+        assert page.evaluate("()=>[...document.querySelectorAll('[data-branch]')].every(b=>b.getAttribute('aria-expanded')==='true'?document.getElementById(b.getAttribute('aria-controls'))?.previousElementSibling===b.parentElement:!b.hasAttribute('aria-controls'))"),'an open branch names the body under its heading; a closed one names none'
+        # an item names its level after its labels
+        expect(page.locator('.task[data-task="celsius-js"] small')).to_have_text(re.compile(r'^ES2015\s*· Kezdő · v\d+$'))
+        # pressed, a module opens and keeps the focus; pressed again it closes
+        module=page.locator('[data-branch="javascript/gyujtemenyek"]');module.click();expect(module).to_have_attribute('aria-expanded','true');expect(module).to_be_focused()
+        assert page.evaluate(drawn)[5:]==['stats-js','stats-reduce-js','profiles-js','word-count-js','fib-memo-js'],page.evaluate(drawn)
+        page.keyboard.press('Enter');expect(module).to_have_attribute('aria-expanded','false');expect(module).to_be_focused();assert len(page.evaluate(drawn))==5
+        page.keyboard.press('Space');expect(module).to_have_attribute('aria-expanded','true');expect(module).to_be_focused()
+        # an exercise of it chosen: the module the reader never pressed no longer holds the open exercise and closes
+        page.locator('.task[data-task="word-count-js"]').click();expect(page.locator('.task[data-task="word-count-js"]')).to_have_class('task selected');expect(page.locator('.task-heading h1')).to_have_text('Szógyakoriság Map-pel')
+        assert page.evaluate(branches)==['javascript 12 true','javascript/alapok 5 false','javascript/gyujtemenyek 5 true','javascript/algoritmusok 2 false','typescript 4 false'],page.evaluate(branches)
+        # the topic closed by hand stays closed though it holds the open exercise, which stays open; another topic opens beside it
+        topic=page.locator('[data-branch="javascript"]');topic.click();expect(topic).to_have_attribute('aria-expanded','false');expect(topic).to_be_focused()
+        assert page.evaluate(branches)==['javascript 12 false','typescript 4 false'] and page.evaluate(drawn)==[],page.evaluate(branches)
+        expect(page.locator('.task-heading h1')).to_have_text('Szógyakoriság Map-pel');expect(page.locator('[data-check]')).to_be_visible()
+        page.locator('[data-branch="typescript"]').click();page.locator('[data-branch="typescript/rahangolo"]').click()
+        assert page.evaluate(drawn)==['grade-ts','stack-ts','class-inventory-ts','class-accounts-ts'],page.evaluate(drawn)
+        page.locator('.task[data-task="stack-ts"]').click();expect(page.locator('.task[data-task="stack-ts"]')).to_have_class('task selected')
+        assert page.evaluate(branches)==['javascript 12 false','typescript 4 true','typescript/rahangolo 4 true'],page.evaluate(branches)
+        topic.click();assert page.evaluate(branches)==['javascript 12 true','javascript/alapok 5 false','javascript/gyujtemenyek 5 true','javascript/algoritmusok 2 false','typescript 4 true','typescript/rahangolo 4 true'],'reopened, the topic shows its modules as they were left'
+        # a reload forgets the reader's choices
+        page.reload();expect(page.locator('[data-step="source"]')).to_have_attribute('aria-current','step');practice(page);assert page.evaluate(branches)==start,page.evaluate(branches)
+        assert not failures,failures
+    finally:context.close()
+    # on a phone the tree stands in the task list's own scrolling box; a branch opens by a tap, and choosing an exercise folds the list
+    phone=watch(browser.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True));page=phone.new_page()
+    try:
+        reset(page,url);practice(page);assert page.evaluate(branches)==start,page.evaluate(branches)
+        page.locator('[data-branch="typescript"]').tap();page.locator('[data-branch="typescript/rahangolo"]').tap();expect(page.locator('.task[data-task="grade-ts"]')).to_be_visible()
+        assert page.evaluate("()=>{const nav=document.querySelector('.task-picker nav');return nav.scrollHeight>nav.clientHeight&&nav.clientHeight<=innerHeight*.6+1&&document.documentElement.scrollWidth<=innerWidth}"),'the tree scrolls inside the list, and the page does not scroll sideways'
+        assert page.evaluate("()=>[...document.querySelectorAll('[data-branch]')].every(b=>b.getBoundingClientRect().height>=44)"),'a branch is a touch target'
+        page.locator('.task[data-task="grade-ts"]').tap();expect(page.locator('.task-heading h1')).to_have_text('Osztályzat pontszámból');expect(page.locator('details.task-picker')).not_to_have_attribute('open','')
+    finally:phone.close()
 def learner_rules(browser,url,pages):
     """ADR-147: the learner's look at an exercise's rules. Nothing of it stands on the page, or comes with the listing,
     before a first check; the first check brings the tool and a rule button per row, says so, and opens nothing. The
@@ -1669,6 +1731,8 @@ try:
             reset(page,BASE);case('node two code views, remembered, with their row geometry',lambda:code_views(page))
             reset(page,BASE);case('node pane separator and full-screen focus without scroll',lambda:split_and_full_screen_focus(page))
             case('node the tools and the panels are one frame; the rule panel docks behind a separator of its own',lambda:rules_split(browser,BASE))
+            case('node the practice list is the curriculum tree: branches open and close, the open exercise\'s path is open',lambda:curriculum_tree(browser,BASE))
+            case('pages the practice list is the curriculum tree: branches open and close, the open exercise\'s path is open',lambda:curriculum_tree(browser,f'http://127.0.0.1:{static.server_port}/developer-exercise/'))
             case('node the practice list shows the technology labels, sums them up and narrows to a chosen one',lambda:technology_filter(browser,BASE))
             case('pages the practice list shows the technology labels, sums them up and narrows to a chosen one',lambda:technology_filter(browser,f'http://127.0.0.1:{static.server_port}/developer-exercise/'))
             case('node the learner sees the rules only after a first check, read-only, where the author allows it',lambda:learner_rules(browser,BASE,False))

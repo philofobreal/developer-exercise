@@ -28,6 +28,7 @@ export function createApplication({catalog,staticRoot,authorToken}){
     catch{return json(res,400,{error:'Malformed URL'});}
     try{
       if(req.method==='GET'&&route==='/api/exercises')return json(res,200,{exercises:catalog.list()});
+      if(req.method==='GET'&&route==='/api/curriculum')return json(res,200,{curriculum:catalog.curriculum});
       if(req.method==='POST'&&route==='/api/evaluate')return json(res,200,catalog.evaluate(await readJson(req,1024*1024)));
       // ADR-108 (E7): the policy resolution is a safe query (language and settings only), so GET.
       if(req.method==='GET'&&route==='/api/author/policy'){

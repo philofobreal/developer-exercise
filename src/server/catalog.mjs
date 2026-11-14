@@ -33,10 +33,13 @@ export function publicationNotice(policy){
 /** ADR-152: the TypeScript release that checked a TypeScript exercise when this catalog admitted it. */
 const checkedWith=(model,verification,compiler)=>model.language==='typescript'&&verification&&compiler?{checkedWith:compiler.versionMajorMinor}:{};
 export class ExerciseCatalog{
-  constructor(records){this.trusted=records;this.drafts=new Map();this.ts=null;this.skipped=[];}
+  constructor(records){this.trusted=records;this.drafts=new Map();this.ts=null;this.skipped=[];this.curriculum=null;}
   /** `publication` (ADR-027): which qualified models are served; a refused one is listed in `skipped`, its file untouched. */
-  static async open(examplesDir,{publication=DEFAULT_PUBLICATION_POLICY}={}){
+  /** `curriculumFile` (ADR-154): the curriculum manifest served beside the list, as it stands in the file; the page
+   *  decides what of it can be drawn. A catalog opened without one has no tree. */
+  static async open(examplesDir,{publication=DEFAULT_PUBLICATION_POLICY,curriculumFile}={}){
     const records=new Map(),catalog=new ExerciseCatalog(records);
+    if(curriculumFile)catalog.curriculum=JSON.parse(await readFile(curriculumFile,'utf8'));
     for(const filename of (await readdir(examplesDir)).filter(x=>x.endsWith('.json')).sort()){
       const model=JSON.parse(await readFile(path.join(examplesDir,filename),'utf8'));
       const result=compileCodeLineExercise(model);

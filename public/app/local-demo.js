@@ -42,6 +42,7 @@ export function abortPending() {
     worker = undefined;
     stopped = true;
 }
+export const getCurriculum = engine('getCurriculum');
 export const getExercises = engine('getExercises');
 export const compileDraft = engine('compileDraft');
 export const editRules = engine('editRules');

@@ -30,6 +30,10 @@ function getTypeScript(){
   if(!globalThis.ts?.createSourceFile)throw Error('A TypeScript fordító még nem elérhető. Frissítsd az oldalt.');
   return globalThis.ts;
 }
+/** ADR-154: the curriculum manifest published beside the exercises, as it stands; a build without one has none. */
+export async function getCurriculum(){
+  try{const res=await fetch(new URL('../examples/curriculum.json',import.meta.url));return res.ok?await res.json():null;}catch{return null;}
+}
 export async function getExercises(){
   // ADR-152: the publication record names the compiler that checked the served exercises; a missing record names none.
   const [res,published]=await Promise.all([fetch(new URL('../examples/manifest.json',import.meta.url)),fetch(new URL('../examples/publication.json',import.meta.url)).then(r=>r.ok?r.json():null).catch(()=>null)]);

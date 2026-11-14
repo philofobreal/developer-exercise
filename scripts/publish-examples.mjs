@@ -4,8 +4,8 @@ import {copyFile,mkdir,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {ExerciseCatalog} from '../src/server/catalog.mjs';
 import {DEFAULT_PUBLICATION_POLICY} from '../dist/index.js';
-export async function publishExamples(examplesDir,outDir,{publication=DEFAULT_PUBLICATION_POLICY}={}){
- const catalog=await ExerciseCatalog.open(examplesDir,{publication});
+export async function publishExamples(examplesDir,outDir,{publication=DEFAULT_PUBLICATION_POLICY,curriculumFile}={}){
+ const catalog=await ExerciseCatalog.open(examplesDir,{publication,curriculumFile});
  const served=[...catalog.trusted.values()].map(({model,file,verification})=>({file,id:model.id,status:verification.status})).sort((a,b)=>a.file.localeCompare(b.file));
  const skipped=catalog.skipped.map(({id,file,status,reason})=>({file,id,status,reason}));
  await mkdir(outDir,{recursive:true});
@@ -13,5 +13,7 @@ export async function publishExamples(examplesDir,outDir,{publication=DEFAULT_PU
  await writeFile(path.join(outDir,'manifest.json'),JSON.stringify(served.map(item=>item.file),null,2)+'\n');
  // ADR-152: the compiler that checked the served exercises, for the page that shows them without checking again.
  await writeFile(path.join(outDir,'publication.json'),JSON.stringify({policy:publication,compiler:{typescript:(await catalog.parser()).versionMajorMinor},served,skipped},null,2)+'\n');
+ // ADR-154: the curriculum manifest the page draws the practice list's tree from.
+ if(catalog.curriculum)await writeFile(path.join(outDir,'curriculum.json'),JSON.stringify(catalog.curriculum,null,2)+'\n');
  return {served,skipped};
 }
