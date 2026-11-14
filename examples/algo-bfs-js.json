@@ -5,6 +5,7 @@
   "title": "Legrövidebb út rácson (BFS)",
   "description": "Szélességi keresés sorral és bejárt halmazzal. Az öt kezdeti deklaráció tetszőleges sorrendben állhat; a szomszédszámításban nextRow/nextCol és key/inside felcserélhető. A sorok a saját scope-jukban maradnak; a függvény első és utolsó sora rögzített.",
   "level": "advanced",
+  "technologies": [{ "id": "ecmascript", "version": "2015" }],
   "language": "javascript",
   "learnerFeedback": "graph",
   "lines": [

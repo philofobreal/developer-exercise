@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-11-14 Technológiajelölés: minden feladat megnevezi a nyelvét és annak verzióját (ADR-149, G1)
+
+- **Új mező a feladat modelljében:** `technologies`, például „ECMAScript 2020” vagy „TypeScript 2.0”. A verzió a legújabb elem, amelyet a kód használ.
+- **A jelölést a szerzői elemzés méri,** nem a szerző írja be: a szintaxist a forrás fájából, a könyvtári elemeket a deklaráló könyvtárfájl kiadásából. Minden befogadás újra mér; importált jelölés nem marad meg.
+- **A 16 szállított feladat megkapta a jelölést** a saját soraiból: 13 ES2015, egy-egy ES5, ES2018 és ES2020; a négy TypeScript-feladat TypeScript 1.0 vagy 2.0. A sorok, a szabályok és a revízió nem változtak.
+- **A lista viszi a jelölést** a szerveren és a Local Demóban. Felület (jelvény, szűrő, összesítő) a következő lépés.
+- **Az értékelés nem olvassa a jelölést;** a szabályverzió változatlan.
+
 ## Unreleased – 2026-11-14 Terv: verzióhoz kötött JS-, TS- és RxJS-anyag egy fában (NY-44, NY-45)
 
 - **Elkészült a közös terv,** jóváhagyásra vár: [docs/terv-korpusz-es-verziok.md](docs/terv-korpusz-es-verziok.md). Technológiajelölés minden feladaton (a 16 meglévőn is), fa a gyakorló listában, 20 JavaScript-, 20 TypeScript- és 8 RxJS-lecke, újabb eszközlánc.

@@ -7,6 +7,7 @@
   "title": "Beszúrásos rendezés + bináris keresés",
   "description": "Két felső szintű függvény, egymásba ágyazott for/while ciklusok és megosztott } else { határ. A két függvénydeklaráció sorrendje szabad; a current/j és a low/high kezdőértékek felcserélhetők. Az else-ág és a ciklusmag sorai kötöttek.",
   "level": "advanced",
+  "technologies": [{ "id": "ecmascript", "version": "2015" }],
   "lines": [
     {
       "id": 1,

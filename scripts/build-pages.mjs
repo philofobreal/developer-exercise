@@ -42,6 +42,8 @@ await copyFile(path.join(path.dirname(path.dirname(tsSource)),'LICENSE.txt'),pat
  const libDir=path.dirname(tsSource),library={};
  const visit=name=>{const file=`lib.${name}.d.ts`;if(Object.hasOwn(library,file))return;const text=readFileSync(path.join(libDir,file),'utf8');library[file]=text;for(const match of text.matchAll(/<reference lib="([^"]+)"/g))visit(match[1]);};
  visit('es2022.full');
+ // ADR-149: the newest library, by which the technology label dates what a source uses.
+ visit('esnext');
  await writeFile(path.join(out,'vendor','typescript-lib.json'),JSON.stringify(library));
 }
 let index=await readFile(path.join(out,'index.html'),'utf8');

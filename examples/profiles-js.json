@@ -7,6 +7,7 @@
   "title": "Alternatív sorrendprofilok",
   "description": "A három deklaráció futásra nézve bármilyen sorrendben helyes. A feladat ezt két sorrendprofillal szűkíti: az első–középső–utolsó sorrend vagy a pontos fordítottja érvényes, a köztes négy permutáció nem.",
   "level": "intermediate",
+  "technologies": [{ "id": "ecmascript", "version": "2015" }],
   "lines": [
     {
       "id": 1,

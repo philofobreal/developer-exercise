@@ -7,6 +7,7 @@
   "title": "Üdvözlés névből",
   "description": "Teljes név, monogram és hossz. A teljes név és a monogram felcserélhető; a hossz a teljes név után áll, mert azt méri. A bemenet két nem üres szöveg.",
   "level": "beginner",
+  "technologies": [{ "id": "ecmascript", "version": "2015" }],
   "lines": [
     {
       "id": 1,

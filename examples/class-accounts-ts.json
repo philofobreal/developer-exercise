@@ -5,6 +5,7 @@
   "title": "Számlák – absztrakt osztály és öröklés",
   "description": "Absztrakt ősosztály, védett mezők, paraméterproperty, super-hívás és felüldefiniált metódus. Az ősosztály tagjai, a két mezővel együtt, bármilyen sorrendben állhatnak. A metódustörzsek sorai kötöttek: a this.balance frissítése és a this.history.push(…) sem cserélhető, mert egy nem szám összeg mindkettőben kódot futtathat. A leszármazott osztály az ős után áll. A kulcsok sorrendje nem számít: az objektumokat kulcssorrendtől függetlenül hasonlítjuk, ezért a két mező egymáshoz képest szabad.",
   "level": "advanced",
+  "technologies": [{ "id": "ecmascript", "version": "2015" }, { "id": "typescript", "version": "2.0" }],
   "language": "typescript",
   "learnerFeedback": "graph",
   "lines": [

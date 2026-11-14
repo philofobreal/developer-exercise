@@ -6,6 +6,7 @@ import {getLanguageAdapter} from '../author/languages.mjs';
 import {auditReference} from '../author/audit.mjs';
 import {authorRuleSheet,editAuthorModel,refreshAuthorModel,verifyAuthorModel} from '../dist/author/engine.js';
 import {createReferenceAuditor} from '../dist/author/reference-audit.js';
+import {createTechnologyProfiler} from '../dist/author/technology-profile.js';
 import {auditMode,generatorOptions,policyRefusal,recordedContract,resolveAuthorPolicy} from '../dist/author/preflight/config-resolver.js';
 import {sourceGate} from '../dist/author/preflight/source-gate.js';
 import {runtimeSafety} from '../dist/author/preflight/runtime-safety.js';
@@ -40,7 +41,7 @@ export async function getExercises(){
     records.set(model.id,{model,compiled:assertSafeModel(model)});
   }
   return [...records.values()].map(({model:d})=>({
-    id:d.id,revision:d.revision,language:d.language,title:d.title,description:d.description,...(d.level?{level:d.level}:{}),
+    id:d.id,revision:d.revision,language:d.language,title:d.title,description:d.description,...(d.level?{level:d.level}:{}),...(d.technologies?{technologies:d.technologies}:{}),
     lines:d.lines.map(l=>({id:l.id,code:l.code,fixed:l.fixed,normalization:l.normalization??'indent',functionBlock:l.functionBlock}))
   }));
 }
@@ -59,7 +60,8 @@ export async function compileDraft(body){
   if(body?.refreshDependencies)({model,report:refresh}=await refreshAuthorModel(model,{generate:input=>generateCodeLineExercise(input,getTypeScript()),audit:reference=>auditReference(reference,getTypeScript())}));
   if(!model.lines?.length||model.lines.length>MODEL_LIMIT)throw Error('Túl sok kódsor.');
   const draftId='pages-'+nextDraft++;
-  model={...model,id:'author-'+draftId,revision:1};
+  // ADR-149: as on the server, the label is measured on every admission and never taken from an imported model.
+  model={...model,id:'author-'+draftId,revision:1,technologies:(await localProfiler()).profile(model.lines.map(line=>line.code).join('\n'),model.language==='typescript'?'typescript':'javascript')};
   const compiled=assertSafeModel(model);
   auditReference(model,getTypeScript());
   // ADR-108 (E5a): the same first gate as the server. Without a standard library the audit is not-run, so
@@ -94,10 +96,18 @@ export async function editRules(body){
 let library;
 const standardLibrary=()=>library??=fetch(new URL('../vendor/typescript-lib.json',import.meta.url)).then(response=>response.ok?response.json():null).then(value=>value&&typeof value==='object'&&!Array.isArray(value)?value:null).catch(()=>null);
 let auditorFor=null,auditor=null;
+const libraryPort=lib=>lib?name=>typeof lib[name]==='string'?lib[name]:undefined:undefined;
 async function localAuditor(){
  const lib=await standardLibrary(),compiler=getTypeScript();
- if(auditorFor!==compiler){auditor=createReferenceAuditor(compiler,lib?name=>typeof lib[name]==='string'?lib[name]:undefined:undefined);auditorFor=compiler;}
+ if(auditorFor!==compiler){auditor=createReferenceAuditor(compiler,libraryPort(lib));auditorFor=compiler;}
  return auditor;
+}
+/** ADR-149: the technologies of a reference, measured with the same compiler and library as the audit. */
+let profilerFor=null,profiler=null;
+async function localProfiler(){
+ const lib=await standardLibrary(),compiler=getTypeScript();
+ if(profilerFor!==compiler){profiler=createTechnologyProfiler(compiler,libraryPort(lib));profilerFor=compiler;}
+ return profiler;
 }
 const environment=async()=>({languageAudit:!!await standardLibrary()});
 const analyzer=()=>`${DEPENDENCY_POLICY}+typescript-${getTypeScript().version}`;

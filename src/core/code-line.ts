@@ -2,6 +2,7 @@ import type { ExerciseDefinition, Normalization, OrderingProfile, OrderingEdge, 
 import validateShape from './schema-check.js';
 import { compileDefinition, isModelError, type CompiledRules } from './model.js';
 import { withArticle } from './article.js';
+import { technologiesProblem, type Technology } from './technology.js';
 
 /** Kept source-compatible with the user-proposed interface. IDs are transport identities, not semantic identities. */
 export interface CodeLine {
@@ -71,6 +72,8 @@ export interface CodeLineExercise {
   description: string;
   /** ADR-101: difficulty for the practice list, an author decision; absent means unclassified. */
   level?: ExerciseLevel;
+  /** ADR-149: the technologies the exercise is made of, measured by the author analysis; a label, never a rule. */
+  technologies?: Technology[];
   lines: StructuredCodeLine[];
   blocks: CodeBlock[];
   /** Shared mandatory partial ordering, outside per-line dependencies. */
@@ -90,6 +93,8 @@ const refId=(id:number)=>`n:${id}`;
 export function compileCodeLineExercise(raw: CodeLineExercise): AdaptResult {
   if(!validateShape(raw))return invalid('A CodeLine JSON Schema alakja, méretkorlátja vagy egyediségi feltétele sérült.');
   if (!raw || raw.schemaVersion !== 2 || !Array.isArray(raw.lines) || !Array.isArray(raw.blocks) || !raw.lines.length || raw.lines.length>500) return invalid('Hibás CodeLine v2 definíció.');
+  const labels = technologiesProblem(raw.technologies);
+  if (labels) return invalid(labels);
   const seen = new Set<number>();
   for(const l of raw.lines) {
     if(!l || !Number.isSafeInteger(l.id) || l.id < 1 || seen.has(l.id) || !Array.isArray(l.dependencies) || l.dependencies.some(d=>!Number.isSafeInteger(d)) || typeof l.fixed!=='boolean' || !Number.isSafeInteger(l.functionBlock) || l.functionBlock<0 || (l.scopeId!==null && typeof l.scopeId!=='string')) return invalid('Hibás sorazonosító, dependencies, fixed, functionBlock vagy scopeId.');

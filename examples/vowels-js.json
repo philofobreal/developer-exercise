@@ -7,6 +7,7 @@
   "title": "Magánhangzók számlálása",
   "description": "Magánhangzók megszámlálása egy szövegben. A három előkészítő sor (a magánhangzók, a kisbetűs szöveg és a számláló) bármilyen sorrendben állhat; a ciklus utánuk, a visszatérés a végén áll. A bemenet szöveg.",
   "level": "beginner",
+  "technologies": [{ "id": "ecmascript", "version": "2015" }],
   "lines": [
     {
       "id": 1,

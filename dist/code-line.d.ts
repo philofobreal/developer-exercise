@@ -1,5 +1,6 @@
 import type { ExerciseDefinition, Normalization, ValidationResult } from './types.js';
 import { type CompiledRules } from './model.js';
+import { type Technology } from './technology.js';
 /** Kept source-compatible with the user-proposed interface. IDs are transport identities, not semantic identities. */
 export interface CodeLine {
     id: number;
@@ -115,6 +116,8 @@ export interface CodeLineExercise {
     description: string;
     /** ADR-101: difficulty for the practice list, an author decision; absent means unclassified. */
     level?: ExerciseLevel;
+    /** ADR-149: the technologies the exercise is made of, measured by the author analysis; a label, never a rule. */
+    technologies?: Technology[];
     lines: StructuredCodeLine[];
     blocks: CodeBlock[];
     /** Shared mandatory partial ordering, outside per-line dependencies. */

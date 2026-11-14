@@ -7,6 +7,7 @@
   "title": "Celsius átváltása Fahrenheitre",
   "description": "Átváltás két állandóval. A két állandó deklarációja felcserélhető; a visszatérés a végén áll. A bemenet szám.",
   "level": "beginner",
+  "technologies": [{ "id": "ecmascript", "version": "2015" }],
   "lines": [
     {
       "id": 1,

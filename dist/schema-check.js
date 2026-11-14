@@ -2,17 +2,18 @@
 // Generated from docs/schema.json, language-ir.schema.json and codeline-v3.schema.json by scripts/sync-schema.mjs. Do not edit.
 "use strict";
 export const validateV2 = validate20;
-const schema31 = { "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://philofobreal.github.io/developer-exercise/schema.json", "title": "ngDynamic CodeLine v2 Exercise", "type": "object", "additionalProperties": false, "required": ["schemaVersion", "id", "revision", "language", "title", "description", "lines", "blocks"], "properties": { "schemaVersion": { "const": 2 }, "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "revision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "language": { "enum": ["javascript", "typescript"] }, "title": { "type": "string", "maxLength": 140 }, "description": { "type": "string", "maxLength": 500 }, "level": { "description": "ADR-101: the exercise's difficulty for the practice list, an author decision; absent means unclassified.", "enum": ["beginner", "intermediate", "advanced"] }, "lines": { "type": "array", "minItems": 1, "maxItems": 500, "items": { "$ref": "#/$defs/codeLine" } }, "blocks": { "type": "array", "maxItems": 250, "items": { "$ref": "#/$defs/block" } }, "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" }, "maxItems": 5000 }, "profiles": { "type": "array", "maxItems": 32, "items": { "type": "object", "required": ["id", "edges"], "additionalProperties": false, "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" }, "maxItems": 5000 } } } }, "learnerFeedback": { "description": "ADR-027, ADR-147: how much a learner is told. 'positions' (default): only facts about the submission. 'rules': also the violated line pairs, never their reasons. 'graph': as 'rules', and each evaluation's answer carries the exercise's direct rules as line pairs (never reasons or origins), so the learner may look at them after a first check. An explicit author decision.", "enum": ["positions", "rules", "graph"] }, "authoring": { "type": "object", "additionalProperties": false, "properties": { "strategy": { "type": "string", "maxLength": 100 }, "reason": { "type": "string", "maxLength": 500 }, "note": { "type": "string", "maxLength": 1000 }, "omittedBlocks": { "type": "integer", "minimum": 0, "maximum": 500 }, "semanticEquivalenceProven": { "const": false }, "dependencyHints": { "type": "array", "maxItems": 200, "items": { "type": "object", "additionalProperties": false, "required": ["name", "declarationLine", "usageLine"], "properties": { "name": { "type": "string", "maxLength": 2048 }, "declarationLine": { "type": "integer", "minimum": 1, "maximum": 50000 }, "usageLine": { "type": "integer", "minimum": 1, "maximum": 50000 } } } }, "provenance": { "type": "array", "maxItems": 10000, "items": { "type": "object", "additionalProperties": false, "required": ["before", "after", "category", "code"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "category": { "type": "string", "enum": ["data", "effect", "structure", "unit", "policy", "author", "conservative", "unknown"] }, "code": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9-]*$", "maxLength": 64 } } } }, "evidence": { "type": "object", "additionalProperties": false, "required": ["sourceDigest", "analyzer", "environment"], "properties": { "sourceDigest": { "type": "string", "pattern": "^[0-9a-f]{16}$" }, "analyzer": { "$ref": "#/$defs/dependencyPolicy" }, "environment": { "type": "object", "additionalProperties": false, "properties": { "typescript": { "type": "string", "pattern": "^[0-9A-Za-z.+-]{1,40}$" }, "importEmit": { "type": "string", "enum": ["verbatim", "elide-unused"] }, "sourceKind": { "type": "string", "enum": ["module", "script"] }, "classFields": { "type": "string", "enum": ["either", "define"] }, "inputs": { "type": "string", "enum": ["any", "valid"] }, "keyOrder": { "type": "string", "enum": ["observed", "ignored"] }, "inputsOverride": { "description": "ADR-126 (NY-29): the valid input contract was asked for, but the program can change what a read does, so the analysis stayed strict. Explanation only, never a grading input.", "type": "object", "additionalProperties": false, "required": ["effective", "reason"], "properties": { "effective": { "type": "string", "enum": ["any"] }, "reason": { "type": "string", "enum": ["hook", "computed-accessor", "computed-name"] }, "line": { "type": "integer", "minimum": 1, "maximum": 100000 }, "text": { "type": "string", "maxLength": 40 } } } } }, "projectionLoss": { "type": "object", "additionalProperties": false, "required": ["pairs", "examples"], "properties": { "pairs": { "type": "integer", "minimum": 0, "maximum": 125000 }, "examples": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/edge" } } } } } }, "ruleNotes": { "type": "array", "maxItems": 1000, "items": { "type": "object", "additionalProperties": false, "required": ["before", "after", "note"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "note": { "type": "string", "minLength": 1, "maxLength": 500 } } } }, "relaxations": { "type": "array", "maxItems": 1000, "items": { "type": "object", "additionalProperties": false, "required": ["before", "after", "editability"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "editability": { "type": "string", "enum": ["conservative", "proven", "legacy"] }, "note": { "type": "string", "minLength": 1, "maxLength": 500 }, "sourceDigest": { "type": "string", "pattern": "^[0-9a-f]{16}$" }, "removed": { "type": "object", "additionalProperties": false, "required": ["origins", "reasons"], "properties": { "origins": { "type": "array", "minItems": 1, "maxItems": 2, "uniqueItems": true, "items": { "type": "string", "enum": ["dependency", "edge"] } }, "reasons": { "type": "array", "maxItems": 32, "items": { "type": "object", "additionalProperties": false, "required": ["category", "code"], "properties": { "category": { "type": "string", "enum": ["data", "effect", "structure", "unit", "policy", "author", "conservative", "unknown"] }, "code": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9-]*$", "maxLength": 64 } } } }, "note": { "type": "string", "minLength": 1, "maxLength": 500 } } } } } }, "dependencyPolicy": { "$ref": "#/$defs/dependencyPolicy" } } } }, "$defs": { "codeLine": { "type": "object", "additionalProperties": false, "required": ["id", "code", "dependencies", "fixed", "functionBlock", "scopeId"], "properties": { "id": { "type": "integer", "minimum": 1, "maximum": 9007199254740991, "description": "Stable identity within this exercise revision; never the current solution position." }, "code": { "type": "string", "maxLength": 2048, "pattern": "^[^\\r\\n\\u2028\\u2029]*$" }, "dependencies": { "type": "array", "uniqueItems": true, "items": { "type": "integer", "minimum": 1 }, "maxItems": 500, "description": "IDs of all required predecessors. Each must occur earlier, at any distance; array order is irrelevant." }, "fixed": { "type": "boolean" }, "functionBlock": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "scopeId": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 200 }, { "type": "null" }] }, "normalization": { "enum": ["indent", "exact"] }, "sourceLine": { "type": "integer", "minimum": 1, "maximum": 50000, "description": "Optional one-based original physical source line; informational, never an identity or ordering constraint." } } }, "block": { "type": "object", "additionalProperties": false, "required": ["id", "kind", "parentScopeId", "openLineId", "closeLineId"], "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "kind": { "enum": ["function", "block"] }, "functionBlock": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "parentScopeId": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 200 }, { "type": "null" }] }, "openLineId": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "closeLineId": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 } }, "anyOf": [{ "properties": { "kind": { "const": "function" }, "functionBlock": {} }, "required": ["functionBlock"] }, { "properties": { "kind": { "const": "block" } }, "not": { "required": ["functionBlock"], "properties": { "functionBlock": {} } } }] }, "edge": { "type": "object", "additionalProperties": false, "required": ["before", "after"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 } } }, "dependencyPolicy": { "type": "string", "enum": ["primitive-const-islands-v1", "scoped-primitive-dag-v2", "scoped-type-members-v3", "scoped-effect-analysis-v4", "scoped-effect-analysis-v5", "scoped-effect-analysis-v6", "scoped-effect-analysis-v7", "scoped-effect-analysis-v8", "scoped-effect-analysis-v9", "scoped-effect-analysis-v10", "scoped-effect-analysis-v11", "scoped-effect-analysis-v12", "scoped-effect-analysis-v13", "scoped-effect-analysis-v14", "scoped-effect-analysis-v15", "scoped-effect-analysis-v16", "scoped-effect-analysis-v17", "scoped-effect-analysis-v18", "scoped-effect-analysis-v19", "scoped-effect-analysis-v20", "scoped-effect-analysis-v21", "scoped-effect-analysis-v22", "scoped-effect-analysis-v23", "scoped-effect-analysis-v24", "scoped-effect-analysis-v25", "scoped-effect-analysis-v26", "scoped-effect-analysis-v27", "scoped-effect-analysis-v28", "scoped-effect-analysis-v29", "scoped-effect-analysis-v30", "scoped-effect-analysis-v31", "scoped-effect-analysis-v32", "scoped-effect-analysis-v33", "scoped-effect-analysis-v34", "scoped-effect-analysis-v35", "scoped-effect-analysis-v36", "scoped-effect-analysis-v37", "scoped-effect-analysis-v38", "scoped-effect-analysis-v39", "scoped-effect-analysis-v40", "scoped-effect-analysis-v41", "scoped-effect-analysis-v42", "scoped-effect-analysis-v43", "scoped-effect-analysis-v44", "scoped-effect-analysis-v45", "scoped-effect-analysis-v46", "scoped-effect-analysis-v47", "scoped-effect-analysis-v48", "scoped-effect-analysis-v49", "scoped-effect-analysis-v50", "scoped-effect-analysis-v51", "scoped-effect-analysis-v52", "scoped-effect-analysis-v53", "scoped-effect-analysis-v54", "scoped-effect-analysis-v55", "scoped-effect-analysis-v56", "scoped-effect-analysis-v57"] } } };
+const schema31 = { "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://philofobreal.github.io/developer-exercise/schema.json", "title": "ngDynamic CodeLine v2 Exercise", "type": "object", "additionalProperties": false, "required": ["schemaVersion", "id", "revision", "language", "title", "description", "lines", "blocks"], "properties": { "schemaVersion": { "const": 2 }, "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "revision": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "language": { "enum": ["javascript", "typescript"] }, "title": { "type": "string", "maxLength": 140 }, "description": { "type": "string", "maxLength": 500 }, "level": { "description": "ADR-101: the exercise's difficulty for the practice list, an author decision; absent means unclassified.", "enum": ["beginner", "intermediate", "advanced"] }, "technologies": { "description": "ADR-149: the technologies the exercise is made of, each with a version, measured by the author analysis. A label for people; the validator never reads it. 'ecmascript': the edition of the newest language or library element the code uses ('5' for anything older than ES2015). 'typescript': the release of the newest TypeScript element.", "type": "array", "maxItems": 8, "items": { "type": "object", "additionalProperties": false, "required": ["id", "version"], "properties": { "id": { "enum": ["ecmascript", "typescript"] }, "version": { "type": "string", "pattern": "^[0-9]{1,4}(\\.[0-9]{1,3}){0,2}$" } } } }, "lines": { "type": "array", "minItems": 1, "maxItems": 500, "items": { "$ref": "#/$defs/codeLine" } }, "blocks": { "type": "array", "maxItems": 250, "items": { "$ref": "#/$defs/block" } }, "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" }, "maxItems": 5000 }, "profiles": { "type": "array", "maxItems": 32, "items": { "type": "object", "required": ["id", "edges"], "additionalProperties": false, "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" }, "maxItems": 5000 } } } }, "learnerFeedback": { "description": "ADR-027, ADR-147: how much a learner is told. 'positions' (default): only facts about the submission. 'rules': also the violated line pairs, never their reasons. 'graph': as 'rules', and each evaluation's answer carries the exercise's direct rules as line pairs (never reasons or origins), so the learner may look at them after a first check. An explicit author decision.", "enum": ["positions", "rules", "graph"] }, "authoring": { "type": "object", "additionalProperties": false, "properties": { "strategy": { "type": "string", "maxLength": 100 }, "reason": { "type": "string", "maxLength": 500 }, "note": { "type": "string", "maxLength": 1000 }, "omittedBlocks": { "type": "integer", "minimum": 0, "maximum": 500 }, "semanticEquivalenceProven": { "const": false }, "dependencyHints": { "type": "array", "maxItems": 200, "items": { "type": "object", "additionalProperties": false, "required": ["name", "declarationLine", "usageLine"], "properties": { "name": { "type": "string", "maxLength": 2048 }, "declarationLine": { "type": "integer", "minimum": 1, "maximum": 50000 }, "usageLine": { "type": "integer", "minimum": 1, "maximum": 50000 } } } }, "provenance": { "type": "array", "maxItems": 10000, "items": { "type": "object", "additionalProperties": false, "required": ["before", "after", "category", "code"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "category": { "type": "string", "enum": ["data", "effect", "structure", "unit", "policy", "author", "conservative", "unknown"] }, "code": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9-]*$", "maxLength": 64 } } } }, "evidence": { "type": "object", "additionalProperties": false, "required": ["sourceDigest", "analyzer", "environment"], "properties": { "sourceDigest": { "type": "string", "pattern": "^[0-9a-f]{16}$" }, "analyzer": { "$ref": "#/$defs/dependencyPolicy" }, "environment": { "type": "object", "additionalProperties": false, "properties": { "typescript": { "type": "string", "pattern": "^[0-9A-Za-z.+-]{1,40}$" }, "importEmit": { "type": "string", "enum": ["verbatim", "elide-unused"] }, "sourceKind": { "type": "string", "enum": ["module", "script"] }, "classFields": { "type": "string", "enum": ["either", "define"] }, "inputs": { "type": "string", "enum": ["any", "valid"] }, "keyOrder": { "type": "string", "enum": ["observed", "ignored"] }, "inputsOverride": { "description": "ADR-126 (NY-29): the valid input contract was asked for, but the program can change what a read does, so the analysis stayed strict. Explanation only, never a grading input.", "type": "object", "additionalProperties": false, "required": ["effective", "reason"], "properties": { "effective": { "type": "string", "enum": ["any"] }, "reason": { "type": "string", "enum": ["hook", "computed-accessor", "computed-name"] }, "line": { "type": "integer", "minimum": 1, "maximum": 100000 }, "text": { "type": "string", "maxLength": 40 } } } } }, "projectionLoss": { "type": "object", "additionalProperties": false, "required": ["pairs", "examples"], "properties": { "pairs": { "type": "integer", "minimum": 0, "maximum": 125000 }, "examples": { "type": "array", "maxItems": 20, "items": { "$ref": "#/$defs/edge" } } } } } }, "ruleNotes": { "type": "array", "maxItems": 1000, "items": { "type": "object", "additionalProperties": false, "required": ["before", "after", "note"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "note": { "type": "string", "minLength": 1, "maxLength": 500 } } } }, "relaxations": { "type": "array", "maxItems": 1000, "items": { "type": "object", "additionalProperties": false, "required": ["before", "after", "editability"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "editability": { "type": "string", "enum": ["conservative", "proven", "legacy"] }, "note": { "type": "string", "minLength": 1, "maxLength": 500 }, "sourceDigest": { "type": "string", "pattern": "^[0-9a-f]{16}$" }, "removed": { "type": "object", "additionalProperties": false, "required": ["origins", "reasons"], "properties": { "origins": { "type": "array", "minItems": 1, "maxItems": 2, "uniqueItems": true, "items": { "type": "string", "enum": ["dependency", "edge"] } }, "reasons": { "type": "array", "maxItems": 32, "items": { "type": "object", "additionalProperties": false, "required": ["category", "code"], "properties": { "category": { "type": "string", "enum": ["data", "effect", "structure", "unit", "policy", "author", "conservative", "unknown"] }, "code": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9-]*$", "maxLength": 64 } } } }, "note": { "type": "string", "minLength": 1, "maxLength": 500 } } } } } }, "dependencyPolicy": { "$ref": "#/$defs/dependencyPolicy" } } } }, "$defs": { "codeLine": { "type": "object", "additionalProperties": false, "required": ["id", "code", "dependencies", "fixed", "functionBlock", "scopeId"], "properties": { "id": { "type": "integer", "minimum": 1, "maximum": 9007199254740991, "description": "Stable identity within this exercise revision; never the current solution position." }, "code": { "type": "string", "maxLength": 2048, "pattern": "^[^\\r\\n\\u2028\\u2029]*$" }, "dependencies": { "type": "array", "uniqueItems": true, "items": { "type": "integer", "minimum": 1 }, "maxItems": 500, "description": "IDs of all required predecessors. Each must occur earlier, at any distance; array order is irrelevant." }, "fixed": { "type": "boolean" }, "functionBlock": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "scopeId": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 200 }, { "type": "null" }] }, "normalization": { "enum": ["indent", "exact"] }, "sourceLine": { "type": "integer", "minimum": 1, "maximum": 50000, "description": "Optional one-based original physical source line; informational, never an identity or ordering constraint." } } }, "block": { "type": "object", "additionalProperties": false, "required": ["id", "kind", "parentScopeId", "openLineId", "closeLineId"], "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "kind": { "enum": ["function", "block"] }, "functionBlock": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "parentScopeId": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 200 }, { "type": "null" }] }, "openLineId": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "closeLineId": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 } }, "anyOf": [{ "properties": { "kind": { "const": "function" }, "functionBlock": {} }, "required": ["functionBlock"] }, { "properties": { "kind": { "const": "block" } }, "not": { "required": ["functionBlock"], "properties": { "functionBlock": {} } } }] }, "edge": { "type": "object", "additionalProperties": false, "required": ["before", "after"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 } } }, "dependencyPolicy": { "type": "string", "enum": ["primitive-const-islands-v1", "scoped-primitive-dag-v2", "scoped-type-members-v3", "scoped-effect-analysis-v4", "scoped-effect-analysis-v5", "scoped-effect-analysis-v6", "scoped-effect-analysis-v7", "scoped-effect-analysis-v8", "scoped-effect-analysis-v9", "scoped-effect-analysis-v10", "scoped-effect-analysis-v11", "scoped-effect-analysis-v12", "scoped-effect-analysis-v13", "scoped-effect-analysis-v14", "scoped-effect-analysis-v15", "scoped-effect-analysis-v16", "scoped-effect-analysis-v17", "scoped-effect-analysis-v18", "scoped-effect-analysis-v19", "scoped-effect-analysis-v20", "scoped-effect-analysis-v21", "scoped-effect-analysis-v22", "scoped-effect-analysis-v23", "scoped-effect-analysis-v24", "scoped-effect-analysis-v25", "scoped-effect-analysis-v26", "scoped-effect-analysis-v27", "scoped-effect-analysis-v28", "scoped-effect-analysis-v29", "scoped-effect-analysis-v30", "scoped-effect-analysis-v31", "scoped-effect-analysis-v32", "scoped-effect-analysis-v33", "scoped-effect-analysis-v34", "scoped-effect-analysis-v35", "scoped-effect-analysis-v36", "scoped-effect-analysis-v37", "scoped-effect-analysis-v38", "scoped-effect-analysis-v39", "scoped-effect-analysis-v40", "scoped-effect-analysis-v41", "scoped-effect-analysis-v42", "scoped-effect-analysis-v43", "scoped-effect-analysis-v44", "scoped-effect-analysis-v45", "scoped-effect-analysis-v46", "scoped-effect-analysis-v47", "scoped-effect-analysis-v48", "scoped-effect-analysis-v49", "scoped-effect-analysis-v50", "scoped-effect-analysis-v51", "scoped-effect-analysis-v52", "scoped-effect-analysis-v53", "scoped-effect-analysis-v54", "scoped-effect-analysis-v55", "scoped-effect-analysis-v56", "scoped-effect-analysis-v57"] } } };
 const schema32 = { "type": "object", "additionalProperties": false, "required": ["id", "code", "dependencies", "fixed", "functionBlock", "scopeId"], "properties": { "id": { "type": "integer", "minimum": 1, "maximum": 9007199254740991, "description": "Stable identity within this exercise revision; never the current solution position." }, "code": { "type": "string", "maxLength": 2048, "pattern": "^[^\\r\\n\\u2028\\u2029]*$" }, "dependencies": { "type": "array", "uniqueItems": true, "items": { "type": "integer", "minimum": 1 }, "maxItems": 500, "description": "IDs of all required predecessors. Each must occur earlier, at any distance; array order is irrelevant." }, "fixed": { "type": "boolean" }, "functionBlock": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }, "scopeId": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 200 }, { "type": "null" }] }, "normalization": { "enum": ["indent", "exact"] }, "sourceLine": { "type": "integer", "minimum": 1, "maximum": 50000, "description": "Optional one-based original physical source line; informational, never an identity or ordering constraint." } } };
 const schema33 = { "type": "object", "additionalProperties": false, "required": ["id", "kind", "parentScopeId", "openLineId", "closeLineId"], "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "kind": { "enum": ["function", "block"] }, "functionBlock": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "parentScopeId": { "anyOf": [{ "type": "string", "minLength": 1, "maxLength": 200 }, { "type": "null" }] }, "openLineId": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "closeLineId": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 } }, "anyOf": [{ "properties": { "kind": { "const": "function" }, "functionBlock": {} }, "required": ["functionBlock"] }, { "properties": { "kind": { "const": "block" } }, "not": { "required": ["functionBlock"], "properties": { "functionBlock": {} } } }] };
 const schema34 = { "type": "object", "additionalProperties": false, "required": ["before", "after"], "properties": { "before": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }, "after": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 } } };
 const schema36 = { "type": "string", "enum": ["primitive-const-islands-v1", "scoped-primitive-dag-v2", "scoped-type-members-v3", "scoped-effect-analysis-v4", "scoped-effect-analysis-v5", "scoped-effect-analysis-v6", "scoped-effect-analysis-v7", "scoped-effect-analysis-v8", "scoped-effect-analysis-v9", "scoped-effect-analysis-v10", "scoped-effect-analysis-v11", "scoped-effect-analysis-v12", "scoped-effect-analysis-v13", "scoped-effect-analysis-v14", "scoped-effect-analysis-v15", "scoped-effect-analysis-v16", "scoped-effect-analysis-v17", "scoped-effect-analysis-v18", "scoped-effect-analysis-v19", "scoped-effect-analysis-v20", "scoped-effect-analysis-v21", "scoped-effect-analysis-v22", "scoped-effect-analysis-v23", "scoped-effect-analysis-v24", "scoped-effect-analysis-v25", "scoped-effect-analysis-v26", "scoped-effect-analysis-v27", "scoped-effect-analysis-v28", "scoped-effect-analysis-v29", "scoped-effect-analysis-v30", "scoped-effect-analysis-v31", "scoped-effect-analysis-v32", "scoped-effect-analysis-v33", "scoped-effect-analysis-v34", "scoped-effect-analysis-v35", "scoped-effect-analysis-v36", "scoped-effect-analysis-v37", "scoped-effect-analysis-v38", "scoped-effect-analysis-v39", "scoped-effect-analysis-v40", "scoped-effect-analysis-v41", "scoped-effect-analysis-v42", "scoped-effect-analysis-v43", "scoped-effect-analysis-v44", "scoped-effect-analysis-v45", "scoped-effect-analysis-v46", "scoped-effect-analysis-v47", "scoped-effect-analysis-v48", "scoped-effect-analysis-v49", "scoped-effect-analysis-v50", "scoped-effect-analysis-v51", "scoped-effect-analysis-v52", "scoped-effect-analysis-v53", "scoped-effect-analysis-v54", "scoped-effect-analysis-v55", "scoped-effect-analysis-v56", "scoped-effect-analysis-v57"] };
 const func1 = Object.prototype.hasOwnProperty;
 const func2 = ((value) => Array.from(value).length);
-const pattern4 = new RegExp("^[^\\r\\n\\u2028\\u2029]*$", "u");
-const pattern5 = new RegExp("^[A-Za-z][A-Za-z0-9-]*$", "u");
-const pattern6 = new RegExp("^[0-9a-f]{16}$", "u");
-const pattern7 = new RegExp("^[0-9A-Za-z.+-]{1,40}$", "u");
+const pattern4 = new RegExp("^[0-9]{1,4}(\\.[0-9]{1,3}){0,2}$", "u");
+const pattern5 = new RegExp("^[^\\r\\n\\u2028\\u2029]*$", "u");
+const pattern6 = new RegExp("^[A-Za-z][A-Za-z0-9-]*$", "u");
+const pattern7 = new RegExp("^[0-9a-f]{16}$", "u");
+const pattern8 = new RegExp("^[0-9A-Za-z.+-]{1,40}$", "u");
 function validate20(data, { instancePath = "", parentData, parentDataProperty, rootData = data, dynamicAnchors = {} } = {}) { /*# sourceURL="https://philofobreal.github.io/developer-exercise/schema.json" */ ; let vErrors = null; let errors = 0; const evaluated0 = validate20.evaluated; if (evaluated0.dynamicProps) {
     evaluated0.props = undefined;
 } if (evaluated0.dynamicItems) {
@@ -168,352 +169,89 @@ function validate20(data, { instancePath = "", parentData, parentDataProperty, r
                                             var valid0 = true;
                                         }
                                         if (valid0) {
-                                            if (data.lines !== undefined) {
-                                                let data7 = data.lines;
+                                            if (data.technologies !== undefined) {
+                                                let data7 = data.technologies;
                                                 const _errs13 = errors;
                                                 if (errors === _errs13) {
                                                     if (Array.isArray(data7)) {
-                                                        if (data7.length > 500) {
-                                                            validate20.errors = [{ instancePath: instancePath + "/lines", schemaPath: "#/properties/lines/maxItems", keyword: "maxItems", params: { limit: 500 }, message: "must NOT have more than 500 items" }];
+                                                        if (data7.length > 8) {
+                                                            validate20.errors = [{ instancePath: instancePath + "/technologies", schemaPath: "#/properties/technologies/maxItems", keyword: "maxItems", params: { limit: 8 }, message: "must NOT have more than 8 items" }];
                                                             return false;
                                                         }
                                                         else {
-                                                            if (data7.length < 1) {
-                                                                validate20.errors = [{ instancePath: instancePath + "/lines", schemaPath: "#/properties/lines/minItems", keyword: "minItems", params: { limit: 1 }, message: "must NOT have fewer than 1 items" }];
-                                                                return false;
-                                                            }
-                                                            else {
-                                                                var valid1 = true;
-                                                                const len0 = data7.length;
-                                                                for (let i0 = 0; i0 < len0; i0++) {
-                                                                    let data8 = data7[i0];
-                                                                    const _errs15 = errors;
-                                                                    const _errs16 = errors;
-                                                                    if (errors === _errs16) {
-                                                                        if (data8 && typeof data8 == "object" && !Array.isArray(data8)) {
-                                                                            let missing1;
-                                                                            if (((((((data8.id === undefined) && (missing1 = "id")) || ((data8.code === undefined) && (missing1 = "code"))) || ((data8.dependencies === undefined) && (missing1 = "dependencies"))) || ((data8.fixed === undefined) && (missing1 = "fixed"))) || ((data8.functionBlock === undefined) && (missing1 = "functionBlock"))) || ((data8.scopeId === undefined) && (missing1 = "scopeId"))) {
-                                                                                validate20.errors = [{ instancePath: instancePath + "/lines/" + i0, schemaPath: "#/$defs/codeLine/required", keyword: "required", params: { missingProperty: missing1 }, message: "must have required property '" + missing1 + "'" }];
-                                                                                return false;
-                                                                            }
-                                                                            else {
-                                                                                const _errs18 = errors;
-                                                                                for (const key1 in data8) {
-                                                                                    if (!((((((((key1 === "id") || (key1 === "code")) || (key1 === "dependencies")) || (key1 === "fixed")) || (key1 === "functionBlock")) || (key1 === "scopeId")) || (key1 === "normalization")) || (key1 === "sourceLine"))) {
-                                                                                        validate20.errors = [{ instancePath: instancePath + "/lines/" + i0, schemaPath: "#/$defs/codeLine/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key1 }, message: "must NOT have additional properties" }];
-                                                                                        return false;
-                                                                                        break;
-                                                                                    }
-                                                                                }
-                                                                                if (_errs18 === errors) {
-                                                                                    if (data8.id !== undefined) {
-                                                                                        let data9 = data8.id;
-                                                                                        const _errs19 = errors;
-                                                                                        if (!(((typeof data9 == "number") && (!(data9 % 1) && !isNaN(data9))) && (isFinite(data9)))) {
-                                                                                            validate20.errors = [{ instancePath: instancePath + "/lines/" + i0 + "/id", schemaPath: "#/$defs/codeLine/properties/id/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                            return false;
-                                                                                        }
-                                                                                        if (errors === _errs19) {
-                                                                                            if ((typeof data9 == "number") && (isFinite(data9))) {
-                                                                                                if (data9 > 9007199254740991 || isNaN(data9)) {
-                                                                                                    validate20.errors = [{ instancePath: instancePath + "/lines/" + i0 + "/id", schemaPath: "#/$defs/codeLine/properties/id/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
-                                                                                                    return false;
-                                                                                                }
-                                                                                                else {
-                                                                                                    if (data9 < 1 || isNaN(data9)) {
-                                                                                                        validate20.errors = [{ instancePath: instancePath + "/lines/" + i0 + "/id", schemaPath: "#/$defs/codeLine/properties/id/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
-                                                                                                        return false;
-                                                                                                    }
-                                                                                                }
-                                                                                            }
-                                                                                        }
-                                                                                        var valid3 = _errs19 === errors;
-                                                                                    }
-                                                                                    else {
-                                                                                        var valid3 = true;
-                                                                                    }
-                                                                                    if (valid3) {
-                                                                                        if (data8.code !== undefined) {
-                                                                                            let data10 = data8.code;
-                                                                                            const _errs21 = errors;
-                                                                                            if (errors === _errs21) {
-                                                                                                if (typeof data10 === "string") {
-                                                                                                    if (func2(data10) > 2048) {
-                                                                                                        validate20.errors = [{ instancePath: instancePath + "/lines/" + i0 + "/code", schemaPath: "#/$defs/codeLine/properties/code/maxLength", keyword: "maxLength", params: { limit: 2048 }, message: "must NOT have more than 2048 characters" }];
-                                                                                                        return false;
-                                                                                                    }
-                                                                                                    else {
-                                                                                                        if (!pattern4.test(data10)) {
-                                                                                                            validate20.errors = [{ instancePath: instancePath + "/lines/" + i0 + "/code", schemaPath: "#/$defs/codeLine/properties/code/pattern", keyword: "pattern", params: { pattern: "^[^\\r\\n\\u2028\\u2029]*$" }, message: "must match pattern \"" + "^[^\\r\\n\\u2028\\u2029]*$" + "\"" }];
-                                                                                                            return false;
-                                                                                                        }
-                                                                                                    }
-                                                                                                }
-                                                                                                else {
-                                                                                                    validate20.errors = [{ instancePath: instancePath + "/lines/" + i0 + "/code", schemaPath: "#/$defs/codeLine/properties/code/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                    return false;
-                                                                                                }
-                                                                                            }
-                                                                                            var valid3 = _errs21 === errors;
-                                                                                        }
-                                                                                        else {
-                                                                                            var valid3 = true;
-                                                                                        }
-                                                                                        if (valid3) {
-                                                                                            if (data8.dependencies !== undefined) {
-                                                                                                let data11 = data8.dependencies;
-                                                                                                const _errs23 = errors;
-                                                                                                if (errors === _errs23) {
-                                                                                                    if (Array.isArray(data11)) {
-                                                                                                        if (data11.length > 500) {
-                                                                                                            validate20.errors = [{ instancePath: instancePath + "/lines/" + i0 + "/dependencies", schemaPath: "#/$defs/codeLine/properties/dependencies/maxItems", keyword: "maxItems", params: { limit: 500 }, message: "must NOT have more than 500 items" }];
-                                                                                                            return false;
-                                                                                                        }
-                                                                                                        else {
-                                                                                                            var valid4 = true;
-                                                                                                            const len1 = data11.length;
-                                                                                                            for (let i1 = 0; i1 < len1; i1++) {
-                                                                                                                let data12 = data11[i1];
-                                                                                                                const _errs25 = errors;
-                                                                                                                if (!(((typeof data12 == "number") && (!(data12 % 1) && !isNaN(data12))) && (isFinite(data12)))) {
-                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/lines/" + i0 + "/dependencies/" + i1, schemaPath: "#/$defs/codeLine/properties/dependencies/items/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                                    return false;
-                                                                                                                }
-                                                                                                                if (errors === _errs25) {
-                                                                                                                    if ((typeof data12 == "number") && (isFinite(data12))) {
-                                                                                                                        if (data12 < 1 || isNaN(data12)) {
-                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/lines/" + i0 + "/dependencies/" + i1, schemaPath: "#/$defs/codeLine/properties/dependencies/items/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
-                                                                                                                            return false;
-                                                                                                                        }
-                                                                                                                    }
-                                                                                                                }
-                                                                                                                var valid4 = _errs25 === errors;
-                                                                                                                if (!valid4) {
-                                                                                                                    break;
-                                                                                                                }
-                                                                                                            }
-                                                                                                            if (valid4) {
-                                                                                                                let i2 = data11.length;
-                                                                                                                let j0;
-                                                                                                                if (i2 > 1) {
-                                                                                                                    const indices0 = {};
-                                                                                                                    for (; i2--;) {
-                                                                                                                        let item0 = data11[i2];
-                                                                                                                        if (!(((typeof item0 == "number") && (!(item0 % 1) && !isNaN(item0))) && (isFinite(item0)))) {
-                                                                                                                            continue;
-                                                                                                                        }
-                                                                                                                        if (typeof indices0[item0] == "number") {
-                                                                                                                            j0 = indices0[item0];
-                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/lines/" + i0 + "/dependencies", schemaPath: "#/$defs/codeLine/properties/dependencies/uniqueItems", keyword: "uniqueItems", params: { i: i2, j: j0 }, message: "must NOT have duplicate items (items ## " + j0 + " and " + i2 + " are identical)" }];
-                                                                                                                            return false;
-                                                                                                                            break;
-                                                                                                                        }
-                                                                                                                        indices0[item0] = i2;
-                                                                                                                    }
-                                                                                                                }
-                                                                                                            }
-                                                                                                        }
-                                                                                                    }
-                                                                                                    else {
-                                                                                                        validate20.errors = [{ instancePath: instancePath + "/lines/" + i0 + "/dependencies", schemaPath: "#/$defs/codeLine/properties/dependencies/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
-                                                                                                        return false;
-                                                                                                    }
-                                                                                                }
-                                                                                                var valid3 = _errs23 === errors;
-                                                                                            }
-                                                                                            else {
-                                                                                                var valid3 = true;
-                                                                                            }
-                                                                                            if (valid3) {
-                                                                                                if (data8.fixed !== undefined) {
-                                                                                                    const _errs27 = errors;
-                                                                                                    if (typeof data8.fixed !== "boolean") {
-                                                                                                        validate20.errors = [{ instancePath: instancePath + "/lines/" + i0 + "/fixed", schemaPath: "#/$defs/codeLine/properties/fixed/type", keyword: "type", params: { type: "boolean" }, message: "must be boolean" }];
-                                                                                                        return false;
-                                                                                                    }
-                                                                                                    var valid3 = _errs27 === errors;
-                                                                                                }
-                                                                                                else {
-                                                                                                    var valid3 = true;
-                                                                                                }
-                                                                                                if (valid3) {
-                                                                                                    if (data8.functionBlock !== undefined) {
-                                                                                                        let data14 = data8.functionBlock;
-                                                                                                        const _errs29 = errors;
-                                                                                                        if (!(((typeof data14 == "number") && (!(data14 % 1) && !isNaN(data14))) && (isFinite(data14)))) {
-                                                                                                            validate20.errors = [{ instancePath: instancePath + "/lines/" + i0 + "/functionBlock", schemaPath: "#/$defs/codeLine/properties/functionBlock/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                            return false;
-                                                                                                        }
-                                                                                                        if (errors === _errs29) {
-                                                                                                            if ((typeof data14 == "number") && (isFinite(data14))) {
-                                                                                                                if (data14 > 9007199254740991 || isNaN(data14)) {
-                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/lines/" + i0 + "/functionBlock", schemaPath: "#/$defs/codeLine/properties/functionBlock/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
-                                                                                                                    return false;
-                                                                                                                }
-                                                                                                                else {
-                                                                                                                    if (data14 < 0 || isNaN(data14)) {
-                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/lines/" + i0 + "/functionBlock", schemaPath: "#/$defs/codeLine/properties/functionBlock/minimum", keyword: "minimum", params: { comparison: ">=", limit: 0 }, message: "must be >= 0" }];
-                                                                                                                        return false;
-                                                                                                                    }
-                                                                                                                }
-                                                                                                            }
-                                                                                                        }
-                                                                                                        var valid3 = _errs29 === errors;
-                                                                                                    }
-                                                                                                    else {
-                                                                                                        var valid3 = true;
-                                                                                                    }
-                                                                                                    if (valid3) {
-                                                                                                        if (data8.scopeId !== undefined) {
-                                                                                                            let data15 = data8.scopeId;
-                                                                                                            const _errs31 = errors;
-                                                                                                            const _errs32 = errors;
-                                                                                                            let valid6 = false;
-                                                                                                            const _errs33 = errors;
-                                                                                                            if (errors === _errs33) {
-                                                                                                                if (typeof data15 === "string") {
-                                                                                                                    if (func2(data15) > 200) {
-                                                                                                                        const err0 = { instancePath: instancePath + "/lines/" + i0 + "/scopeId", schemaPath: "#/$defs/codeLine/properties/scopeId/anyOf/0/maxLength", keyword: "maxLength", params: { limit: 200 }, message: "must NOT have more than 200 characters" };
-                                                                                                                        if (vErrors === null) {
-                                                                                                                            vErrors = [err0];
-                                                                                                                        }
-                                                                                                                        else {
-                                                                                                                            vErrors.push(err0);
-                                                                                                                        }
-                                                                                                                        errors++;
-                                                                                                                    }
-                                                                                                                    else {
-                                                                                                                        if (func2(data15) < 1) {
-                                                                                                                            const err1 = { instancePath: instancePath + "/lines/" + i0 + "/scopeId", schemaPath: "#/$defs/codeLine/properties/scopeId/anyOf/0/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" };
-                                                                                                                            if (vErrors === null) {
-                                                                                                                                vErrors = [err1];
-                                                                                                                            }
-                                                                                                                            else {
-                                                                                                                                vErrors.push(err1);
-                                                                                                                            }
-                                                                                                                            errors++;
-                                                                                                                        }
-                                                                                                                    }
-                                                                                                                }
-                                                                                                                else {
-                                                                                                                    const err2 = { instancePath: instancePath + "/lines/" + i0 + "/scopeId", schemaPath: "#/$defs/codeLine/properties/scopeId/anyOf/0/type", keyword: "type", params: { type: "string" }, message: "must be string" };
-                                                                                                                    if (vErrors === null) {
-                                                                                                                        vErrors = [err2];
-                                                                                                                    }
-                                                                                                                    else {
-                                                                                                                        vErrors.push(err2);
-                                                                                                                    }
-                                                                                                                    errors++;
-                                                                                                                }
-                                                                                                            }
-                                                                                                            var _valid0 = _errs33 === errors;
-                                                                                                            valid6 = valid6 || _valid0;
-                                                                                                            const _errs35 = errors;
-                                                                                                            if (data15 !== null) {
-                                                                                                                const err3 = { instancePath: instancePath + "/lines/" + i0 + "/scopeId", schemaPath: "#/$defs/codeLine/properties/scopeId/anyOf/1/type", keyword: "type", params: { type: "null" }, message: "must be null" };
-                                                                                                                if (vErrors === null) {
-                                                                                                                    vErrors = [err3];
-                                                                                                                }
-                                                                                                                else {
-                                                                                                                    vErrors.push(err3);
-                                                                                                                }
-                                                                                                                errors++;
-                                                                                                            }
-                                                                                                            var _valid0 = _errs35 === errors;
-                                                                                                            valid6 = valid6 || _valid0;
-                                                                                                            if (!valid6) {
-                                                                                                                const err4 = { instancePath: instancePath + "/lines/" + i0 + "/scopeId", schemaPath: "#/$defs/codeLine/properties/scopeId/anyOf", keyword: "anyOf", params: {}, message: "must match a schema in anyOf" };
-                                                                                                                if (vErrors === null) {
-                                                                                                                    vErrors = [err4];
-                                                                                                                }
-                                                                                                                else {
-                                                                                                                    vErrors.push(err4);
-                                                                                                                }
-                                                                                                                errors++;
-                                                                                                                validate20.errors = vErrors;
-                                                                                                                return false;
-                                                                                                            }
-                                                                                                            else {
-                                                                                                                errors = _errs32;
-                                                                                                                if (vErrors !== null) {
-                                                                                                                    if (_errs32) {
-                                                                                                                        vErrors.length = _errs32;
-                                                                                                                    }
-                                                                                                                    else {
-                                                                                                                        vErrors = null;
-                                                                                                                    }
-                                                                                                                }
-                                                                                                            }
-                                                                                                            var valid3 = _errs31 === errors;
-                                                                                                        }
-                                                                                                        else {
-                                                                                                            var valid3 = true;
-                                                                                                        }
-                                                                                                        if (valid3) {
-                                                                                                            if (data8.normalization !== undefined) {
-                                                                                                                let data16 = data8.normalization;
-                                                                                                                const _errs37 = errors;
-                                                                                                                if (!((data16 === "indent") || (data16 === "exact"))) {
-                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/lines/" + i0 + "/normalization", schemaPath: "#/$defs/codeLine/properties/normalization/enum", keyword: "enum", params: { allowedValues: schema32.properties.normalization.enum }, message: "must be equal to one of the allowed values" }];
-                                                                                                                    return false;
-                                                                                                                }
-                                                                                                                var valid3 = _errs37 === errors;
-                                                                                                            }
-                                                                                                            else {
-                                                                                                                var valid3 = true;
-                                                                                                            }
-                                                                                                            if (valid3) {
-                                                                                                                if (data8.sourceLine !== undefined) {
-                                                                                                                    let data17 = data8.sourceLine;
-                                                                                                                    const _errs38 = errors;
-                                                                                                                    if (!(((typeof data17 == "number") && (!(data17 % 1) && !isNaN(data17))) && (isFinite(data17)))) {
-                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/lines/" + i0 + "/sourceLine", schemaPath: "#/$defs/codeLine/properties/sourceLine/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                                        return false;
-                                                                                                                    }
-                                                                                                                    if (errors === _errs38) {
-                                                                                                                        if ((typeof data17 == "number") && (isFinite(data17))) {
-                                                                                                                            if (data17 > 50000 || isNaN(data17)) {
-                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/lines/" + i0 + "/sourceLine", schemaPath: "#/$defs/codeLine/properties/sourceLine/maximum", keyword: "maximum", params: { comparison: "<=", limit: 50000 }, message: "must be <= 50000" }];
-                                                                                                                                return false;
-                                                                                                                            }
-                                                                                                                            else {
-                                                                                                                                if (data17 < 1 || isNaN(data17)) {
-                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/lines/" + i0 + "/sourceLine", schemaPath: "#/$defs/codeLine/properties/sourceLine/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
-                                                                                                                                    return false;
-                                                                                                                                }
-                                                                                                                            }
-                                                                                                                        }
-                                                                                                                    }
-                                                                                                                    var valid3 = _errs38 === errors;
-                                                                                                                }
-                                                                                                                else {
-                                                                                                                    var valid3 = true;
-                                                                                                                }
-                                                                                                            }
-                                                                                                        }
-                                                                                                    }
-                                                                                                }
-                                                                                            }
-                                                                                        }
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                        else {
-                                                                            validate20.errors = [{ instancePath: instancePath + "/lines/" + i0, schemaPath: "#/$defs/codeLine/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                            var valid1 = true;
+                                                            const len0 = data7.length;
+                                                            for (let i0 = 0; i0 < len0; i0++) {
+                                                                let data8 = data7[i0];
+                                                                const _errs15 = errors;
+                                                                if (errors === _errs15) {
+                                                                    if (data8 && typeof data8 == "object" && !Array.isArray(data8)) {
+                                                                        let missing1;
+                                                                        if (((data8.id === undefined) && (missing1 = "id")) || ((data8.version === undefined) && (missing1 = "version"))) {
+                                                                            validate20.errors = [{ instancePath: instancePath + "/technologies/" + i0, schemaPath: "#/properties/technologies/items/required", keyword: "required", params: { missingProperty: missing1 }, message: "must have required property '" + missing1 + "'" }];
                                                                             return false;
                                                                         }
+                                                                        else {
+                                                                            const _errs17 = errors;
+                                                                            for (const key1 in data8) {
+                                                                                if (!((key1 === "id") || (key1 === "version"))) {
+                                                                                    validate20.errors = [{ instancePath: instancePath + "/technologies/" + i0, schemaPath: "#/properties/technologies/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key1 }, message: "must NOT have additional properties" }];
+                                                                                    return false;
+                                                                                    break;
+                                                                                }
+                                                                            }
+                                                                            if (_errs17 === errors) {
+                                                                                if (data8.id !== undefined) {
+                                                                                    let data9 = data8.id;
+                                                                                    const _errs18 = errors;
+                                                                                    if (!((data9 === "ecmascript") || (data9 === "typescript"))) {
+                                                                                        validate20.errors = [{ instancePath: instancePath + "/technologies/" + i0 + "/id", schemaPath: "#/properties/technologies/items/properties/id/enum", keyword: "enum", params: { allowedValues: schema31.properties.technologies.items.properties.id.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                        return false;
+                                                                                    }
+                                                                                    var valid2 = _errs18 === errors;
+                                                                                }
+                                                                                else {
+                                                                                    var valid2 = true;
+                                                                                }
+                                                                                if (valid2) {
+                                                                                    if (data8.version !== undefined) {
+                                                                                        let data10 = data8.version;
+                                                                                        const _errs19 = errors;
+                                                                                        if (errors === _errs19) {
+                                                                                            if (typeof data10 === "string") {
+                                                                                                if (!pattern4.test(data10)) {
+                                                                                                    validate20.errors = [{ instancePath: instancePath + "/technologies/" + i0 + "/version", schemaPath: "#/properties/technologies/items/properties/version/pattern", keyword: "pattern", params: { pattern: "^[0-9]{1,4}(\\.[0-9]{1,3}){0,2}$" }, message: "must match pattern \"" + "^[0-9]{1,4}(\\.[0-9]{1,3}){0,2}$" + "\"" }];
+                                                                                                    return false;
+                                                                                                }
+                                                                                            }
+                                                                                            else {
+                                                                                                validate20.errors = [{ instancePath: instancePath + "/technologies/" + i0 + "/version", schemaPath: "#/properties/technologies/items/properties/version/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                return false;
+                                                                                            }
+                                                                                        }
+                                                                                        var valid2 = _errs19 === errors;
+                                                                                    }
+                                                                                    else {
+                                                                                        var valid2 = true;
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
                                                                     }
-                                                                    var valid1 = _errs15 === errors;
-                                                                    if (!valid1) {
-                                                                        break;
+                                                                    else {
+                                                                        validate20.errors = [{ instancePath: instancePath + "/technologies/" + i0, schemaPath: "#/properties/technologies/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                        return false;
                                                                     }
+                                                                }
+                                                                var valid1 = _errs15 === errors;
+                                                                if (!valid1) {
+                                                                    break;
                                                                 }
                                                             }
                                                         }
                                                     }
                                                     else {
-                                                        validate20.errors = [{ instancePath: instancePath + "/lines", schemaPath: "#/properties/lines/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                                        validate20.errors = [{ instancePath: instancePath + "/technologies", schemaPath: "#/properties/technologies/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
                                                         return false;
                                                     }
                                                 }
@@ -523,678 +261,835 @@ function validate20(data, { instancePath = "", parentData, parentDataProperty, r
                                                 var valid0 = true;
                                             }
                                             if (valid0) {
-                                                if (data.blocks !== undefined) {
-                                                    let data18 = data.blocks;
-                                                    const _errs40 = errors;
-                                                    if (errors === _errs40) {
-                                                        if (Array.isArray(data18)) {
-                                                            if (data18.length > 250) {
-                                                                validate20.errors = [{ instancePath: instancePath + "/blocks", schemaPath: "#/properties/blocks/maxItems", keyword: "maxItems", params: { limit: 250 }, message: "must NOT have more than 250 items" }];
+                                                if (data.lines !== undefined) {
+                                                    let data11 = data.lines;
+                                                    const _errs21 = errors;
+                                                    if (errors === _errs21) {
+                                                        if (Array.isArray(data11)) {
+                                                            if (data11.length > 500) {
+                                                                validate20.errors = [{ instancePath: instancePath + "/lines", schemaPath: "#/properties/lines/maxItems", keyword: "maxItems", params: { limit: 500 }, message: "must NOT have more than 500 items" }];
                                                                 return false;
                                                             }
                                                             else {
-                                                                var valid7 = true;
-                                                                const len2 = data18.length;
-                                                                for (let i3 = 0; i3 < len2; i3++) {
-                                                                    let data19 = data18[i3];
-                                                                    const _errs42 = errors;
-                                                                    const _errs43 = errors;
-                                                                    const _errs45 = errors;
-                                                                    let valid9 = false;
-                                                                    const _errs46 = errors;
-                                                                    if (data19 && typeof data19 == "object" && !Array.isArray(data19)) {
-                                                                        let missing2;
-                                                                        if ((data19.functionBlock === undefined) && (missing2 = "functionBlock")) {
-                                                                            const err5 = { instancePath: instancePath + "/blocks/" + i3, schemaPath: "#/$defs/block/anyOf/0/required", keyword: "required", params: { missingProperty: missing2 }, message: "must have required property '" + missing2 + "'" };
-                                                                            if (vErrors === null) {
-                                                                                vErrors = [err5];
-                                                                            }
-                                                                            else {
-                                                                                vErrors.push(err5);
-                                                                            }
-                                                                            errors++;
-                                                                        }
-                                                                        else {
-                                                                            if (data19.kind !== undefined) {
-                                                                                if ("function" !== data19.kind) {
-                                                                                    const err6 = { instancePath: instancePath + "/blocks/" + i3 + "/kind", schemaPath: "#/$defs/block/anyOf/0/properties/kind/const", keyword: "const", params: { allowedValue: "function" }, message: "must be equal to constant" };
-                                                                                    if (vErrors === null) {
-                                                                                        vErrors = [err6];
-                                                                                    }
-                                                                                    else {
-                                                                                        vErrors.push(err6);
-                                                                                    }
-                                                                                    errors++;
+                                                                if (data11.length < 1) {
+                                                                    validate20.errors = [{ instancePath: instancePath + "/lines", schemaPath: "#/properties/lines/minItems", keyword: "minItems", params: { limit: 1 }, message: "must NOT have fewer than 1 items" }];
+                                                                    return false;
+                                                                }
+                                                                else {
+                                                                    var valid3 = true;
+                                                                    const len1 = data11.length;
+                                                                    for (let i1 = 0; i1 < len1; i1++) {
+                                                                        let data12 = data11[i1];
+                                                                        const _errs23 = errors;
+                                                                        const _errs24 = errors;
+                                                                        if (errors === _errs24) {
+                                                                            if (data12 && typeof data12 == "object" && !Array.isArray(data12)) {
+                                                                                let missing2;
+                                                                                if (((((((data12.id === undefined) && (missing2 = "id")) || ((data12.code === undefined) && (missing2 = "code"))) || ((data12.dependencies === undefined) && (missing2 = "dependencies"))) || ((data12.fixed === undefined) && (missing2 = "fixed"))) || ((data12.functionBlock === undefined) && (missing2 = "functionBlock"))) || ((data12.scopeId === undefined) && (missing2 = "scopeId"))) {
+                                                                                    validate20.errors = [{ instancePath: instancePath + "/lines/" + i1, schemaPath: "#/$defs/codeLine/required", keyword: "required", params: { missingProperty: missing2 }, message: "must have required property '" + missing2 + "'" }];
+                                                                                    return false;
                                                                                 }
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                    var _valid1 = _errs46 === errors;
-                                                                    valid9 = valid9 || _valid1;
-                                                                    if (_valid1) {
-                                                                        var props0 = {};
-                                                                        props0.kind = true;
-                                                                        props0.functionBlock = true;
-                                                                    }
-                                                                    const _errs48 = errors;
-                                                                    const _errs49 = errors;
-                                                                    const _errs50 = errors;
-                                                                    if (data19 && typeof data19 == "object" && !Array.isArray(data19)) {
-                                                                        let missing3;
-                                                                        if ((data19.functionBlock === undefined) && (missing3 = "functionBlock")) {
-                                                                            const err7 = {};
-                                                                            if (vErrors === null) {
-                                                                                vErrors = [err7];
-                                                                            }
-                                                                            else {
-                                                                                vErrors.push(err7);
-                                                                            }
-                                                                            errors++;
-                                                                        }
-                                                                    }
-                                                                    var valid11 = _errs50 === errors;
-                                                                    if (valid11) {
-                                                                        const err8 = { instancePath: instancePath + "/blocks/" + i3, schemaPath: "#/$defs/block/anyOf/1/not", keyword: "not", params: {}, message: "must NOT be valid" };
-                                                                        if (vErrors === null) {
-                                                                            vErrors = [err8];
-                                                                        }
-                                                                        else {
-                                                                            vErrors.push(err8);
-                                                                        }
-                                                                        errors++;
-                                                                    }
-                                                                    else {
-                                                                        errors = _errs49;
-                                                                        if (vErrors !== null) {
-                                                                            if (_errs49) {
-                                                                                vErrors.length = _errs49;
-                                                                            }
-                                                                            else {
-                                                                                vErrors = null;
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                    if (errors === _errs48) {
-                                                                        if (data19 && typeof data19 == "object" && !Array.isArray(data19)) {
-                                                                            if (data19.kind !== undefined) {
-                                                                                if ("block" !== data19.kind) {
-                                                                                    const err9 = { instancePath: instancePath + "/blocks/" + i3 + "/kind", schemaPath: "#/$defs/block/anyOf/1/properties/kind/const", keyword: "const", params: { allowedValue: "block" }, message: "must be equal to constant" };
-                                                                                    if (vErrors === null) {
-                                                                                        vErrors = [err9];
+                                                                                else {
+                                                                                    const _errs26 = errors;
+                                                                                    for (const key2 in data12) {
+                                                                                        if (!((((((((key2 === "id") || (key2 === "code")) || (key2 === "dependencies")) || (key2 === "fixed")) || (key2 === "functionBlock")) || (key2 === "scopeId")) || (key2 === "normalization")) || (key2 === "sourceLine"))) {
+                                                                                            validate20.errors = [{ instancePath: instancePath + "/lines/" + i1, schemaPath: "#/$defs/codeLine/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key2 }, message: "must NOT have additional properties" }];
+                                                                                            return false;
+                                                                                            break;
+                                                                                        }
                                                                                     }
-                                                                                    else {
-                                                                                        vErrors.push(err9);
-                                                                                    }
-                                                                                    errors++;
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                    var _valid1 = _errs48 === errors;
-                                                                    valid9 = valid9 || _valid1;
-                                                                    if (_valid1) {
-                                                                        if (props0 !== true) {
-                                                                            props0 = props0 || {};
-                                                                            props0.kind = true;
-                                                                        }
-                                                                    }
-                                                                    if (!valid9) {
-                                                                        const err10 = { instancePath: instancePath + "/blocks/" + i3, schemaPath: "#/$defs/block/anyOf", keyword: "anyOf", params: {}, message: "must match a schema in anyOf" };
-                                                                        if (vErrors === null) {
-                                                                            vErrors = [err10];
-                                                                        }
-                                                                        else {
-                                                                            vErrors.push(err10);
-                                                                        }
-                                                                        errors++;
-                                                                        validate20.errors = vErrors;
-                                                                        return false;
-                                                                    }
-                                                                    else {
-                                                                        errors = _errs45;
-                                                                        if (vErrors !== null) {
-                                                                            if (_errs45) {
-                                                                                vErrors.length = _errs45;
-                                                                            }
-                                                                            else {
-                                                                                vErrors = null;
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                    if (errors === _errs43) {
-                                                                        if (data19 && typeof data19 == "object" && !Array.isArray(data19)) {
-                                                                            let missing4;
-                                                                            if ((((((data19.id === undefined) && (missing4 = "id")) || ((data19.kind === undefined) && (missing4 = "kind"))) || ((data19.parentScopeId === undefined) && (missing4 = "parentScopeId"))) || ((data19.openLineId === undefined) && (missing4 = "openLineId"))) || ((data19.closeLineId === undefined) && (missing4 = "closeLineId"))) {
-                                                                                validate20.errors = [{ instancePath: instancePath + "/blocks/" + i3, schemaPath: "#/$defs/block/required", keyword: "required", params: { missingProperty: missing4 }, message: "must have required property '" + missing4 + "'" }];
-                                                                                return false;
-                                                                            }
-                                                                            else {
-                                                                                const _errs52 = errors;
-                                                                                for (const key2 in data19) {
-                                                                                    if (!((((((key2 === "id") || (key2 === "kind")) || (key2 === "functionBlock")) || (key2 === "parentScopeId")) || (key2 === "openLineId")) || (key2 === "closeLineId"))) {
-                                                                                        validate20.errors = [{ instancePath: instancePath + "/blocks/" + i3, schemaPath: "#/$defs/block/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key2 }, message: "must NOT have additional properties" }];
-                                                                                        return false;
-                                                                                        break;
-                                                                                    }
-                                                                                }
-                                                                                if (_errs52 === errors) {
-                                                                                    if (data19.id !== undefined) {
-                                                                                        let data22 = data19.id;
-                                                                                        const _errs53 = errors;
-                                                                                        if (errors === _errs53) {
-                                                                                            if (typeof data22 === "string") {
-                                                                                                if (func2(data22) > 200) {
-                                                                                                    validate20.errors = [{ instancePath: instancePath + "/blocks/" + i3 + "/id", schemaPath: "#/$defs/block/properties/id/maxLength", keyword: "maxLength", params: { limit: 200 }, message: "must NOT have more than 200 characters" }];
-                                                                                                    return false;
-                                                                                                }
-                                                                                                else {
-                                                                                                    if (func2(data22) < 1) {
-                                                                                                        validate20.errors = [{ instancePath: instancePath + "/blocks/" + i3 + "/id", schemaPath: "#/$defs/block/properties/id/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" }];
+                                                                                    if (_errs26 === errors) {
+                                                                                        if (data12.id !== undefined) {
+                                                                                            let data13 = data12.id;
+                                                                                            const _errs27 = errors;
+                                                                                            if (!(((typeof data13 == "number") && (!(data13 % 1) && !isNaN(data13))) && (isFinite(data13)))) {
+                                                                                                validate20.errors = [{ instancePath: instancePath + "/lines/" + i1 + "/id", schemaPath: "#/$defs/codeLine/properties/id/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                return false;
+                                                                                            }
+                                                                                            if (errors === _errs27) {
+                                                                                                if ((typeof data13 == "number") && (isFinite(data13))) {
+                                                                                                    if (data13 > 9007199254740991 || isNaN(data13)) {
+                                                                                                        validate20.errors = [{ instancePath: instancePath + "/lines/" + i1 + "/id", schemaPath: "#/$defs/codeLine/properties/id/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
                                                                                                         return false;
+                                                                                                    }
+                                                                                                    else {
+                                                                                                        if (data13 < 1 || isNaN(data13)) {
+                                                                                                            validate20.errors = [{ instancePath: instancePath + "/lines/" + i1 + "/id", schemaPath: "#/$defs/codeLine/properties/id/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                            return false;
+                                                                                                        }
                                                                                                     }
                                                                                                 }
                                                                                             }
-                                                                                            else {
-                                                                                                validate20.errors = [{ instancePath: instancePath + "/blocks/" + i3 + "/id", schemaPath: "#/$defs/block/properties/id/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                return false;
-                                                                                            }
-                                                                                        }
-                                                                                        var valid13 = _errs53 === errors;
-                                                                                    }
-                                                                                    else {
-                                                                                        var valid13 = true;
-                                                                                    }
-                                                                                    if (valid13) {
-                                                                                        if (data19.kind !== undefined) {
-                                                                                            let data23 = data19.kind;
-                                                                                            const _errs55 = errors;
-                                                                                            if (!((data23 === "function") || (data23 === "block"))) {
-                                                                                                validate20.errors = [{ instancePath: instancePath + "/blocks/" + i3 + "/kind", schemaPath: "#/$defs/block/properties/kind/enum", keyword: "enum", params: { allowedValues: schema33.properties.kind.enum }, message: "must be equal to one of the allowed values" }];
-                                                                                                return false;
-                                                                                            }
-                                                                                            var valid13 = _errs55 === errors;
+                                                                                            var valid5 = _errs27 === errors;
                                                                                         }
                                                                                         else {
-                                                                                            var valid13 = true;
+                                                                                            var valid5 = true;
                                                                                         }
-                                                                                        if (valid13) {
-                                                                                            if (data19.functionBlock !== undefined) {
-                                                                                                let data24 = data19.functionBlock;
-                                                                                                const _errs56 = errors;
-                                                                                                if (!(((typeof data24 == "number") && (!(data24 % 1) && !isNaN(data24))) && (isFinite(data24)))) {
-                                                                                                    validate20.errors = [{ instancePath: instancePath + "/blocks/" + i3 + "/functionBlock", schemaPath: "#/$defs/block/properties/functionBlock/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                    return false;
-                                                                                                }
-                                                                                                if (errors === _errs56) {
-                                                                                                    if ((typeof data24 == "number") && (isFinite(data24))) {
-                                                                                                        if (data24 > 9007199254740991 || isNaN(data24)) {
-                                                                                                            validate20.errors = [{ instancePath: instancePath + "/blocks/" + i3 + "/functionBlock", schemaPath: "#/$defs/block/properties/functionBlock/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                        if (valid5) {
+                                                                                            if (data12.code !== undefined) {
+                                                                                                let data14 = data12.code;
+                                                                                                const _errs29 = errors;
+                                                                                                if (errors === _errs29) {
+                                                                                                    if (typeof data14 === "string") {
+                                                                                                        if (func2(data14) > 2048) {
+                                                                                                            validate20.errors = [{ instancePath: instancePath + "/lines/" + i1 + "/code", schemaPath: "#/$defs/codeLine/properties/code/maxLength", keyword: "maxLength", params: { limit: 2048 }, message: "must NOT have more than 2048 characters" }];
                                                                                                             return false;
                                                                                                         }
                                                                                                         else {
-                                                                                                            if (data24 < 1 || isNaN(data24)) {
-                                                                                                                validate20.errors = [{ instancePath: instancePath + "/blocks/" + i3 + "/functionBlock", schemaPath: "#/$defs/block/properties/functionBlock/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                            if (!pattern5.test(data14)) {
+                                                                                                                validate20.errors = [{ instancePath: instancePath + "/lines/" + i1 + "/code", schemaPath: "#/$defs/codeLine/properties/code/pattern", keyword: "pattern", params: { pattern: "^[^\\r\\n\\u2028\\u2029]*$" }, message: "must match pattern \"" + "^[^\\r\\n\\u2028\\u2029]*$" + "\"" }];
                                                                                                                 return false;
                                                                                                             }
                                                                                                         }
                                                                                                     }
-                                                                                                }
-                                                                                                var valid13 = _errs56 === errors;
-                                                                                            }
-                                                                                            else {
-                                                                                                var valid13 = true;
-                                                                                            }
-                                                                                            if (valid13) {
-                                                                                                if (data19.parentScopeId !== undefined) {
-                                                                                                    let data25 = data19.parentScopeId;
-                                                                                                    const _errs58 = errors;
-                                                                                                    const _errs59 = errors;
-                                                                                                    let valid14 = false;
-                                                                                                    const _errs60 = errors;
-                                                                                                    if (errors === _errs60) {
-                                                                                                        if (typeof data25 === "string") {
-                                                                                                            if (func2(data25) > 200) {
-                                                                                                                const err11 = { instancePath: instancePath + "/blocks/" + i3 + "/parentScopeId", schemaPath: "#/$defs/block/properties/parentScopeId/anyOf/0/maxLength", keyword: "maxLength", params: { limit: 200 }, message: "must NOT have more than 200 characters" };
-                                                                                                                if (vErrors === null) {
-                                                                                                                    vErrors = [err11];
-                                                                                                                }
-                                                                                                                else {
-                                                                                                                    vErrors.push(err11);
-                                                                                                                }
-                                                                                                                errors++;
-                                                                                                            }
-                                                                                                            else {
-                                                                                                                if (func2(data25) < 1) {
-                                                                                                                    const err12 = { instancePath: instancePath + "/blocks/" + i3 + "/parentScopeId", schemaPath: "#/$defs/block/properties/parentScopeId/anyOf/0/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" };
-                                                                                                                    if (vErrors === null) {
-                                                                                                                        vErrors = [err12];
-                                                                                                                    }
-                                                                                                                    else {
-                                                                                                                        vErrors.push(err12);
-                                                                                                                    }
-                                                                                                                    errors++;
-                                                                                                                }
-                                                                                                            }
-                                                                                                        }
-                                                                                                        else {
-                                                                                                            const err13 = { instancePath: instancePath + "/blocks/" + i3 + "/parentScopeId", schemaPath: "#/$defs/block/properties/parentScopeId/anyOf/0/type", keyword: "type", params: { type: "string" }, message: "must be string" };
-                                                                                                            if (vErrors === null) {
-                                                                                                                vErrors = [err13];
-                                                                                                            }
-                                                                                                            else {
-                                                                                                                vErrors.push(err13);
-                                                                                                            }
-                                                                                                            errors++;
-                                                                                                        }
-                                                                                                    }
-                                                                                                    var _valid2 = _errs60 === errors;
-                                                                                                    valid14 = valid14 || _valid2;
-                                                                                                    const _errs62 = errors;
-                                                                                                    if (data25 !== null) {
-                                                                                                        const err14 = { instancePath: instancePath + "/blocks/" + i3 + "/parentScopeId", schemaPath: "#/$defs/block/properties/parentScopeId/anyOf/1/type", keyword: "type", params: { type: "null" }, message: "must be null" };
-                                                                                                        if (vErrors === null) {
-                                                                                                            vErrors = [err14];
-                                                                                                        }
-                                                                                                        else {
-                                                                                                            vErrors.push(err14);
-                                                                                                        }
-                                                                                                        errors++;
-                                                                                                    }
-                                                                                                    var _valid2 = _errs62 === errors;
-                                                                                                    valid14 = valid14 || _valid2;
-                                                                                                    if (!valid14) {
-                                                                                                        const err15 = { instancePath: instancePath + "/blocks/" + i3 + "/parentScopeId", schemaPath: "#/$defs/block/properties/parentScopeId/anyOf", keyword: "anyOf", params: {}, message: "must match a schema in anyOf" };
-                                                                                                        if (vErrors === null) {
-                                                                                                            vErrors = [err15];
-                                                                                                        }
-                                                                                                        else {
-                                                                                                            vErrors.push(err15);
-                                                                                                        }
-                                                                                                        errors++;
-                                                                                                        validate20.errors = vErrors;
+                                                                                                    else {
+                                                                                                        validate20.errors = [{ instancePath: instancePath + "/lines/" + i1 + "/code", schemaPath: "#/$defs/codeLine/properties/code/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
                                                                                                         return false;
                                                                                                     }
-                                                                                                    else {
-                                                                                                        errors = _errs59;
-                                                                                                        if (vErrors !== null) {
-                                                                                                            if (_errs59) {
-                                                                                                                vErrors.length = _errs59;
+                                                                                                }
+                                                                                                var valid5 = _errs29 === errors;
+                                                                                            }
+                                                                                            else {
+                                                                                                var valid5 = true;
+                                                                                            }
+                                                                                            if (valid5) {
+                                                                                                if (data12.dependencies !== undefined) {
+                                                                                                    let data15 = data12.dependencies;
+                                                                                                    const _errs31 = errors;
+                                                                                                    if (errors === _errs31) {
+                                                                                                        if (Array.isArray(data15)) {
+                                                                                                            if (data15.length > 500) {
+                                                                                                                validate20.errors = [{ instancePath: instancePath + "/lines/" + i1 + "/dependencies", schemaPath: "#/$defs/codeLine/properties/dependencies/maxItems", keyword: "maxItems", params: { limit: 500 }, message: "must NOT have more than 500 items" }];
+                                                                                                                return false;
                                                                                                             }
                                                                                                             else {
-                                                                                                                vErrors = null;
-                                                                                                            }
-                                                                                                        }
-                                                                                                    }
-                                                                                                    var valid13 = _errs58 === errors;
-                                                                                                }
-                                                                                                else {
-                                                                                                    var valid13 = true;
-                                                                                                }
-                                                                                                if (valid13) {
-                                                                                                    if (data19.openLineId !== undefined) {
-                                                                                                        let data26 = data19.openLineId;
-                                                                                                        const _errs64 = errors;
-                                                                                                        if (!(((typeof data26 == "number") && (!(data26 % 1) && !isNaN(data26))) && (isFinite(data26)))) {
-                                                                                                            validate20.errors = [{ instancePath: instancePath + "/blocks/" + i3 + "/openLineId", schemaPath: "#/$defs/block/properties/openLineId/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                            return false;
-                                                                                                        }
-                                                                                                        if (errors === _errs64) {
-                                                                                                            if ((typeof data26 == "number") && (isFinite(data26))) {
-                                                                                                                if (data26 > 9007199254740991 || isNaN(data26)) {
-                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/blocks/" + i3 + "/openLineId", schemaPath: "#/$defs/block/properties/openLineId/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
-                                                                                                                    return false;
-                                                                                                                }
-                                                                                                                else {
-                                                                                                                    if (data26 < 1 || isNaN(data26)) {
-                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/blocks/" + i3 + "/openLineId", schemaPath: "#/$defs/block/properties/openLineId/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                var valid6 = true;
+                                                                                                                const len2 = data15.length;
+                                                                                                                for (let i2 = 0; i2 < len2; i2++) {
+                                                                                                                    let data16 = data15[i2];
+                                                                                                                    const _errs33 = errors;
+                                                                                                                    if (!(((typeof data16 == "number") && (!(data16 % 1) && !isNaN(data16))) && (isFinite(data16)))) {
+                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/lines/" + i1 + "/dependencies/" + i2, schemaPath: "#/$defs/codeLine/properties/dependencies/items/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
                                                                                                                         return false;
+                                                                                                                    }
+                                                                                                                    if (errors === _errs33) {
+                                                                                                                        if ((typeof data16 == "number") && (isFinite(data16))) {
+                                                                                                                            if (data16 < 1 || isNaN(data16)) {
+                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/lines/" + i1 + "/dependencies/" + i2, schemaPath: "#/$defs/codeLine/properties/dependencies/items/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                                return false;
+                                                                                                                            }
+                                                                                                                        }
+                                                                                                                    }
+                                                                                                                    var valid6 = _errs33 === errors;
+                                                                                                                    if (!valid6) {
+                                                                                                                        break;
+                                                                                                                    }
+                                                                                                                }
+                                                                                                                if (valid6) {
+                                                                                                                    let i3 = data15.length;
+                                                                                                                    let j0;
+                                                                                                                    if (i3 > 1) {
+                                                                                                                        const indices0 = {};
+                                                                                                                        for (; i3--;) {
+                                                                                                                            let item0 = data15[i3];
+                                                                                                                            if (!(((typeof item0 == "number") && (!(item0 % 1) && !isNaN(item0))) && (isFinite(item0)))) {
+                                                                                                                                continue;
+                                                                                                                            }
+                                                                                                                            if (typeof indices0[item0] == "number") {
+                                                                                                                                j0 = indices0[item0];
+                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/lines/" + i1 + "/dependencies", schemaPath: "#/$defs/codeLine/properties/dependencies/uniqueItems", keyword: "uniqueItems", params: { i: i3, j: j0 }, message: "must NOT have duplicate items (items ## " + j0 + " and " + i3 + " are identical)" }];
+                                                                                                                                return false;
+                                                                                                                                break;
+                                                                                                                            }
+                                                                                                                            indices0[item0] = i3;
+                                                                                                                        }
                                                                                                                     }
                                                                                                                 }
                                                                                                             }
                                                                                                         }
-                                                                                                        var valid13 = _errs64 === errors;
+                                                                                                        else {
+                                                                                                            validate20.errors = [{ instancePath: instancePath + "/lines/" + i1 + "/dependencies", schemaPath: "#/$defs/codeLine/properties/dependencies/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                                                                                            return false;
+                                                                                                        }
+                                                                                                    }
+                                                                                                    var valid5 = _errs31 === errors;
+                                                                                                }
+                                                                                                else {
+                                                                                                    var valid5 = true;
+                                                                                                }
+                                                                                                if (valid5) {
+                                                                                                    if (data12.fixed !== undefined) {
+                                                                                                        const _errs35 = errors;
+                                                                                                        if (typeof data12.fixed !== "boolean") {
+                                                                                                            validate20.errors = [{ instancePath: instancePath + "/lines/" + i1 + "/fixed", schemaPath: "#/$defs/codeLine/properties/fixed/type", keyword: "type", params: { type: "boolean" }, message: "must be boolean" }];
+                                                                                                            return false;
+                                                                                                        }
+                                                                                                        var valid5 = _errs35 === errors;
                                                                                                     }
                                                                                                     else {
-                                                                                                        var valid13 = true;
+                                                                                                        var valid5 = true;
                                                                                                     }
-                                                                                                    if (valid13) {
-                                                                                                        if (data19.closeLineId !== undefined) {
-                                                                                                            let data27 = data19.closeLineId;
-                                                                                                            const _errs66 = errors;
-                                                                                                            if (!(((typeof data27 == "number") && (!(data27 % 1) && !isNaN(data27))) && (isFinite(data27)))) {
-                                                                                                                validate20.errors = [{ instancePath: instancePath + "/blocks/" + i3 + "/closeLineId", schemaPath: "#/$defs/block/properties/closeLineId/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                    if (valid5) {
+                                                                                                        if (data12.functionBlock !== undefined) {
+                                                                                                            let data18 = data12.functionBlock;
+                                                                                                            const _errs37 = errors;
+                                                                                                            if (!(((typeof data18 == "number") && (!(data18 % 1) && !isNaN(data18))) && (isFinite(data18)))) {
+                                                                                                                validate20.errors = [{ instancePath: instancePath + "/lines/" + i1 + "/functionBlock", schemaPath: "#/$defs/codeLine/properties/functionBlock/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
                                                                                                                 return false;
                                                                                                             }
-                                                                                                            if (errors === _errs66) {
-                                                                                                                if ((typeof data27 == "number") && (isFinite(data27))) {
-                                                                                                                    if (data27 > 9007199254740991 || isNaN(data27)) {
-                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/blocks/" + i3 + "/closeLineId", schemaPath: "#/$defs/block/properties/closeLineId/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                            if (errors === _errs37) {
+                                                                                                                if ((typeof data18 == "number") && (isFinite(data18))) {
+                                                                                                                    if (data18 > 9007199254740991 || isNaN(data18)) {
+                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/lines/" + i1 + "/functionBlock", schemaPath: "#/$defs/codeLine/properties/functionBlock/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
                                                                                                                         return false;
                                                                                                                     }
                                                                                                                     else {
-                                                                                                                        if (data27 < 1 || isNaN(data27)) {
-                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/blocks/" + i3 + "/closeLineId", schemaPath: "#/$defs/block/properties/closeLineId/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                        if (data18 < 0 || isNaN(data18)) {
+                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/lines/" + i1 + "/functionBlock", schemaPath: "#/$defs/codeLine/properties/functionBlock/minimum", keyword: "minimum", params: { comparison: ">=", limit: 0 }, message: "must be >= 0" }];
                                                                                                                             return false;
                                                                                                                         }
                                                                                                                     }
                                                                                                                 }
                                                                                                             }
-                                                                                                            var valid13 = _errs66 === errors;
+                                                                                                            var valid5 = _errs37 === errors;
                                                                                                         }
                                                                                                         else {
-                                                                                                            var valid13 = true;
+                                                                                                            var valid5 = true;
                                                                                                         }
-                                                                                                    }
-                                                                                                }
-                                                                                            }
-                                                                                        }
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                        else {
-                                                                            validate20.errors = [{ instancePath: instancePath + "/blocks/" + i3, schemaPath: "#/$defs/block/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
-                                                                            return false;
-                                                                        }
-                                                                    }
-                                                                    var valid7 = _errs42 === errors;
-                                                                    if (!valid7) {
-                                                                        break;
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                        else {
-                                                            validate20.errors = [{ instancePath: instancePath + "/blocks", schemaPath: "#/properties/blocks/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
-                                                            return false;
-                                                        }
-                                                    }
-                                                    var valid0 = _errs40 === errors;
-                                                }
-                                                else {
-                                                    var valid0 = true;
-                                                }
-                                                if (valid0) {
-                                                    if (data.edges !== undefined) {
-                                                        let data28 = data.edges;
-                                                        const _errs68 = errors;
-                                                        if (errors === _errs68) {
-                                                            if (Array.isArray(data28)) {
-                                                                if (data28.length > 5000) {
-                                                                    validate20.errors = [{ instancePath: instancePath + "/edges", schemaPath: "#/properties/edges/maxItems", keyword: "maxItems", params: { limit: 5000 }, message: "must NOT have more than 5000 items" }];
-                                                                    return false;
-                                                                }
-                                                                else {
-                                                                    var valid15 = true;
-                                                                    const len3 = data28.length;
-                                                                    for (let i4 = 0; i4 < len3; i4++) {
-                                                                        let data29 = data28[i4];
-                                                                        const _errs70 = errors;
-                                                                        const _errs71 = errors;
-                                                                        if (errors === _errs71) {
-                                                                            if (data29 && typeof data29 == "object" && !Array.isArray(data29)) {
-                                                                                let missing5;
-                                                                                if (((data29.before === undefined) && (missing5 = "before")) || ((data29.after === undefined) && (missing5 = "after"))) {
-                                                                                    validate20.errors = [{ instancePath: instancePath + "/edges/" + i4, schemaPath: "#/$defs/edge/required", keyword: "required", params: { missingProperty: missing5 }, message: "must have required property '" + missing5 + "'" }];
-                                                                                    return false;
-                                                                                }
-                                                                                else {
-                                                                                    const _errs73 = errors;
-                                                                                    for (const key3 in data29) {
-                                                                                        if (!((key3 === "before") || (key3 === "after"))) {
-                                                                                            validate20.errors = [{ instancePath: instancePath + "/edges/" + i4, schemaPath: "#/$defs/edge/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key3 }, message: "must NOT have additional properties" }];
-                                                                                            return false;
-                                                                                            break;
-                                                                                        }
-                                                                                    }
-                                                                                    if (_errs73 === errors) {
-                                                                                        if (data29.before !== undefined) {
-                                                                                            let data30 = data29.before;
-                                                                                            const _errs74 = errors;
-                                                                                            if (!(((typeof data30 == "number") && (!(data30 % 1) && !isNaN(data30))) && (isFinite(data30)))) {
-                                                                                                validate20.errors = [{ instancePath: instancePath + "/edges/" + i4 + "/before", schemaPath: "#/$defs/edge/properties/before/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                return false;
-                                                                                            }
-                                                                                            if (errors === _errs74) {
-                                                                                                if ((typeof data30 == "number") && (isFinite(data30))) {
-                                                                                                    if (data30 > 9007199254740991 || isNaN(data30)) {
-                                                                                                        validate20.errors = [{ instancePath: instancePath + "/edges/" + i4 + "/before", schemaPath: "#/$defs/edge/properties/before/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
-                                                                                                        return false;
-                                                                                                    }
-                                                                                                    else {
-                                                                                                        if (data30 < 1 || isNaN(data30)) {
-                                                                                                            validate20.errors = [{ instancePath: instancePath + "/edges/" + i4 + "/before", schemaPath: "#/$defs/edge/properties/before/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
-                                                                                                            return false;
-                                                                                                        }
-                                                                                                    }
-                                                                                                }
-                                                                                            }
-                                                                                            var valid17 = _errs74 === errors;
-                                                                                        }
-                                                                                        else {
-                                                                                            var valid17 = true;
-                                                                                        }
-                                                                                        if (valid17) {
-                                                                                            if (data29.after !== undefined) {
-                                                                                                let data31 = data29.after;
-                                                                                                const _errs76 = errors;
-                                                                                                if (!(((typeof data31 == "number") && (!(data31 % 1) && !isNaN(data31))) && (isFinite(data31)))) {
-                                                                                                    validate20.errors = [{ instancePath: instancePath + "/edges/" + i4 + "/after", schemaPath: "#/$defs/edge/properties/after/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                    return false;
-                                                                                                }
-                                                                                                if (errors === _errs76) {
-                                                                                                    if ((typeof data31 == "number") && (isFinite(data31))) {
-                                                                                                        if (data31 > 9007199254740991 || isNaN(data31)) {
-                                                                                                            validate20.errors = [{ instancePath: instancePath + "/edges/" + i4 + "/after", schemaPath: "#/$defs/edge/properties/after/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
-                                                                                                            return false;
-                                                                                                        }
-                                                                                                        else {
-                                                                                                            if (data31 < 1 || isNaN(data31)) {
-                                                                                                                validate20.errors = [{ instancePath: instancePath + "/edges/" + i4 + "/after", schemaPath: "#/$defs/edge/properties/after/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
-                                                                                                                return false;
+                                                                                                        if (valid5) {
+                                                                                                            if (data12.scopeId !== undefined) {
+                                                                                                                let data19 = data12.scopeId;
+                                                                                                                const _errs39 = errors;
+                                                                                                                const _errs40 = errors;
+                                                                                                                let valid8 = false;
+                                                                                                                const _errs41 = errors;
+                                                                                                                if (errors === _errs41) {
+                                                                                                                    if (typeof data19 === "string") {
+                                                                                                                        if (func2(data19) > 200) {
+                                                                                                                            const err0 = { instancePath: instancePath + "/lines/" + i1 + "/scopeId", schemaPath: "#/$defs/codeLine/properties/scopeId/anyOf/0/maxLength", keyword: "maxLength", params: { limit: 200 }, message: "must NOT have more than 200 characters" };
+                                                                                                                            if (vErrors === null) {
+                                                                                                                                vErrors = [err0];
+                                                                                                                            }
+                                                                                                                            else {
+                                                                                                                                vErrors.push(err0);
+                                                                                                                            }
+                                                                                                                            errors++;
+                                                                                                                        }
+                                                                                                                        else {
+                                                                                                                            if (func2(data19) < 1) {
+                                                                                                                                const err1 = { instancePath: instancePath + "/lines/" + i1 + "/scopeId", schemaPath: "#/$defs/codeLine/properties/scopeId/anyOf/0/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" };
+                                                                                                                                if (vErrors === null) {
+                                                                                                                                    vErrors = [err1];
+                                                                                                                                }
+                                                                                                                                else {
+                                                                                                                                    vErrors.push(err1);
+                                                                                                                                }
+                                                                                                                                errors++;
+                                                                                                                            }
+                                                                                                                        }
+                                                                                                                    }
+                                                                                                                    else {
+                                                                                                                        const err2 = { instancePath: instancePath + "/lines/" + i1 + "/scopeId", schemaPath: "#/$defs/codeLine/properties/scopeId/anyOf/0/type", keyword: "type", params: { type: "string" }, message: "must be string" };
+                                                                                                                        if (vErrors === null) {
+                                                                                                                            vErrors = [err2];
+                                                                                                                        }
+                                                                                                                        else {
+                                                                                                                            vErrors.push(err2);
+                                                                                                                        }
+                                                                                                                        errors++;
+                                                                                                                    }
+                                                                                                                }
+                                                                                                                var _valid0 = _errs41 === errors;
+                                                                                                                valid8 = valid8 || _valid0;
+                                                                                                                const _errs43 = errors;
+                                                                                                                if (data19 !== null) {
+                                                                                                                    const err3 = { instancePath: instancePath + "/lines/" + i1 + "/scopeId", schemaPath: "#/$defs/codeLine/properties/scopeId/anyOf/1/type", keyword: "type", params: { type: "null" }, message: "must be null" };
+                                                                                                                    if (vErrors === null) {
+                                                                                                                        vErrors = [err3];
+                                                                                                                    }
+                                                                                                                    else {
+                                                                                                                        vErrors.push(err3);
+                                                                                                                    }
+                                                                                                                    errors++;
+                                                                                                                }
+                                                                                                                var _valid0 = _errs43 === errors;
+                                                                                                                valid8 = valid8 || _valid0;
+                                                                                                                if (!valid8) {
+                                                                                                                    const err4 = { instancePath: instancePath + "/lines/" + i1 + "/scopeId", schemaPath: "#/$defs/codeLine/properties/scopeId/anyOf", keyword: "anyOf", params: {}, message: "must match a schema in anyOf" };
+                                                                                                                    if (vErrors === null) {
+                                                                                                                        vErrors = [err4];
+                                                                                                                    }
+                                                                                                                    else {
+                                                                                                                        vErrors.push(err4);
+                                                                                                                    }
+                                                                                                                    errors++;
+                                                                                                                    validate20.errors = vErrors;
+                                                                                                                    return false;
+                                                                                                                }
+                                                                                                                else {
+                                                                                                                    errors = _errs40;
+                                                                                                                    if (vErrors !== null) {
+                                                                                                                        if (_errs40) {
+                                                                                                                            vErrors.length = _errs40;
+                                                                                                                        }
+                                                                                                                        else {
+                                                                                                                            vErrors = null;
+                                                                                                                        }
+                                                                                                                    }
+                                                                                                                }
+                                                                                                                var valid5 = _errs39 === errors;
+                                                                                                            }
+                                                                                                            else {
+                                                                                                                var valid5 = true;
+                                                                                                            }
+                                                                                                            if (valid5) {
+                                                                                                                if (data12.normalization !== undefined) {
+                                                                                                                    let data20 = data12.normalization;
+                                                                                                                    const _errs45 = errors;
+                                                                                                                    if (!((data20 === "indent") || (data20 === "exact"))) {
+                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/lines/" + i1 + "/normalization", schemaPath: "#/$defs/codeLine/properties/normalization/enum", keyword: "enum", params: { allowedValues: schema32.properties.normalization.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                                        return false;
+                                                                                                                    }
+                                                                                                                    var valid5 = _errs45 === errors;
+                                                                                                                }
+                                                                                                                else {
+                                                                                                                    var valid5 = true;
+                                                                                                                }
+                                                                                                                if (valid5) {
+                                                                                                                    if (data12.sourceLine !== undefined) {
+                                                                                                                        let data21 = data12.sourceLine;
+                                                                                                                        const _errs46 = errors;
+                                                                                                                        if (!(((typeof data21 == "number") && (!(data21 % 1) && !isNaN(data21))) && (isFinite(data21)))) {
+                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/lines/" + i1 + "/sourceLine", schemaPath: "#/$defs/codeLine/properties/sourceLine/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                                            return false;
+                                                                                                                        }
+                                                                                                                        if (errors === _errs46) {
+                                                                                                                            if ((typeof data21 == "number") && (isFinite(data21))) {
+                                                                                                                                if (data21 > 50000 || isNaN(data21)) {
+                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/lines/" + i1 + "/sourceLine", schemaPath: "#/$defs/codeLine/properties/sourceLine/maximum", keyword: "maximum", params: { comparison: "<=", limit: 50000 }, message: "must be <= 50000" }];
+                                                                                                                                    return false;
+                                                                                                                                }
+                                                                                                                                else {
+                                                                                                                                    if (data21 < 1 || isNaN(data21)) {
+                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/lines/" + i1 + "/sourceLine", schemaPath: "#/$defs/codeLine/properties/sourceLine/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                                        return false;
+                                                                                                                                    }
+                                                                                                                                }
+                                                                                                                            }
+                                                                                                                        }
+                                                                                                                        var valid5 = _errs46 === errors;
+                                                                                                                    }
+                                                                                                                    else {
+                                                                                                                        var valid5 = true;
+                                                                                                                    }
+                                                                                                                }
                                                                                                             }
                                                                                                         }
                                                                                                     }
                                                                                                 }
-                                                                                                var valid17 = _errs76 === errors;
-                                                                                            }
-                                                                                            else {
-                                                                                                var valid17 = true;
                                                                                             }
                                                                                         }
                                                                                     }
                                                                                 }
                                                                             }
                                                                             else {
-                                                                                validate20.errors = [{ instancePath: instancePath + "/edges/" + i4, schemaPath: "#/$defs/edge/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                validate20.errors = [{ instancePath: instancePath + "/lines/" + i1, schemaPath: "#/$defs/codeLine/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
                                                                                 return false;
                                                                             }
                                                                         }
-                                                                        var valid15 = _errs70 === errors;
-                                                                        if (!valid15) {
+                                                                        var valid3 = _errs23 === errors;
+                                                                        if (!valid3) {
+                                                                            break;
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                        else {
+                                                            validate20.errors = [{ instancePath: instancePath + "/lines", schemaPath: "#/properties/lines/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                                            return false;
+                                                        }
+                                                    }
+                                                    var valid0 = _errs21 === errors;
+                                                }
+                                                else {
+                                                    var valid0 = true;
+                                                }
+                                                if (valid0) {
+                                                    if (data.blocks !== undefined) {
+                                                        let data22 = data.blocks;
+                                                        const _errs48 = errors;
+                                                        if (errors === _errs48) {
+                                                            if (Array.isArray(data22)) {
+                                                                if (data22.length > 250) {
+                                                                    validate20.errors = [{ instancePath: instancePath + "/blocks", schemaPath: "#/properties/blocks/maxItems", keyword: "maxItems", params: { limit: 250 }, message: "must NOT have more than 250 items" }];
+                                                                    return false;
+                                                                }
+                                                                else {
+                                                                    var valid9 = true;
+                                                                    const len3 = data22.length;
+                                                                    for (let i4 = 0; i4 < len3; i4++) {
+                                                                        let data23 = data22[i4];
+                                                                        const _errs50 = errors;
+                                                                        const _errs51 = errors;
+                                                                        const _errs53 = errors;
+                                                                        let valid11 = false;
+                                                                        const _errs54 = errors;
+                                                                        if (data23 && typeof data23 == "object" && !Array.isArray(data23)) {
+                                                                            let missing3;
+                                                                            if ((data23.functionBlock === undefined) && (missing3 = "functionBlock")) {
+                                                                                const err5 = { instancePath: instancePath + "/blocks/" + i4, schemaPath: "#/$defs/block/anyOf/0/required", keyword: "required", params: { missingProperty: missing3 }, message: "must have required property '" + missing3 + "'" };
+                                                                                if (vErrors === null) {
+                                                                                    vErrors = [err5];
+                                                                                }
+                                                                                else {
+                                                                                    vErrors.push(err5);
+                                                                                }
+                                                                                errors++;
+                                                                            }
+                                                                            else {
+                                                                                if (data23.kind !== undefined) {
+                                                                                    if ("function" !== data23.kind) {
+                                                                                        const err6 = { instancePath: instancePath + "/blocks/" + i4 + "/kind", schemaPath: "#/$defs/block/anyOf/0/properties/kind/const", keyword: "const", params: { allowedValue: "function" }, message: "must be equal to constant" };
+                                                                                        if (vErrors === null) {
+                                                                                            vErrors = [err6];
+                                                                                        }
+                                                                                        else {
+                                                                                            vErrors.push(err6);
+                                                                                        }
+                                                                                        errors++;
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                        var _valid1 = _errs54 === errors;
+                                                                        valid11 = valid11 || _valid1;
+                                                                        if (_valid1) {
+                                                                            var props0 = {};
+                                                                            props0.kind = true;
+                                                                            props0.functionBlock = true;
+                                                                        }
+                                                                        const _errs56 = errors;
+                                                                        const _errs57 = errors;
+                                                                        const _errs58 = errors;
+                                                                        if (data23 && typeof data23 == "object" && !Array.isArray(data23)) {
+                                                                            let missing4;
+                                                                            if ((data23.functionBlock === undefined) && (missing4 = "functionBlock")) {
+                                                                                const err7 = {};
+                                                                                if (vErrors === null) {
+                                                                                    vErrors = [err7];
+                                                                                }
+                                                                                else {
+                                                                                    vErrors.push(err7);
+                                                                                }
+                                                                                errors++;
+                                                                            }
+                                                                        }
+                                                                        var valid13 = _errs58 === errors;
+                                                                        if (valid13) {
+                                                                            const err8 = { instancePath: instancePath + "/blocks/" + i4, schemaPath: "#/$defs/block/anyOf/1/not", keyword: "not", params: {}, message: "must NOT be valid" };
+                                                                            if (vErrors === null) {
+                                                                                vErrors = [err8];
+                                                                            }
+                                                                            else {
+                                                                                vErrors.push(err8);
+                                                                            }
+                                                                            errors++;
+                                                                        }
+                                                                        else {
+                                                                            errors = _errs57;
+                                                                            if (vErrors !== null) {
+                                                                                if (_errs57) {
+                                                                                    vErrors.length = _errs57;
+                                                                                }
+                                                                                else {
+                                                                                    vErrors = null;
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                        if (errors === _errs56) {
+                                                                            if (data23 && typeof data23 == "object" && !Array.isArray(data23)) {
+                                                                                if (data23.kind !== undefined) {
+                                                                                    if ("block" !== data23.kind) {
+                                                                                        const err9 = { instancePath: instancePath + "/blocks/" + i4 + "/kind", schemaPath: "#/$defs/block/anyOf/1/properties/kind/const", keyword: "const", params: { allowedValue: "block" }, message: "must be equal to constant" };
+                                                                                        if (vErrors === null) {
+                                                                                            vErrors = [err9];
+                                                                                        }
+                                                                                        else {
+                                                                                            vErrors.push(err9);
+                                                                                        }
+                                                                                        errors++;
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                        var _valid1 = _errs56 === errors;
+                                                                        valid11 = valid11 || _valid1;
+                                                                        if (_valid1) {
+                                                                            if (props0 !== true) {
+                                                                                props0 = props0 || {};
+                                                                                props0.kind = true;
+                                                                            }
+                                                                        }
+                                                                        if (!valid11) {
+                                                                            const err10 = { instancePath: instancePath + "/blocks/" + i4, schemaPath: "#/$defs/block/anyOf", keyword: "anyOf", params: {}, message: "must match a schema in anyOf" };
+                                                                            if (vErrors === null) {
+                                                                                vErrors = [err10];
+                                                                            }
+                                                                            else {
+                                                                                vErrors.push(err10);
+                                                                            }
+                                                                            errors++;
+                                                                            validate20.errors = vErrors;
+                                                                            return false;
+                                                                        }
+                                                                        else {
+                                                                            errors = _errs53;
+                                                                            if (vErrors !== null) {
+                                                                                if (_errs53) {
+                                                                                    vErrors.length = _errs53;
+                                                                                }
+                                                                                else {
+                                                                                    vErrors = null;
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                        if (errors === _errs51) {
+                                                                            if (data23 && typeof data23 == "object" && !Array.isArray(data23)) {
+                                                                                let missing5;
+                                                                                if ((((((data23.id === undefined) && (missing5 = "id")) || ((data23.kind === undefined) && (missing5 = "kind"))) || ((data23.parentScopeId === undefined) && (missing5 = "parentScopeId"))) || ((data23.openLineId === undefined) && (missing5 = "openLineId"))) || ((data23.closeLineId === undefined) && (missing5 = "closeLineId"))) {
+                                                                                    validate20.errors = [{ instancePath: instancePath + "/blocks/" + i4, schemaPath: "#/$defs/block/required", keyword: "required", params: { missingProperty: missing5 }, message: "must have required property '" + missing5 + "'" }];
+                                                                                    return false;
+                                                                                }
+                                                                                else {
+                                                                                    const _errs60 = errors;
+                                                                                    for (const key3 in data23) {
+                                                                                        if (!((((((key3 === "id") || (key3 === "kind")) || (key3 === "functionBlock")) || (key3 === "parentScopeId")) || (key3 === "openLineId")) || (key3 === "closeLineId"))) {
+                                                                                            validate20.errors = [{ instancePath: instancePath + "/blocks/" + i4, schemaPath: "#/$defs/block/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key3 }, message: "must NOT have additional properties" }];
+                                                                                            return false;
+                                                                                            break;
+                                                                                        }
+                                                                                    }
+                                                                                    if (_errs60 === errors) {
+                                                                                        if (data23.id !== undefined) {
+                                                                                            let data26 = data23.id;
+                                                                                            const _errs61 = errors;
+                                                                                            if (errors === _errs61) {
+                                                                                                if (typeof data26 === "string") {
+                                                                                                    if (func2(data26) > 200) {
+                                                                                                        validate20.errors = [{ instancePath: instancePath + "/blocks/" + i4 + "/id", schemaPath: "#/$defs/block/properties/id/maxLength", keyword: "maxLength", params: { limit: 200 }, message: "must NOT have more than 200 characters" }];
+                                                                                                        return false;
+                                                                                                    }
+                                                                                                    else {
+                                                                                                        if (func2(data26) < 1) {
+                                                                                                            validate20.errors = [{ instancePath: instancePath + "/blocks/" + i4 + "/id", schemaPath: "#/$defs/block/properties/id/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" }];
+                                                                                                            return false;
+                                                                                                        }
+                                                                                                    }
+                                                                                                }
+                                                                                                else {
+                                                                                                    validate20.errors = [{ instancePath: instancePath + "/blocks/" + i4 + "/id", schemaPath: "#/$defs/block/properties/id/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                    return false;
+                                                                                                }
+                                                                                            }
+                                                                                            var valid15 = _errs61 === errors;
+                                                                                        }
+                                                                                        else {
+                                                                                            var valid15 = true;
+                                                                                        }
+                                                                                        if (valid15) {
+                                                                                            if (data23.kind !== undefined) {
+                                                                                                let data27 = data23.kind;
+                                                                                                const _errs63 = errors;
+                                                                                                if (!((data27 === "function") || (data27 === "block"))) {
+                                                                                                    validate20.errors = [{ instancePath: instancePath + "/blocks/" + i4 + "/kind", schemaPath: "#/$defs/block/properties/kind/enum", keyword: "enum", params: { allowedValues: schema33.properties.kind.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                    return false;
+                                                                                                }
+                                                                                                var valid15 = _errs63 === errors;
+                                                                                            }
+                                                                                            else {
+                                                                                                var valid15 = true;
+                                                                                            }
+                                                                                            if (valid15) {
+                                                                                                if (data23.functionBlock !== undefined) {
+                                                                                                    let data28 = data23.functionBlock;
+                                                                                                    const _errs64 = errors;
+                                                                                                    if (!(((typeof data28 == "number") && (!(data28 % 1) && !isNaN(data28))) && (isFinite(data28)))) {
+                                                                                                        validate20.errors = [{ instancePath: instancePath + "/blocks/" + i4 + "/functionBlock", schemaPath: "#/$defs/block/properties/functionBlock/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                        return false;
+                                                                                                    }
+                                                                                                    if (errors === _errs64) {
+                                                                                                        if ((typeof data28 == "number") && (isFinite(data28))) {
+                                                                                                            if (data28 > 9007199254740991 || isNaN(data28)) {
+                                                                                                                validate20.errors = [{ instancePath: instancePath + "/blocks/" + i4 + "/functionBlock", schemaPath: "#/$defs/block/properties/functionBlock/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                                return false;
+                                                                                                            }
+                                                                                                            else {
+                                                                                                                if (data28 < 1 || isNaN(data28)) {
+                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/blocks/" + i4 + "/functionBlock", schemaPath: "#/$defs/block/properties/functionBlock/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                    return false;
+                                                                                                                }
+                                                                                                            }
+                                                                                                        }
+                                                                                                    }
+                                                                                                    var valid15 = _errs64 === errors;
+                                                                                                }
+                                                                                                else {
+                                                                                                    var valid15 = true;
+                                                                                                }
+                                                                                                if (valid15) {
+                                                                                                    if (data23.parentScopeId !== undefined) {
+                                                                                                        let data29 = data23.parentScopeId;
+                                                                                                        const _errs66 = errors;
+                                                                                                        const _errs67 = errors;
+                                                                                                        let valid16 = false;
+                                                                                                        const _errs68 = errors;
+                                                                                                        if (errors === _errs68) {
+                                                                                                            if (typeof data29 === "string") {
+                                                                                                                if (func2(data29) > 200) {
+                                                                                                                    const err11 = { instancePath: instancePath + "/blocks/" + i4 + "/parentScopeId", schemaPath: "#/$defs/block/properties/parentScopeId/anyOf/0/maxLength", keyword: "maxLength", params: { limit: 200 }, message: "must NOT have more than 200 characters" };
+                                                                                                                    if (vErrors === null) {
+                                                                                                                        vErrors = [err11];
+                                                                                                                    }
+                                                                                                                    else {
+                                                                                                                        vErrors.push(err11);
+                                                                                                                    }
+                                                                                                                    errors++;
+                                                                                                                }
+                                                                                                                else {
+                                                                                                                    if (func2(data29) < 1) {
+                                                                                                                        const err12 = { instancePath: instancePath + "/blocks/" + i4 + "/parentScopeId", schemaPath: "#/$defs/block/properties/parentScopeId/anyOf/0/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" };
+                                                                                                                        if (vErrors === null) {
+                                                                                                                            vErrors = [err12];
+                                                                                                                        }
+                                                                                                                        else {
+                                                                                                                            vErrors.push(err12);
+                                                                                                                        }
+                                                                                                                        errors++;
+                                                                                                                    }
+                                                                                                                }
+                                                                                                            }
+                                                                                                            else {
+                                                                                                                const err13 = { instancePath: instancePath + "/blocks/" + i4 + "/parentScopeId", schemaPath: "#/$defs/block/properties/parentScopeId/anyOf/0/type", keyword: "type", params: { type: "string" }, message: "must be string" };
+                                                                                                                if (vErrors === null) {
+                                                                                                                    vErrors = [err13];
+                                                                                                                }
+                                                                                                                else {
+                                                                                                                    vErrors.push(err13);
+                                                                                                                }
+                                                                                                                errors++;
+                                                                                                            }
+                                                                                                        }
+                                                                                                        var _valid2 = _errs68 === errors;
+                                                                                                        valid16 = valid16 || _valid2;
+                                                                                                        const _errs70 = errors;
+                                                                                                        if (data29 !== null) {
+                                                                                                            const err14 = { instancePath: instancePath + "/blocks/" + i4 + "/parentScopeId", schemaPath: "#/$defs/block/properties/parentScopeId/anyOf/1/type", keyword: "type", params: { type: "null" }, message: "must be null" };
+                                                                                                            if (vErrors === null) {
+                                                                                                                vErrors = [err14];
+                                                                                                            }
+                                                                                                            else {
+                                                                                                                vErrors.push(err14);
+                                                                                                            }
+                                                                                                            errors++;
+                                                                                                        }
+                                                                                                        var _valid2 = _errs70 === errors;
+                                                                                                        valid16 = valid16 || _valid2;
+                                                                                                        if (!valid16) {
+                                                                                                            const err15 = { instancePath: instancePath + "/blocks/" + i4 + "/parentScopeId", schemaPath: "#/$defs/block/properties/parentScopeId/anyOf", keyword: "anyOf", params: {}, message: "must match a schema in anyOf" };
+                                                                                                            if (vErrors === null) {
+                                                                                                                vErrors = [err15];
+                                                                                                            }
+                                                                                                            else {
+                                                                                                                vErrors.push(err15);
+                                                                                                            }
+                                                                                                            errors++;
+                                                                                                            validate20.errors = vErrors;
+                                                                                                            return false;
+                                                                                                        }
+                                                                                                        else {
+                                                                                                            errors = _errs67;
+                                                                                                            if (vErrors !== null) {
+                                                                                                                if (_errs67) {
+                                                                                                                    vErrors.length = _errs67;
+                                                                                                                }
+                                                                                                                else {
+                                                                                                                    vErrors = null;
+                                                                                                                }
+                                                                                                            }
+                                                                                                        }
+                                                                                                        var valid15 = _errs66 === errors;
+                                                                                                    }
+                                                                                                    else {
+                                                                                                        var valid15 = true;
+                                                                                                    }
+                                                                                                    if (valid15) {
+                                                                                                        if (data23.openLineId !== undefined) {
+                                                                                                            let data30 = data23.openLineId;
+                                                                                                            const _errs72 = errors;
+                                                                                                            if (!(((typeof data30 == "number") && (!(data30 % 1) && !isNaN(data30))) && (isFinite(data30)))) {
+                                                                                                                validate20.errors = [{ instancePath: instancePath + "/blocks/" + i4 + "/openLineId", schemaPath: "#/$defs/block/properties/openLineId/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                                return false;
+                                                                                                            }
+                                                                                                            if (errors === _errs72) {
+                                                                                                                if ((typeof data30 == "number") && (isFinite(data30))) {
+                                                                                                                    if (data30 > 9007199254740991 || isNaN(data30)) {
+                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/blocks/" + i4 + "/openLineId", schemaPath: "#/$defs/block/properties/openLineId/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                                        return false;
+                                                                                                                    }
+                                                                                                                    else {
+                                                                                                                        if (data30 < 1 || isNaN(data30)) {
+                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/blocks/" + i4 + "/openLineId", schemaPath: "#/$defs/block/properties/openLineId/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                            return false;
+                                                                                                                        }
+                                                                                                                    }
+                                                                                                                }
+                                                                                                            }
+                                                                                                            var valid15 = _errs72 === errors;
+                                                                                                        }
+                                                                                                        else {
+                                                                                                            var valid15 = true;
+                                                                                                        }
+                                                                                                        if (valid15) {
+                                                                                                            if (data23.closeLineId !== undefined) {
+                                                                                                                let data31 = data23.closeLineId;
+                                                                                                                const _errs74 = errors;
+                                                                                                                if (!(((typeof data31 == "number") && (!(data31 % 1) && !isNaN(data31))) && (isFinite(data31)))) {
+                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/blocks/" + i4 + "/closeLineId", schemaPath: "#/$defs/block/properties/closeLineId/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                                    return false;
+                                                                                                                }
+                                                                                                                if (errors === _errs74) {
+                                                                                                                    if ((typeof data31 == "number") && (isFinite(data31))) {
+                                                                                                                        if (data31 > 9007199254740991 || isNaN(data31)) {
+                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/blocks/" + i4 + "/closeLineId", schemaPath: "#/$defs/block/properties/closeLineId/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                                            return false;
+                                                                                                                        }
+                                                                                                                        else {
+                                                                                                                            if (data31 < 1 || isNaN(data31)) {
+                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/blocks/" + i4 + "/closeLineId", schemaPath: "#/$defs/block/properties/closeLineId/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                                return false;
+                                                                                                                            }
+                                                                                                                        }
+                                                                                                                    }
+                                                                                                                }
+                                                                                                                var valid15 = _errs74 === errors;
+                                                                                                            }
+                                                                                                            else {
+                                                                                                                var valid15 = true;
+                                                                                                            }
+                                                                                                        }
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                            else {
+                                                                                validate20.errors = [{ instancePath: instancePath + "/blocks/" + i4, schemaPath: "#/$defs/block/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                return false;
+                                                                            }
+                                                                        }
+                                                                        var valid9 = _errs50 === errors;
+                                                                        if (!valid9) {
                                                                             break;
                                                                         }
                                                                     }
                                                                 }
                                                             }
                                                             else {
-                                                                validate20.errors = [{ instancePath: instancePath + "/edges", schemaPath: "#/properties/edges/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                                                validate20.errors = [{ instancePath: instancePath + "/blocks", schemaPath: "#/properties/blocks/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
                                                                 return false;
                                                             }
                                                         }
-                                                        var valid0 = _errs68 === errors;
+                                                        var valid0 = _errs48 === errors;
                                                     }
                                                     else {
                                                         var valid0 = true;
                                                     }
                                                     if (valid0) {
-                                                        if (data.profiles !== undefined) {
-                                                            let data32 = data.profiles;
-                                                            const _errs78 = errors;
-                                                            if (errors === _errs78) {
+                                                        if (data.edges !== undefined) {
+                                                            let data32 = data.edges;
+                                                            const _errs76 = errors;
+                                                            if (errors === _errs76) {
                                                                 if (Array.isArray(data32)) {
-                                                                    if (data32.length > 32) {
-                                                                        validate20.errors = [{ instancePath: instancePath + "/profiles", schemaPath: "#/properties/profiles/maxItems", keyword: "maxItems", params: { limit: 32 }, message: "must NOT have more than 32 items" }];
+                                                                    if (data32.length > 5000) {
+                                                                        validate20.errors = [{ instancePath: instancePath + "/edges", schemaPath: "#/properties/edges/maxItems", keyword: "maxItems", params: { limit: 5000 }, message: "must NOT have more than 5000 items" }];
                                                                         return false;
                                                                     }
                                                                     else {
-                                                                        var valid18 = true;
+                                                                        var valid17 = true;
                                                                         const len4 = data32.length;
                                                                         for (let i5 = 0; i5 < len4; i5++) {
                                                                             let data33 = data32[i5];
-                                                                            const _errs80 = errors;
-                                                                            if (errors === _errs80) {
+                                                                            const _errs78 = errors;
+                                                                            const _errs79 = errors;
+                                                                            if (errors === _errs79) {
                                                                                 if (data33 && typeof data33 == "object" && !Array.isArray(data33)) {
                                                                                     let missing6;
-                                                                                    if (((data33.id === undefined) && (missing6 = "id")) || ((data33.edges === undefined) && (missing6 = "edges"))) {
-                                                                                        validate20.errors = [{ instancePath: instancePath + "/profiles/" + i5, schemaPath: "#/properties/profiles/items/required", keyword: "required", params: { missingProperty: missing6 }, message: "must have required property '" + missing6 + "'" }];
+                                                                                    if (((data33.before === undefined) && (missing6 = "before")) || ((data33.after === undefined) && (missing6 = "after"))) {
+                                                                                        validate20.errors = [{ instancePath: instancePath + "/edges/" + i5, schemaPath: "#/$defs/edge/required", keyword: "required", params: { missingProperty: missing6 }, message: "must have required property '" + missing6 + "'" }];
                                                                                         return false;
                                                                                     }
                                                                                     else {
-                                                                                        const _errs82 = errors;
+                                                                                        const _errs81 = errors;
                                                                                         for (const key4 in data33) {
-                                                                                            if (!((key4 === "id") || (key4 === "edges"))) {
-                                                                                                validate20.errors = [{ instancePath: instancePath + "/profiles/" + i5, schemaPath: "#/properties/profiles/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key4 }, message: "must NOT have additional properties" }];
+                                                                                            if (!((key4 === "before") || (key4 === "after"))) {
+                                                                                                validate20.errors = [{ instancePath: instancePath + "/edges/" + i5, schemaPath: "#/$defs/edge/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key4 }, message: "must NOT have additional properties" }];
                                                                                                 return false;
                                                                                                 break;
                                                                                             }
                                                                                         }
-                                                                                        if (_errs82 === errors) {
-                                                                                            if (data33.id !== undefined) {
-                                                                                                let data34 = data33.id;
-                                                                                                const _errs83 = errors;
-                                                                                                if (errors === _errs83) {
-                                                                                                    if (typeof data34 === "string") {
-                                                                                                        if (func2(data34) > 200) {
-                                                                                                            validate20.errors = [{ instancePath: instancePath + "/profiles/" + i5 + "/id", schemaPath: "#/properties/profiles/items/properties/id/maxLength", keyword: "maxLength", params: { limit: 200 }, message: "must NOT have more than 200 characters" }];
+                                                                                        if (_errs81 === errors) {
+                                                                                            if (data33.before !== undefined) {
+                                                                                                let data34 = data33.before;
+                                                                                                const _errs82 = errors;
+                                                                                                if (!(((typeof data34 == "number") && (!(data34 % 1) && !isNaN(data34))) && (isFinite(data34)))) {
+                                                                                                    validate20.errors = [{ instancePath: instancePath + "/edges/" + i5 + "/before", schemaPath: "#/$defs/edge/properties/before/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                    return false;
+                                                                                                }
+                                                                                                if (errors === _errs82) {
+                                                                                                    if ((typeof data34 == "number") && (isFinite(data34))) {
+                                                                                                        if (data34 > 9007199254740991 || isNaN(data34)) {
+                                                                                                            validate20.errors = [{ instancePath: instancePath + "/edges/" + i5 + "/before", schemaPath: "#/$defs/edge/properties/before/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
                                                                                                             return false;
                                                                                                         }
                                                                                                         else {
-                                                                                                            if (func2(data34) < 1) {
-                                                                                                                validate20.errors = [{ instancePath: instancePath + "/profiles/" + i5 + "/id", schemaPath: "#/properties/profiles/items/properties/id/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" }];
+                                                                                                            if (data34 < 1 || isNaN(data34)) {
+                                                                                                                validate20.errors = [{ instancePath: instancePath + "/edges/" + i5 + "/before", schemaPath: "#/$defs/edge/properties/before/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
                                                                                                                 return false;
                                                                                                             }
                                                                                                         }
                                                                                                     }
-                                                                                                    else {
-                                                                                                        validate20.errors = [{ instancePath: instancePath + "/profiles/" + i5 + "/id", schemaPath: "#/properties/profiles/items/properties/id/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                        return false;
-                                                                                                    }
                                                                                                 }
-                                                                                                var valid19 = _errs83 === errors;
+                                                                                                var valid19 = _errs82 === errors;
                                                                                             }
                                                                                             else {
                                                                                                 var valid19 = true;
                                                                                             }
                                                                                             if (valid19) {
-                                                                                                if (data33.edges !== undefined) {
-                                                                                                    let data35 = data33.edges;
-                                                                                                    const _errs85 = errors;
-                                                                                                    if (errors === _errs85) {
-                                                                                                        if (Array.isArray(data35)) {
-                                                                                                            if (data35.length > 5000) {
-                                                                                                                validate20.errors = [{ instancePath: instancePath + "/profiles/" + i5 + "/edges", schemaPath: "#/properties/profiles/items/properties/edges/maxItems", keyword: "maxItems", params: { limit: 5000 }, message: "must NOT have more than 5000 items" }];
+                                                                                                if (data33.after !== undefined) {
+                                                                                                    let data35 = data33.after;
+                                                                                                    const _errs84 = errors;
+                                                                                                    if (!(((typeof data35 == "number") && (!(data35 % 1) && !isNaN(data35))) && (isFinite(data35)))) {
+                                                                                                        validate20.errors = [{ instancePath: instancePath + "/edges/" + i5 + "/after", schemaPath: "#/$defs/edge/properties/after/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                        return false;
+                                                                                                    }
+                                                                                                    if (errors === _errs84) {
+                                                                                                        if ((typeof data35 == "number") && (isFinite(data35))) {
+                                                                                                            if (data35 > 9007199254740991 || isNaN(data35)) {
+                                                                                                                validate20.errors = [{ instancePath: instancePath + "/edges/" + i5 + "/after", schemaPath: "#/$defs/edge/properties/after/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
                                                                                                                 return false;
                                                                                                             }
                                                                                                             else {
-                                                                                                                var valid20 = true;
-                                                                                                                const len5 = data35.length;
-                                                                                                                for (let i6 = 0; i6 < len5; i6++) {
-                                                                                                                    let data36 = data35[i6];
-                                                                                                                    const _errs87 = errors;
-                                                                                                                    const _errs88 = errors;
-                                                                                                                    if (errors === _errs88) {
-                                                                                                                        if (data36 && typeof data36 == "object" && !Array.isArray(data36)) {
-                                                                                                                            let missing7;
-                                                                                                                            if (((data36.before === undefined) && (missing7 = "before")) || ((data36.after === undefined) && (missing7 = "after"))) {
-                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/profiles/" + i5 + "/edges/" + i6, schemaPath: "#/$defs/edge/required", keyword: "required", params: { missingProperty: missing7 }, message: "must have required property '" + missing7 + "'" }];
-                                                                                                                                return false;
-                                                                                                                            }
-                                                                                                                            else {
-                                                                                                                                const _errs90 = errors;
-                                                                                                                                for (const key5 in data36) {
-                                                                                                                                    if (!((key5 === "before") || (key5 === "after"))) {
-                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/profiles/" + i5 + "/edges/" + i6, schemaPath: "#/$defs/edge/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key5 }, message: "must NOT have additional properties" }];
-                                                                                                                                        return false;
-                                                                                                                                        break;
-                                                                                                                                    }
-                                                                                                                                }
-                                                                                                                                if (_errs90 === errors) {
-                                                                                                                                    if (data36.before !== undefined) {
-                                                                                                                                        let data37 = data36.before;
-                                                                                                                                        const _errs91 = errors;
-                                                                                                                                        if (!(((typeof data37 == "number") && (!(data37 % 1) && !isNaN(data37))) && (isFinite(data37)))) {
-                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/profiles/" + i5 + "/edges/" + i6 + "/before", schemaPath: "#/$defs/edge/properties/before/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                                                            return false;
-                                                                                                                                        }
-                                                                                                                                        if (errors === _errs91) {
-                                                                                                                                            if ((typeof data37 == "number") && (isFinite(data37))) {
-                                                                                                                                                if (data37 > 9007199254740991 || isNaN(data37)) {
-                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/profiles/" + i5 + "/edges/" + i6 + "/before", schemaPath: "#/$defs/edge/properties/before/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
-                                                                                                                                                    return false;
-                                                                                                                                                }
-                                                                                                                                                else {
-                                                                                                                                                    if (data37 < 1 || isNaN(data37)) {
-                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/profiles/" + i5 + "/edges/" + i6 + "/before", schemaPath: "#/$defs/edge/properties/before/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
-                                                                                                                                                        return false;
-                                                                                                                                                    }
-                                                                                                                                                }
-                                                                                                                                            }
-                                                                                                                                        }
-                                                                                                                                        var valid22 = _errs91 === errors;
-                                                                                                                                    }
-                                                                                                                                    else {
-                                                                                                                                        var valid22 = true;
-                                                                                                                                    }
-                                                                                                                                    if (valid22) {
-                                                                                                                                        if (data36.after !== undefined) {
-                                                                                                                                            let data38 = data36.after;
-                                                                                                                                            const _errs93 = errors;
-                                                                                                                                            if (!(((typeof data38 == "number") && (!(data38 % 1) && !isNaN(data38))) && (isFinite(data38)))) {
-                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/profiles/" + i5 + "/edges/" + i6 + "/after", schemaPath: "#/$defs/edge/properties/after/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                                                                return false;
-                                                                                                                                            }
-                                                                                                                                            if (errors === _errs93) {
-                                                                                                                                                if ((typeof data38 == "number") && (isFinite(data38))) {
-                                                                                                                                                    if (data38 > 9007199254740991 || isNaN(data38)) {
-                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/profiles/" + i5 + "/edges/" + i6 + "/after", schemaPath: "#/$defs/edge/properties/after/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
-                                                                                                                                                        return false;
-                                                                                                                                                    }
-                                                                                                                                                    else {
-                                                                                                                                                        if (data38 < 1 || isNaN(data38)) {
-                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/profiles/" + i5 + "/edges/" + i6 + "/after", schemaPath: "#/$defs/edge/properties/after/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
-                                                                                                                                                            return false;
-                                                                                                                                                        }
-                                                                                                                                                    }
-                                                                                                                                                }
-                                                                                                                                            }
-                                                                                                                                            var valid22 = _errs93 === errors;
-                                                                                                                                        }
-                                                                                                                                        else {
-                                                                                                                                            var valid22 = true;
-                                                                                                                                        }
-                                                                                                                                    }
-                                                                                                                                }
-                                                                                                                            }
-                                                                                                                        }
-                                                                                                                        else {
-                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/profiles/" + i5 + "/edges/" + i6, schemaPath: "#/$defs/edge/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
-                                                                                                                            return false;
-                                                                                                                        }
-                                                                                                                    }
-                                                                                                                    var valid20 = _errs87 === errors;
-                                                                                                                    if (!valid20) {
-                                                                                                                        break;
-                                                                                                                    }
+                                                                                                                if (data35 < 1 || isNaN(data35)) {
+                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/edges/" + i5 + "/after", schemaPath: "#/$defs/edge/properties/after/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                    return false;
                                                                                                                 }
                                                                                                             }
                                                                                                         }
-                                                                                                        else {
-                                                                                                            validate20.errors = [{ instancePath: instancePath + "/profiles/" + i5 + "/edges", schemaPath: "#/properties/profiles/items/properties/edges/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
-                                                                                                            return false;
-                                                                                                        }
                                                                                                     }
-                                                                                                    var valid19 = _errs85 === errors;
+                                                                                                    var valid19 = _errs84 === errors;
                                                                                                 }
                                                                                                 else {
                                                                                                     var valid19 = true;
@@ -1204,420 +1099,460 @@ function validate20(data, { instancePath = "", parentData, parentDataProperty, r
                                                                                     }
                                                                                 }
                                                                                 else {
-                                                                                    validate20.errors = [{ instancePath: instancePath + "/profiles/" + i5, schemaPath: "#/properties/profiles/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                    validate20.errors = [{ instancePath: instancePath + "/edges/" + i5, schemaPath: "#/$defs/edge/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
                                                                                     return false;
                                                                                 }
                                                                             }
-                                                                            var valid18 = _errs80 === errors;
-                                                                            if (!valid18) {
+                                                                            var valid17 = _errs78 === errors;
+                                                                            if (!valid17) {
                                                                                 break;
                                                                             }
                                                                         }
                                                                     }
                                                                 }
                                                                 else {
-                                                                    validate20.errors = [{ instancePath: instancePath + "/profiles", schemaPath: "#/properties/profiles/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                                                    validate20.errors = [{ instancePath: instancePath + "/edges", schemaPath: "#/properties/edges/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
                                                                     return false;
                                                                 }
                                                             }
-                                                            var valid0 = _errs78 === errors;
+                                                            var valid0 = _errs76 === errors;
                                                         }
                                                         else {
                                                             var valid0 = true;
                                                         }
                                                         if (valid0) {
-                                                            if (data.learnerFeedback !== undefined) {
-                                                                let data39 = data.learnerFeedback;
-                                                                const _errs95 = errors;
-                                                                if (!(((data39 === "positions") || (data39 === "rules")) || (data39 === "graph"))) {
-                                                                    validate20.errors = [{ instancePath: instancePath + "/learnerFeedback", schemaPath: "#/properties/learnerFeedback/enum", keyword: "enum", params: { allowedValues: schema31.properties.learnerFeedback.enum }, message: "must be equal to one of the allowed values" }];
-                                                                    return false;
-                                                                }
-                                                                var valid0 = _errs95 === errors;
-                                                            }
-                                                            else {
-                                                                var valid0 = true;
-                                                            }
-                                                            if (valid0) {
-                                                                if (data.authoring !== undefined) {
-                                                                    let data40 = data.authoring;
-                                                                    const _errs96 = errors;
-                                                                    if (errors === _errs96) {
-                                                                        if (data40 && typeof data40 == "object" && !Array.isArray(data40)) {
-                                                                            const _errs98 = errors;
-                                                                            for (const key6 in data40) {
-                                                                                if (!(func1.call(schema31.properties.authoring.properties, key6))) {
-                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring", schemaPath: "#/properties/authoring/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key6 }, message: "must NOT have additional properties" }];
-                                                                                    return false;
-                                                                                    break;
-                                                                                }
-                                                                            }
-                                                                            if (_errs98 === errors) {
-                                                                                if (data40.strategy !== undefined) {
-                                                                                    let data41 = data40.strategy;
-                                                                                    const _errs99 = errors;
-                                                                                    if (errors === _errs99) {
-                                                                                        if (typeof data41 === "string") {
-                                                                                            if (func2(data41) > 100) {
-                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/strategy", schemaPath: "#/properties/authoring/properties/strategy/maxLength", keyword: "maxLength", params: { limit: 100 }, message: "must NOT have more than 100 characters" }];
-                                                                                                return false;
-                                                                                            }
-                                                                                        }
-                                                                                        else {
-                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/strategy", schemaPath: "#/properties/authoring/properties/strategy/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                            if (data.profiles !== undefined) {
+                                                                let data36 = data.profiles;
+                                                                const _errs86 = errors;
+                                                                if (errors === _errs86) {
+                                                                    if (Array.isArray(data36)) {
+                                                                        if (data36.length > 32) {
+                                                                            validate20.errors = [{ instancePath: instancePath + "/profiles", schemaPath: "#/properties/profiles/maxItems", keyword: "maxItems", params: { limit: 32 }, message: "must NOT have more than 32 items" }];
+                                                                            return false;
+                                                                        }
+                                                                        else {
+                                                                            var valid20 = true;
+                                                                            const len5 = data36.length;
+                                                                            for (let i6 = 0; i6 < len5; i6++) {
+                                                                                let data37 = data36[i6];
+                                                                                const _errs88 = errors;
+                                                                                if (errors === _errs88) {
+                                                                                    if (data37 && typeof data37 == "object" && !Array.isArray(data37)) {
+                                                                                        let missing7;
+                                                                                        if (((data37.id === undefined) && (missing7 = "id")) || ((data37.edges === undefined) && (missing7 = "edges"))) {
+                                                                                            validate20.errors = [{ instancePath: instancePath + "/profiles/" + i6, schemaPath: "#/properties/profiles/items/required", keyword: "required", params: { missingProperty: missing7 }, message: "must have required property '" + missing7 + "'" }];
                                                                                             return false;
                                                                                         }
-                                                                                    }
-                                                                                    var valid23 = _errs99 === errors;
-                                                                                }
-                                                                                else {
-                                                                                    var valid23 = true;
-                                                                                }
-                                                                                if (valid23) {
-                                                                                    if (data40.reason !== undefined) {
-                                                                                        let data42 = data40.reason;
-                                                                                        const _errs101 = errors;
-                                                                                        if (errors === _errs101) {
-                                                                                            if (typeof data42 === "string") {
-                                                                                                if (func2(data42) > 500) {
-                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/reason", schemaPath: "#/properties/authoring/properties/reason/maxLength", keyword: "maxLength", params: { limit: 500 }, message: "must NOT have more than 500 characters" }];
-                                                                                                    return false;
-                                                                                                }
-                                                                                            }
-                                                                                            else {
-                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/reason", schemaPath: "#/properties/authoring/properties/reason/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                return false;
-                                                                                            }
-                                                                                        }
-                                                                                        var valid23 = _errs101 === errors;
-                                                                                    }
-                                                                                    else {
-                                                                                        var valid23 = true;
-                                                                                    }
-                                                                                    if (valid23) {
-                                                                                        if (data40.note !== undefined) {
-                                                                                            let data43 = data40.note;
-                                                                                            const _errs103 = errors;
-                                                                                            if (errors === _errs103) {
-                                                                                                if (typeof data43 === "string") {
-                                                                                                    if (func2(data43) > 1000) {
-                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/note", schemaPath: "#/properties/authoring/properties/note/maxLength", keyword: "maxLength", params: { limit: 1000 }, message: "must NOT have more than 1000 characters" }];
-                                                                                                        return false;
-                                                                                                    }
-                                                                                                }
-                                                                                                else {
-                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/note", schemaPath: "#/properties/authoring/properties/note/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                    return false;
-                                                                                                }
-                                                                                            }
-                                                                                            var valid23 = _errs103 === errors;
-                                                                                        }
                                                                                         else {
-                                                                                            var valid23 = true;
-                                                                                        }
-                                                                                        if (valid23) {
-                                                                                            if (data40.omittedBlocks !== undefined) {
-                                                                                                let data44 = data40.omittedBlocks;
-                                                                                                const _errs105 = errors;
-                                                                                                if (!(((typeof data44 == "number") && (!(data44 % 1) && !isNaN(data44))) && (isFinite(data44)))) {
-                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/omittedBlocks", schemaPath: "#/properties/authoring/properties/omittedBlocks/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                            const _errs90 = errors;
+                                                                                            for (const key5 in data37) {
+                                                                                                if (!((key5 === "id") || (key5 === "edges"))) {
+                                                                                                    validate20.errors = [{ instancePath: instancePath + "/profiles/" + i6, schemaPath: "#/properties/profiles/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key5 }, message: "must NOT have additional properties" }];
                                                                                                     return false;
+                                                                                                    break;
                                                                                                 }
-                                                                                                if (errors === _errs105) {
-                                                                                                    if ((typeof data44 == "number") && (isFinite(data44))) {
-                                                                                                        if (data44 > 500 || isNaN(data44)) {
-                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/omittedBlocks", schemaPath: "#/properties/authoring/properties/omittedBlocks/maximum", keyword: "maximum", params: { comparison: "<=", limit: 500 }, message: "must be <= 500" }];
-                                                                                                            return false;
-                                                                                                        }
-                                                                                                        else {
-                                                                                                            if (data44 < 0 || isNaN(data44)) {
-                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/omittedBlocks", schemaPath: "#/properties/authoring/properties/omittedBlocks/minimum", keyword: "minimum", params: { comparison: ">=", limit: 0 }, message: "must be >= 0" }];
+                                                                                            }
+                                                                                            if (_errs90 === errors) {
+                                                                                                if (data37.id !== undefined) {
+                                                                                                    let data38 = data37.id;
+                                                                                                    const _errs91 = errors;
+                                                                                                    if (errors === _errs91) {
+                                                                                                        if (typeof data38 === "string") {
+                                                                                                            if (func2(data38) > 200) {
+                                                                                                                validate20.errors = [{ instancePath: instancePath + "/profiles/" + i6 + "/id", schemaPath: "#/properties/profiles/items/properties/id/maxLength", keyword: "maxLength", params: { limit: 200 }, message: "must NOT have more than 200 characters" }];
                                                                                                                 return false;
                                                                                                             }
+                                                                                                            else {
+                                                                                                                if (func2(data38) < 1) {
+                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/profiles/" + i6 + "/id", schemaPath: "#/properties/profiles/items/properties/id/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" }];
+                                                                                                                    return false;
+                                                                                                                }
+                                                                                                            }
+                                                                                                        }
+                                                                                                        else {
+                                                                                                            validate20.errors = [{ instancePath: instancePath + "/profiles/" + i6 + "/id", schemaPath: "#/properties/profiles/items/properties/id/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                            return false;
                                                                                                         }
                                                                                                     }
-                                                                                                }
-                                                                                                var valid23 = _errs105 === errors;
-                                                                                            }
-                                                                                            else {
-                                                                                                var valid23 = true;
-                                                                                            }
-                                                                                            if (valid23) {
-                                                                                                if (data40.semanticEquivalenceProven !== undefined) {
-                                                                                                    const _errs107 = errors;
-                                                                                                    if (false !== data40.semanticEquivalenceProven) {
-                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/semanticEquivalenceProven", schemaPath: "#/properties/authoring/properties/semanticEquivalenceProven/const", keyword: "const", params: { allowedValue: false }, message: "must be equal to constant" }];
-                                                                                                        return false;
-                                                                                                    }
-                                                                                                    var valid23 = _errs107 === errors;
+                                                                                                    var valid21 = _errs91 === errors;
                                                                                                 }
                                                                                                 else {
-                                                                                                    var valid23 = true;
+                                                                                                    var valid21 = true;
                                                                                                 }
-                                                                                                if (valid23) {
-                                                                                                    if (data40.dependencyHints !== undefined) {
-                                                                                                        let data46 = data40.dependencyHints;
-                                                                                                        const _errs108 = errors;
-                                                                                                        if (errors === _errs108) {
-                                                                                                            if (Array.isArray(data46)) {
-                                                                                                                if (data46.length > 200) {
-                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints", schemaPath: "#/properties/authoring/properties/dependencyHints/maxItems", keyword: "maxItems", params: { limit: 200 }, message: "must NOT have more than 200 items" }];
+                                                                                                if (valid21) {
+                                                                                                    if (data37.edges !== undefined) {
+                                                                                                        let data39 = data37.edges;
+                                                                                                        const _errs93 = errors;
+                                                                                                        if (errors === _errs93) {
+                                                                                                            if (Array.isArray(data39)) {
+                                                                                                                if (data39.length > 5000) {
+                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/profiles/" + i6 + "/edges", schemaPath: "#/properties/profiles/items/properties/edges/maxItems", keyword: "maxItems", params: { limit: 5000 }, message: "must NOT have more than 5000 items" }];
                                                                                                                     return false;
                                                                                                                 }
                                                                                                                 else {
-                                                                                                                    var valid24 = true;
-                                                                                                                    const len6 = data46.length;
+                                                                                                                    var valid22 = true;
+                                                                                                                    const len6 = data39.length;
                                                                                                                     for (let i7 = 0; i7 < len6; i7++) {
-                                                                                                                        let data47 = data46[i7];
-                                                                                                                        const _errs110 = errors;
-                                                                                                                        if (errors === _errs110) {
-                                                                                                                            if (data47 && typeof data47 == "object" && !Array.isArray(data47)) {
+                                                                                                                        let data40 = data39[i7];
+                                                                                                                        const _errs95 = errors;
+                                                                                                                        const _errs96 = errors;
+                                                                                                                        if (errors === _errs96) {
+                                                                                                                            if (data40 && typeof data40 == "object" && !Array.isArray(data40)) {
                                                                                                                                 let missing8;
-                                                                                                                                if ((((data47.name === undefined) && (missing8 = "name")) || ((data47.declarationLine === undefined) && (missing8 = "declarationLine"))) || ((data47.usageLine === undefined) && (missing8 = "usageLine"))) {
-                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i7, schemaPath: "#/properties/authoring/properties/dependencyHints/items/required", keyword: "required", params: { missingProperty: missing8 }, message: "must have required property '" + missing8 + "'" }];
+                                                                                                                                if (((data40.before === undefined) && (missing8 = "before")) || ((data40.after === undefined) && (missing8 = "after"))) {
+                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/profiles/" + i6 + "/edges/" + i7, schemaPath: "#/$defs/edge/required", keyword: "required", params: { missingProperty: missing8 }, message: "must have required property '" + missing8 + "'" }];
                                                                                                                                     return false;
                                                                                                                                 }
                                                                                                                                 else {
-                                                                                                                                    const _errs112 = errors;
-                                                                                                                                    for (const key7 in data47) {
-                                                                                                                                        if (!(((key7 === "name") || (key7 === "declarationLine")) || (key7 === "usageLine"))) {
-                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i7, schemaPath: "#/properties/authoring/properties/dependencyHints/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key7 }, message: "must NOT have additional properties" }];
+                                                                                                                                    const _errs98 = errors;
+                                                                                                                                    for (const key6 in data40) {
+                                                                                                                                        if (!((key6 === "before") || (key6 === "after"))) {
+                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/profiles/" + i6 + "/edges/" + i7, schemaPath: "#/$defs/edge/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key6 }, message: "must NOT have additional properties" }];
                                                                                                                                             return false;
                                                                                                                                             break;
                                                                                                                                         }
                                                                                                                                     }
-                                                                                                                                    if (_errs112 === errors) {
-                                                                                                                                        if (data47.name !== undefined) {
-                                                                                                                                            let data48 = data47.name;
-                                                                                                                                            const _errs113 = errors;
-                                                                                                                                            if (errors === _errs113) {
-                                                                                                                                                if (typeof data48 === "string") {
-                                                                                                                                                    if (func2(data48) > 2048) {
-                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i7 + "/name", schemaPath: "#/properties/authoring/properties/dependencyHints/items/properties/name/maxLength", keyword: "maxLength", params: { limit: 2048 }, message: "must NOT have more than 2048 characters" }];
+                                                                                                                                    if (_errs98 === errors) {
+                                                                                                                                        if (data40.before !== undefined) {
+                                                                                                                                            let data41 = data40.before;
+                                                                                                                                            const _errs99 = errors;
+                                                                                                                                            if (!(((typeof data41 == "number") && (!(data41 % 1) && !isNaN(data41))) && (isFinite(data41)))) {
+                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/profiles/" + i6 + "/edges/" + i7 + "/before", schemaPath: "#/$defs/edge/properties/before/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                                                                return false;
+                                                                                                                                            }
+                                                                                                                                            if (errors === _errs99) {
+                                                                                                                                                if ((typeof data41 == "number") && (isFinite(data41))) {
+                                                                                                                                                    if (data41 > 9007199254740991 || isNaN(data41)) {
+                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/profiles/" + i6 + "/edges/" + i7 + "/before", schemaPath: "#/$defs/edge/properties/before/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
                                                                                                                                                         return false;
                                                                                                                                                     }
-                                                                                                                                                }
-                                                                                                                                                else {
-                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i7 + "/name", schemaPath: "#/properties/authoring/properties/dependencyHints/items/properties/name/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                    return false;
+                                                                                                                                                    else {
+                                                                                                                                                        if (data41 < 1 || isNaN(data41)) {
+                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/profiles/" + i6 + "/edges/" + i7 + "/before", schemaPath: "#/$defs/edge/properties/before/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                                                            return false;
+                                                                                                                                                        }
+                                                                                                                                                    }
                                                                                                                                                 }
                                                                                                                                             }
-                                                                                                                                            var valid25 = _errs113 === errors;
+                                                                                                                                            var valid24 = _errs99 === errors;
                                                                                                                                         }
                                                                                                                                         else {
-                                                                                                                                            var valid25 = true;
+                                                                                                                                            var valid24 = true;
                                                                                                                                         }
-                                                                                                                                        if (valid25) {
-                                                                                                                                            if (data47.declarationLine !== undefined) {
-                                                                                                                                                let data49 = data47.declarationLine;
-                                                                                                                                                const _errs115 = errors;
-                                                                                                                                                if (!(((typeof data49 == "number") && (!(data49 % 1) && !isNaN(data49))) && (isFinite(data49)))) {
-                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i7 + "/declarationLine", schemaPath: "#/properties/authoring/properties/dependencyHints/items/properties/declarationLine/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                                                        if (valid24) {
+                                                                                                                                            if (data40.after !== undefined) {
+                                                                                                                                                let data42 = data40.after;
+                                                                                                                                                const _errs101 = errors;
+                                                                                                                                                if (!(((typeof data42 == "number") && (!(data42 % 1) && !isNaN(data42))) && (isFinite(data42)))) {
+                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/profiles/" + i6 + "/edges/" + i7 + "/after", schemaPath: "#/$defs/edge/properties/after/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
                                                                                                                                                     return false;
                                                                                                                                                 }
-                                                                                                                                                if (errors === _errs115) {
-                                                                                                                                                    if ((typeof data49 == "number") && (isFinite(data49))) {
-                                                                                                                                                        if (data49 > 50000 || isNaN(data49)) {
-                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i7 + "/declarationLine", schemaPath: "#/properties/authoring/properties/dependencyHints/items/properties/declarationLine/maximum", keyword: "maximum", params: { comparison: "<=", limit: 50000 }, message: "must be <= 50000" }];
+                                                                                                                                                if (errors === _errs101) {
+                                                                                                                                                    if ((typeof data42 == "number") && (isFinite(data42))) {
+                                                                                                                                                        if (data42 > 9007199254740991 || isNaN(data42)) {
+                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/profiles/" + i6 + "/edges/" + i7 + "/after", schemaPath: "#/$defs/edge/properties/after/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
                                                                                                                                                             return false;
                                                                                                                                                         }
                                                                                                                                                         else {
-                                                                                                                                                            if (data49 < 1 || isNaN(data49)) {
-                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i7 + "/declarationLine", schemaPath: "#/properties/authoring/properties/dependencyHints/items/properties/declarationLine/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                                                            if (data42 < 1 || isNaN(data42)) {
+                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/profiles/" + i6 + "/edges/" + i7 + "/after", schemaPath: "#/$defs/edge/properties/after/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
                                                                                                                                                                 return false;
                                                                                                                                                             }
                                                                                                                                                         }
                                                                                                                                                     }
                                                                                                                                                 }
-                                                                                                                                                var valid25 = _errs115 === errors;
+                                                                                                                                                var valid24 = _errs101 === errors;
                                                                                                                                             }
                                                                                                                                             else {
-                                                                                                                                                var valid25 = true;
-                                                                                                                                            }
-                                                                                                                                            if (valid25) {
-                                                                                                                                                if (data47.usageLine !== undefined) {
-                                                                                                                                                    let data50 = data47.usageLine;
-                                                                                                                                                    const _errs117 = errors;
-                                                                                                                                                    if (!(((typeof data50 == "number") && (!(data50 % 1) && !isNaN(data50))) && (isFinite(data50)))) {
-                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i7 + "/usageLine", schemaPath: "#/properties/authoring/properties/dependencyHints/items/properties/usageLine/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                                                                        return false;
-                                                                                                                                                    }
-                                                                                                                                                    if (errors === _errs117) {
-                                                                                                                                                        if ((typeof data50 == "number") && (isFinite(data50))) {
-                                                                                                                                                            if (data50 > 50000 || isNaN(data50)) {
-                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i7 + "/usageLine", schemaPath: "#/properties/authoring/properties/dependencyHints/items/properties/usageLine/maximum", keyword: "maximum", params: { comparison: "<=", limit: 50000 }, message: "must be <= 50000" }];
-                                                                                                                                                                return false;
-                                                                                                                                                            }
-                                                                                                                                                            else {
-                                                                                                                                                                if (data50 < 1 || isNaN(data50)) {
-                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i7 + "/usageLine", schemaPath: "#/properties/authoring/properties/dependencyHints/items/properties/usageLine/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
-                                                                                                                                                                    return false;
-                                                                                                                                                                }
-                                                                                                                                                            }
-                                                                                                                                                        }
-                                                                                                                                                    }
-                                                                                                                                                    var valid25 = _errs117 === errors;
-                                                                                                                                                }
-                                                                                                                                                else {
-                                                                                                                                                    var valid25 = true;
-                                                                                                                                                }
+                                                                                                                                                var valid24 = true;
                                                                                                                                             }
                                                                                                                                         }
                                                                                                                                     }
                                                                                                                                 }
                                                                                                                             }
                                                                                                                             else {
-                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i7, schemaPath: "#/properties/authoring/properties/dependencyHints/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/profiles/" + i6 + "/edges/" + i7, schemaPath: "#/$defs/edge/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
                                                                                                                                 return false;
                                                                                                                             }
                                                                                                                         }
-                                                                                                                        var valid24 = _errs110 === errors;
-                                                                                                                        if (!valid24) {
+                                                                                                                        var valid22 = _errs95 === errors;
+                                                                                                                        if (!valid22) {
                                                                                                                             break;
                                                                                                                         }
                                                                                                                     }
                                                                                                                 }
                                                                                                             }
                                                                                                             else {
-                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints", schemaPath: "#/properties/authoring/properties/dependencyHints/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                                                                                                validate20.errors = [{ instancePath: instancePath + "/profiles/" + i6 + "/edges", schemaPath: "#/properties/profiles/items/properties/edges/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
                                                                                                                 return false;
                                                                                                             }
                                                                                                         }
-                                                                                                        var valid23 = _errs108 === errors;
+                                                                                                        var valid21 = _errs93 === errors;
                                                                                                     }
                                                                                                     else {
-                                                                                                        var valid23 = true;
+                                                                                                        var valid21 = true;
                                                                                                     }
-                                                                                                    if (valid23) {
-                                                                                                        if (data40.provenance !== undefined) {
-                                                                                                            let data51 = data40.provenance;
-                                                                                                            const _errs119 = errors;
-                                                                                                            if (errors === _errs119) {
-                                                                                                                if (Array.isArray(data51)) {
-                                                                                                                    if (data51.length > 10000) {
-                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/provenance", schemaPath: "#/properties/authoring/properties/provenance/maxItems", keyword: "maxItems", params: { limit: 10000 }, message: "must NOT have more than 10000 items" }];
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                    else {
+                                                                                        validate20.errors = [{ instancePath: instancePath + "/profiles/" + i6, schemaPath: "#/properties/profiles/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                        return false;
+                                                                                    }
+                                                                                }
+                                                                                var valid20 = _errs88 === errors;
+                                                                                if (!valid20) {
+                                                                                    break;
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                    else {
+                                                                        validate20.errors = [{ instancePath: instancePath + "/profiles", schemaPath: "#/properties/profiles/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                                                        return false;
+                                                                    }
+                                                                }
+                                                                var valid0 = _errs86 === errors;
+                                                            }
+                                                            else {
+                                                                var valid0 = true;
+                                                            }
+                                                            if (valid0) {
+                                                                if (data.learnerFeedback !== undefined) {
+                                                                    let data43 = data.learnerFeedback;
+                                                                    const _errs103 = errors;
+                                                                    if (!(((data43 === "positions") || (data43 === "rules")) || (data43 === "graph"))) {
+                                                                        validate20.errors = [{ instancePath: instancePath + "/learnerFeedback", schemaPath: "#/properties/learnerFeedback/enum", keyword: "enum", params: { allowedValues: schema31.properties.learnerFeedback.enum }, message: "must be equal to one of the allowed values" }];
+                                                                        return false;
+                                                                    }
+                                                                    var valid0 = _errs103 === errors;
+                                                                }
+                                                                else {
+                                                                    var valid0 = true;
+                                                                }
+                                                                if (valid0) {
+                                                                    if (data.authoring !== undefined) {
+                                                                        let data44 = data.authoring;
+                                                                        const _errs104 = errors;
+                                                                        if (errors === _errs104) {
+                                                                            if (data44 && typeof data44 == "object" && !Array.isArray(data44)) {
+                                                                                const _errs106 = errors;
+                                                                                for (const key7 in data44) {
+                                                                                    if (!(func1.call(schema31.properties.authoring.properties, key7))) {
+                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring", schemaPath: "#/properties/authoring/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key7 }, message: "must NOT have additional properties" }];
+                                                                                        return false;
+                                                                                        break;
+                                                                                    }
+                                                                                }
+                                                                                if (_errs106 === errors) {
+                                                                                    if (data44.strategy !== undefined) {
+                                                                                        let data45 = data44.strategy;
+                                                                                        const _errs107 = errors;
+                                                                                        if (errors === _errs107) {
+                                                                                            if (typeof data45 === "string") {
+                                                                                                if (func2(data45) > 100) {
+                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/strategy", schemaPath: "#/properties/authoring/properties/strategy/maxLength", keyword: "maxLength", params: { limit: 100 }, message: "must NOT have more than 100 characters" }];
+                                                                                                    return false;
+                                                                                                }
+                                                                                            }
+                                                                                            else {
+                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/strategy", schemaPath: "#/properties/authoring/properties/strategy/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                return false;
+                                                                                            }
+                                                                                        }
+                                                                                        var valid25 = _errs107 === errors;
+                                                                                    }
+                                                                                    else {
+                                                                                        var valid25 = true;
+                                                                                    }
+                                                                                    if (valid25) {
+                                                                                        if (data44.reason !== undefined) {
+                                                                                            let data46 = data44.reason;
+                                                                                            const _errs109 = errors;
+                                                                                            if (errors === _errs109) {
+                                                                                                if (typeof data46 === "string") {
+                                                                                                    if (func2(data46) > 500) {
+                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/reason", schemaPath: "#/properties/authoring/properties/reason/maxLength", keyword: "maxLength", params: { limit: 500 }, message: "must NOT have more than 500 characters" }];
+                                                                                                        return false;
+                                                                                                    }
+                                                                                                }
+                                                                                                else {
+                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/reason", schemaPath: "#/properties/authoring/properties/reason/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                    return false;
+                                                                                                }
+                                                                                            }
+                                                                                            var valid25 = _errs109 === errors;
+                                                                                        }
+                                                                                        else {
+                                                                                            var valid25 = true;
+                                                                                        }
+                                                                                        if (valid25) {
+                                                                                            if (data44.note !== undefined) {
+                                                                                                let data47 = data44.note;
+                                                                                                const _errs111 = errors;
+                                                                                                if (errors === _errs111) {
+                                                                                                    if (typeof data47 === "string") {
+                                                                                                        if (func2(data47) > 1000) {
+                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/note", schemaPath: "#/properties/authoring/properties/note/maxLength", keyword: "maxLength", params: { limit: 1000 }, message: "must NOT have more than 1000 characters" }];
+                                                                                                            return false;
+                                                                                                        }
+                                                                                                    }
+                                                                                                    else {
+                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/note", schemaPath: "#/properties/authoring/properties/note/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                        return false;
+                                                                                                    }
+                                                                                                }
+                                                                                                var valid25 = _errs111 === errors;
+                                                                                            }
+                                                                                            else {
+                                                                                                var valid25 = true;
+                                                                                            }
+                                                                                            if (valid25) {
+                                                                                                if (data44.omittedBlocks !== undefined) {
+                                                                                                    let data48 = data44.omittedBlocks;
+                                                                                                    const _errs113 = errors;
+                                                                                                    if (!(((typeof data48 == "number") && (!(data48 % 1) && !isNaN(data48))) && (isFinite(data48)))) {
+                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/omittedBlocks", schemaPath: "#/properties/authoring/properties/omittedBlocks/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                        return false;
+                                                                                                    }
+                                                                                                    if (errors === _errs113) {
+                                                                                                        if ((typeof data48 == "number") && (isFinite(data48))) {
+                                                                                                            if (data48 > 500 || isNaN(data48)) {
+                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/omittedBlocks", schemaPath: "#/properties/authoring/properties/omittedBlocks/maximum", keyword: "maximum", params: { comparison: "<=", limit: 500 }, message: "must be <= 500" }];
+                                                                                                                return false;
+                                                                                                            }
+                                                                                                            else {
+                                                                                                                if (data48 < 0 || isNaN(data48)) {
+                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/omittedBlocks", schemaPath: "#/properties/authoring/properties/omittedBlocks/minimum", keyword: "minimum", params: { comparison: ">=", limit: 0 }, message: "must be >= 0" }];
+                                                                                                                    return false;
+                                                                                                                }
+                                                                                                            }
+                                                                                                        }
+                                                                                                    }
+                                                                                                    var valid25 = _errs113 === errors;
+                                                                                                }
+                                                                                                else {
+                                                                                                    var valid25 = true;
+                                                                                                }
+                                                                                                if (valid25) {
+                                                                                                    if (data44.semanticEquivalenceProven !== undefined) {
+                                                                                                        const _errs115 = errors;
+                                                                                                        if (false !== data44.semanticEquivalenceProven) {
+                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/semanticEquivalenceProven", schemaPath: "#/properties/authoring/properties/semanticEquivalenceProven/const", keyword: "const", params: { allowedValue: false }, message: "must be equal to constant" }];
+                                                                                                            return false;
+                                                                                                        }
+                                                                                                        var valid25 = _errs115 === errors;
+                                                                                                    }
+                                                                                                    else {
+                                                                                                        var valid25 = true;
+                                                                                                    }
+                                                                                                    if (valid25) {
+                                                                                                        if (data44.dependencyHints !== undefined) {
+                                                                                                            let data50 = data44.dependencyHints;
+                                                                                                            const _errs116 = errors;
+                                                                                                            if (errors === _errs116) {
+                                                                                                                if (Array.isArray(data50)) {
+                                                                                                                    if (data50.length > 200) {
+                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints", schemaPath: "#/properties/authoring/properties/dependencyHints/maxItems", keyword: "maxItems", params: { limit: 200 }, message: "must NOT have more than 200 items" }];
                                                                                                                         return false;
                                                                                                                     }
                                                                                                                     else {
                                                                                                                         var valid26 = true;
-                                                                                                                        const len7 = data51.length;
+                                                                                                                        const len7 = data50.length;
                                                                                                                         for (let i8 = 0; i8 < len7; i8++) {
-                                                                                                                            let data52 = data51[i8];
-                                                                                                                            const _errs121 = errors;
-                                                                                                                            if (errors === _errs121) {
-                                                                                                                                if (data52 && typeof data52 == "object" && !Array.isArray(data52)) {
+                                                                                                                            let data51 = data50[i8];
+                                                                                                                            const _errs118 = errors;
+                                                                                                                            if (errors === _errs118) {
+                                                                                                                                if (data51 && typeof data51 == "object" && !Array.isArray(data51)) {
                                                                                                                                     let missing9;
-                                                                                                                                    if (((((data52.before === undefined) && (missing9 = "before")) || ((data52.after === undefined) && (missing9 = "after"))) || ((data52.category === undefined) && (missing9 = "category"))) || ((data52.code === undefined) && (missing9 = "code"))) {
-                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i8, schemaPath: "#/properties/authoring/properties/provenance/items/required", keyword: "required", params: { missingProperty: missing9 }, message: "must have required property '" + missing9 + "'" }];
+                                                                                                                                    if ((((data51.name === undefined) && (missing9 = "name")) || ((data51.declarationLine === undefined) && (missing9 = "declarationLine"))) || ((data51.usageLine === undefined) && (missing9 = "usageLine"))) {
+                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i8, schemaPath: "#/properties/authoring/properties/dependencyHints/items/required", keyword: "required", params: { missingProperty: missing9 }, message: "must have required property '" + missing9 + "'" }];
                                                                                                                                         return false;
                                                                                                                                     }
                                                                                                                                     else {
-                                                                                                                                        const _errs123 = errors;
-                                                                                                                                        for (const key8 in data52) {
-                                                                                                                                            if (!((((key8 === "before") || (key8 === "after")) || (key8 === "category")) || (key8 === "code"))) {
-                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i8, schemaPath: "#/properties/authoring/properties/provenance/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key8 }, message: "must NOT have additional properties" }];
+                                                                                                                                        const _errs120 = errors;
+                                                                                                                                        for (const key8 in data51) {
+                                                                                                                                            if (!(((key8 === "name") || (key8 === "declarationLine")) || (key8 === "usageLine"))) {
+                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i8, schemaPath: "#/properties/authoring/properties/dependencyHints/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key8 }, message: "must NOT have additional properties" }];
                                                                                                                                                 return false;
                                                                                                                                                 break;
                                                                                                                                             }
                                                                                                                                         }
-                                                                                                                                        if (_errs123 === errors) {
-                                                                                                                                            if (data52.before !== undefined) {
-                                                                                                                                                let data53 = data52.before;
-                                                                                                                                                const _errs124 = errors;
-                                                                                                                                                if (!(((typeof data53 == "number") && (!(data53 % 1) && !isNaN(data53))) && (isFinite(data53)))) {
-                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i8 + "/before", schemaPath: "#/properties/authoring/properties/provenance/items/properties/before/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                                                                    return false;
-                                                                                                                                                }
-                                                                                                                                                if (errors === _errs124) {
-                                                                                                                                                    if ((typeof data53 == "number") && (isFinite(data53))) {
-                                                                                                                                                        if (data53 > 9007199254740991 || isNaN(data53)) {
-                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i8 + "/before", schemaPath: "#/properties/authoring/properties/provenance/items/properties/before/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                                                        if (_errs120 === errors) {
+                                                                                                                                            if (data51.name !== undefined) {
+                                                                                                                                                let data52 = data51.name;
+                                                                                                                                                const _errs121 = errors;
+                                                                                                                                                if (errors === _errs121) {
+                                                                                                                                                    if (typeof data52 === "string") {
+                                                                                                                                                        if (func2(data52) > 2048) {
+                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i8 + "/name", schemaPath: "#/properties/authoring/properties/dependencyHints/items/properties/name/maxLength", keyword: "maxLength", params: { limit: 2048 }, message: "must NOT have more than 2048 characters" }];
                                                                                                                                                             return false;
                                                                                                                                                         }
-                                                                                                                                                        else {
-                                                                                                                                                            if (data53 < 1 || isNaN(data53)) {
-                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i8 + "/before", schemaPath: "#/properties/authoring/properties/provenance/items/properties/before/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
-                                                                                                                                                                return false;
-                                                                                                                                                            }
-                                                                                                                                                        }
+                                                                                                                                                    }
+                                                                                                                                                    else {
+                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i8 + "/name", schemaPath: "#/properties/authoring/properties/dependencyHints/items/properties/name/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                        return false;
                                                                                                                                                     }
                                                                                                                                                 }
-                                                                                                                                                var valid27 = _errs124 === errors;
+                                                                                                                                                var valid27 = _errs121 === errors;
                                                                                                                                             }
                                                                                                                                             else {
                                                                                                                                                 var valid27 = true;
                                                                                                                                             }
                                                                                                                                             if (valid27) {
-                                                                                                                                                if (data52.after !== undefined) {
-                                                                                                                                                    let data54 = data52.after;
-                                                                                                                                                    const _errs126 = errors;
-                                                                                                                                                    if (!(((typeof data54 == "number") && (!(data54 % 1) && !isNaN(data54))) && (isFinite(data54)))) {
-                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i8 + "/after", schemaPath: "#/properties/authoring/properties/provenance/items/properties/after/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                                                                if (data51.declarationLine !== undefined) {
+                                                                                                                                                    let data53 = data51.declarationLine;
+                                                                                                                                                    const _errs123 = errors;
+                                                                                                                                                    if (!(((typeof data53 == "number") && (!(data53 % 1) && !isNaN(data53))) && (isFinite(data53)))) {
+                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i8 + "/declarationLine", schemaPath: "#/properties/authoring/properties/dependencyHints/items/properties/declarationLine/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
                                                                                                                                                         return false;
                                                                                                                                                     }
-                                                                                                                                                    if (errors === _errs126) {
-                                                                                                                                                        if ((typeof data54 == "number") && (isFinite(data54))) {
-                                                                                                                                                            if (data54 > 9007199254740991 || isNaN(data54)) {
-                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i8 + "/after", schemaPath: "#/properties/authoring/properties/provenance/items/properties/after/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                                                                    if (errors === _errs123) {
+                                                                                                                                                        if ((typeof data53 == "number") && (isFinite(data53))) {
+                                                                                                                                                            if (data53 > 50000 || isNaN(data53)) {
+                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i8 + "/declarationLine", schemaPath: "#/properties/authoring/properties/dependencyHints/items/properties/declarationLine/maximum", keyword: "maximum", params: { comparison: "<=", limit: 50000 }, message: "must be <= 50000" }];
                                                                                                                                                                 return false;
                                                                                                                                                             }
                                                                                                                                                             else {
-                                                                                                                                                                if (data54 < 1 || isNaN(data54)) {
-                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i8 + "/after", schemaPath: "#/properties/authoring/properties/provenance/items/properties/after/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                                                                if (data53 < 1 || isNaN(data53)) {
+                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i8 + "/declarationLine", schemaPath: "#/properties/authoring/properties/dependencyHints/items/properties/declarationLine/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
                                                                                                                                                                     return false;
                                                                                                                                                                 }
                                                                                                                                                             }
                                                                                                                                                         }
                                                                                                                                                     }
-                                                                                                                                                    var valid27 = _errs126 === errors;
+                                                                                                                                                    var valid27 = _errs123 === errors;
                                                                                                                                                 }
                                                                                                                                                 else {
                                                                                                                                                     var valid27 = true;
                                                                                                                                                 }
                                                                                                                                                 if (valid27) {
-                                                                                                                                                    if (data52.category !== undefined) {
-                                                                                                                                                        let data55 = data52.category;
-                                                                                                                                                        const _errs128 = errors;
-                                                                                                                                                        if (typeof data55 !== "string") {
-                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i8 + "/category", schemaPath: "#/properties/authoring/properties/provenance/items/properties/category/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                    if (data51.usageLine !== undefined) {
+                                                                                                                                                        let data54 = data51.usageLine;
+                                                                                                                                                        const _errs125 = errors;
+                                                                                                                                                        if (!(((typeof data54 == "number") && (!(data54 % 1) && !isNaN(data54))) && (isFinite(data54)))) {
+                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i8 + "/usageLine", schemaPath: "#/properties/authoring/properties/dependencyHints/items/properties/usageLine/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
                                                                                                                                                             return false;
                                                                                                                                                         }
-                                                                                                                                                        if (!((((((((data55 === "data") || (data55 === "effect")) || (data55 === "structure")) || (data55 === "unit")) || (data55 === "policy")) || (data55 === "author")) || (data55 === "conservative")) || (data55 === "unknown"))) {
-                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i8 + "/category", schemaPath: "#/properties/authoring/properties/provenance/items/properties/category/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.provenance.items.properties.category.enum }, message: "must be equal to one of the allowed values" }];
-                                                                                                                                                            return false;
+                                                                                                                                                        if (errors === _errs125) {
+                                                                                                                                                            if ((typeof data54 == "number") && (isFinite(data54))) {
+                                                                                                                                                                if (data54 > 50000 || isNaN(data54)) {
+                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i8 + "/usageLine", schemaPath: "#/properties/authoring/properties/dependencyHints/items/properties/usageLine/maximum", keyword: "maximum", params: { comparison: "<=", limit: 50000 }, message: "must be <= 50000" }];
+                                                                                                                                                                    return false;
+                                                                                                                                                                }
+                                                                                                                                                                else {
+                                                                                                                                                                    if (data54 < 1 || isNaN(data54)) {
+                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i8 + "/usageLine", schemaPath: "#/properties/authoring/properties/dependencyHints/items/properties/usageLine/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                                                                        return false;
+                                                                                                                                                                    }
+                                                                                                                                                                }
+                                                                                                                                                            }
                                                                                                                                                         }
-                                                                                                                                                        var valid27 = _errs128 === errors;
+                                                                                                                                                        var valid27 = _errs125 === errors;
                                                                                                                                                     }
                                                                                                                                                     else {
                                                                                                                                                         var valid27 = true;
-                                                                                                                                                    }
-                                                                                                                                                    if (valid27) {
-                                                                                                                                                        if (data52.code !== undefined) {
-                                                                                                                                                            let data56 = data52.code;
-                                                                                                                                                            const _errs130 = errors;
-                                                                                                                                                            if (errors === _errs130) {
-                                                                                                                                                                if (typeof data56 === "string") {
-                                                                                                                                                                    if (func2(data56) > 64) {
-                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i8 + "/code", schemaPath: "#/properties/authoring/properties/provenance/items/properties/code/maxLength", keyword: "maxLength", params: { limit: 64 }, message: "must NOT have more than 64 characters" }];
-                                                                                                                                                                        return false;
-                                                                                                                                                                    }
-                                                                                                                                                                    else {
-                                                                                                                                                                        if (!pattern5.test(data56)) {
-                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i8 + "/code", schemaPath: "#/properties/authoring/properties/provenance/items/properties/code/pattern", keyword: "pattern", params: { pattern: "^[A-Za-z][A-Za-z0-9-]*$" }, message: "must match pattern \"" + "^[A-Za-z][A-Za-z0-9-]*$" + "\"" }];
-                                                                                                                                                                            return false;
-                                                                                                                                                                        }
-                                                                                                                                                                    }
-                                                                                                                                                                }
-                                                                                                                                                                else {
-                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i8 + "/code", schemaPath: "#/properties/authoring/properties/provenance/items/properties/code/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                    return false;
-                                                                                                                                                                }
-                                                                                                                                                            }
-                                                                                                                                                            var valid27 = _errs130 === errors;
-                                                                                                                                                        }
-                                                                                                                                                        else {
-                                                                                                                                                            var valid27 = true;
-                                                                                                                                                        }
                                                                                                                                                     }
                                                                                                                                                 }
                                                                                                                                             }
@@ -1625,11 +1560,11 @@ function validate20(data, { instancePath = "", parentData, parentDataProperty, r
                                                                                                                                     }
                                                                                                                                 }
                                                                                                                                 else {
-                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i8, schemaPath: "#/properties/authoring/properties/provenance/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints/" + i8, schemaPath: "#/properties/authoring/properties/dependencyHints/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
                                                                                                                                     return false;
                                                                                                                                 }
                                                                                                                             }
-                                                                                                                            var valid26 = _errs121 === errors;
+                                                                                                                            var valid26 = _errs118 === errors;
                                                                                                                             if (!valid26) {
                                                                                                                                 break;
                                                                                                                             }
@@ -1637,1043 +1572,789 @@ function validate20(data, { instancePath = "", parentData, parentDataProperty, r
                                                                                                                     }
                                                                                                                 }
                                                                                                                 else {
-                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/provenance", schemaPath: "#/properties/authoring/properties/provenance/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyHints", schemaPath: "#/properties/authoring/properties/dependencyHints/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
                                                                                                                     return false;
                                                                                                                 }
                                                                                                             }
-                                                                                                            var valid23 = _errs119 === errors;
+                                                                                                            var valid25 = _errs116 === errors;
                                                                                                         }
                                                                                                         else {
-                                                                                                            var valid23 = true;
+                                                                                                            var valid25 = true;
                                                                                                         }
-                                                                                                        if (valid23) {
-                                                                                                            if (data40.evidence !== undefined) {
-                                                                                                                let data57 = data40.evidence;
-                                                                                                                const _errs132 = errors;
-                                                                                                                if (errors === _errs132) {
-                                                                                                                    if (data57 && typeof data57 == "object" && !Array.isArray(data57)) {
-                                                                                                                        let missing10;
-                                                                                                                        if ((((data57.sourceDigest === undefined) && (missing10 = "sourceDigest")) || ((data57.analyzer === undefined) && (missing10 = "analyzer"))) || ((data57.environment === undefined) && (missing10 = "environment"))) {
-                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence", schemaPath: "#/properties/authoring/properties/evidence/required", keyword: "required", params: { missingProperty: missing10 }, message: "must have required property '" + missing10 + "'" }];
+                                                                                                        if (valid25) {
+                                                                                                            if (data44.provenance !== undefined) {
+                                                                                                                let data55 = data44.provenance;
+                                                                                                                const _errs127 = errors;
+                                                                                                                if (errors === _errs127) {
+                                                                                                                    if (Array.isArray(data55)) {
+                                                                                                                        if (data55.length > 10000) {
+                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/provenance", schemaPath: "#/properties/authoring/properties/provenance/maxItems", keyword: "maxItems", params: { limit: 10000 }, message: "must NOT have more than 10000 items" }];
                                                                                                                             return false;
                                                                                                                         }
                                                                                                                         else {
-                                                                                                                            const _errs134 = errors;
-                                                                                                                            for (const key9 in data57) {
-                                                                                                                                if (!((((key9 === "sourceDigest") || (key9 === "analyzer")) || (key9 === "environment")) || (key9 === "projectionLoss"))) {
-                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence", schemaPath: "#/properties/authoring/properties/evidence/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key9 }, message: "must NOT have additional properties" }];
-                                                                                                                                    return false;
-                                                                                                                                    break;
-                                                                                                                                }
-                                                                                                                            }
-                                                                                                                            if (_errs134 === errors) {
-                                                                                                                                if (data57.sourceDigest !== undefined) {
-                                                                                                                                    let data58 = data57.sourceDigest;
-                                                                                                                                    const _errs135 = errors;
-                                                                                                                                    if (errors === _errs135) {
-                                                                                                                                        if (typeof data58 === "string") {
-                                                                                                                                            if (!pattern6.test(data58)) {
-                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/sourceDigest", schemaPath: "#/properties/authoring/properties/evidence/properties/sourceDigest/pattern", keyword: "pattern", params: { pattern: "^[0-9a-f]{16}$" }, message: "must match pattern \"" + "^[0-9a-f]{16}$" + "\"" }];
-                                                                                                                                                return false;
-                                                                                                                                            }
+                                                                                                                            var valid28 = true;
+                                                                                                                            const len8 = data55.length;
+                                                                                                                            for (let i9 = 0; i9 < len8; i9++) {
+                                                                                                                                let data56 = data55[i9];
+                                                                                                                                const _errs129 = errors;
+                                                                                                                                if (errors === _errs129) {
+                                                                                                                                    if (data56 && typeof data56 == "object" && !Array.isArray(data56)) {
+                                                                                                                                        let missing10;
+                                                                                                                                        if (((((data56.before === undefined) && (missing10 = "before")) || ((data56.after === undefined) && (missing10 = "after"))) || ((data56.category === undefined) && (missing10 = "category"))) || ((data56.code === undefined) && (missing10 = "code"))) {
+                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i9, schemaPath: "#/properties/authoring/properties/provenance/items/required", keyword: "required", params: { missingProperty: missing10 }, message: "must have required property '" + missing10 + "'" }];
+                                                                                                                                            return false;
                                                                                                                                         }
                                                                                                                                         else {
-                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/sourceDigest", schemaPath: "#/properties/authoring/properties/evidence/properties/sourceDigest/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                            return false;
-                                                                                                                                        }
-                                                                                                                                    }
-                                                                                                                                    var valid28 = _errs135 === errors;
-                                                                                                                                }
-                                                                                                                                else {
-                                                                                                                                    var valid28 = true;
-                                                                                                                                }
-                                                                                                                                if (valid28) {
-                                                                                                                                    if (data57.analyzer !== undefined) {
-                                                                                                                                        let data59 = data57.analyzer;
-                                                                                                                                        const _errs137 = errors;
-                                                                                                                                        if (typeof data59 !== "string") {
-                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/analyzer", schemaPath: "#/$defs/dependencyPolicy/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                            return false;
-                                                                                                                                        }
-                                                                                                                                        if (!(((((((((((((((((((((((((((((((((((((((((((((((((((((((((data59 === "primitive-const-islands-v1") || (data59 === "scoped-primitive-dag-v2")) || (data59 === "scoped-type-members-v3")) || (data59 === "scoped-effect-analysis-v4")) || (data59 === "scoped-effect-analysis-v5")) || (data59 === "scoped-effect-analysis-v6")) || (data59 === "scoped-effect-analysis-v7")) || (data59 === "scoped-effect-analysis-v8")) || (data59 === "scoped-effect-analysis-v9")) || (data59 === "scoped-effect-analysis-v10")) || (data59 === "scoped-effect-analysis-v11")) || (data59 === "scoped-effect-analysis-v12")) || (data59 === "scoped-effect-analysis-v13")) || (data59 === "scoped-effect-analysis-v14")) || (data59 === "scoped-effect-analysis-v15")) || (data59 === "scoped-effect-analysis-v16")) || (data59 === "scoped-effect-analysis-v17")) || (data59 === "scoped-effect-analysis-v18")) || (data59 === "scoped-effect-analysis-v19")) || (data59 === "scoped-effect-analysis-v20")) || (data59 === "scoped-effect-analysis-v21")) || (data59 === "scoped-effect-analysis-v22")) || (data59 === "scoped-effect-analysis-v23")) || (data59 === "scoped-effect-analysis-v24")) || (data59 === "scoped-effect-analysis-v25")) || (data59 === "scoped-effect-analysis-v26")) || (data59 === "scoped-effect-analysis-v27")) || (data59 === "scoped-effect-analysis-v28")) || (data59 === "scoped-effect-analysis-v29")) || (data59 === "scoped-effect-analysis-v30")) || (data59 === "scoped-effect-analysis-v31")) || (data59 === "scoped-effect-analysis-v32")) || (data59 === "scoped-effect-analysis-v33")) || (data59 === "scoped-effect-analysis-v34")) || (data59 === "scoped-effect-analysis-v35")) || (data59 === "scoped-effect-analysis-v36")) || (data59 === "scoped-effect-analysis-v37")) || (data59 === "scoped-effect-analysis-v38")) || (data59 === "scoped-effect-analysis-v39")) || (data59 === "scoped-effect-analysis-v40")) || (data59 === "scoped-effect-analysis-v41")) || (data59 === "scoped-effect-analysis-v42")) || (data59 === "scoped-effect-analysis-v43")) || (data59 === "scoped-effect-analysis-v44")) || (data59 === "scoped-effect-analysis-v45")) || (data59 === "scoped-effect-analysis-v46")) || (data59 === "scoped-effect-analysis-v47")) || (data59 === "scoped-effect-analysis-v48")) || (data59 === "scoped-effect-analysis-v49")) || (data59 === "scoped-effect-analysis-v50")) || (data59 === "scoped-effect-analysis-v51")) || (data59 === "scoped-effect-analysis-v52")) || (data59 === "scoped-effect-analysis-v53")) || (data59 === "scoped-effect-analysis-v54")) || (data59 === "scoped-effect-analysis-v55")) || (data59 === "scoped-effect-analysis-v56")) || (data59 === "scoped-effect-analysis-v57"))) {
-                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/analyzer", schemaPath: "#/$defs/dependencyPolicy/enum", keyword: "enum", params: { allowedValues: schema36.enum }, message: "must be equal to one of the allowed values" }];
-                                                                                                                                            return false;
-                                                                                                                                        }
-                                                                                                                                        var valid28 = _errs137 === errors;
-                                                                                                                                    }
-                                                                                                                                    else {
-                                                                                                                                        var valid28 = true;
-                                                                                                                                    }
-                                                                                                                                    if (valid28) {
-                                                                                                                                        if (data57.environment !== undefined) {
-                                                                                                                                            let data60 = data57.environment;
-                                                                                                                                            const _errs140 = errors;
-                                                                                                                                            if (errors === _errs140) {
-                                                                                                                                                if (data60 && typeof data60 == "object" && !Array.isArray(data60)) {
-                                                                                                                                                    const _errs142 = errors;
-                                                                                                                                                    for (const key10 in data60) {
-                                                                                                                                                        if (!(((((((key10 === "typescript") || (key10 === "importEmit")) || (key10 === "sourceKind")) || (key10 === "classFields")) || (key10 === "inputs")) || (key10 === "keyOrder")) || (key10 === "inputsOverride"))) {
-                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key10 }, message: "must NOT have additional properties" }];
-                                                                                                                                                            return false;
-                                                                                                                                                            break;
-                                                                                                                                                        }
-                                                                                                                                                    }
-                                                                                                                                                    if (_errs142 === errors) {
-                                                                                                                                                        if (data60.typescript !== undefined) {
-                                                                                                                                                            let data61 = data60.typescript;
-                                                                                                                                                            const _errs143 = errors;
-                                                                                                                                                            if (errors === _errs143) {
-                                                                                                                                                                if (typeof data61 === "string") {
-                                                                                                                                                                    if (!pattern7.test(data61)) {
-                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/typescript", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/typescript/pattern", keyword: "pattern", params: { pattern: "^[0-9A-Za-z.+-]{1,40}$" }, message: "must match pattern \"" + "^[0-9A-Za-z.+-]{1,40}$" + "\"" }];
-                                                                                                                                                                        return false;
-                                                                                                                                                                    }
-                                                                                                                                                                }
-                                                                                                                                                                else {
-                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/typescript", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/typescript/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                    return false;
-                                                                                                                                                                }
-                                                                                                                                                            }
-                                                                                                                                                            var valid30 = _errs143 === errors;
-                                                                                                                                                        }
-                                                                                                                                                        else {
-                                                                                                                                                            var valid30 = true;
-                                                                                                                                                        }
-                                                                                                                                                        if (valid30) {
-                                                                                                                                                            if (data60.importEmit !== undefined) {
-                                                                                                                                                                let data62 = data60.importEmit;
-                                                                                                                                                                const _errs145 = errors;
-                                                                                                                                                                if (typeof data62 !== "string") {
-                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/importEmit", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/importEmit/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                    return false;
-                                                                                                                                                                }
-                                                                                                                                                                if (!((data62 === "verbatim") || (data62 === "elide-unused"))) {
-                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/importEmit", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/importEmit/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.evidence.properties.environment.properties.importEmit.enum }, message: "must be equal to one of the allowed values" }];
-                                                                                                                                                                    return false;
-                                                                                                                                                                }
-                                                                                                                                                                var valid30 = _errs145 === errors;
-                                                                                                                                                            }
-                                                                                                                                                            else {
-                                                                                                                                                                var valid30 = true;
-                                                                                                                                                            }
-                                                                                                                                                            if (valid30) {
-                                                                                                                                                                if (data60.sourceKind !== undefined) {
-                                                                                                                                                                    let data63 = data60.sourceKind;
-                                                                                                                                                                    const _errs147 = errors;
-                                                                                                                                                                    if (typeof data63 !== "string") {
-                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/sourceKind", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/sourceKind/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                        return false;
-                                                                                                                                                                    }
-                                                                                                                                                                    if (!((data63 === "module") || (data63 === "script"))) {
-                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/sourceKind", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/sourceKind/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.evidence.properties.environment.properties.sourceKind.enum }, message: "must be equal to one of the allowed values" }];
-                                                                                                                                                                        return false;
-                                                                                                                                                                    }
-                                                                                                                                                                    var valid30 = _errs147 === errors;
-                                                                                                                                                                }
-                                                                                                                                                                else {
-                                                                                                                                                                    var valid30 = true;
-                                                                                                                                                                }
-                                                                                                                                                                if (valid30) {
-                                                                                                                                                                    if (data60.classFields !== undefined) {
-                                                                                                                                                                        let data64 = data60.classFields;
-                                                                                                                                                                        const _errs149 = errors;
-                                                                                                                                                                        if (typeof data64 !== "string") {
-                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/classFields", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/classFields/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                            return false;
-                                                                                                                                                                        }
-                                                                                                                                                                        if (!((data64 === "either") || (data64 === "define"))) {
-                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/classFields", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/classFields/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.evidence.properties.environment.properties.classFields.enum }, message: "must be equal to one of the allowed values" }];
-                                                                                                                                                                            return false;
-                                                                                                                                                                        }
-                                                                                                                                                                        var valid30 = _errs149 === errors;
-                                                                                                                                                                    }
-                                                                                                                                                                    else {
-                                                                                                                                                                        var valid30 = true;
-                                                                                                                                                                    }
-                                                                                                                                                                    if (valid30) {
-                                                                                                                                                                        if (data60.inputs !== undefined) {
-                                                                                                                                                                            let data65 = data60.inputs;
-                                                                                                                                                                            const _errs151 = errors;
-                                                                                                                                                                            if (typeof data65 !== "string") {
-                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputs", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputs/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                                return false;
-                                                                                                                                                                            }
-                                                                                                                                                                            if (!((data65 === "any") || (data65 === "valid"))) {
-                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputs", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputs/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.evidence.properties.environment.properties.inputs.enum }, message: "must be equal to one of the allowed values" }];
-                                                                                                                                                                                return false;
-                                                                                                                                                                            }
-                                                                                                                                                                            var valid30 = _errs151 === errors;
-                                                                                                                                                                        }
-                                                                                                                                                                        else {
-                                                                                                                                                                            var valid30 = true;
-                                                                                                                                                                        }
-                                                                                                                                                                        if (valid30) {
-                                                                                                                                                                            if (data60.keyOrder !== undefined) {
-                                                                                                                                                                                let data66 = data60.keyOrder;
-                                                                                                                                                                                const _errs153 = errors;
-                                                                                                                                                                                if (typeof data66 !== "string") {
-                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/keyOrder", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/keyOrder/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                                    return false;
-                                                                                                                                                                                }
-                                                                                                                                                                                if (!((data66 === "observed") || (data66 === "ignored"))) {
-                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/keyOrder", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/keyOrder/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.evidence.properties.environment.properties.keyOrder.enum }, message: "must be equal to one of the allowed values" }];
-                                                                                                                                                                                    return false;
-                                                                                                                                                                                }
-                                                                                                                                                                                var valid30 = _errs153 === errors;
-                                                                                                                                                                            }
-                                                                                                                                                                            else {
-                                                                                                                                                                                var valid30 = true;
-                                                                                                                                                                            }
-                                                                                                                                                                            if (valid30) {
-                                                                                                                                                                                if (data60.inputsOverride !== undefined) {
-                                                                                                                                                                                    let data67 = data60.inputsOverride;
-                                                                                                                                                                                    const _errs155 = errors;
-                                                                                                                                                                                    if (errors === _errs155) {
-                                                                                                                                                                                        if (data67 && typeof data67 == "object" && !Array.isArray(data67)) {
-                                                                                                                                                                                            let missing11;
-                                                                                                                                                                                            if (((data67.effective === undefined) && (missing11 = "effective")) || ((data67.reason === undefined) && (missing11 = "reason"))) {
-                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/required", keyword: "required", params: { missingProperty: missing11 }, message: "must have required property '" + missing11 + "'" }];
-                                                                                                                                                                                                return false;
-                                                                                                                                                                                            }
-                                                                                                                                                                                            else {
-                                                                                                                                                                                                const _errs157 = errors;
-                                                                                                                                                                                                for (const key11 in data67) {
-                                                                                                                                                                                                    if (!((((key11 === "effective") || (key11 === "reason")) || (key11 === "line")) || (key11 === "text"))) {
-                                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key11 }, message: "must NOT have additional properties" }];
-                                                                                                                                                                                                        return false;
-                                                                                                                                                                                                        break;
-                                                                                                                                                                                                    }
-                                                                                                                                                                                                }
-                                                                                                                                                                                                if (_errs157 === errors) {
-                                                                                                                                                                                                    if (data67.effective !== undefined) {
-                                                                                                                                                                                                        let data68 = data67.effective;
-                                                                                                                                                                                                        const _errs158 = errors;
-                                                                                                                                                                                                        if (typeof data68 !== "string") {
-                                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride/effective", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/properties/effective/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                                                            return false;
-                                                                                                                                                                                                        }
-                                                                                                                                                                                                        if (!(data68 === "any")) {
-                                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride/effective", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/properties/effective/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.evidence.properties.environment.properties.inputsOverride.properties.effective.enum }, message: "must be equal to one of the allowed values" }];
-                                                                                                                                                                                                            return false;
-                                                                                                                                                                                                        }
-                                                                                                                                                                                                        var valid31 = _errs158 === errors;
-                                                                                                                                                                                                    }
-                                                                                                                                                                                                    else {
-                                                                                                                                                                                                        var valid31 = true;
-                                                                                                                                                                                                    }
-                                                                                                                                                                                                    if (valid31) {
-                                                                                                                                                                                                        if (data67.reason !== undefined) {
-                                                                                                                                                                                                            let data69 = data67.reason;
-                                                                                                                                                                                                            const _errs160 = errors;
-                                                                                                                                                                                                            if (typeof data69 !== "string") {
-                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride/reason", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/properties/reason/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                                                                return false;
-                                                                                                                                                                                                            }
-                                                                                                                                                                                                            if (!(((data69 === "hook") || (data69 === "computed-accessor")) || (data69 === "computed-name"))) {
-                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride/reason", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/properties/reason/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.evidence.properties.environment.properties.inputsOverride.properties.reason.enum }, message: "must be equal to one of the allowed values" }];
-                                                                                                                                                                                                                return false;
-                                                                                                                                                                                                            }
-                                                                                                                                                                                                            var valid31 = _errs160 === errors;
-                                                                                                                                                                                                        }
-                                                                                                                                                                                                        else {
-                                                                                                                                                                                                            var valid31 = true;
-                                                                                                                                                                                                        }
-                                                                                                                                                                                                        if (valid31) {
-                                                                                                                                                                                                            if (data67.line !== undefined) {
-                                                                                                                                                                                                                let data70 = data67.line;
-                                                                                                                                                                                                                const _errs162 = errors;
-                                                                                                                                                                                                                if (!(((typeof data70 == "number") && (!(data70 % 1) && !isNaN(data70))) && (isFinite(data70)))) {
-                                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride/line", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/properties/line/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                                                                                                                                    return false;
-                                                                                                                                                                                                                }
-                                                                                                                                                                                                                if (errors === _errs162) {
-                                                                                                                                                                                                                    if ((typeof data70 == "number") && (isFinite(data70))) {
-                                                                                                                                                                                                                        if (data70 > 100000 || isNaN(data70)) {
-                                                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride/line", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/properties/line/maximum", keyword: "maximum", params: { comparison: "<=", limit: 100000 }, message: "must be <= 100000" }];
-                                                                                                                                                                                                                            return false;
-                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                        else {
-                                                                                                                                                                                                                            if (data70 < 1 || isNaN(data70)) {
-                                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride/line", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/properties/line/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
-                                                                                                                                                                                                                                return false;
-                                                                                                                                                                                                                            }
-                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                }
-                                                                                                                                                                                                                var valid31 = _errs162 === errors;
-                                                                                                                                                                                                            }
-                                                                                                                                                                                                            else {
-                                                                                                                                                                                                                var valid31 = true;
-                                                                                                                                                                                                            }
-                                                                                                                                                                                                            if (valid31) {
-                                                                                                                                                                                                                if (data67.text !== undefined) {
-                                                                                                                                                                                                                    let data71 = data67.text;
-                                                                                                                                                                                                                    const _errs164 = errors;
-                                                                                                                                                                                                                    if (errors === _errs164) {
-                                                                                                                                                                                                                        if (typeof data71 === "string") {
-                                                                                                                                                                                                                            if (func2(data71) > 40) {
-                                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride/text", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/properties/text/maxLength", keyword: "maxLength", params: { limit: 40 }, message: "must NOT have more than 40 characters" }];
-                                                                                                                                                                                                                                return false;
-                                                                                                                                                                                                                            }
-                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                        else {
-                                                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride/text", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/properties/text/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                                                                            return false;
-                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                    var valid31 = _errs164 === errors;
-                                                                                                                                                                                                                }
-                                                                                                                                                                                                                else {
-                                                                                                                                                                                                                    var valid31 = true;
-                                                                                                                                                                                                                }
-                                                                                                                                                                                                            }
-                                                                                                                                                                                                        }
-                                                                                                                                                                                                    }
-                                                                                                                                                                                                }
-                                                                                                                                                                                            }
-                                                                                                                                                                                        }
-                                                                                                                                                                                        else {
-                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
-                                                                                                                                                                                            return false;
-                                                                                                                                                                                        }
-                                                                                                                                                                                    }
-                                                                                                                                                                                    var valid30 = _errs155 === errors;
-                                                                                                                                                                                }
-                                                                                                                                                                                else {
-                                                                                                                                                                                    var valid30 = true;
-                                                                                                                                                                                }
-                                                                                                                                                                            }
-                                                                                                                                                                        }
-                                                                                                                                                                    }
-                                                                                                                                                                }
-                                                                                                                                                            }
-                                                                                                                                                        }
-                                                                                                                                                    }
-                                                                                                                                                }
-                                                                                                                                                else {
-                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                                                                            const _errs131 = errors;
+                                                                                                                                            for (const key9 in data56) {
+                                                                                                                                                if (!((((key9 === "before") || (key9 === "after")) || (key9 === "category")) || (key9 === "code"))) {
+                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i9, schemaPath: "#/properties/authoring/properties/provenance/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key9 }, message: "must NOT have additional properties" }];
                                                                                                                                                     return false;
+                                                                                                                                                    break;
                                                                                                                                                 }
                                                                                                                                             }
-                                                                                                                                            var valid28 = _errs140 === errors;
-                                                                                                                                        }
-                                                                                                                                        else {
-                                                                                                                                            var valid28 = true;
-                                                                                                                                        }
-                                                                                                                                        if (valid28) {
-                                                                                                                                            if (data57.projectionLoss !== undefined) {
-                                                                                                                                                let data72 = data57.projectionLoss;
-                                                                                                                                                const _errs166 = errors;
-                                                                                                                                                if (errors === _errs166) {
-                                                                                                                                                    if (data72 && typeof data72 == "object" && !Array.isArray(data72)) {
-                                                                                                                                                        let missing12;
-                                                                                                                                                        if (((data72.pairs === undefined) && (missing12 = "pairs")) || ((data72.examples === undefined) && (missing12 = "examples"))) {
-                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss", schemaPath: "#/properties/authoring/properties/evidence/properties/projectionLoss/required", keyword: "required", params: { missingProperty: missing12 }, message: "must have required property '" + missing12 + "'" }];
-                                                                                                                                                            return false;
-                                                                                                                                                        }
-                                                                                                                                                        else {
-                                                                                                                                                            const _errs168 = errors;
-                                                                                                                                                            for (const key12 in data72) {
-                                                                                                                                                                if (!((key12 === "pairs") || (key12 === "examples"))) {
-                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss", schemaPath: "#/properties/authoring/properties/evidence/properties/projectionLoss/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key12 }, message: "must NOT have additional properties" }];
-                                                                                                                                                                    return false;
-                                                                                                                                                                    break;
-                                                                                                                                                                }
-                                                                                                                                                            }
-                                                                                                                                                            if (_errs168 === errors) {
-                                                                                                                                                                if (data72.pairs !== undefined) {
-                                                                                                                                                                    let data73 = data72.pairs;
-                                                                                                                                                                    const _errs169 = errors;
-                                                                                                                                                                    if (!(((typeof data73 == "number") && (!(data73 % 1) && !isNaN(data73))) && (isFinite(data73)))) {
-                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/pairs", schemaPath: "#/properties/authoring/properties/evidence/properties/projectionLoss/properties/pairs/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                                                                                        return false;
-                                                                                                                                                                    }
-                                                                                                                                                                    if (errors === _errs169) {
-                                                                                                                                                                        if ((typeof data73 == "number") && (isFinite(data73))) {
-                                                                                                                                                                            if (data73 > 125000 || isNaN(data73)) {
-                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/pairs", schemaPath: "#/properties/authoring/properties/evidence/properties/projectionLoss/properties/pairs/maximum", keyword: "maximum", params: { comparison: "<=", limit: 125000 }, message: "must be <= 125000" }];
-                                                                                                                                                                                return false;
-                                                                                                                                                                            }
-                                                                                                                                                                            else {
-                                                                                                                                                                                if (data73 < 0 || isNaN(data73)) {
-                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/pairs", schemaPath: "#/properties/authoring/properties/evidence/properties/projectionLoss/properties/pairs/minimum", keyword: "minimum", params: { comparison: ">=", limit: 0 }, message: "must be >= 0" }];
-                                                                                                                                                                                    return false;
-                                                                                                                                                                                }
-                                                                                                                                                                            }
-                                                                                                                                                                        }
-                                                                                                                                                                    }
-                                                                                                                                                                    var valid32 = _errs169 === errors;
-                                                                                                                                                                }
-                                                                                                                                                                else {
-                                                                                                                                                                    var valid32 = true;
-                                                                                                                                                                }
-                                                                                                                                                                if (valid32) {
-                                                                                                                                                                    if (data72.examples !== undefined) {
-                                                                                                                                                                        let data74 = data72.examples;
-                                                                                                                                                                        const _errs171 = errors;
-                                                                                                                                                                        if (errors === _errs171) {
-                                                                                                                                                                            if (Array.isArray(data74)) {
-                                                                                                                                                                                if (data74.length > 20) {
-                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples", schemaPath: "#/properties/authoring/properties/evidence/properties/projectionLoss/properties/examples/maxItems", keyword: "maxItems", params: { limit: 20 }, message: "must NOT have more than 20 items" }];
-                                                                                                                                                                                    return false;
-                                                                                                                                                                                }
-                                                                                                                                                                                else {
-                                                                                                                                                                                    var valid33 = true;
-                                                                                                                                                                                    const len8 = data74.length;
-                                                                                                                                                                                    for (let i9 = 0; i9 < len8; i9++) {
-                                                                                                                                                                                        let data75 = data74[i9];
-                                                                                                                                                                                        const _errs173 = errors;
-                                                                                                                                                                                        const _errs174 = errors;
-                                                                                                                                                                                        if (errors === _errs174) {
-                                                                                                                                                                                            if (data75 && typeof data75 == "object" && !Array.isArray(data75)) {
-                                                                                                                                                                                                let missing13;
-                                                                                                                                                                                                if (((data75.before === undefined) && (missing13 = "before")) || ((data75.after === undefined) && (missing13 = "after"))) {
-                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples/" + i9, schemaPath: "#/$defs/edge/required", keyword: "required", params: { missingProperty: missing13 }, message: "must have required property '" + missing13 + "'" }];
-                                                                                                                                                                                                    return false;
-                                                                                                                                                                                                }
-                                                                                                                                                                                                else {
-                                                                                                                                                                                                    const _errs176 = errors;
-                                                                                                                                                                                                    for (const key13 in data75) {
-                                                                                                                                                                                                        if (!((key13 === "before") || (key13 === "after"))) {
-                                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples/" + i9, schemaPath: "#/$defs/edge/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key13 }, message: "must NOT have additional properties" }];
-                                                                                                                                                                                                            return false;
-                                                                                                                                                                                                            break;
-                                                                                                                                                                                                        }
-                                                                                                                                                                                                    }
-                                                                                                                                                                                                    if (_errs176 === errors) {
-                                                                                                                                                                                                        if (data75.before !== undefined) {
-                                                                                                                                                                                                            let data76 = data75.before;
-                                                                                                                                                                                                            const _errs177 = errors;
-                                                                                                                                                                                                            if (!(((typeof data76 == "number") && (!(data76 % 1) && !isNaN(data76))) && (isFinite(data76)))) {
-                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples/" + i9 + "/before", schemaPath: "#/$defs/edge/properties/before/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                                                                                                                                return false;
-                                                                                                                                                                                                            }
-                                                                                                                                                                                                            if (errors === _errs177) {
-                                                                                                                                                                                                                if ((typeof data76 == "number") && (isFinite(data76))) {
-                                                                                                                                                                                                                    if (data76 > 9007199254740991 || isNaN(data76)) {
-                                                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples/" + i9 + "/before", schemaPath: "#/$defs/edge/properties/before/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
-                                                                                                                                                                                                                        return false;
-                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                    else {
-                                                                                                                                                                                                                        if (data76 < 1 || isNaN(data76)) {
-                                                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples/" + i9 + "/before", schemaPath: "#/$defs/edge/properties/before/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
-                                                                                                                                                                                                                            return false;
-                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                }
-                                                                                                                                                                                                            }
-                                                                                                                                                                                                            var valid35 = _errs177 === errors;
-                                                                                                                                                                                                        }
-                                                                                                                                                                                                        else {
-                                                                                                                                                                                                            var valid35 = true;
-                                                                                                                                                                                                        }
-                                                                                                                                                                                                        if (valid35) {
-                                                                                                                                                                                                            if (data75.after !== undefined) {
-                                                                                                                                                                                                                let data77 = data75.after;
-                                                                                                                                                                                                                const _errs179 = errors;
-                                                                                                                                                                                                                if (!(((typeof data77 == "number") && (!(data77 % 1) && !isNaN(data77))) && (isFinite(data77)))) {
-                                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples/" + i9 + "/after", schemaPath: "#/$defs/edge/properties/after/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                                                                                                                                    return false;
-                                                                                                                                                                                                                }
-                                                                                                                                                                                                                if (errors === _errs179) {
-                                                                                                                                                                                                                    if ((typeof data77 == "number") && (isFinite(data77))) {
-                                                                                                                                                                                                                        if (data77 > 9007199254740991 || isNaN(data77)) {
-                                                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples/" + i9 + "/after", schemaPath: "#/$defs/edge/properties/after/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
-                                                                                                                                                                                                                            return false;
-                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                        else {
-                                                                                                                                                                                                                            if (data77 < 1 || isNaN(data77)) {
-                                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples/" + i9 + "/after", schemaPath: "#/$defs/edge/properties/after/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
-                                                                                                                                                                                                                                return false;
-                                                                                                                                                                                                                            }
-                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                }
-                                                                                                                                                                                                                var valid35 = _errs179 === errors;
-                                                                                                                                                                                                            }
-                                                                                                                                                                                                            else {
-                                                                                                                                                                                                                var valid35 = true;
-                                                                                                                                                                                                            }
-                                                                                                                                                                                                        }
-                                                                                                                                                                                                    }
-                                                                                                                                                                                                }
-                                                                                                                                                                                            }
-                                                                                                                                                                                            else {
-                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples/" + i9, schemaPath: "#/$defs/edge/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
-                                                                                                                                                                                                return false;
-                                                                                                                                                                                            }
-                                                                                                                                                                                        }
-                                                                                                                                                                                        var valid33 = _errs173 === errors;
-                                                                                                                                                                                        if (!valid33) {
-                                                                                                                                                                                            break;
-                                                                                                                                                                                        }
-                                                                                                                                                                                    }
-                                                                                                                                                                                }
-                                                                                                                                                                            }
-                                                                                                                                                                            else {
-                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples", schemaPath: "#/properties/authoring/properties/evidence/properties/projectionLoss/properties/examples/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
-                                                                                                                                                                                return false;
-                                                                                                                                                                            }
-                                                                                                                                                                        }
-                                                                                                                                                                        var valid32 = _errs171 === errors;
-                                                                                                                                                                    }
-                                                                                                                                                                    else {
-                                                                                                                                                                        var valid32 = true;
-                                                                                                                                                                    }
-                                                                                                                                                                }
-                                                                                                                                                            }
-                                                                                                                                                        }
-                                                                                                                                                    }
-                                                                                                                                                    else {
-                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss", schemaPath: "#/properties/authoring/properties/evidence/properties/projectionLoss/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                                                                            if (_errs131 === errors) {
+                                                                                                                                                if (data56.before !== undefined) {
+                                                                                                                                                    let data57 = data56.before;
+                                                                                                                                                    const _errs132 = errors;
+                                                                                                                                                    if (!(((typeof data57 == "number") && (!(data57 % 1) && !isNaN(data57))) && (isFinite(data57)))) {
+                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i9 + "/before", schemaPath: "#/properties/authoring/properties/provenance/items/properties/before/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
                                                                                                                                                         return false;
                                                                                                                                                     }
+                                                                                                                                                    if (errors === _errs132) {
+                                                                                                                                                        if ((typeof data57 == "number") && (isFinite(data57))) {
+                                                                                                                                                            if (data57 > 9007199254740991 || isNaN(data57)) {
+                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i9 + "/before", schemaPath: "#/properties/authoring/properties/provenance/items/properties/before/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                                                                                return false;
+                                                                                                                                                            }
+                                                                                                                                                            else {
+                                                                                                                                                                if (data57 < 1 || isNaN(data57)) {
+                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i9 + "/before", schemaPath: "#/properties/authoring/properties/provenance/items/properties/before/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                                                                    return false;
+                                                                                                                                                                }
+                                                                                                                                                            }
+                                                                                                                                                        }
+                                                                                                                                                    }
+                                                                                                                                                    var valid29 = _errs132 === errors;
                                                                                                                                                 }
-                                                                                                                                                var valid28 = _errs166 === errors;
-                                                                                                                                            }
-                                                                                                                                            else {
-                                                                                                                                                var valid28 = true;
+                                                                                                                                                else {
+                                                                                                                                                    var valid29 = true;
+                                                                                                                                                }
+                                                                                                                                                if (valid29) {
+                                                                                                                                                    if (data56.after !== undefined) {
+                                                                                                                                                        let data58 = data56.after;
+                                                                                                                                                        const _errs134 = errors;
+                                                                                                                                                        if (!(((typeof data58 == "number") && (!(data58 % 1) && !isNaN(data58))) && (isFinite(data58)))) {
+                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i9 + "/after", schemaPath: "#/properties/authoring/properties/provenance/items/properties/after/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                                                                            return false;
+                                                                                                                                                        }
+                                                                                                                                                        if (errors === _errs134) {
+                                                                                                                                                            if ((typeof data58 == "number") && (isFinite(data58))) {
+                                                                                                                                                                if (data58 > 9007199254740991 || isNaN(data58)) {
+                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i9 + "/after", schemaPath: "#/properties/authoring/properties/provenance/items/properties/after/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                                                                                    return false;
+                                                                                                                                                                }
+                                                                                                                                                                else {
+                                                                                                                                                                    if (data58 < 1 || isNaN(data58)) {
+                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i9 + "/after", schemaPath: "#/properties/authoring/properties/provenance/items/properties/after/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                                                                        return false;
+                                                                                                                                                                    }
+                                                                                                                                                                }
+                                                                                                                                                            }
+                                                                                                                                                        }
+                                                                                                                                                        var valid29 = _errs134 === errors;
+                                                                                                                                                    }
+                                                                                                                                                    else {
+                                                                                                                                                        var valid29 = true;
+                                                                                                                                                    }
+                                                                                                                                                    if (valid29) {
+                                                                                                                                                        if (data56.category !== undefined) {
+                                                                                                                                                            let data59 = data56.category;
+                                                                                                                                                            const _errs136 = errors;
+                                                                                                                                                            if (typeof data59 !== "string") {
+                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i9 + "/category", schemaPath: "#/properties/authoring/properties/provenance/items/properties/category/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                return false;
+                                                                                                                                                            }
+                                                                                                                                                            if (!((((((((data59 === "data") || (data59 === "effect")) || (data59 === "structure")) || (data59 === "unit")) || (data59 === "policy")) || (data59 === "author")) || (data59 === "conservative")) || (data59 === "unknown"))) {
+                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i9 + "/category", schemaPath: "#/properties/authoring/properties/provenance/items/properties/category/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.provenance.items.properties.category.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                                                                                return false;
+                                                                                                                                                            }
+                                                                                                                                                            var valid29 = _errs136 === errors;
+                                                                                                                                                        }
+                                                                                                                                                        else {
+                                                                                                                                                            var valid29 = true;
+                                                                                                                                                        }
+                                                                                                                                                        if (valid29) {
+                                                                                                                                                            if (data56.code !== undefined) {
+                                                                                                                                                                let data60 = data56.code;
+                                                                                                                                                                const _errs138 = errors;
+                                                                                                                                                                if (errors === _errs138) {
+                                                                                                                                                                    if (typeof data60 === "string") {
+                                                                                                                                                                        if (func2(data60) > 64) {
+                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i9 + "/code", schemaPath: "#/properties/authoring/properties/provenance/items/properties/code/maxLength", keyword: "maxLength", params: { limit: 64 }, message: "must NOT have more than 64 characters" }];
+                                                                                                                                                                            return false;
+                                                                                                                                                                        }
+                                                                                                                                                                        else {
+                                                                                                                                                                            if (!pattern6.test(data60)) {
+                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i9 + "/code", schemaPath: "#/properties/authoring/properties/provenance/items/properties/code/pattern", keyword: "pattern", params: { pattern: "^[A-Za-z][A-Za-z0-9-]*$" }, message: "must match pattern \"" + "^[A-Za-z][A-Za-z0-9-]*$" + "\"" }];
+                                                                                                                                                                                return false;
+                                                                                                                                                                            }
+                                                                                                                                                                        }
+                                                                                                                                                                    }
+                                                                                                                                                                    else {
+                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i9 + "/code", schemaPath: "#/properties/authoring/properties/provenance/items/properties/code/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                        return false;
+                                                                                                                                                                    }
+                                                                                                                                                                }
+                                                                                                                                                                var valid29 = _errs138 === errors;
+                                                                                                                                                            }
+                                                                                                                                                            else {
+                                                                                                                                                                var valid29 = true;
+                                                                                                                                                            }
+                                                                                                                                                        }
+                                                                                                                                                    }
+                                                                                                                                                }
                                                                                                                                             }
                                                                                                                                         }
                                                                                                                                     }
+                                                                                                                                    else {
+                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/provenance/" + i9, schemaPath: "#/properties/authoring/properties/provenance/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                                                                        return false;
+                                                                                                                                    }
+                                                                                                                                }
+                                                                                                                                var valid28 = _errs129 === errors;
+                                                                                                                                if (!valid28) {
+                                                                                                                                    break;
                                                                                                                                 }
                                                                                                                             }
                                                                                                                         }
                                                                                                                     }
                                                                                                                     else {
-                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence", schemaPath: "#/properties/authoring/properties/evidence/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/provenance", schemaPath: "#/properties/authoring/properties/provenance/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
                                                                                                                         return false;
                                                                                                                     }
                                                                                                                 }
-                                                                                                                var valid23 = _errs132 === errors;
+                                                                                                                var valid25 = _errs127 === errors;
                                                                                                             }
                                                                                                             else {
-                                                                                                                var valid23 = true;
+                                                                                                                var valid25 = true;
                                                                                                             }
-                                                                                                            if (valid23) {
-                                                                                                                if (data40.ruleNotes !== undefined) {
-                                                                                                                    let data78 = data40.ruleNotes;
-                                                                                                                    const _errs181 = errors;
-                                                                                                                    if (errors === _errs181) {
-                                                                                                                        if (Array.isArray(data78)) {
-                                                                                                                            if (data78.length > 1000) {
-                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes", schemaPath: "#/properties/authoring/properties/ruleNotes/maxItems", keyword: "maxItems", params: { limit: 1000 }, message: "must NOT have more than 1000 items" }];
+                                                                                                            if (valid25) {
+                                                                                                                if (data44.evidence !== undefined) {
+                                                                                                                    let data61 = data44.evidence;
+                                                                                                                    const _errs140 = errors;
+                                                                                                                    if (errors === _errs140) {
+                                                                                                                        if (data61 && typeof data61 == "object" && !Array.isArray(data61)) {
+                                                                                                                            let missing11;
+                                                                                                                            if ((((data61.sourceDigest === undefined) && (missing11 = "sourceDigest")) || ((data61.analyzer === undefined) && (missing11 = "analyzer"))) || ((data61.environment === undefined) && (missing11 = "environment"))) {
+                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence", schemaPath: "#/properties/authoring/properties/evidence/required", keyword: "required", params: { missingProperty: missing11 }, message: "must have required property '" + missing11 + "'" }];
                                                                                                                                 return false;
                                                                                                                             }
                                                                                                                             else {
-                                                                                                                                var valid36 = true;
-                                                                                                                                const len9 = data78.length;
-                                                                                                                                for (let i10 = 0; i10 < len9; i10++) {
-                                                                                                                                    let data79 = data78[i10];
-                                                                                                                                    const _errs183 = errors;
-                                                                                                                                    if (errors === _errs183) {
-                                                                                                                                        if (data79 && typeof data79 == "object" && !Array.isArray(data79)) {
-                                                                                                                                            let missing14;
-                                                                                                                                            if ((((data79.before === undefined) && (missing14 = "before")) || ((data79.after === undefined) && (missing14 = "after"))) || ((data79.note === undefined) && (missing14 = "note"))) {
-                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10, schemaPath: "#/properties/authoring/properties/ruleNotes/items/required", keyword: "required", params: { missingProperty: missing14 }, message: "must have required property '" + missing14 + "'" }];
-                                                                                                                                                return false;
+                                                                                                                                const _errs142 = errors;
+                                                                                                                                for (const key10 in data61) {
+                                                                                                                                    if (!((((key10 === "sourceDigest") || (key10 === "analyzer")) || (key10 === "environment")) || (key10 === "projectionLoss"))) {
+                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence", schemaPath: "#/properties/authoring/properties/evidence/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key10 }, message: "must NOT have additional properties" }];
+                                                                                                                                        return false;
+                                                                                                                                        break;
+                                                                                                                                    }
+                                                                                                                                }
+                                                                                                                                if (_errs142 === errors) {
+                                                                                                                                    if (data61.sourceDigest !== undefined) {
+                                                                                                                                        let data62 = data61.sourceDigest;
+                                                                                                                                        const _errs143 = errors;
+                                                                                                                                        if (errors === _errs143) {
+                                                                                                                                            if (typeof data62 === "string") {
+                                                                                                                                                if (!pattern7.test(data62)) {
+                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/sourceDigest", schemaPath: "#/properties/authoring/properties/evidence/properties/sourceDigest/pattern", keyword: "pattern", params: { pattern: "^[0-9a-f]{16}$" }, message: "must match pattern \"" + "^[0-9a-f]{16}$" + "\"" }];
+                                                                                                                                                    return false;
+                                                                                                                                                }
                                                                                                                                             }
                                                                                                                                             else {
-                                                                                                                                                const _errs185 = errors;
-                                                                                                                                                for (const key14 in data79) {
-                                                                                                                                                    if (!(((key14 === "before") || (key14 === "after")) || (key14 === "note"))) {
-                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10, schemaPath: "#/properties/authoring/properties/ruleNotes/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key14 }, message: "must NOT have additional properties" }];
-                                                                                                                                                        return false;
-                                                                                                                                                        break;
-                                                                                                                                                    }
-                                                                                                                                                }
-                                                                                                                                                if (_errs185 === errors) {
-                                                                                                                                                    if (data79.before !== undefined) {
-                                                                                                                                                        let data80 = data79.before;
-                                                                                                                                                        const _errs186 = errors;
-                                                                                                                                                        if (!(((typeof data80 == "number") && (!(data80 % 1) && !isNaN(data80))) && (isFinite(data80)))) {
-                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10 + "/before", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/before/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
-                                                                                                                                                            return false;
-                                                                                                                                                        }
-                                                                                                                                                        if (errors === _errs186) {
-                                                                                                                                                            if ((typeof data80 == "number") && (isFinite(data80))) {
-                                                                                                                                                                if (data80 > 9007199254740991 || isNaN(data80)) {
-                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10 + "/before", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/before/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
-                                                                                                                                                                    return false;
-                                                                                                                                                                }
-                                                                                                                                                                else {
-                                                                                                                                                                    if (data80 < 1 || isNaN(data80)) {
-                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10 + "/before", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/before/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
-                                                                                                                                                                        return false;
-                                                                                                                                                                    }
-                                                                                                                                                                }
-                                                                                                                                                            }
-                                                                                                                                                        }
-                                                                                                                                                        var valid37 = _errs186 === errors;
-                                                                                                                                                    }
-                                                                                                                                                    else {
-                                                                                                                                                        var valid37 = true;
-                                                                                                                                                    }
-                                                                                                                                                    if (valid37) {
-                                                                                                                                                        if (data79.after !== undefined) {
-                                                                                                                                                            let data81 = data79.after;
-                                                                                                                                                            const _errs188 = errors;
-                                                                                                                                                            if (!(((typeof data81 == "number") && (!(data81 % 1) && !isNaN(data81))) && (isFinite(data81)))) {
-                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10 + "/after", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/after/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/sourceDigest", schemaPath: "#/properties/authoring/properties/evidence/properties/sourceDigest/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                return false;
+                                                                                                                                            }
+                                                                                                                                        }
+                                                                                                                                        var valid30 = _errs143 === errors;
+                                                                                                                                    }
+                                                                                                                                    else {
+                                                                                                                                        var valid30 = true;
+                                                                                                                                    }
+                                                                                                                                    if (valid30) {
+                                                                                                                                        if (data61.analyzer !== undefined) {
+                                                                                                                                            let data63 = data61.analyzer;
+                                                                                                                                            const _errs145 = errors;
+                                                                                                                                            if (typeof data63 !== "string") {
+                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/analyzer", schemaPath: "#/$defs/dependencyPolicy/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                return false;
+                                                                                                                                            }
+                                                                                                                                            if (!(((((((((((((((((((((((((((((((((((((((((((((((((((((((((data63 === "primitive-const-islands-v1") || (data63 === "scoped-primitive-dag-v2")) || (data63 === "scoped-type-members-v3")) || (data63 === "scoped-effect-analysis-v4")) || (data63 === "scoped-effect-analysis-v5")) || (data63 === "scoped-effect-analysis-v6")) || (data63 === "scoped-effect-analysis-v7")) || (data63 === "scoped-effect-analysis-v8")) || (data63 === "scoped-effect-analysis-v9")) || (data63 === "scoped-effect-analysis-v10")) || (data63 === "scoped-effect-analysis-v11")) || (data63 === "scoped-effect-analysis-v12")) || (data63 === "scoped-effect-analysis-v13")) || (data63 === "scoped-effect-analysis-v14")) || (data63 === "scoped-effect-analysis-v15")) || (data63 === "scoped-effect-analysis-v16")) || (data63 === "scoped-effect-analysis-v17")) || (data63 === "scoped-effect-analysis-v18")) || (data63 === "scoped-effect-analysis-v19")) || (data63 === "scoped-effect-analysis-v20")) || (data63 === "scoped-effect-analysis-v21")) || (data63 === "scoped-effect-analysis-v22")) || (data63 === "scoped-effect-analysis-v23")) || (data63 === "scoped-effect-analysis-v24")) || (data63 === "scoped-effect-analysis-v25")) || (data63 === "scoped-effect-analysis-v26")) || (data63 === "scoped-effect-analysis-v27")) || (data63 === "scoped-effect-analysis-v28")) || (data63 === "scoped-effect-analysis-v29")) || (data63 === "scoped-effect-analysis-v30")) || (data63 === "scoped-effect-analysis-v31")) || (data63 === "scoped-effect-analysis-v32")) || (data63 === "scoped-effect-analysis-v33")) || (data63 === "scoped-effect-analysis-v34")) || (data63 === "scoped-effect-analysis-v35")) || (data63 === "scoped-effect-analysis-v36")) || (data63 === "scoped-effect-analysis-v37")) || (data63 === "scoped-effect-analysis-v38")) || (data63 === "scoped-effect-analysis-v39")) || (data63 === "scoped-effect-analysis-v40")) || (data63 === "scoped-effect-analysis-v41")) || (data63 === "scoped-effect-analysis-v42")) || (data63 === "scoped-effect-analysis-v43")) || (data63 === "scoped-effect-analysis-v44")) || (data63 === "scoped-effect-analysis-v45")) || (data63 === "scoped-effect-analysis-v46")) || (data63 === "scoped-effect-analysis-v47")) || (data63 === "scoped-effect-analysis-v48")) || (data63 === "scoped-effect-analysis-v49")) || (data63 === "scoped-effect-analysis-v50")) || (data63 === "scoped-effect-analysis-v51")) || (data63 === "scoped-effect-analysis-v52")) || (data63 === "scoped-effect-analysis-v53")) || (data63 === "scoped-effect-analysis-v54")) || (data63 === "scoped-effect-analysis-v55")) || (data63 === "scoped-effect-analysis-v56")) || (data63 === "scoped-effect-analysis-v57"))) {
+                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/analyzer", schemaPath: "#/$defs/dependencyPolicy/enum", keyword: "enum", params: { allowedValues: schema36.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                                                                return false;
+                                                                                                                                            }
+                                                                                                                                            var valid30 = _errs145 === errors;
+                                                                                                                                        }
+                                                                                                                                        else {
+                                                                                                                                            var valid30 = true;
+                                                                                                                                        }
+                                                                                                                                        if (valid30) {
+                                                                                                                                            if (data61.environment !== undefined) {
+                                                                                                                                                let data64 = data61.environment;
+                                                                                                                                                const _errs148 = errors;
+                                                                                                                                                if (errors === _errs148) {
+                                                                                                                                                    if (data64 && typeof data64 == "object" && !Array.isArray(data64)) {
+                                                                                                                                                        const _errs150 = errors;
+                                                                                                                                                        for (const key11 in data64) {
+                                                                                                                                                            if (!(((((((key11 === "typescript") || (key11 === "importEmit")) || (key11 === "sourceKind")) || (key11 === "classFields")) || (key11 === "inputs")) || (key11 === "keyOrder")) || (key11 === "inputsOverride"))) {
+                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key11 }, message: "must NOT have additional properties" }];
                                                                                                                                                                 return false;
+                                                                                                                                                                break;
                                                                                                                                                             }
-                                                                                                                                                            if (errors === _errs188) {
-                                                                                                                                                                if ((typeof data81 == "number") && (isFinite(data81))) {
-                                                                                                                                                                    if (data81 > 9007199254740991 || isNaN(data81)) {
-                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10 + "/after", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/after/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
-                                                                                                                                                                        return false;
+                                                                                                                                                        }
+                                                                                                                                                        if (_errs150 === errors) {
+                                                                                                                                                            if (data64.typescript !== undefined) {
+                                                                                                                                                                let data65 = data64.typescript;
+                                                                                                                                                                const _errs151 = errors;
+                                                                                                                                                                if (errors === _errs151) {
+                                                                                                                                                                    if (typeof data65 === "string") {
+                                                                                                                                                                        if (!pattern8.test(data65)) {
+                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/typescript", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/typescript/pattern", keyword: "pattern", params: { pattern: "^[0-9A-Za-z.+-]{1,40}$" }, message: "must match pattern \"" + "^[0-9A-Za-z.+-]{1,40}$" + "\"" }];
+                                                                                                                                                                            return false;
+                                                                                                                                                                        }
                                                                                                                                                                     }
                                                                                                                                                                     else {
-                                                                                                                                                                        if (data81 < 1 || isNaN(data81)) {
-                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10 + "/after", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/after/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
-                                                                                                                                                                            return false;
-                                                                                                                                                                        }
+                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/typescript", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/typescript/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                        return false;
                                                                                                                                                                     }
                                                                                                                                                                 }
+                                                                                                                                                                var valid32 = _errs151 === errors;
                                                                                                                                                             }
-                                                                                                                                                            var valid37 = _errs188 === errors;
-                                                                                                                                                        }
-                                                                                                                                                        else {
-                                                                                                                                                            var valid37 = true;
-                                                                                                                                                        }
-                                                                                                                                                        if (valid37) {
-                                                                                                                                                            if (data79.note !== undefined) {
-                                                                                                                                                                let data82 = data79.note;
-                                                                                                                                                                const _errs190 = errors;
-                                                                                                                                                                if (errors === _errs190) {
-                                                                                                                                                                    if (typeof data82 === "string") {
-                                                                                                                                                                        if (func2(data82) > 500) {
-                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10 + "/note", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/note/maxLength", keyword: "maxLength", params: { limit: 500 }, message: "must NOT have more than 500 characters" }];
+                                                                                                                                                            else {
+                                                                                                                                                                var valid32 = true;
+                                                                                                                                                            }
+                                                                                                                                                            if (valid32) {
+                                                                                                                                                                if (data64.importEmit !== undefined) {
+                                                                                                                                                                    let data66 = data64.importEmit;
+                                                                                                                                                                    const _errs153 = errors;
+                                                                                                                                                                    if (typeof data66 !== "string") {
+                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/importEmit", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/importEmit/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                        return false;
+                                                                                                                                                                    }
+                                                                                                                                                                    if (!((data66 === "verbatim") || (data66 === "elide-unused"))) {
+                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/importEmit", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/importEmit/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.evidence.properties.environment.properties.importEmit.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                                                                                        return false;
+                                                                                                                                                                    }
+                                                                                                                                                                    var valid32 = _errs153 === errors;
+                                                                                                                                                                }
+                                                                                                                                                                else {
+                                                                                                                                                                    var valid32 = true;
+                                                                                                                                                                }
+                                                                                                                                                                if (valid32) {
+                                                                                                                                                                    if (data64.sourceKind !== undefined) {
+                                                                                                                                                                        let data67 = data64.sourceKind;
+                                                                                                                                                                        const _errs155 = errors;
+                                                                                                                                                                        if (typeof data67 !== "string") {
+                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/sourceKind", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/sourceKind/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
                                                                                                                                                                             return false;
                                                                                                                                                                         }
-                                                                                                                                                                        else {
-                                                                                                                                                                            if (func2(data82) < 1) {
-                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10 + "/note", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/note/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" }];
+                                                                                                                                                                        if (!((data67 === "module") || (data67 === "script"))) {
+                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/sourceKind", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/sourceKind/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.evidence.properties.environment.properties.sourceKind.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                                                                                            return false;
+                                                                                                                                                                        }
+                                                                                                                                                                        var valid32 = _errs155 === errors;
+                                                                                                                                                                    }
+                                                                                                                                                                    else {
+                                                                                                                                                                        var valid32 = true;
+                                                                                                                                                                    }
+                                                                                                                                                                    if (valid32) {
+                                                                                                                                                                        if (data64.classFields !== undefined) {
+                                                                                                                                                                            let data68 = data64.classFields;
+                                                                                                                                                                            const _errs157 = errors;
+                                                                                                                                                                            if (typeof data68 !== "string") {
+                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/classFields", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/classFields/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
                                                                                                                                                                                 return false;
+                                                                                                                                                                            }
+                                                                                                                                                                            if (!((data68 === "either") || (data68 === "define"))) {
+                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/classFields", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/classFields/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.evidence.properties.environment.properties.classFields.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                                                                                                return false;
+                                                                                                                                                                            }
+                                                                                                                                                                            var valid32 = _errs157 === errors;
+                                                                                                                                                                        }
+                                                                                                                                                                        else {
+                                                                                                                                                                            var valid32 = true;
+                                                                                                                                                                        }
+                                                                                                                                                                        if (valid32) {
+                                                                                                                                                                            if (data64.inputs !== undefined) {
+                                                                                                                                                                                let data69 = data64.inputs;
+                                                                                                                                                                                const _errs159 = errors;
+                                                                                                                                                                                if (typeof data69 !== "string") {
+                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputs", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputs/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                                    return false;
+                                                                                                                                                                                }
+                                                                                                                                                                                if (!((data69 === "any") || (data69 === "valid"))) {
+                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputs", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputs/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.evidence.properties.environment.properties.inputs.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                                                                                                    return false;
+                                                                                                                                                                                }
+                                                                                                                                                                                var valid32 = _errs159 === errors;
+                                                                                                                                                                            }
+                                                                                                                                                                            else {
+                                                                                                                                                                                var valid32 = true;
+                                                                                                                                                                            }
+                                                                                                                                                                            if (valid32) {
+                                                                                                                                                                                if (data64.keyOrder !== undefined) {
+                                                                                                                                                                                    let data70 = data64.keyOrder;
+                                                                                                                                                                                    const _errs161 = errors;
+                                                                                                                                                                                    if (typeof data70 !== "string") {
+                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/keyOrder", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/keyOrder/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                                        return false;
+                                                                                                                                                                                    }
+                                                                                                                                                                                    if (!((data70 === "observed") || (data70 === "ignored"))) {
+                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/keyOrder", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/keyOrder/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.evidence.properties.environment.properties.keyOrder.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                                                                                                        return false;
+                                                                                                                                                                                    }
+                                                                                                                                                                                    var valid32 = _errs161 === errors;
+                                                                                                                                                                                }
+                                                                                                                                                                                else {
+                                                                                                                                                                                    var valid32 = true;
+                                                                                                                                                                                }
+                                                                                                                                                                                if (valid32) {
+                                                                                                                                                                                    if (data64.inputsOverride !== undefined) {
+                                                                                                                                                                                        let data71 = data64.inputsOverride;
+                                                                                                                                                                                        const _errs163 = errors;
+                                                                                                                                                                                        if (errors === _errs163) {
+                                                                                                                                                                                            if (data71 && typeof data71 == "object" && !Array.isArray(data71)) {
+                                                                                                                                                                                                let missing12;
+                                                                                                                                                                                                if (((data71.effective === undefined) && (missing12 = "effective")) || ((data71.reason === undefined) && (missing12 = "reason"))) {
+                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/required", keyword: "required", params: { missingProperty: missing12 }, message: "must have required property '" + missing12 + "'" }];
+                                                                                                                                                                                                    return false;
+                                                                                                                                                                                                }
+                                                                                                                                                                                                else {
+                                                                                                                                                                                                    const _errs165 = errors;
+                                                                                                                                                                                                    for (const key12 in data71) {
+                                                                                                                                                                                                        if (!((((key12 === "effective") || (key12 === "reason")) || (key12 === "line")) || (key12 === "text"))) {
+                                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key12 }, message: "must NOT have additional properties" }];
+                                                                                                                                                                                                            return false;
+                                                                                                                                                                                                            break;
+                                                                                                                                                                                                        }
+                                                                                                                                                                                                    }
+                                                                                                                                                                                                    if (_errs165 === errors) {
+                                                                                                                                                                                                        if (data71.effective !== undefined) {
+                                                                                                                                                                                                            let data72 = data71.effective;
+                                                                                                                                                                                                            const _errs166 = errors;
+                                                                                                                                                                                                            if (typeof data72 !== "string") {
+                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride/effective", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/properties/effective/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                                                                return false;
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                            if (!(data72 === "any")) {
+                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride/effective", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/properties/effective/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.evidence.properties.environment.properties.inputsOverride.properties.effective.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                                                                                                                                return false;
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                            var valid33 = _errs166 === errors;
+                                                                                                                                                                                                        }
+                                                                                                                                                                                                        else {
+                                                                                                                                                                                                            var valid33 = true;
+                                                                                                                                                                                                        }
+                                                                                                                                                                                                        if (valid33) {
+                                                                                                                                                                                                            if (data71.reason !== undefined) {
+                                                                                                                                                                                                                let data73 = data71.reason;
+                                                                                                                                                                                                                const _errs168 = errors;
+                                                                                                                                                                                                                if (typeof data73 !== "string") {
+                                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride/reason", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/properties/reason/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                                                                    return false;
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                                if (!(((data73 === "hook") || (data73 === "computed-accessor")) || (data73 === "computed-name"))) {
+                                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride/reason", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/properties/reason/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.evidence.properties.environment.properties.inputsOverride.properties.reason.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                                                                                                                                    return false;
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                                var valid33 = _errs168 === errors;
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                            else {
+                                                                                                                                                                                                                var valid33 = true;
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                            if (valid33) {
+                                                                                                                                                                                                                if (data71.line !== undefined) {
+                                                                                                                                                                                                                    let data74 = data71.line;
+                                                                                                                                                                                                                    const _errs170 = errors;
+                                                                                                                                                                                                                    if (!(((typeof data74 == "number") && (!(data74 % 1) && !isNaN(data74))) && (isFinite(data74)))) {
+                                                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride/line", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/properties/line/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                                                                                                                                        return false;
+                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                    if (errors === _errs170) {
+                                                                                                                                                                                                                        if ((typeof data74 == "number") && (isFinite(data74))) {
+                                                                                                                                                                                                                            if (data74 > 100000 || isNaN(data74)) {
+                                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride/line", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/properties/line/maximum", keyword: "maximum", params: { comparison: "<=", limit: 100000 }, message: "must be <= 100000" }];
+                                                                                                                                                                                                                                return false;
+                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                            else {
+                                                                                                                                                                                                                                if (data74 < 1 || isNaN(data74)) {
+                                                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride/line", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/properties/line/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                                                                                                                                    return false;
+                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                    var valid33 = _errs170 === errors;
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                                else {
+                                                                                                                                                                                                                    var valid33 = true;
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                                if (valid33) {
+                                                                                                                                                                                                                    if (data71.text !== undefined) {
+                                                                                                                                                                                                                        let data75 = data71.text;
+                                                                                                                                                                                                                        const _errs172 = errors;
+                                                                                                                                                                                                                        if (errors === _errs172) {
+                                                                                                                                                                                                                            if (typeof data75 === "string") {
+                                                                                                                                                                                                                                if (func2(data75) > 40) {
+                                                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride/text", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/properties/text/maxLength", keyword: "maxLength", params: { limit: 40 }, message: "must NOT have more than 40 characters" }];
+                                                                                                                                                                                                                                    return false;
+                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                            else {
+                                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride/text", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/properties/text/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                                                                                return false;
+                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                        var valid33 = _errs172 === errors;
+                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                    else {
+                                                                                                                                                                                                                        var valid33 = true;
+                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                        }
+                                                                                                                                                                                                    }
+                                                                                                                                                                                                }
+                                                                                                                                                                                            }
+                                                                                                                                                                                            else {
+                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment/inputsOverride", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/properties/inputsOverride/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                                                                                                                                return false;
+                                                                                                                                                                                            }
+                                                                                                                                                                                        }
+                                                                                                                                                                                        var valid32 = _errs163 === errors;
+                                                                                                                                                                                    }
+                                                                                                                                                                                    else {
+                                                                                                                                                                                        var valid32 = true;
+                                                                                                                                                                                    }
+                                                                                                                                                                                }
                                                                                                                                                                             }
                                                                                                                                                                         }
                                                                                                                                                                     }
-                                                                                                                                                                    else {
-                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10 + "/note", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/note/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                        return false;
-                                                                                                                                                                    }
                                                                                                                                                                 }
-                                                                                                                                                                var valid37 = _errs190 === errors;
-                                                                                                                                                            }
-                                                                                                                                                            else {
-                                                                                                                                                                var valid37 = true;
                                                                                                                                                             }
                                                                                                                                                         }
                                                                                                                                                     }
+                                                                                                                                                    else {
+                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/environment", schemaPath: "#/properties/authoring/properties/evidence/properties/environment/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                                                                                        return false;
+                                                                                                                                                    }
+                                                                                                                                                }
+                                                                                                                                                var valid30 = _errs148 === errors;
+                                                                                                                                            }
+                                                                                                                                            else {
+                                                                                                                                                var valid30 = true;
+                                                                                                                                            }
+                                                                                                                                            if (valid30) {
+                                                                                                                                                if (data61.projectionLoss !== undefined) {
+                                                                                                                                                    let data76 = data61.projectionLoss;
+                                                                                                                                                    const _errs174 = errors;
+                                                                                                                                                    if (errors === _errs174) {
+                                                                                                                                                        if (data76 && typeof data76 == "object" && !Array.isArray(data76)) {
+                                                                                                                                                            let missing13;
+                                                                                                                                                            if (((data76.pairs === undefined) && (missing13 = "pairs")) || ((data76.examples === undefined) && (missing13 = "examples"))) {
+                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss", schemaPath: "#/properties/authoring/properties/evidence/properties/projectionLoss/required", keyword: "required", params: { missingProperty: missing13 }, message: "must have required property '" + missing13 + "'" }];
+                                                                                                                                                                return false;
+                                                                                                                                                            }
+                                                                                                                                                            else {
+                                                                                                                                                                const _errs176 = errors;
+                                                                                                                                                                for (const key13 in data76) {
+                                                                                                                                                                    if (!((key13 === "pairs") || (key13 === "examples"))) {
+                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss", schemaPath: "#/properties/authoring/properties/evidence/properties/projectionLoss/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key13 }, message: "must NOT have additional properties" }];
+                                                                                                                                                                        return false;
+                                                                                                                                                                        break;
+                                                                                                                                                                    }
+                                                                                                                                                                }
+                                                                                                                                                                if (_errs176 === errors) {
+                                                                                                                                                                    if (data76.pairs !== undefined) {
+                                                                                                                                                                        let data77 = data76.pairs;
+                                                                                                                                                                        const _errs177 = errors;
+                                                                                                                                                                        if (!(((typeof data77 == "number") && (!(data77 % 1) && !isNaN(data77))) && (isFinite(data77)))) {
+                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/pairs", schemaPath: "#/properties/authoring/properties/evidence/properties/projectionLoss/properties/pairs/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                                                                                            return false;
+                                                                                                                                                                        }
+                                                                                                                                                                        if (errors === _errs177) {
+                                                                                                                                                                            if ((typeof data77 == "number") && (isFinite(data77))) {
+                                                                                                                                                                                if (data77 > 125000 || isNaN(data77)) {
+                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/pairs", schemaPath: "#/properties/authoring/properties/evidence/properties/projectionLoss/properties/pairs/maximum", keyword: "maximum", params: { comparison: "<=", limit: 125000 }, message: "must be <= 125000" }];
+                                                                                                                                                                                    return false;
+                                                                                                                                                                                }
+                                                                                                                                                                                else {
+                                                                                                                                                                                    if (data77 < 0 || isNaN(data77)) {
+                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/pairs", schemaPath: "#/properties/authoring/properties/evidence/properties/projectionLoss/properties/pairs/minimum", keyword: "minimum", params: { comparison: ">=", limit: 0 }, message: "must be >= 0" }];
+                                                                                                                                                                                        return false;
+                                                                                                                                                                                    }
+                                                                                                                                                                                }
+                                                                                                                                                                            }
+                                                                                                                                                                        }
+                                                                                                                                                                        var valid34 = _errs177 === errors;
+                                                                                                                                                                    }
+                                                                                                                                                                    else {
+                                                                                                                                                                        var valid34 = true;
+                                                                                                                                                                    }
+                                                                                                                                                                    if (valid34) {
+                                                                                                                                                                        if (data76.examples !== undefined) {
+                                                                                                                                                                            let data78 = data76.examples;
+                                                                                                                                                                            const _errs179 = errors;
+                                                                                                                                                                            if (errors === _errs179) {
+                                                                                                                                                                                if (Array.isArray(data78)) {
+                                                                                                                                                                                    if (data78.length > 20) {
+                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples", schemaPath: "#/properties/authoring/properties/evidence/properties/projectionLoss/properties/examples/maxItems", keyword: "maxItems", params: { limit: 20 }, message: "must NOT have more than 20 items" }];
+                                                                                                                                                                                        return false;
+                                                                                                                                                                                    }
+                                                                                                                                                                                    else {
+                                                                                                                                                                                        var valid35 = true;
+                                                                                                                                                                                        const len9 = data78.length;
+                                                                                                                                                                                        for (let i10 = 0; i10 < len9; i10++) {
+                                                                                                                                                                                            let data79 = data78[i10];
+                                                                                                                                                                                            const _errs181 = errors;
+                                                                                                                                                                                            const _errs182 = errors;
+                                                                                                                                                                                            if (errors === _errs182) {
+                                                                                                                                                                                                if (data79 && typeof data79 == "object" && !Array.isArray(data79)) {
+                                                                                                                                                                                                    let missing14;
+                                                                                                                                                                                                    if (((data79.before === undefined) && (missing14 = "before")) || ((data79.after === undefined) && (missing14 = "after"))) {
+                                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples/" + i10, schemaPath: "#/$defs/edge/required", keyword: "required", params: { missingProperty: missing14 }, message: "must have required property '" + missing14 + "'" }];
+                                                                                                                                                                                                        return false;
+                                                                                                                                                                                                    }
+                                                                                                                                                                                                    else {
+                                                                                                                                                                                                        const _errs184 = errors;
+                                                                                                                                                                                                        for (const key14 in data79) {
+                                                                                                                                                                                                            if (!((key14 === "before") || (key14 === "after"))) {
+                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples/" + i10, schemaPath: "#/$defs/edge/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key14 }, message: "must NOT have additional properties" }];
+                                                                                                                                                                                                                return false;
+                                                                                                                                                                                                                break;
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                        }
+                                                                                                                                                                                                        if (_errs184 === errors) {
+                                                                                                                                                                                                            if (data79.before !== undefined) {
+                                                                                                                                                                                                                let data80 = data79.before;
+                                                                                                                                                                                                                const _errs185 = errors;
+                                                                                                                                                                                                                if (!(((typeof data80 == "number") && (!(data80 % 1) && !isNaN(data80))) && (isFinite(data80)))) {
+                                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples/" + i10 + "/before", schemaPath: "#/$defs/edge/properties/before/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                                                                                                                                    return false;
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                                if (errors === _errs185) {
+                                                                                                                                                                                                                    if ((typeof data80 == "number") && (isFinite(data80))) {
+                                                                                                                                                                                                                        if (data80 > 9007199254740991 || isNaN(data80)) {
+                                                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples/" + i10 + "/before", schemaPath: "#/$defs/edge/properties/before/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                                                                                                                                            return false;
+                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                        else {
+                                                                                                                                                                                                                            if (data80 < 1 || isNaN(data80)) {
+                                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples/" + i10 + "/before", schemaPath: "#/$defs/edge/properties/before/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                                                                                                                                return false;
+                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                                var valid37 = _errs185 === errors;
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                            else {
+                                                                                                                                                                                                                var valid37 = true;
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                            if (valid37) {
+                                                                                                                                                                                                                if (data79.after !== undefined) {
+                                                                                                                                                                                                                    let data81 = data79.after;
+                                                                                                                                                                                                                    const _errs187 = errors;
+                                                                                                                                                                                                                    if (!(((typeof data81 == "number") && (!(data81 % 1) && !isNaN(data81))) && (isFinite(data81)))) {
+                                                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples/" + i10 + "/after", schemaPath: "#/$defs/edge/properties/after/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                                                                                                                                        return false;
+                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                    if (errors === _errs187) {
+                                                                                                                                                                                                                        if ((typeof data81 == "number") && (isFinite(data81))) {
+                                                                                                                                                                                                                            if (data81 > 9007199254740991 || isNaN(data81)) {
+                                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples/" + i10 + "/after", schemaPath: "#/$defs/edge/properties/after/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                                                                                                                                                return false;
+                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                            else {
+                                                                                                                                                                                                                                if (data81 < 1 || isNaN(data81)) {
+                                                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples/" + i10 + "/after", schemaPath: "#/$defs/edge/properties/after/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                                                                                                                                    return false;
+                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                    var valid37 = _errs187 === errors;
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                                else {
+                                                                                                                                                                                                                    var valid37 = true;
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                        }
+                                                                                                                                                                                                    }
+                                                                                                                                                                                                }
+                                                                                                                                                                                                else {
+                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples/" + i10, schemaPath: "#/$defs/edge/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                                                                                                                                    return false;
+                                                                                                                                                                                                }
+                                                                                                                                                                                            }
+                                                                                                                                                                                            var valid35 = _errs181 === errors;
+                                                                                                                                                                                            if (!valid35) {
+                                                                                                                                                                                                break;
+                                                                                                                                                                                            }
+                                                                                                                                                                                        }
+                                                                                                                                                                                    }
+                                                                                                                                                                                }
+                                                                                                                                                                                else {
+                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss/examples", schemaPath: "#/properties/authoring/properties/evidence/properties/projectionLoss/properties/examples/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                                                                                                                                                                    return false;
+                                                                                                                                                                                }
+                                                                                                                                                                            }
+                                                                                                                                                                            var valid34 = _errs179 === errors;
+                                                                                                                                                                        }
+                                                                                                                                                                        else {
+                                                                                                                                                                            var valid34 = true;
+                                                                                                                                                                        }
+                                                                                                                                                                    }
+                                                                                                                                                                }
+                                                                                                                                                            }
+                                                                                                                                                        }
+                                                                                                                                                        else {
+                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence/projectionLoss", schemaPath: "#/properties/authoring/properties/evidence/properties/projectionLoss/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                                                                                            return false;
+                                                                                                                                                        }
+                                                                                                                                                    }
+                                                                                                                                                    var valid30 = _errs174 === errors;
+                                                                                                                                                }
+                                                                                                                                                else {
+                                                                                                                                                    var valid30 = true;
                                                                                                                                                 }
                                                                                                                                             }
                                                                                                                                         }
-                                                                                                                                        else {
-                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i10, schemaPath: "#/properties/authoring/properties/ruleNotes/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
-                                                                                                                                            return false;
-                                                                                                                                        }
-                                                                                                                                    }
-                                                                                                                                    var valid36 = _errs183 === errors;
-                                                                                                                                    if (!valid36) {
-                                                                                                                                        break;
                                                                                                                                     }
                                                                                                                                 }
                                                                                                                             }
                                                                                                                         }
                                                                                                                         else {
-                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes", schemaPath: "#/properties/authoring/properties/ruleNotes/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/evidence", schemaPath: "#/properties/authoring/properties/evidence/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
                                                                                                                             return false;
                                                                                                                         }
                                                                                                                     }
-                                                                                                                    var valid23 = _errs181 === errors;
+                                                                                                                    var valid25 = _errs140 === errors;
                                                                                                                 }
                                                                                                                 else {
-                                                                                                                    var valid23 = true;
+                                                                                                                    var valid25 = true;
                                                                                                                 }
-                                                                                                                if (valid23) {
-                                                                                                                    if (data40.relaxations !== undefined) {
-                                                                                                                        let data83 = data40.relaxations;
-                                                                                                                        const _errs192 = errors;
-                                                                                                                        if (errors === _errs192) {
-                                                                                                                            if (Array.isArray(data83)) {
-                                                                                                                                if (data83.length > 1000) {
-                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations", schemaPath: "#/properties/authoring/properties/relaxations/maxItems", keyword: "maxItems", params: { limit: 1000 }, message: "must NOT have more than 1000 items" }];
+                                                                                                                if (valid25) {
+                                                                                                                    if (data44.ruleNotes !== undefined) {
+                                                                                                                        let data82 = data44.ruleNotes;
+                                                                                                                        const _errs189 = errors;
+                                                                                                                        if (errors === _errs189) {
+                                                                                                                            if (Array.isArray(data82)) {
+                                                                                                                                if (data82.length > 1000) {
+                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes", schemaPath: "#/properties/authoring/properties/ruleNotes/maxItems", keyword: "maxItems", params: { limit: 1000 }, message: "must NOT have more than 1000 items" }];
                                                                                                                                     return false;
                                                                                                                                 }
                                                                                                                                 else {
                                                                                                                                     var valid38 = true;
-                                                                                                                                    const len10 = data83.length;
+                                                                                                                                    const len10 = data82.length;
                                                                                                                                     for (let i11 = 0; i11 < len10; i11++) {
-                                                                                                                                        let data84 = data83[i11];
-                                                                                                                                        const _errs194 = errors;
-                                                                                                                                        if (errors === _errs194) {
-                                                                                                                                            if (data84 && typeof data84 == "object" && !Array.isArray(data84)) {
+                                                                                                                                        let data83 = data82[i11];
+                                                                                                                                        const _errs191 = errors;
+                                                                                                                                        if (errors === _errs191) {
+                                                                                                                                            if (data83 && typeof data83 == "object" && !Array.isArray(data83)) {
                                                                                                                                                 let missing15;
-                                                                                                                                                if ((((data84.before === undefined) && (missing15 = "before")) || ((data84.after === undefined) && (missing15 = "after"))) || ((data84.editability === undefined) && (missing15 = "editability"))) {
-                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11, schemaPath: "#/properties/authoring/properties/relaxations/items/required", keyword: "required", params: { missingProperty: missing15 }, message: "must have required property '" + missing15 + "'" }];
+                                                                                                                                                if ((((data83.before === undefined) && (missing15 = "before")) || ((data83.after === undefined) && (missing15 = "after"))) || ((data83.note === undefined) && (missing15 = "note"))) {
+                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i11, schemaPath: "#/properties/authoring/properties/ruleNotes/items/required", keyword: "required", params: { missingProperty: missing15 }, message: "must have required property '" + missing15 + "'" }];
                                                                                                                                                     return false;
                                                                                                                                                 }
                                                                                                                                                 else {
-                                                                                                                                                    const _errs196 = errors;
-                                                                                                                                                    for (const key15 in data84) {
-                                                                                                                                                        if (!((((((key15 === "before") || (key15 === "after")) || (key15 === "editability")) || (key15 === "note")) || (key15 === "sourceDigest")) || (key15 === "removed"))) {
-                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11, schemaPath: "#/properties/authoring/properties/relaxations/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key15 }, message: "must NOT have additional properties" }];
+                                                                                                                                                    const _errs193 = errors;
+                                                                                                                                                    for (const key15 in data83) {
+                                                                                                                                                        if (!(((key15 === "before") || (key15 === "after")) || (key15 === "note"))) {
+                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i11, schemaPath: "#/properties/authoring/properties/ruleNotes/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key15 }, message: "must NOT have additional properties" }];
                                                                                                                                                             return false;
                                                                                                                                                             break;
                                                                                                                                                         }
                                                                                                                                                     }
-                                                                                                                                                    if (_errs196 === errors) {
-                                                                                                                                                        if (data84.before !== undefined) {
-                                                                                                                                                            let data85 = data84.before;
-                                                                                                                                                            const _errs197 = errors;
-                                                                                                                                                            if (!(((typeof data85 == "number") && (!(data85 % 1) && !isNaN(data85))) && (isFinite(data85)))) {
-                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/before", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/before/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                                                                    if (_errs193 === errors) {
+                                                                                                                                                        if (data83.before !== undefined) {
+                                                                                                                                                            let data84 = data83.before;
+                                                                                                                                                            const _errs194 = errors;
+                                                                                                                                                            if (!(((typeof data84 == "number") && (!(data84 % 1) && !isNaN(data84))) && (isFinite(data84)))) {
+                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i11 + "/before", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/before/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
                                                                                                                                                                 return false;
                                                                                                                                                             }
-                                                                                                                                                            if (errors === _errs197) {
-                                                                                                                                                                if ((typeof data85 == "number") && (isFinite(data85))) {
-                                                                                                                                                                    if (data85 > 9007199254740991 || isNaN(data85)) {
-                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/before", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/before/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                                                                            if (errors === _errs194) {
+                                                                                                                                                                if ((typeof data84 == "number") && (isFinite(data84))) {
+                                                                                                                                                                    if (data84 > 9007199254740991 || isNaN(data84)) {
+                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i11 + "/before", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/before/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
                                                                                                                                                                         return false;
                                                                                                                                                                     }
                                                                                                                                                                     else {
-                                                                                                                                                                        if (data85 < 1 || isNaN(data85)) {
-                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/before", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/before/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                                                                        if (data84 < 1 || isNaN(data84)) {
+                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i11 + "/before", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/before/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
                                                                                                                                                                             return false;
                                                                                                                                                                         }
                                                                                                                                                                     }
                                                                                                                                                                 }
                                                                                                                                                             }
-                                                                                                                                                            var valid39 = _errs197 === errors;
+                                                                                                                                                            var valid39 = _errs194 === errors;
                                                                                                                                                         }
                                                                                                                                                         else {
                                                                                                                                                             var valid39 = true;
                                                                                                                                                         }
                                                                                                                                                         if (valid39) {
-                                                                                                                                                            if (data84.after !== undefined) {
-                                                                                                                                                                let data86 = data84.after;
-                                                                                                                                                                const _errs199 = errors;
-                                                                                                                                                                if (!(((typeof data86 == "number") && (!(data86 % 1) && !isNaN(data86))) && (isFinite(data86)))) {
-                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/after", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/after/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                                                                            if (data83.after !== undefined) {
+                                                                                                                                                                let data85 = data83.after;
+                                                                                                                                                                const _errs196 = errors;
+                                                                                                                                                                if (!(((typeof data85 == "number") && (!(data85 % 1) && !isNaN(data85))) && (isFinite(data85)))) {
+                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i11 + "/after", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/after/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
                                                                                                                                                                     return false;
                                                                                                                                                                 }
-                                                                                                                                                                if (errors === _errs199) {
-                                                                                                                                                                    if ((typeof data86 == "number") && (isFinite(data86))) {
-                                                                                                                                                                        if (data86 > 9007199254740991 || isNaN(data86)) {
-                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/after", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/after/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                                                                                if (errors === _errs196) {
+                                                                                                                                                                    if ((typeof data85 == "number") && (isFinite(data85))) {
+                                                                                                                                                                        if (data85 > 9007199254740991 || isNaN(data85)) {
+                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i11 + "/after", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/after/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
                                                                                                                                                                             return false;
                                                                                                                                                                         }
                                                                                                                                                                         else {
-                                                                                                                                                                            if (data86 < 1 || isNaN(data86)) {
-                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/after", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/after/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                                                                            if (data85 < 1 || isNaN(data85)) {
+                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i11 + "/after", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/after/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
                                                                                                                                                                                 return false;
                                                                                                                                                                             }
                                                                                                                                                                         }
                                                                                                                                                                     }
                                                                                                                                                                 }
-                                                                                                                                                                var valid39 = _errs199 === errors;
+                                                                                                                                                                var valid39 = _errs196 === errors;
                                                                                                                                                             }
                                                                                                                                                             else {
                                                                                                                                                                 var valid39 = true;
                                                                                                                                                             }
                                                                                                                                                             if (valid39) {
-                                                                                                                                                                if (data84.editability !== undefined) {
-                                                                                                                                                                    let data87 = data84.editability;
-                                                                                                                                                                    const _errs201 = errors;
-                                                                                                                                                                    if (typeof data87 !== "string") {
-                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/editability", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/editability/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                        return false;
+                                                                                                                                                                if (data83.note !== undefined) {
+                                                                                                                                                                    let data86 = data83.note;
+                                                                                                                                                                    const _errs198 = errors;
+                                                                                                                                                                    if (errors === _errs198) {
+                                                                                                                                                                        if (typeof data86 === "string") {
+                                                                                                                                                                            if (func2(data86) > 500) {
+                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i11 + "/note", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/note/maxLength", keyword: "maxLength", params: { limit: 500 }, message: "must NOT have more than 500 characters" }];
+                                                                                                                                                                                return false;
+                                                                                                                                                                            }
+                                                                                                                                                                            else {
+                                                                                                                                                                                if (func2(data86) < 1) {
+                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i11 + "/note", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/note/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" }];
+                                                                                                                                                                                    return false;
+                                                                                                                                                                                }
+                                                                                                                                                                            }
+                                                                                                                                                                        }
+                                                                                                                                                                        else {
+                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i11 + "/note", schemaPath: "#/properties/authoring/properties/ruleNotes/items/properties/note/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                            return false;
+                                                                                                                                                                        }
                                                                                                                                                                     }
-                                                                                                                                                                    if (!(((data87 === "conservative") || (data87 === "proven")) || (data87 === "legacy"))) {
-                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/editability", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/editability/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.relaxations.items.properties.editability.enum }, message: "must be equal to one of the allowed values" }];
-                                                                                                                                                                        return false;
-                                                                                                                                                                    }
-                                                                                                                                                                    var valid39 = _errs201 === errors;
+                                                                                                                                                                    var valid39 = _errs198 === errors;
                                                                                                                                                                 }
                                                                                                                                                                 else {
                                                                                                                                                                     var valid39 = true;
-                                                                                                                                                                }
-                                                                                                                                                                if (valid39) {
-                                                                                                                                                                    if (data84.note !== undefined) {
-                                                                                                                                                                        let data88 = data84.note;
-                                                                                                                                                                        const _errs203 = errors;
-                                                                                                                                                                        if (errors === _errs203) {
-                                                                                                                                                                            if (typeof data88 === "string") {
-                                                                                                                                                                                if (func2(data88) > 500) {
-                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/note", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/note/maxLength", keyword: "maxLength", params: { limit: 500 }, message: "must NOT have more than 500 characters" }];
-                                                                                                                                                                                    return false;
-                                                                                                                                                                                }
-                                                                                                                                                                                else {
-                                                                                                                                                                                    if (func2(data88) < 1) {
-                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/note", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/note/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" }];
-                                                                                                                                                                                        return false;
-                                                                                                                                                                                    }
-                                                                                                                                                                                }
-                                                                                                                                                                            }
-                                                                                                                                                                            else {
-                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/note", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/note/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                                return false;
-                                                                                                                                                                            }
-                                                                                                                                                                        }
-                                                                                                                                                                        var valid39 = _errs203 === errors;
-                                                                                                                                                                    }
-                                                                                                                                                                    else {
-                                                                                                                                                                        var valid39 = true;
-                                                                                                                                                                    }
-                                                                                                                                                                    if (valid39) {
-                                                                                                                                                                        if (data84.sourceDigest !== undefined) {
-                                                                                                                                                                            let data89 = data84.sourceDigest;
-                                                                                                                                                                            const _errs205 = errors;
-                                                                                                                                                                            if (errors === _errs205) {
-                                                                                                                                                                                if (typeof data89 === "string") {
-                                                                                                                                                                                    if (!pattern6.test(data89)) {
-                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/sourceDigest", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/sourceDigest/pattern", keyword: "pattern", params: { pattern: "^[0-9a-f]{16}$" }, message: "must match pattern \"" + "^[0-9a-f]{16}$" + "\"" }];
-                                                                                                                                                                                        return false;
-                                                                                                                                                                                    }
-                                                                                                                                                                                }
-                                                                                                                                                                                else {
-                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/sourceDigest", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/sourceDigest/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                                    return false;
-                                                                                                                                                                                }
-                                                                                                                                                                            }
-                                                                                                                                                                            var valid39 = _errs205 === errors;
-                                                                                                                                                                        }
-                                                                                                                                                                        else {
-                                                                                                                                                                            var valid39 = true;
-                                                                                                                                                                        }
-                                                                                                                                                                        if (valid39) {
-                                                                                                                                                                            if (data84.removed !== undefined) {
-                                                                                                                                                                                let data90 = data84.removed;
-                                                                                                                                                                                const _errs207 = errors;
-                                                                                                                                                                                if (errors === _errs207) {
-                                                                                                                                                                                    if (data90 && typeof data90 == "object" && !Array.isArray(data90)) {
-                                                                                                                                                                                        let missing16;
-                                                                                                                                                                                        if (((data90.origins === undefined) && (missing16 = "origins")) || ((data90.reasons === undefined) && (missing16 = "reasons"))) {
-                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/required", keyword: "required", params: { missingProperty: missing16 }, message: "must have required property '" + missing16 + "'" }];
-                                                                                                                                                                                            return false;
-                                                                                                                                                                                        }
-                                                                                                                                                                                        else {
-                                                                                                                                                                                            const _errs209 = errors;
-                                                                                                                                                                                            for (const key16 in data90) {
-                                                                                                                                                                                                if (!(((key16 === "origins") || (key16 === "reasons")) || (key16 === "note"))) {
-                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key16 }, message: "must NOT have additional properties" }];
-                                                                                                                                                                                                    return false;
-                                                                                                                                                                                                    break;
-                                                                                                                                                                                                }
-                                                                                                                                                                                            }
-                                                                                                                                                                                            if (_errs209 === errors) {
-                                                                                                                                                                                                if (data90.origins !== undefined) {
-                                                                                                                                                                                                    let data91 = data90.origins;
-                                                                                                                                                                                                    const _errs210 = errors;
-                                                                                                                                                                                                    if (errors === _errs210) {
-                                                                                                                                                                                                        if (Array.isArray(data91)) {
-                                                                                                                                                                                                            if (data91.length > 2) {
-                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed/origins", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/origins/maxItems", keyword: "maxItems", params: { limit: 2 }, message: "must NOT have more than 2 items" }];
-                                                                                                                                                                                                                return false;
-                                                                                                                                                                                                            }
-                                                                                                                                                                                                            else {
-                                                                                                                                                                                                                if (data91.length < 1) {
-                                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed/origins", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/origins/minItems", keyword: "minItems", params: { limit: 1 }, message: "must NOT have fewer than 1 items" }];
-                                                                                                                                                                                                                    return false;
-                                                                                                                                                                                                                }
-                                                                                                                                                                                                                else {
-                                                                                                                                                                                                                    var valid41 = true;
-                                                                                                                                                                                                                    const len11 = data91.length;
-                                                                                                                                                                                                                    for (let i12 = 0; i12 < len11; i12++) {
-                                                                                                                                                                                                                        let data92 = data91[i12];
-                                                                                                                                                                                                                        const _errs212 = errors;
-                                                                                                                                                                                                                        if (typeof data92 !== "string") {
-                                                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed/origins/" + i12, schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/origins/items/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                                                                            return false;
-                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                        if (!((data92 === "dependency") || (data92 === "edge"))) {
-                                                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed/origins/" + i12, schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/origins/items/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.relaxations.items.properties.removed.properties.origins.items.enum }, message: "must be equal to one of the allowed values" }];
-                                                                                                                                                                                                                            return false;
-                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                        var valid41 = _errs212 === errors;
-                                                                                                                                                                                                                        if (!valid41) {
-                                                                                                                                                                                                                            break;
-                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                    if (valid41) {
-                                                                                                                                                                                                                        let i13 = data91.length;
-                                                                                                                                                                                                                        let j1;
-                                                                                                                                                                                                                        if (i13 > 1) {
-                                                                                                                                                                                                                            const indices1 = {};
-                                                                                                                                                                                                                            for (; i13--;) {
-                                                                                                                                                                                                                                let item1 = data91[i13];
-                                                                                                                                                                                                                                if (typeof item1 !== "string") {
-                                                                                                                                                                                                                                    continue;
-                                                                                                                                                                                                                                }
-                                                                                                                                                                                                                                if (typeof indices1[item1] == "number") {
-                                                                                                                                                                                                                                    j1 = indices1[item1];
-                                                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed/origins", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/origins/uniqueItems", keyword: "uniqueItems", params: { i: i13, j: j1 }, message: "must NOT have duplicate items (items ## " + j1 + " and " + i13 + " are identical)" }];
-                                                                                                                                                                                                                                    return false;
-                                                                                                                                                                                                                                    break;
-                                                                                                                                                                                                                                }
-                                                                                                                                                                                                                                indices1[item1] = i13;
-                                                                                                                                                                                                                            }
-                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                }
-                                                                                                                                                                                                            }
-                                                                                                                                                                                                        }
-                                                                                                                                                                                                        else {
-                                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed/origins", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/origins/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
-                                                                                                                                                                                                            return false;
-                                                                                                                                                                                                        }
-                                                                                                                                                                                                    }
-                                                                                                                                                                                                    var valid40 = _errs210 === errors;
-                                                                                                                                                                                                }
-                                                                                                                                                                                                else {
-                                                                                                                                                                                                    var valid40 = true;
-                                                                                                                                                                                                }
-                                                                                                                                                                                                if (valid40) {
-                                                                                                                                                                                                    if (data90.reasons !== undefined) {
-                                                                                                                                                                                                        let data93 = data90.reasons;
-                                                                                                                                                                                                        const _errs214 = errors;
-                                                                                                                                                                                                        if (errors === _errs214) {
-                                                                                                                                                                                                            if (Array.isArray(data93)) {
-                                                                                                                                                                                                                if (data93.length > 32) {
-                                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed/reasons", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/reasons/maxItems", keyword: "maxItems", params: { limit: 32 }, message: "must NOT have more than 32 items" }];
-                                                                                                                                                                                                                    return false;
-                                                                                                                                                                                                                }
-                                                                                                                                                                                                                else {
-                                                                                                                                                                                                                    var valid43 = true;
-                                                                                                                                                                                                                    const len12 = data93.length;
-                                                                                                                                                                                                                    for (let i14 = 0; i14 < len12; i14++) {
-                                                                                                                                                                                                                        let data94 = data93[i14];
-                                                                                                                                                                                                                        const _errs216 = errors;
-                                                                                                                                                                                                                        if (errors === _errs216) {
-                                                                                                                                                                                                                            if (data94 && typeof data94 == "object" && !Array.isArray(data94)) {
-                                                                                                                                                                                                                                let missing17;
-                                                                                                                                                                                                                                if (((data94.category === undefined) && (missing17 = "category")) || ((data94.code === undefined) && (missing17 = "code"))) {
-                                                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed/reasons/" + i14, schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/reasons/items/required", keyword: "required", params: { missingProperty: missing17 }, message: "must have required property '" + missing17 + "'" }];
-                                                                                                                                                                                                                                    return false;
-                                                                                                                                                                                                                                }
-                                                                                                                                                                                                                                else {
-                                                                                                                                                                                                                                    const _errs218 = errors;
-                                                                                                                                                                                                                                    for (const key17 in data94) {
-                                                                                                                                                                                                                                        if (!((key17 === "category") || (key17 === "code"))) {
-                                                                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed/reasons/" + i14, schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/reasons/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key17 }, message: "must NOT have additional properties" }];
-                                                                                                                                                                                                                                            return false;
-                                                                                                                                                                                                                                            break;
-                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                                    if (_errs218 === errors) {
-                                                                                                                                                                                                                                        if (data94.category !== undefined) {
-                                                                                                                                                                                                                                            let data95 = data94.category;
-                                                                                                                                                                                                                                            const _errs219 = errors;
-                                                                                                                                                                                                                                            if (typeof data95 !== "string") {
-                                                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed/reasons/" + i14 + "/category", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/reasons/items/properties/category/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                                                                                                return false;
-                                                                                                                                                                                                                                            }
-                                                                                                                                                                                                                                            if (!((((((((data95 === "data") || (data95 === "effect")) || (data95 === "structure")) || (data95 === "unit")) || (data95 === "policy")) || (data95 === "author")) || (data95 === "conservative")) || (data95 === "unknown"))) {
-                                                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed/reasons/" + i14 + "/category", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/reasons/items/properties/category/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.relaxations.items.properties.removed.properties.reasons.items.properties.category.enum }, message: "must be equal to one of the allowed values" }];
-                                                                                                                                                                                                                                                return false;
-                                                                                                                                                                                                                                            }
-                                                                                                                                                                                                                                            var valid44 = _errs219 === errors;
-                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                        else {
-                                                                                                                                                                                                                                            var valid44 = true;
-                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                        if (valid44) {
-                                                                                                                                                                                                                                            if (data94.code !== undefined) {
-                                                                                                                                                                                                                                                let data96 = data94.code;
-                                                                                                                                                                                                                                                const _errs221 = errors;
-                                                                                                                                                                                                                                                if (errors === _errs221) {
-                                                                                                                                                                                                                                                    if (typeof data96 === "string") {
-                                                                                                                                                                                                                                                        if (func2(data96) > 64) {
-                                                                                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed/reasons/" + i14 + "/code", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/reasons/items/properties/code/maxLength", keyword: "maxLength", params: { limit: 64 }, message: "must NOT have more than 64 characters" }];
-                                                                                                                                                                                                                                                            return false;
-                                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                                        else {
-                                                                                                                                                                                                                                                            if (!pattern5.test(data96)) {
-                                                                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed/reasons/" + i14 + "/code", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/reasons/items/properties/code/pattern", keyword: "pattern", params: { pattern: "^[A-Za-z][A-Za-z0-9-]*$" }, message: "must match pattern \"" + "^[A-Za-z][A-Za-z0-9-]*$" + "\"" }];
-                                                                                                                                                                                                                                                                return false;
-                                                                                                                                                                                                                                                            }
-                                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                                                    else {
-                                                                                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed/reasons/" + i14 + "/code", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/reasons/items/properties/code/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                                                                                                        return false;
-                                                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                                                }
-                                                                                                                                                                                                                                                var valid44 = _errs221 === errors;
-                                                                                                                                                                                                                                            }
-                                                                                                                                                                                                                                            else {
-                                                                                                                                                                                                                                                var valid44 = true;
-                                                                                                                                                                                                                                            }
-                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                                }
-                                                                                                                                                                                                                            }
-                                                                                                                                                                                                                            else {
-                                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed/reasons/" + i14, schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/reasons/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
-                                                                                                                                                                                                                                return false;
-                                                                                                                                                                                                                            }
-                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                        var valid43 = _errs216 === errors;
-                                                                                                                                                                                                                        if (!valid43) {
-                                                                                                                                                                                                                            break;
-                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                }
-                                                                                                                                                                                                            }
-                                                                                                                                                                                                            else {
-                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed/reasons", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/reasons/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
-                                                                                                                                                                                                                return false;
-                                                                                                                                                                                                            }
-                                                                                                                                                                                                        }
-                                                                                                                                                                                                        var valid40 = _errs214 === errors;
-                                                                                                                                                                                                    }
-                                                                                                                                                                                                    else {
-                                                                                                                                                                                                        var valid40 = true;
-                                                                                                                                                                                                    }
-                                                                                                                                                                                                    if (valid40) {
-                                                                                                                                                                                                        if (data90.note !== undefined) {
-                                                                                                                                                                                                            let data97 = data90.note;
-                                                                                                                                                                                                            const _errs223 = errors;
-                                                                                                                                                                                                            if (errors === _errs223) {
-                                                                                                                                                                                                                if (typeof data97 === "string") {
-                                                                                                                                                                                                                    if (func2(data97) > 500) {
-                                                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed/note", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/note/maxLength", keyword: "maxLength", params: { limit: 500 }, message: "must NOT have more than 500 characters" }];
-                                                                                                                                                                                                                        return false;
-                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                    else {
-                                                                                                                                                                                                                        if (func2(data97) < 1) {
-                                                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed/note", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/note/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" }];
-                                                                                                                                                                                                                            return false;
-                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                }
-                                                                                                                                                                                                                else {
-                                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed/note", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/note/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                                                                                                    return false;
-                                                                                                                                                                                                                }
-                                                                                                                                                                                                            }
-                                                                                                                                                                                                            var valid40 = _errs223 === errors;
-                                                                                                                                                                                                        }
-                                                                                                                                                                                                        else {
-                                                                                                                                                                                                            var valid40 = true;
-                                                                                                                                                                                                        }
-                                                                                                                                                                                                    }
-                                                                                                                                                                                                }
-                                                                                                                                                                                            }
-                                                                                                                                                                                        }
-                                                                                                                                                                                    }
-                                                                                                                                                                                    else {
-                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11 + "/removed", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
-                                                                                                                                                                                        return false;
-                                                                                                                                                                                    }
-                                                                                                                                                                                }
-                                                                                                                                                                                var valid39 = _errs207 === errors;
-                                                                                                                                                                            }
-                                                                                                                                                                            else {
-                                                                                                                                                                                var valid39 = true;
-                                                                                                                                                                            }
-                                                                                                                                                                        }
-                                                                                                                                                                    }
                                                                                                                                                                 }
                                                                                                                                                             }
                                                                                                                                                         }
@@ -2681,11 +2362,11 @@ function validate20(data, { instancePath = "", parentData, parentDataProperty, r
                                                                                                                                                 }
                                                                                                                                             }
                                                                                                                                             else {
-                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i11, schemaPath: "#/properties/authoring/properties/relaxations/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes/" + i11, schemaPath: "#/properties/authoring/properties/ruleNotes/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
                                                                                                                                                 return false;
                                                                                                                                             }
                                                                                                                                         }
-                                                                                                                                        var valid38 = _errs194 === errors;
+                                                                                                                                        var valid38 = _errs191 === errors;
                                                                                                                                         if (!valid38) {
                                                                                                                                             break;
                                                                                                                                         }
@@ -2693,31 +2374,444 @@ function validate20(data, { instancePath = "", parentData, parentDataProperty, r
                                                                                                                                 }
                                                                                                                             }
                                                                                                                             else {
-                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations", schemaPath: "#/properties/authoring/properties/relaxations/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/ruleNotes", schemaPath: "#/properties/authoring/properties/ruleNotes/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
                                                                                                                                 return false;
                                                                                                                             }
                                                                                                                         }
-                                                                                                                        var valid23 = _errs192 === errors;
+                                                                                                                        var valid25 = _errs189 === errors;
                                                                                                                     }
                                                                                                                     else {
-                                                                                                                        var valid23 = true;
+                                                                                                                        var valid25 = true;
                                                                                                                     }
-                                                                                                                    if (valid23) {
-                                                                                                                        if (data40.dependencyPolicy !== undefined) {
-                                                                                                                            let data98 = data40.dependencyPolicy;
-                                                                                                                            const _errs225 = errors;
-                                                                                                                            if (typeof data98 !== "string") {
-                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyPolicy", schemaPath: "#/$defs/dependencyPolicy/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
-                                                                                                                                return false;
+                                                                                                                    if (valid25) {
+                                                                                                                        if (data44.relaxations !== undefined) {
+                                                                                                                            let data87 = data44.relaxations;
+                                                                                                                            const _errs200 = errors;
+                                                                                                                            if (errors === _errs200) {
+                                                                                                                                if (Array.isArray(data87)) {
+                                                                                                                                    if (data87.length > 1000) {
+                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations", schemaPath: "#/properties/authoring/properties/relaxations/maxItems", keyword: "maxItems", params: { limit: 1000 }, message: "must NOT have more than 1000 items" }];
+                                                                                                                                        return false;
+                                                                                                                                    }
+                                                                                                                                    else {
+                                                                                                                                        var valid40 = true;
+                                                                                                                                        const len11 = data87.length;
+                                                                                                                                        for (let i12 = 0; i12 < len11; i12++) {
+                                                                                                                                            let data88 = data87[i12];
+                                                                                                                                            const _errs202 = errors;
+                                                                                                                                            if (errors === _errs202) {
+                                                                                                                                                if (data88 && typeof data88 == "object" && !Array.isArray(data88)) {
+                                                                                                                                                    let missing16;
+                                                                                                                                                    if ((((data88.before === undefined) && (missing16 = "before")) || ((data88.after === undefined) && (missing16 = "after"))) || ((data88.editability === undefined) && (missing16 = "editability"))) {
+                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12, schemaPath: "#/properties/authoring/properties/relaxations/items/required", keyword: "required", params: { missingProperty: missing16 }, message: "must have required property '" + missing16 + "'" }];
+                                                                                                                                                        return false;
+                                                                                                                                                    }
+                                                                                                                                                    else {
+                                                                                                                                                        const _errs204 = errors;
+                                                                                                                                                        for (const key16 in data88) {
+                                                                                                                                                            if (!((((((key16 === "before") || (key16 === "after")) || (key16 === "editability")) || (key16 === "note")) || (key16 === "sourceDigest")) || (key16 === "removed"))) {
+                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12, schemaPath: "#/properties/authoring/properties/relaxations/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key16 }, message: "must NOT have additional properties" }];
+                                                                                                                                                                return false;
+                                                                                                                                                                break;
+                                                                                                                                                            }
+                                                                                                                                                        }
+                                                                                                                                                        if (_errs204 === errors) {
+                                                                                                                                                            if (data88.before !== undefined) {
+                                                                                                                                                                let data89 = data88.before;
+                                                                                                                                                                const _errs205 = errors;
+                                                                                                                                                                if (!(((typeof data89 == "number") && (!(data89 % 1) && !isNaN(data89))) && (isFinite(data89)))) {
+                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/before", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/before/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                                                                                    return false;
+                                                                                                                                                                }
+                                                                                                                                                                if (errors === _errs205) {
+                                                                                                                                                                    if ((typeof data89 == "number") && (isFinite(data89))) {
+                                                                                                                                                                        if (data89 > 9007199254740991 || isNaN(data89)) {
+                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/before", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/before/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                                                                                            return false;
+                                                                                                                                                                        }
+                                                                                                                                                                        else {
+                                                                                                                                                                            if (data89 < 1 || isNaN(data89)) {
+                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/before", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/before/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                                                                                return false;
+                                                                                                                                                                            }
+                                                                                                                                                                        }
+                                                                                                                                                                    }
+                                                                                                                                                                }
+                                                                                                                                                                var valid41 = _errs205 === errors;
+                                                                                                                                                            }
+                                                                                                                                                            else {
+                                                                                                                                                                var valid41 = true;
+                                                                                                                                                            }
+                                                                                                                                                            if (valid41) {
+                                                                                                                                                                if (data88.after !== undefined) {
+                                                                                                                                                                    let data90 = data88.after;
+                                                                                                                                                                    const _errs207 = errors;
+                                                                                                                                                                    if (!(((typeof data90 == "number") && (!(data90 % 1) && !isNaN(data90))) && (isFinite(data90)))) {
+                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/after", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/after/type", keyword: "type", params: { type: "integer" }, message: "must be integer" }];
+                                                                                                                                                                        return false;
+                                                                                                                                                                    }
+                                                                                                                                                                    if (errors === _errs207) {
+                                                                                                                                                                        if ((typeof data90 == "number") && (isFinite(data90))) {
+                                                                                                                                                                            if (data90 > 9007199254740991 || isNaN(data90)) {
+                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/after", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/after/maximum", keyword: "maximum", params: { comparison: "<=", limit: 9007199254740991 }, message: "must be <= 9007199254740991" }];
+                                                                                                                                                                                return false;
+                                                                                                                                                                            }
+                                                                                                                                                                            else {
+                                                                                                                                                                                if (data90 < 1 || isNaN(data90)) {
+                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/after", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/after/minimum", keyword: "minimum", params: { comparison: ">=", limit: 1 }, message: "must be >= 1" }];
+                                                                                                                                                                                    return false;
+                                                                                                                                                                                }
+                                                                                                                                                                            }
+                                                                                                                                                                        }
+                                                                                                                                                                    }
+                                                                                                                                                                    var valid41 = _errs207 === errors;
+                                                                                                                                                                }
+                                                                                                                                                                else {
+                                                                                                                                                                    var valid41 = true;
+                                                                                                                                                                }
+                                                                                                                                                                if (valid41) {
+                                                                                                                                                                    if (data88.editability !== undefined) {
+                                                                                                                                                                        let data91 = data88.editability;
+                                                                                                                                                                        const _errs209 = errors;
+                                                                                                                                                                        if (typeof data91 !== "string") {
+                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/editability", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/editability/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                            return false;
+                                                                                                                                                                        }
+                                                                                                                                                                        if (!(((data91 === "conservative") || (data91 === "proven")) || (data91 === "legacy"))) {
+                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/editability", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/editability/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.relaxations.items.properties.editability.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                                                                                            return false;
+                                                                                                                                                                        }
+                                                                                                                                                                        var valid41 = _errs209 === errors;
+                                                                                                                                                                    }
+                                                                                                                                                                    else {
+                                                                                                                                                                        var valid41 = true;
+                                                                                                                                                                    }
+                                                                                                                                                                    if (valid41) {
+                                                                                                                                                                        if (data88.note !== undefined) {
+                                                                                                                                                                            let data92 = data88.note;
+                                                                                                                                                                            const _errs211 = errors;
+                                                                                                                                                                            if (errors === _errs211) {
+                                                                                                                                                                                if (typeof data92 === "string") {
+                                                                                                                                                                                    if (func2(data92) > 500) {
+                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/note", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/note/maxLength", keyword: "maxLength", params: { limit: 500 }, message: "must NOT have more than 500 characters" }];
+                                                                                                                                                                                        return false;
+                                                                                                                                                                                    }
+                                                                                                                                                                                    else {
+                                                                                                                                                                                        if (func2(data92) < 1) {
+                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/note", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/note/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" }];
+                                                                                                                                                                                            return false;
+                                                                                                                                                                                        }
+                                                                                                                                                                                    }
+                                                                                                                                                                                }
+                                                                                                                                                                                else {
+                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/note", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/note/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                                    return false;
+                                                                                                                                                                                }
+                                                                                                                                                                            }
+                                                                                                                                                                            var valid41 = _errs211 === errors;
+                                                                                                                                                                        }
+                                                                                                                                                                        else {
+                                                                                                                                                                            var valid41 = true;
+                                                                                                                                                                        }
+                                                                                                                                                                        if (valid41) {
+                                                                                                                                                                            if (data88.sourceDigest !== undefined) {
+                                                                                                                                                                                let data93 = data88.sourceDigest;
+                                                                                                                                                                                const _errs213 = errors;
+                                                                                                                                                                                if (errors === _errs213) {
+                                                                                                                                                                                    if (typeof data93 === "string") {
+                                                                                                                                                                                        if (!pattern7.test(data93)) {
+                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/sourceDigest", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/sourceDigest/pattern", keyword: "pattern", params: { pattern: "^[0-9a-f]{16}$" }, message: "must match pattern \"" + "^[0-9a-f]{16}$" + "\"" }];
+                                                                                                                                                                                            return false;
+                                                                                                                                                                                        }
+                                                                                                                                                                                    }
+                                                                                                                                                                                    else {
+                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/sourceDigest", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/sourceDigest/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                                        return false;
+                                                                                                                                                                                    }
+                                                                                                                                                                                }
+                                                                                                                                                                                var valid41 = _errs213 === errors;
+                                                                                                                                                                            }
+                                                                                                                                                                            else {
+                                                                                                                                                                                var valid41 = true;
+                                                                                                                                                                            }
+                                                                                                                                                                            if (valid41) {
+                                                                                                                                                                                if (data88.removed !== undefined) {
+                                                                                                                                                                                    let data94 = data88.removed;
+                                                                                                                                                                                    const _errs215 = errors;
+                                                                                                                                                                                    if (errors === _errs215) {
+                                                                                                                                                                                        if (data94 && typeof data94 == "object" && !Array.isArray(data94)) {
+                                                                                                                                                                                            let missing17;
+                                                                                                                                                                                            if (((data94.origins === undefined) && (missing17 = "origins")) || ((data94.reasons === undefined) && (missing17 = "reasons"))) {
+                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/required", keyword: "required", params: { missingProperty: missing17 }, message: "must have required property '" + missing17 + "'" }];
+                                                                                                                                                                                                return false;
+                                                                                                                                                                                            }
+                                                                                                                                                                                            else {
+                                                                                                                                                                                                const _errs217 = errors;
+                                                                                                                                                                                                for (const key17 in data94) {
+                                                                                                                                                                                                    if (!(((key17 === "origins") || (key17 === "reasons")) || (key17 === "note"))) {
+                                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key17 }, message: "must NOT have additional properties" }];
+                                                                                                                                                                                                        return false;
+                                                                                                                                                                                                        break;
+                                                                                                                                                                                                    }
+                                                                                                                                                                                                }
+                                                                                                                                                                                                if (_errs217 === errors) {
+                                                                                                                                                                                                    if (data94.origins !== undefined) {
+                                                                                                                                                                                                        let data95 = data94.origins;
+                                                                                                                                                                                                        const _errs218 = errors;
+                                                                                                                                                                                                        if (errors === _errs218) {
+                                                                                                                                                                                                            if (Array.isArray(data95)) {
+                                                                                                                                                                                                                if (data95.length > 2) {
+                                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed/origins", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/origins/maxItems", keyword: "maxItems", params: { limit: 2 }, message: "must NOT have more than 2 items" }];
+                                                                                                                                                                                                                    return false;
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                                else {
+                                                                                                                                                                                                                    if (data95.length < 1) {
+                                                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed/origins", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/origins/minItems", keyword: "minItems", params: { limit: 1 }, message: "must NOT have fewer than 1 items" }];
+                                                                                                                                                                                                                        return false;
+                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                    else {
+                                                                                                                                                                                                                        var valid43 = true;
+                                                                                                                                                                                                                        const len12 = data95.length;
+                                                                                                                                                                                                                        for (let i13 = 0; i13 < len12; i13++) {
+                                                                                                                                                                                                                            let data96 = data95[i13];
+                                                                                                                                                                                                                            const _errs220 = errors;
+                                                                                                                                                                                                                            if (typeof data96 !== "string") {
+                                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed/origins/" + i13, schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/origins/items/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                                                                                return false;
+                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                            if (!((data96 === "dependency") || (data96 === "edge"))) {
+                                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed/origins/" + i13, schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/origins/items/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.relaxations.items.properties.removed.properties.origins.items.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                                                                                                                                                return false;
+                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                            var valid43 = _errs220 === errors;
+                                                                                                                                                                                                                            if (!valid43) {
+                                                                                                                                                                                                                                break;
+                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                        if (valid43) {
+                                                                                                                                                                                                                            let i14 = data95.length;
+                                                                                                                                                                                                                            let j1;
+                                                                                                                                                                                                                            if (i14 > 1) {
+                                                                                                                                                                                                                                const indices1 = {};
+                                                                                                                                                                                                                                for (; i14--;) {
+                                                                                                                                                                                                                                    let item1 = data95[i14];
+                                                                                                                                                                                                                                    if (typeof item1 !== "string") {
+                                                                                                                                                                                                                                        continue;
+                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                    if (typeof indices1[item1] == "number") {
+                                                                                                                                                                                                                                        j1 = indices1[item1];
+                                                                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed/origins", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/origins/uniqueItems", keyword: "uniqueItems", params: { i: i14, j: j1 }, message: "must NOT have duplicate items (items ## " + j1 + " and " + i14 + " are identical)" }];
+                                                                                                                                                                                                                                        return false;
+                                                                                                                                                                                                                                        break;
+                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                    indices1[item1] = i14;
+                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                            else {
+                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed/origins", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/origins/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                                                                                                                                                                                                return false;
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                        }
+                                                                                                                                                                                                        var valid42 = _errs218 === errors;
+                                                                                                                                                                                                    }
+                                                                                                                                                                                                    else {
+                                                                                                                                                                                                        var valid42 = true;
+                                                                                                                                                                                                    }
+                                                                                                                                                                                                    if (valid42) {
+                                                                                                                                                                                                        if (data94.reasons !== undefined) {
+                                                                                                                                                                                                            let data97 = data94.reasons;
+                                                                                                                                                                                                            const _errs222 = errors;
+                                                                                                                                                                                                            if (errors === _errs222) {
+                                                                                                                                                                                                                if (Array.isArray(data97)) {
+                                                                                                                                                                                                                    if (data97.length > 32) {
+                                                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed/reasons", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/reasons/maxItems", keyword: "maxItems", params: { limit: 32 }, message: "must NOT have more than 32 items" }];
+                                                                                                                                                                                                                        return false;
+                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                    else {
+                                                                                                                                                                                                                        var valid45 = true;
+                                                                                                                                                                                                                        const len13 = data97.length;
+                                                                                                                                                                                                                        for (let i15 = 0; i15 < len13; i15++) {
+                                                                                                                                                                                                                            let data98 = data97[i15];
+                                                                                                                                                                                                                            const _errs224 = errors;
+                                                                                                                                                                                                                            if (errors === _errs224) {
+                                                                                                                                                                                                                                if (data98 && typeof data98 == "object" && !Array.isArray(data98)) {
+                                                                                                                                                                                                                                    let missing18;
+                                                                                                                                                                                                                                    if (((data98.category === undefined) && (missing18 = "category")) || ((data98.code === undefined) && (missing18 = "code"))) {
+                                                                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed/reasons/" + i15, schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/reasons/items/required", keyword: "required", params: { missingProperty: missing18 }, message: "must have required property '" + missing18 + "'" }];
+                                                                                                                                                                                                                                        return false;
+                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                    else {
+                                                                                                                                                                                                                                        const _errs226 = errors;
+                                                                                                                                                                                                                                        for (const key18 in data98) {
+                                                                                                                                                                                                                                            if (!((key18 === "category") || (key18 === "code"))) {
+                                                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed/reasons/" + i15, schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/reasons/items/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key18 }, message: "must NOT have additional properties" }];
+                                                                                                                                                                                                                                                return false;
+                                                                                                                                                                                                                                                break;
+                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                        if (_errs226 === errors) {
+                                                                                                                                                                                                                                            if (data98.category !== undefined) {
+                                                                                                                                                                                                                                                let data99 = data98.category;
+                                                                                                                                                                                                                                                const _errs227 = errors;
+                                                                                                                                                                                                                                                if (typeof data99 !== "string") {
+                                                                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed/reasons/" + i15 + "/category", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/reasons/items/properties/category/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                                                                                                    return false;
+                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                if (!((((((((data99 === "data") || (data99 === "effect")) || (data99 === "structure")) || (data99 === "unit")) || (data99 === "policy")) || (data99 === "author")) || (data99 === "conservative")) || (data99 === "unknown"))) {
+                                                                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed/reasons/" + i15 + "/category", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/reasons/items/properties/category/enum", keyword: "enum", params: { allowedValues: schema31.properties.authoring.properties.relaxations.items.properties.removed.properties.reasons.items.properties.category.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                                                                                                                                                                    return false;
+                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                var valid46 = _errs227 === errors;
+                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                            else {
+                                                                                                                                                                                                                                                var valid46 = true;
+                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                            if (valid46) {
+                                                                                                                                                                                                                                                if (data98.code !== undefined) {
+                                                                                                                                                                                                                                                    let data100 = data98.code;
+                                                                                                                                                                                                                                                    const _errs229 = errors;
+                                                                                                                                                                                                                                                    if (errors === _errs229) {
+                                                                                                                                                                                                                                                        if (typeof data100 === "string") {
+                                                                                                                                                                                                                                                            if (func2(data100) > 64) {
+                                                                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed/reasons/" + i15 + "/code", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/reasons/items/properties/code/maxLength", keyword: "maxLength", params: { limit: 64 }, message: "must NOT have more than 64 characters" }];
+                                                                                                                                                                                                                                                                return false;
+                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                            else {
+                                                                                                                                                                                                                                                                if (!pattern6.test(data100)) {
+                                                                                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed/reasons/" + i15 + "/code", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/reasons/items/properties/code/pattern", keyword: "pattern", params: { pattern: "^[A-Za-z][A-Za-z0-9-]*$" }, message: "must match pattern \"" + "^[A-Za-z][A-Za-z0-9-]*$" + "\"" }];
+                                                                                                                                                                                                                                                                    return false;
+                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                        else {
+                                                                                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed/reasons/" + i15 + "/code", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/reasons/items/properties/code/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                                                                                                            return false;
+                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                    var valid46 = _errs229 === errors;
+                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                else {
+                                                                                                                                                                                                                                                    var valid46 = true;
+                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                else {
+                                                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed/reasons/" + i15, schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/reasons/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                                                                                                                                                                    return false;
+                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                            var valid45 = _errs224 === errors;
+                                                                                                                                                                                                                            if (!valid45) {
+                                                                                                                                                                                                                                break;
+                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                                else {
+                                                                                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed/reasons", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/reasons/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                                                                                                                                                                                                    return false;
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                            var valid42 = _errs222 === errors;
+                                                                                                                                                                                                        }
+                                                                                                                                                                                                        else {
+                                                                                                                                                                                                            var valid42 = true;
+                                                                                                                                                                                                        }
+                                                                                                                                                                                                        if (valid42) {
+                                                                                                                                                                                                            if (data94.note !== undefined) {
+                                                                                                                                                                                                                let data101 = data94.note;
+                                                                                                                                                                                                                const _errs231 = errors;
+                                                                                                                                                                                                                if (errors === _errs231) {
+                                                                                                                                                                                                                    if (typeof data101 === "string") {
+                                                                                                                                                                                                                        if (func2(data101) > 500) {
+                                                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed/note", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/note/maxLength", keyword: "maxLength", params: { limit: 500 }, message: "must NOT have more than 500 characters" }];
+                                                                                                                                                                                                                            return false;
+                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                        else {
+                                                                                                                                                                                                                            if (func2(data101) < 1) {
+                                                                                                                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed/note", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/note/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" }];
+                                                                                                                                                                                                                                return false;
+                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                    else {
+                                                                                                                                                                                                                        validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed/note", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/properties/note/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                                                                                                        return false;
+                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                                var valid42 = _errs231 === errors;
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                            else {
+                                                                                                                                                                                                                var valid42 = true;
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                        }
+                                                                                                                                                                                                    }
+                                                                                                                                                                                                }
+                                                                                                                                                                                            }
+                                                                                                                                                                                        }
+                                                                                                                                                                                        else {
+                                                                                                                                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12 + "/removed", schemaPath: "#/properties/authoring/properties/relaxations/items/properties/removed/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                                                                                                                            return false;
+                                                                                                                                                                                        }
+                                                                                                                                                                                    }
+                                                                                                                                                                                    var valid41 = _errs215 === errors;
+                                                                                                                                                                                }
+                                                                                                                                                                                else {
+                                                                                                                                                                                    var valid41 = true;
+                                                                                                                                                                                }
+                                                                                                                                                                            }
+                                                                                                                                                                        }
+                                                                                                                                                                    }
+                                                                                                                                                                }
+                                                                                                                                                            }
+                                                                                                                                                        }
+                                                                                                                                                    }
+                                                                                                                                                }
+                                                                                                                                                else {
+                                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations/" + i12, schemaPath: "#/properties/authoring/properties/relaxations/items/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                                                                                    return false;
+                                                                                                                                                }
+                                                                                                                                            }
+                                                                                                                                            var valid40 = _errs202 === errors;
+                                                                                                                                            if (!valid40) {
+                                                                                                                                                break;
+                                                                                                                                            }
+                                                                                                                                        }
+                                                                                                                                    }
+                                                                                                                                }
+                                                                                                                                else {
+                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/relaxations", schemaPath: "#/properties/authoring/properties/relaxations/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                                                                                                                    return false;
+                                                                                                                                }
                                                                                                                             }
-                                                                                                                            if (!(((((((((((((((((((((((((((((((((((((((((((((((((((((((((data98 === "primitive-const-islands-v1") || (data98 === "scoped-primitive-dag-v2")) || (data98 === "scoped-type-members-v3")) || (data98 === "scoped-effect-analysis-v4")) || (data98 === "scoped-effect-analysis-v5")) || (data98 === "scoped-effect-analysis-v6")) || (data98 === "scoped-effect-analysis-v7")) || (data98 === "scoped-effect-analysis-v8")) || (data98 === "scoped-effect-analysis-v9")) || (data98 === "scoped-effect-analysis-v10")) || (data98 === "scoped-effect-analysis-v11")) || (data98 === "scoped-effect-analysis-v12")) || (data98 === "scoped-effect-analysis-v13")) || (data98 === "scoped-effect-analysis-v14")) || (data98 === "scoped-effect-analysis-v15")) || (data98 === "scoped-effect-analysis-v16")) || (data98 === "scoped-effect-analysis-v17")) || (data98 === "scoped-effect-analysis-v18")) || (data98 === "scoped-effect-analysis-v19")) || (data98 === "scoped-effect-analysis-v20")) || (data98 === "scoped-effect-analysis-v21")) || (data98 === "scoped-effect-analysis-v22")) || (data98 === "scoped-effect-analysis-v23")) || (data98 === "scoped-effect-analysis-v24")) || (data98 === "scoped-effect-analysis-v25")) || (data98 === "scoped-effect-analysis-v26")) || (data98 === "scoped-effect-analysis-v27")) || (data98 === "scoped-effect-analysis-v28")) || (data98 === "scoped-effect-analysis-v29")) || (data98 === "scoped-effect-analysis-v30")) || (data98 === "scoped-effect-analysis-v31")) || (data98 === "scoped-effect-analysis-v32")) || (data98 === "scoped-effect-analysis-v33")) || (data98 === "scoped-effect-analysis-v34")) || (data98 === "scoped-effect-analysis-v35")) || (data98 === "scoped-effect-analysis-v36")) || (data98 === "scoped-effect-analysis-v37")) || (data98 === "scoped-effect-analysis-v38")) || (data98 === "scoped-effect-analysis-v39")) || (data98 === "scoped-effect-analysis-v40")) || (data98 === "scoped-effect-analysis-v41")) || (data98 === "scoped-effect-analysis-v42")) || (data98 === "scoped-effect-analysis-v43")) || (data98 === "scoped-effect-analysis-v44")) || (data98 === "scoped-effect-analysis-v45")) || (data98 === "scoped-effect-analysis-v46")) || (data98 === "scoped-effect-analysis-v47")) || (data98 === "scoped-effect-analysis-v48")) || (data98 === "scoped-effect-analysis-v49")) || (data98 === "scoped-effect-analysis-v50")) || (data98 === "scoped-effect-analysis-v51")) || (data98 === "scoped-effect-analysis-v52")) || (data98 === "scoped-effect-analysis-v53")) || (data98 === "scoped-effect-analysis-v54")) || (data98 === "scoped-effect-analysis-v55")) || (data98 === "scoped-effect-analysis-v56")) || (data98 === "scoped-effect-analysis-v57"))) {
-                                                                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyPolicy", schemaPath: "#/$defs/dependencyPolicy/enum", keyword: "enum", params: { allowedValues: schema36.enum }, message: "must be equal to one of the allowed values" }];
-                                                                                                                                return false;
-                                                                                                                            }
-                                                                                                                            var valid23 = _errs225 === errors;
+                                                                                                                            var valid25 = _errs200 === errors;
                                                                                                                         }
                                                                                                                         else {
-                                                                                                                            var valid23 = true;
+                                                                                                                            var valid25 = true;
+                                                                                                                        }
+                                                                                                                        if (valid25) {
+                                                                                                                            if (data44.dependencyPolicy !== undefined) {
+                                                                                                                                let data102 = data44.dependencyPolicy;
+                                                                                                                                const _errs233 = errors;
+                                                                                                                                if (typeof data102 !== "string") {
+                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyPolicy", schemaPath: "#/$defs/dependencyPolicy/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                                                                                    return false;
+                                                                                                                                }
+                                                                                                                                if (!(((((((((((((((((((((((((((((((((((((((((((((((((((((((((data102 === "primitive-const-islands-v1") || (data102 === "scoped-primitive-dag-v2")) || (data102 === "scoped-type-members-v3")) || (data102 === "scoped-effect-analysis-v4")) || (data102 === "scoped-effect-analysis-v5")) || (data102 === "scoped-effect-analysis-v6")) || (data102 === "scoped-effect-analysis-v7")) || (data102 === "scoped-effect-analysis-v8")) || (data102 === "scoped-effect-analysis-v9")) || (data102 === "scoped-effect-analysis-v10")) || (data102 === "scoped-effect-analysis-v11")) || (data102 === "scoped-effect-analysis-v12")) || (data102 === "scoped-effect-analysis-v13")) || (data102 === "scoped-effect-analysis-v14")) || (data102 === "scoped-effect-analysis-v15")) || (data102 === "scoped-effect-analysis-v16")) || (data102 === "scoped-effect-analysis-v17")) || (data102 === "scoped-effect-analysis-v18")) || (data102 === "scoped-effect-analysis-v19")) || (data102 === "scoped-effect-analysis-v20")) || (data102 === "scoped-effect-analysis-v21")) || (data102 === "scoped-effect-analysis-v22")) || (data102 === "scoped-effect-analysis-v23")) || (data102 === "scoped-effect-analysis-v24")) || (data102 === "scoped-effect-analysis-v25")) || (data102 === "scoped-effect-analysis-v26")) || (data102 === "scoped-effect-analysis-v27")) || (data102 === "scoped-effect-analysis-v28")) || (data102 === "scoped-effect-analysis-v29")) || (data102 === "scoped-effect-analysis-v30")) || (data102 === "scoped-effect-analysis-v31")) || (data102 === "scoped-effect-analysis-v32")) || (data102 === "scoped-effect-analysis-v33")) || (data102 === "scoped-effect-analysis-v34")) || (data102 === "scoped-effect-analysis-v35")) || (data102 === "scoped-effect-analysis-v36")) || (data102 === "scoped-effect-analysis-v37")) || (data102 === "scoped-effect-analysis-v38")) || (data102 === "scoped-effect-analysis-v39")) || (data102 === "scoped-effect-analysis-v40")) || (data102 === "scoped-effect-analysis-v41")) || (data102 === "scoped-effect-analysis-v42")) || (data102 === "scoped-effect-analysis-v43")) || (data102 === "scoped-effect-analysis-v44")) || (data102 === "scoped-effect-analysis-v45")) || (data102 === "scoped-effect-analysis-v46")) || (data102 === "scoped-effect-analysis-v47")) || (data102 === "scoped-effect-analysis-v48")) || (data102 === "scoped-effect-analysis-v49")) || (data102 === "scoped-effect-analysis-v50")) || (data102 === "scoped-effect-analysis-v51")) || (data102 === "scoped-effect-analysis-v52")) || (data102 === "scoped-effect-analysis-v53")) || (data102 === "scoped-effect-analysis-v54")) || (data102 === "scoped-effect-analysis-v55")) || (data102 === "scoped-effect-analysis-v56")) || (data102 === "scoped-effect-analysis-v57"))) {
+                                                                                                                                    validate20.errors = [{ instancePath: instancePath + "/authoring/dependencyPolicy", schemaPath: "#/$defs/dependencyPolicy/enum", keyword: "enum", params: { allowedValues: schema36.enum }, message: "must be equal to one of the allowed values" }];
+                                                                                                                                    return false;
+                                                                                                                                }
+                                                                                                                                var valid25 = _errs233 === errors;
+                                                                                                                            }
+                                                                                                                            else {
+                                                                                                                                var valid25 = true;
+                                                                                                                            }
                                                                                                                         }
                                                                                                                     }
                                                                                                                 }
@@ -2730,16 +2824,16 @@ function validate20(data, { instancePath = "", parentData, parentDataProperty, r
                                                                                     }
                                                                                 }
                                                                             }
+                                                                            else {
+                                                                                validate20.errors = [{ instancePath: instancePath + "/authoring", schemaPath: "#/properties/authoring/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
+                                                                                return false;
+                                                                            }
                                                                         }
-                                                                        else {
-                                                                            validate20.errors = [{ instancePath: instancePath + "/authoring", schemaPath: "#/properties/authoring/type", keyword: "type", params: { type: "object" }, message: "must be object" }];
-                                                                            return false;
-                                                                        }
+                                                                        var valid0 = _errs104 === errors;
                                                                     }
-                                                                    var valid0 = _errs96 === errors;
-                                                                }
-                                                                else {
-                                                                    var valid0 = true;
+                                                                    else {
+                                                                        var valid0 = true;
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -2765,10 +2859,10 @@ validate20.evaluated = { "props": true, "dynamicProps": false, "dynamicItems": f
 export const validateIR = validate21;
 const schema39 = { "$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://philofobreal.github.io/developer-exercise/language-ir-v1.schema.json", "title": "Language IR v1", "type": "object", "additionalProperties": false, "required": ["irVersion", "language", "source", "lines", "units", "containers", "bindingScopes", "boundaries", "edges", "profiles", "indentPolicy", "analysis"], "properties": { "irVersion": { "const": 1 }, "language": { "$ref": "#/$defs/id" }, "source": { "type": "string", "maxLength": 1048576, "not": { "pattern": "[\\r\\u2028\\u2029]" } }, "lines": { "type": "array", "minItems": 1, "maxItems": 500, "items": { "$ref": "#/$defs/line" } }, "units": { "type": "array", "minItems": 1, "maxItems": 500, "items": { "$ref": "#/$defs/unit" } }, "containers": { "type": "array", "maxItems": 250, "items": { "$ref": "#/$defs/container" } }, "bindingScopes": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/container" } }, "boundaries": { "type": "array", "maxItems": 500, "items": { "$ref": "#/$defs/boundary" } }, "edges": { "type": "array", "maxItems": 5000, "items": { "$ref": "#/$defs/edge" } }, "profiles": { "type": "array", "maxItems": 32, "items": { "type": "object", "additionalProperties": false, "required": ["id", "edges"], "properties": { "id": { "$ref": "#/$defs/id" }, "edges": { "type": "array", "maxItems": 5000, "items": { "$ref": "#/$defs/edge" } } } } }, "indentPolicy": { "type": "object", "additionalProperties": false, "required": ["mode", "tabWidth", "display"], "properties": { "mode": { "enum": ["presentation", "semantic"] }, "tabWidth": { "type": "integer", "minimum": 1, "maximum": 16 }, "display": { "enum": ["adapter", "preserve"] } }, "if": { "properties": { "mode": { "const": "semantic" } } }, "then": { "properties": { "display": { "const": "preserve" } } } }, "analysis": { "type": "object", "additionalProperties": false, "required": ["strategy", "sourceOrigin", "semanticEquivalenceProven"], "properties": { "strategy": { "enum": ["legacy-v2-projection", "native"] }, "sourceOrigin": { "enum": ["original", "reconstructed-v2"] }, "semanticEquivalenceProven": { "const": false }, "legacyAuthoring": { "$ref": "https://philofobreal.github.io/developer-exercise/schema.json#/properties/authoring" } } } }, "$defs": { "id": { "type": "string", "minLength": 1, "maxLength": 200 }, "nullableId": { "anyOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }] }, "position": { "type": "object", "additionalProperties": false, "required": ["offset", "line", "column"], "properties": { "offset": { "type": "integer", "minimum": 0, "maximum": 2100000 }, "line": { "type": "integer", "minimum": 1, "maximum": 1048577 }, "column": { "type": "integer", "minimum": 0, "maximum": 2100000 } } }, "line": { "type": "object", "additionalProperties": false, "required": ["id", "code", "sourceSpan", "normalization"], "properties": { "id": { "$ref": "#/$defs/id" }, "code": { "type": "string", "maxLength": 2048, "not": { "pattern": "[\\r\\n\\u2028\\u2029]" } }, "normalization": { "enum": ["indent", "exact"] }, "sourceSpan": { "type": "object", "additionalProperties": false, "required": ["start", "end"], "properties": { "start": { "$ref": "#/$defs/position" }, "end": { "$ref": "#/$defs/position" } } } } }, "unit": { "type": "object", "additionalProperties": false, "required": ["id", "lineIds", "containerId", "bindingScopeId", "dependencies", "fixed"], "properties": { "id": { "$ref": "#/$defs/id" }, "lineIds": { "type": "array", "minItems": 1, "maxItems": 500, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 200 } }, "containerId": { "$ref": "#/$defs/nullableId" }, "bindingScopeId": { "$ref": "#/$defs/nullableId" }, "dependencies": { "type": "array", "maxItems": 500, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 200 } }, "fixed": { "type": "boolean" } } }, "container": { "type": "object", "additionalProperties": false, "required": ["id", "parentId", "kind"], "properties": { "id": { "$ref": "#/$defs/id" }, "parentId": { "$ref": "#/$defs/nullableId" }, "kind": { "$ref": "#/$defs/id" } } }, "boundary": { "type": "object", "additionalProperties": false, "required": ["containerId", "unitId", "phase", "action", "virtual"], "properties": { "containerId": { "$ref": "#/$defs/id" }, "unitId": { "$ref": "#/$defs/id" }, "phase": { "enum": ["before", "after"] }, "action": { "enum": ["open", "close"] }, "virtual": { "type": "boolean" } } }, "edge": { "type": "object", "additionalProperties": false, "required": ["before", "after"], "properties": { "before": { "$ref": "#/$defs/id" }, "after": { "$ref": "#/$defs/id" } } } } };
 const schema40 = { "type": "string", "minLength": 1, "maxLength": 200 };
-const pattern10 = new RegExp("[\\r\\u2028\\u2029]", "u");
+const pattern11 = new RegExp("[\\r\\u2028\\u2029]", "u");
 const schema41 = { "type": "object", "additionalProperties": false, "required": ["id", "code", "sourceSpan", "normalization"], "properties": { "id": { "$ref": "#/$defs/id" }, "code": { "type": "string", "maxLength": 2048, "not": { "pattern": "[\\r\\n\\u2028\\u2029]" } }, "normalization": { "enum": ["indent", "exact"] }, "sourceSpan": { "type": "object", "additionalProperties": false, "required": ["start", "end"], "properties": { "start": { "$ref": "#/$defs/position" }, "end": { "$ref": "#/$defs/position" } } } } };
 const schema43 = { "type": "object", "additionalProperties": false, "required": ["offset", "line", "column"], "properties": { "offset": { "type": "integer", "minimum": 0, "maximum": 2100000 }, "line": { "type": "integer", "minimum": 1, "maximum": 1048577 }, "column": { "type": "integer", "minimum": 0, "maximum": 2100000 } } };
-const pattern11 = new RegExp("[\\r\\n\\u2028\\u2029]", "u");
+const pattern12 = new RegExp("[\\r\\n\\u2028\\u2029]", "u");
 function validate22(data, { instancePath = "", parentData, parentDataProperty, rootData = data, dynamicAnchors = {} } = {}) { let vErrors = null; let errors = 0; const evaluated0 = validate22.evaluated; if (evaluated0.dynamicProps) {
     evaluated0.props = undefined;
 } if (evaluated0.dynamicItems) {
@@ -2824,7 +2918,7 @@ function validate22(data, { instancePath = "", parentData, parentDataProperty, r
                         const _errs7 = errors;
                         const _errs8 = errors;
                         if (typeof data1 === "string") {
-                            if (!pattern11.test(data1)) {
+                            if (!pattern12.test(data1)) {
                                 const err0 = {};
                                 if (vErrors === null) {
                                     vErrors = [err0];
@@ -4161,7 +4255,7 @@ function validate38(data, { instancePath = "", parentData, parentDataProperty, r
                                                                                                     return false;
                                                                                                 }
                                                                                                 else {
-                                                                                                    if (!pattern5.test(data15)) {
+                                                                                                    if (!pattern6.test(data15)) {
                                                                                                         validate38.errors = [{ instancePath: instancePath + "/provenance/" + i1 + "/code", schemaPath: "#/properties/provenance/items/properties/code/pattern", keyword: "pattern", params: { pattern: "^[A-Za-z][A-Za-z0-9-]*$" }, message: "must match pattern \"" + "^[A-Za-z][A-Za-z0-9-]*$" + "\"" }];
                                                                                                         return false;
                                                                                                     }
@@ -4231,7 +4325,7 @@ function validate38(data, { instancePath = "", parentData, parentDataProperty, r
                                                                 const _errs38 = errors;
                                                                 if (errors === _errs38) {
                                                                     if (typeof data17 === "string") {
-                                                                        if (!pattern6.test(data17)) {
+                                                                        if (!pattern7.test(data17)) {
                                                                             validate38.errors = [{ instancePath: instancePath + "/evidence/sourceDigest", schemaPath: "#/properties/evidence/properties/sourceDigest/pattern", keyword: "pattern", params: { pattern: "^[0-9a-f]{16}$" }, message: "must match pattern \"" + "^[0-9a-f]{16}$" + "\"" }];
                                                                             return false;
                                                                         }
@@ -4283,7 +4377,7 @@ function validate38(data, { instancePath = "", parentData, parentDataProperty, r
                                                                                         const _errs46 = errors;
                                                                                         if (errors === _errs46) {
                                                                                             if (typeof data20 === "string") {
-                                                                                                if (!pattern7.test(data20)) {
+                                                                                                if (!pattern8.test(data20)) {
                                                                                                     validate38.errors = [{ instancePath: instancePath + "/evidence/environment/typescript", schemaPath: "#/properties/evidence/properties/environment/properties/typescript/pattern", keyword: "pattern", params: { pattern: "^[0-9A-Za-z.+-]{1,40}$" }, message: "must match pattern \"" + "^[0-9A-Za-z.+-]{1,40}$" + "\"" }];
                                                                                                     return false;
                                                                                                 }
@@ -4985,7 +5079,7 @@ function validate38(data, { instancePath = "", parentData, parentDataProperty, r
                                                                                                         const _errs108 = errors;
                                                                                                         if (errors === _errs108) {
                                                                                                             if (typeof data48 === "string") {
-                                                                                                                if (!pattern6.test(data48)) {
+                                                                                                                if (!pattern7.test(data48)) {
                                                                                                                     validate38.errors = [{ instancePath: instancePath + "/relaxations/" + i4 + "/sourceDigest", schemaPath: "#/properties/relaxations/items/properties/sourceDigest/pattern", keyword: "pattern", params: { pattern: "^[0-9a-f]{16}$" }, message: "must match pattern \"" + "^[0-9a-f]{16}$" + "\"" }];
                                                                                                                     return false;
                                                                                                                 }
@@ -5147,7 +5241,7 @@ function validate38(data, { instancePath = "", parentData, parentDataProperty, r
                                                                                                                                                                                         return false;
                                                                                                                                                                                     }
                                                                                                                                                                                     else {
-                                                                                                                                                                                        if (!pattern5.test(data55)) {
+                                                                                                                                                                                        if (!pattern6.test(data55)) {
                                                                                                                                                                                             validate38.errors = [{ instancePath: instancePath + "/relaxations/" + i4 + "/removed/reasons/" + i7 + "/code", schemaPath: "#/properties/relaxations/items/properties/removed/properties/reasons/items/properties/code/pattern", keyword: "pattern", params: { pattern: "^[A-Za-z][A-Za-z0-9-]*$" }, message: "must match pattern \"" + "^[A-Za-z][A-Za-z0-9-]*$" + "\"" }];
                                                                                                                                                                                             return false;
                                                                                                                                                                                         }
@@ -5363,7 +5457,7 @@ function validate21(data, { instancePath = "", parentData, parentDataProperty, r
                             const _errs8 = errors;
                             const _errs9 = errors;
                             if (typeof data2 === "string") {
-                                if (!pattern10.test(data2)) {
+                                if (!pattern11.test(data2)) {
                                     const err0 = {};
                                     if (vErrors === null) {
                                         vErrors = [err0];

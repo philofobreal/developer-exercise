@@ -121,7 +121,7 @@ A felhasználó kérdése: össze lehet-e ma rakni bármilyen szabályos forrás
 ]
 ```
 
-- **Az `id` zárt készletből való,** amelyet a mag ismer: `ecmascript`, `typescript`, `rxjs`, később `angular`. A készlet mondja meg a fajtát (nyelv, library, framework), a megjelenített nevet és a verziók sorrendjét. Új technológia a készlet bővítése, nem sémaváltozás.
+- **Az `id` zárt készletből való:** a G1 óta `ecmascript` és `typescript` ([ADR-149](adr/149-technology-labels.md)); az `rxjs` a G8-ban, az `angular` később kerül bele. Új technológia a séma felsorolásának bővítése (visszafelé kompatibilis).
 - **A jelölés címke, nem szabály.** Az értékelés nem olvassa. Importált feladat jelölése megjelenik, de a felület nem tekinti igazoltnak, amíg a szerzői elemzés újra meg nem mérte.
 
 ### 2.2 Mit jelent a verzió
@@ -280,7 +280,7 @@ Minden lépés külön jóváhagyás után indul, saját ADR-rel és tervezési 
 
 | Lépés | Tartalom | Kockázati osztály | Kész, ha |
 | --- | --- | --- | --- |
-| **G1 Jelölés** | mező és készlet (mag), mérőmodul (szerzői elemzés), a 16 feladat jelölése, a lista megkapja | mag, szerzői elemzés | teljes kör zöld; eltérés-teszt |
+| **G1 Jelölés** (kész, [ADR-149](adr/149-technology-labels.md)) | mező és készlet (mag), mérőmodul (szerzői elemzés), a 16 feladat jelölése, a lista megkapja | mag, szerzői elemzés | teljes kör zöld; eltérés-teszt |
 | **G2 Jelölés a felületen** | bemutató (jelvények, szűrő, összesítő, két változat) → választás → megvalósítás | megjelenítés | böngészős tesztek, a11y |
 | **G3 A fa** | tananyagjegyzék, a 16 feladat elhelyezése, bemutató (két változat) → megvalósítás | megjelenítés, katalógus | böngészős tesztek |
 | **G4 Eszközlánc** | TypeScript 6.0.3; az ellenőrzés könyvtára ES2025; `using` és szabványos dekorátor az ellenőrzésben; a CI Node-verziója | szerzői elemzés, orákulum, eszközök | teljes kör zöld, változatlan alapszint; Local Demo méretek mérve |

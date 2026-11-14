@@ -1,6 +1,7 @@
 import validateShape from './schema-check.js';
 import { compileDefinition, isModelError } from './model.js';
 import { withArticle } from './article.js';
+import { technologiesProblem } from './technology.js';
 const invalid = (message) => ({ status: 'invalid_reference', accepted: false, reason: 'invalid_model', message, exploredStates: 0 });
 const refId = (id) => `n:${id}`;
 /** Compile and audit once at publication time. Never compile rules supplied by a learner. */
@@ -9,6 +10,9 @@ export function compileCodeLineExercise(raw) {
         return invalid('A CodeLine JSON Schema alakja, méretkorlátja vagy egyediségi feltétele sérült.');
     if (!raw || raw.schemaVersion !== 2 || !Array.isArray(raw.lines) || !Array.isArray(raw.blocks) || !raw.lines.length || raw.lines.length > 500)
         return invalid('Hibás CodeLine v2 definíció.');
+    const labels = technologiesProblem(raw.technologies);
+    if (labels)
+        return invalid(labels);
     const seen = new Set();
     for (const l of raw.lines) {
         if (!l || !Number.isSafeInteger(l.id) || l.id < 1 || seen.has(l.id) || !Array.isArray(l.dependencies) || l.dependencies.some(d => !Number.isSafeInteger(d)) || typeof l.fixed !== 'boolean' || !Number.isSafeInteger(l.functionBlock) || l.functionBlock < 0 || (l.scopeId !== null && typeof l.scopeId !== 'string'))

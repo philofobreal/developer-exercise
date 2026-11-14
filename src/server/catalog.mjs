@@ -12,6 +12,7 @@ import {auditReference} from '../author/audit.mjs';
 import {compileCodeLineExercise,validateSubmission,diagnoseSubmission,evaluationDisclosure,withLearnerFeedback,codeLineDiagnosticReasons,publicationRefusal,DEFAULT_PUBLICATION_POLICY} from '../../dist/index.js';
 import {authorRuleSheet,editAuthorModel,refreshAuthorModel,verifyAuthorModel} from '../../dist/author/engine.js';
 import {createReferenceAuditor} from '../../dist/author/reference-audit.js';
+import {createTechnologyProfiler} from '../../dist/author/technology-profile.js';
 import {auditMode,generatorOptions,policyRefusal,recordedContract,resolveAuthorPolicy} from '../../dist/author/preflight/config-resolver.js';
 import {sourceGate} from '../../dist/author/preflight/source-gate.js';
 import {runtimeSafety} from '../../dist/author/preflight/runtime-safety.js';
@@ -52,11 +53,15 @@ export class ExerciseCatalog{
     if(!records.size)throw Error(`No publishable JSON exercises in examples/ (policy: ${publication})`);
     return catalog;
   }
-  list(){return [...this.trusted.values()].map(({model:d,verification})=>({id:d.id,revision:d.revision,language:d.language,title:d.title,description:d.description,...(d.level?{level:d.level}:{}),...(verification?{verification:verification.status}:{}),
+  list(){return [...this.trusted.values()].map(({model:d,verification})=>({id:d.id,revision:d.revision,language:d.language,title:d.title,description:d.description,...(d.level?{level:d.level}:{}),...(d.technologies?{technologies:d.technologies}:{}),...(verification?{verification:verification.status}:{}),
     lines:d.lines.map(l=>({id:l.id,code:l.code,fixed:l.fixed,normalization:l.normalization??'indent',functionBlock:l.functionBlock}))}));}
   async parser(){return this.ts??=(await import('typescript')).default;}
   /** Language audit beyond syntax (ADR-016): the installed compiler's standard library, read by base name only. */
-  async auditor(){const ts=await this.parser(),dir=path.dirname(ts.getDefaultLibFilePath({}));return this.languageAudit??=createReferenceAuditor(ts,name=>{try{return readFileSync(path.join(dir,path.basename(name)),'utf8');}catch{return undefined;}});}
+  /** The installed compiler's standard library, read by base name only. */
+  async library(){const dir=path.dirname((await this.parser()).getDefaultLibFilePath({}));return this.libraryPort??=name=>{try{return readFileSync(path.join(dir,path.basename(name)),'utf8');}catch{return undefined;}};}
+  async auditor(){return this.languageAudit??=createReferenceAuditor(await this.parser(),await this.library());}
+  /** ADR-149: the technologies of a reference, measured with the same compiler and library as the audit. */
+  async profiler(){return this.technologyProfile??=createTechnologyProfiler(await this.parser(),await this.library());}
   async format({source,language='typescript'}={}){return getLanguageAdapter(language).format(source,await this.parser());}
   prune(){const now=Date.now();for(const [key,value] of this.drafts)if(now-value.created>1_800_000)this.drafts.delete(key);}
   /** ADR-113: the first gate on a source, without making a model or storing anything: the author checks the
@@ -84,6 +89,9 @@ export class ExerciseCatalog{
     }
     if(body?.refreshDependencies)try{const parser=await this.parser();({model,report:refresh}=await refreshAuthorModel(model,{generate:input=>generateCodeLineExercise(input,parser),audit:reference=>auditReference(reference,parser)}));}catch(error){throw new ServiceError(422,error.message);}
     const draftId=randomUUID();model.id=`author-${draftId}`;
+    // ADR-149: the label is measured on every admission, from the rows the exercise holds; a label that came with
+    // an imported model is never kept.
+    model.technologies=(await this.profiler()).profile(model.lines.map(line=>line.code).join('\n'),model.language==='typescript'?'typescript':'javascript');
     const result=compileCodeLineExercise(model);
     if('status' in result)throw new ServiceError(422,result.message);
     auditReference(model,await this.parser());
