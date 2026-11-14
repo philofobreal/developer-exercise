@@ -1226,6 +1226,140 @@ def button_states(page):
     faces=[face for _,_,face in state['roles']]
     assert len(set(faces+[plain['face']]))==4,('every role has its own face',state['roles'],plain['face'])
     assert all(ratio>=4.5 for _,ratio,_ in state['roles']),('a role label under 4.5 to 1 on its face',state['roles'])
+def header_menu(browser,url):
+    """ADR-145 (D5): on a narrow screen the header's session menu and theme button are one menu behind one icon (a menu's
+    button is never a word); the full screen button stays beside it. The menu's rows carry an icon and the whole label;
+    the theme is a choice of three that keeps the menu open and the focus on the chosen part; Escape closes it and
+    returns the focus, and so does a row that did its work; a wide screen has the controls apart, and crossing the
+    width draws the header again; the learner's preview has no session and so no menu."""
+    controls="()=>[...document.querySelectorAll('.header-actions>*')].map(e=>e.matches('details.app-menu')?'menu':e.matches('details.session-menu')?'session':e.matches('.theme-toggle')?'theme':e.matches('.fullscreen-toggle')?'full':e.matches('.preview-toggle')?'preview':e.className)"
+    context=watch(browser.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True));page=context.new_page();failures=[];page.on('pageerror',lambda error:failures.append(str(error)))
+    try:
+        reset(page,url);page.locator('[data-mode="practice"]').click();expect(page.locator('[data-check]')).to_be_visible()
+        assert page.evaluate(controls)==['menu','full'],('a phone: the menu and the full screen button',page.evaluate(controls))
+        menu=page.locator('details.app-menu');button=menu.locator(':scope > summary');expect(button).to_have_attribute('aria-label','Menü: munkamenet és megjelenés')
+        assert button.inner_text().strip()=='' and button.locator('svg').count()==1,('a menu button is its icon',button.inner_text())
+        assert button.bounding_box()['width']>=34 and button.bounding_box()['height']>=34
+        button.click();panel=menu.locator('.menu-panel');expect(panel).to_be_visible()
+        # every row says what it does: an icon and a visible label, at least 44 px high, inside the screen
+        rows=panel.locator('button.btn');assert rows.count()==4 and panel.locator('[data-fullscreen]').count()==0,rows.count()
+        for index in range(rows.count()):
+            row=rows.nth(index);box=row.bounding_box();label=row.locator('span').first
+            assert box['height']>=44 and label.bounding_box()['width']>20 and row.locator('svg').count()==1,(index,box)
+        box=panel.bounding_box();assert box['x']>=0 and box['x']+box['width']<=390,box
+        expect(panel.locator('.menu-heading')).to_have_text(['Munkamenet','Megjelenés'])
+        # the theme: one of three is chosen; choosing sets it, keeps the menu open and the focus on the choice
+        parts=panel.locator('[data-theme-set]');expect(parts).to_have_text(['Rendszer','Világos','Sötét']);expect(panel.locator('[data-theme-set][aria-pressed="true"]')).to_have_text('Rendszer')
+        panel.locator('[data-theme-set="dark"]').click();expect(page.locator('html')).to_have_attribute('data-theme','dark')
+        expect(menu).to_have_attribute('open','');expect(page.locator('[data-theme-set="dark"]')).to_be_focused();expect(page.locator('[data-theme-set][aria-pressed="true"]')).to_have_text('Sötét')
+        page.locator('[data-theme-set="system"]').click();expect(page.locator('html')).not_to_have_attribute('data-theme','dark');expect(menu).to_have_attribute('open','')
+        page.keyboard.press('Escape');expect(menu).not_to_have_attribute('open','');expect(button).to_be_focused()
+        # the full screen button stands outside the menu and keeps the focus through its own render
+        full=page.locator('.header-actions>[data-fullscreen]');full.click();expect(page.locator('#app')).to_have_attribute('data-surface','app')
+        expect(full).to_be_focused();expect(full).to_have_attribute('aria-pressed','true');full.click();expect(page.locator('#app')).not_to_have_attribute('data-surface','app')
+        # a session row does its work from here; the render closes the menu and its button takes the focus the row had
+        button.click();panel.locator('[data-save-local]').click();expect(page.locator('.report, .note').first).to_be_visible()
+        expect(menu).not_to_have_attribute('open','');expect(button).to_be_focused()
+        # a wide screen has the three controls apart, and crossing the width draws the header the other way
+        page.locator('[data-mode="author"]').click();page.set_viewport_size({'width':900,'height':844});page.wait_for_function("()=>!document.querySelector('.header-actions details.app-menu')")
+        assert page.evaluate(controls)==['session','theme','full'],('three controls apart on a wide screen',page.evaluate(controls))
+        page.set_viewport_size({'width':390,'height':844});page.wait_for_function("()=>document.querySelector('.header-actions details.app-menu')")
+        assert page.evaluate(controls)==['menu','full'],page.evaluate(controls)
+        # the learner's preview has no session: the theme button and the full screen button, no menu
+        opener=page.locator('details.open-menu')
+        if opener.get_attribute('open') is None:opener.locator('summary').click()
+        page.locator('[data-start-example]').select_option(page.locator('[data-start-example] option').nth(1).get_attribute('value'))
+        page.locator('[data-author-apply]').click();current(page,'rules');page.locator('[data-step="try"]').click();expect(page.locator('.solution-zone')).to_be_visible()
+        assert page.evaluate(controls)==['preview','menu','full'],page.evaluate(controls)
+        page.locator('[data-preview-toggle]').click();expect(page.locator('#app.learner-preview')).to_have_count(1)
+        assert page.evaluate(controls)==['preview','theme','full'],('the learner preview has no menu',page.evaluate(controls))
+        assert not failures,failures
+    finally:context.close()
+    # a small phone on its side (568×320) is narrow and low at once: the mode tabs keep their whole labels (the logo
+    # steps back instead), and the open menu ends inside the screen, its last part reached by scrolling the menu
+    context=watch(browser.new_context(viewport={'width':568,'height':320},is_mobile=True,has_touch=True));page=context.new_page();page.on('pageerror',lambda error:failures.append(str(error)))
+    try:
+        reset(page,url);page.locator('[data-mode="practice"]').click();expect(page.locator('[data-check]')).to_be_visible()
+        tabs=page.evaluate("()=>[...document.querySelectorAll('.mode-tabs button')].map(b=>{const r=b.getBoundingClientRect(),t=b.querySelector('span:not(.icon)').getBoundingClientRect();return {left:r.left,right:r.right,text:[t.left,t.right]}})")
+        assert all(tab['left']<=tab['text'][0] and tab['text'][1]<=tab['right'] for tab in tabs) and tabs[0]['right']<=tabs[1]['left'],('a mode tab holds its whole label',tabs)
+        assert page.evaluate("document.querySelector('.header').scrollWidth<=document.querySelector('.header').clientWidth")
+        assert page.evaluate(controls)==['menu','full'],page.evaluate(controls)
+        page.locator('details.app-menu>summary').click();panel=page.locator('.app-menu .menu-panel');expect(panel).to_be_visible()
+        box=panel.bounding_box();assert box['y']>=0 and box['y']+box['height']<=320,('the menu ends inside the screen',box)
+        last=panel.locator('[data-theme-set="dark"]');page.evaluate("()=>{const panel=document.querySelector('.app-menu .menu-panel');panel.scrollTop=panel.scrollHeight;}")
+        box=last.bounding_box();assert box['y']>=0 and box['y']+box['height']<=320 and page.evaluate('scrollY')==0,('the last choice is reached by scrolling the menu, not the page',box,page.evaluate('scrollY'))
+        last.click();expect(page.locator('html')).to_have_attribute('data-theme','dark');expect(page.locator('details.app-menu')).to_have_attribute('open','')
+        assert not failures,failures
+    finally:context.close()
+TOOLBAR="""()=>{const group=document.querySelector('.workspace-actions'),bar=group.parentElement,name=e=>e.matches('details')?'menu':[...e.attributes].find(a=>a.name.startsWith('data-')&&a.name!=='data-label-rank').name.slice(5);
+ const read=()=>({overflow:bar.scrollWidth-bar.clientWidth,rows:new Set([...group.children].map(e=>Math.round(e.getBoundingClientRect().top))).size,
+  labelled:[...group.children].filter(e=>!e.matches('details')&&e.querySelector(':scope > span').getBoundingClientRect().width>20).map(name)});
+ const now=read(),step=group.dataset.labels??null;let more=null;
+ // one step more of labels must not fit: the fitting chose the most the row has room for
+ if(step==='0'||step==='1'){group.dataset.labels=String(+step+1);more=read();group.dataset.labels=step;}
+ return {step,tools:[...group.children].map(name),ranked:group.querySelectorAll(':scope > [data-label-rank]').length,...now,more:more&&(more.overflow>0||more.labelled.length===now.labelled.length?'does not fit':'fits'),page:document.documentElement.scrollWidth-innerWidth};}"""
+def toolbar_menu(browser,url):
+    """ADR-145 (D5): on a narrow screen a workspace tool shows its label where the toolbar's row has room for it (the
+    tool the step is about first), measured: one row, nothing cut, and one step more of labels would not fit. Where the
+    help stands under the lists, Újrakezdés and the way to that help wait behind one icon; a row that did its work
+    hands the focus to the menu's button; the help row opens the help and hands it the focus. The author's Próba has no
+    help below, so its four tools stay; a wide screen has every tool labelled and no menu."""
+    def phone(width):
+        context=watch(browser.new_context(viewport={'width':width,'height':844},is_mobile=True,has_touch=True));page=context.new_page();page.on('pageerror',lambda error:failures.append(str(error)));return context,page
+    def author_try(page):
+        reset(page,url);opener=page.locator('details.open-menu')
+        if opener.get_attribute('open') is None:opener.locator('summary').click()
+        page.locator('[data-start-example]').select_option(page.locator('[data-start-example] option').nth(1).get_attribute('value'))
+        page.locator('[data-author-apply]').click();current(page,'rules');page.locator('[data-step="try"]').click();expect(page.locator('.solution-zone')).to_be_visible()
+    failures=[];seen={}
+    for width in [320,360,390,600]:
+        context,page=phone(width)
+        try:
+            reset(page,url);page.locator('[data-mode="practice"]').click();expect(page.locator('[data-check]')).to_be_visible()
+            page.wait_for_function("()=>document.querySelector('.workspace-actions')?.dataset.labels")
+            state=page.evaluate(TOOLBAR);seen[width]=state['labelled']
+            assert state['tools']==['all','focus','menu'] and state['ranked']==2,(width,state)
+            assert state['overflow']<=0 and state['rows']==1 and state['page']<=0,(width,'the tools stand in one row inside the screen',state)
+            assert state['more']!='fits',(width,'a label more would have fitted',state)
+            author_try(page);page.wait_for_function("()=>document.querySelector('.workspace-actions')?.dataset.labels");state=page.evaluate(TOOLBAR)
+            assert state['tools']==['reset','all','rule-panel-toggle','focus'] and state['ranked']==4,(width,state)
+            assert state['overflow']<=0 and state['rows']==1 and state['page']<=0 and state['more']!='fits',(width,state)
+            # the tool the step is about is the first to carry its label
+            assert not state['labelled'] or 'rule-panel-toggle' in state['labelled'],(width,state)
+            if width==600:assert state['labelled']==['reset','all','rule-panel-toggle','focus'],(width,state)
+        finally:context.close()
+    # the widths differ, so the answers do: icons on the narrowest phone, the first tool's label, then every label
+    assert seen[320]==[] and seen[360]==['all'] and seen[390]==['all','focus'] and seen[600]==['all','focus'],seen
+    context,page=phone(390)
+    try:
+        reset(page,url);page.locator('[data-mode="practice"]').click();expect(page.locator('[data-check]')).to_be_visible()
+        menu=page.locator('.workspace-actions details.more-menu');button=menu.locator(':scope > summary');expect(button).to_have_attribute('aria-label','További eszközök')
+        assert button.inner_text().strip()=='' and button.locator('svg').count()==1,('a menu button is its icon',button.inner_text())
+        box=button.bounding_box();assert box['width']>=44 and box['height']>=44,box
+        button.click();panel=menu.locator('.menu-panel');expect(panel).to_be_visible();rows=panel.locator('button.btn');expect(rows).to_have_text(['Újrakezdés','Súgó: kezelés és billentyűzet'])
+        for index in range(rows.count()):
+            row=rows.nth(index);box=row.bounding_box();assert box['height']>=44 and row.locator('span').first.bounding_box()['width']>20 and row.locator('svg').count()==1,(index,box)
+        box=panel.bounding_box();assert box['x']>=0 and box['x']+box['width']<=390,box
+        # with nothing placed there is nothing to start again: the row says so and stays a row
+        expect(rows.nth(0)).to_have_attribute('aria-disabled','true')
+        # the help row: the help under the lists opens, is on the screen and has the focus; the menu is closed
+        helper=page.locator('details.workspace-help');expect(helper).not_to_have_attribute('open','')
+        rows.nth(1).click();expect(helper).to_have_attribute('open','');expect(helper.locator(':scope > summary')).to_be_focused();expect(menu).not_to_have_attribute('open','')
+        assert page.evaluate("()=>{const r=document.querySelector('details.workspace-help > summary').getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight}"),'the opened help is on the screen'
+        # Újrakezdés from the menu: the attempt starts again, the menu is closed and its button has the focus
+        page.evaluate('scrollTo(0,0)');pool=page.locator('.source-zone .drag-handle');lines=pool.count();assert lines>0;page.locator('[data-all]').click();expect(pool).to_have_count(0)
+        button.click();expect(rows.nth(0)).not_to_have_attribute('aria-disabled','true');rows.nth(0).click()
+        expect(pool).to_have_count(lines);expect(menu).not_to_have_attribute('open','');expect(button).to_be_focused()
+        # Escape closes the menu and returns the focus; the focus surface keeps the same tools
+        button.click();page.keyboard.press('Escape');expect(menu).not_to_have_attribute('open','');expect(button).to_be_focused()
+        page.locator('[data-focus]').click();expect(page.locator('#app')).to_have_attribute('data-surface','focus');expect(page.locator('[data-focus]')).to_be_focused()
+        state=page.evaluate(TOOLBAR);assert state['tools']==['all','focus','menu'] and state['overflow']<=0 and state['rows']==1,state
+        page.locator('[data-focus]').click();expect(page.locator('#app')).not_to_have_attribute('data-surface','focus')
+        # a wide screen: every tool labelled by the stylesheet, nothing ranked, no menu
+        page.set_viewport_size({'width':900,'height':844});page.wait_for_function("()=>!document.querySelector('.workspace-actions details')")
+        state=page.evaluate(TOOLBAR);assert state['tools']==['reset','all','focus'] and state['ranked']==0 and state['step'] is None and state['labelled']==['reset','all','focus'],state
+        assert not failures,failures
+    finally:context.close()
 def toggletips_everywhere(browser,url):
     """ADR-141 (T3): the ⓘ of every place, on a desktop and a phone, light and dark: opening it moves nothing; the bubble
     stands inside the screen; the focus ring stays off the label; on a touch screen the target is 44 px and leaves the
@@ -1339,6 +1473,8 @@ try:
                 reset(page,BASE);case('node '+name,action)
             reset(page,BASE);case('node button states: disabled one way, busy not disabled, pressed marked',lambda:button_states(page))
             case('node every ⓘ: nothing moves, inside the screen, ring off the label, 44 px on touch, closes three ways',lambda:toggletips_everywhere(browser,BASE))
+            case('node a phone has one header menu beside full screen: labelled rows, the theme as a choice, focus back to its button',lambda:header_menu(browser,BASE))
+            case('node a narrow toolbar labels the tools the row has room for and keeps the rare two behind one icon',lambda:toolbar_menu(browser,BASE))
             for width in [320,390,768]:
                 mobile=watch(browser.new_context(viewport={'width':width,'height':900},is_mobile=True,has_touch=True));target=mobile.new_page();target.on('pageerror',lambda error:errors.append(str(error)))
                 try:

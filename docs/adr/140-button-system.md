@@ -39,7 +39,7 @@ A megvalósítás az NY-37 tétel ([nyitott-tetelek.md](../nyitott-tetelek.md)),
 - **D2:** módváltó és lépéslapok;
 - **D3:** fő műveletek;
 - **D4:** eszközök, sorgombok, választók;
-- **D5:** telefonos összevont menük;
+- **D5:** telefonos összevont menük (kész: [ADR-145](145-narrow-screen-menus.md));
 - **D6:** kapuk és lezárás.
 
 Mindegyik lépés külön push: `npm run gate` ([ADR-142](142-fast-deploy-and-local-gate.md)) és képernyőkép-összevetés.

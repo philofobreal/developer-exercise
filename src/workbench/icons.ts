@@ -9,6 +9,8 @@ const paths={
  check:'<path d="m5 12 4 4L19 6"/>',
  reset:'<path d="M3 11a9 9 0 1 1 2 7M3 4v7h7"/>',
  fullscreen:'<path d="M3 9V3h6m6 0h6v6m0 6v6h-6m-6 0H3v-6"/>',
+ menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',
+ more:'<path stroke-width="3" d="M5 12h.01M12 12h.01M19 12h.01"/>',
  lock:'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4m-4 4v3"/>',
  pin:'<path d="M12 17v5"/><path class="pin-head" d="M9 3h6l-1 6 3 3v2H7v-2l3-3z"/>',
  grip:'<circle cx="9" cy="5" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="19" r="1"/>',

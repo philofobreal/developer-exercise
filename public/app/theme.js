@@ -5,9 +5,10 @@ export function themeChoice(root = document.documentElement) {
     const value = root.dataset.theme;
     return value === 'light' || value === 'dark' ? value : 'system';
 }
-/** The next choice in system → light → dark order, applied at once and remembered where storage allows. */
-export function cycleTheme(root = document.documentElement) {
-    const next = ORDER[(ORDER.indexOf(themeChoice(root)) + 1) % ORDER.length] ?? 'system';
+export const THEME_CHOICES = ORDER;
+/** The choice, applied at once and remembered where storage allows; anything else than light or dark is the system's. */
+export function setTheme(choice, root = document.documentElement) {
+    const next = choice === 'light' || choice === 'dark' ? choice : 'system';
     if (next === 'system')
         delete root.dataset.theme;
     else
@@ -20,4 +21,8 @@ export function cycleTheme(root = document.documentElement) {
     }
     catch { /* private mode: the choice lasts for this page */ }
     return next;
+}
+/** The next choice in system → light → dark order. */
+export function cycleTheme(root = document.documentElement) {
+    return setTheme(ORDER[(ORDER.indexOf(themeChoice(root)) + 1) % ORDER.length], root);
 }

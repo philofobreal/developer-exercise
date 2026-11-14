@@ -45,8 +45,18 @@ export function installDisabledGuard(root:HTMLElement):void {
 }
 export function installMenus(root:HTMLElement):void {
  const close=(except?:Element|null):void=>{for(const menu of root.querySelectorAll<HTMLDetailsElement>('details.menu[open]'))if(menu!==except)menu.open=false;};
- document.addEventListener('click',event=>{const target=event.target instanceof Element?event.target:null,menu=target?.closest('details.menu')??null;close(menu);if(menu instanceof HTMLDetailsElement&&target?.closest('.menu-panel button'))menu.open=false;});
+ document.addEventListener('click',event=>{const target=event.target instanceof Element?event.target:null,menu=target?.closest('details.menu')??null;
+  // A click whose render replaced the page left the menus as that render wanted them (a choice keeps its menu open).
+  if(target&&!target.isConnected)return;
+  close(menu);if(menu instanceof HTMLDetailsElement&&target?.closest('.menu-panel button'))menu.open=false;});
  root.addEventListener('keydown',event=>{if(event.key!=='Escape')return;const menu=event.target instanceof Element?event.target.closest<HTMLDetailsElement>('details.menu[open]'):null;if(!menu)return;menu.open=false;menu.querySelector('summary')?.focus();});
+}
+/** ADR-145 (D5): the toolbar menu's help row leads to the help under the lists: opens it where it stands, shows it and
+ *  hands it the focus (on a phone it is a screen or two below the tools). */
+export function openWorkspaceHelp(root:HTMLElement):void {
+ const help=root.querySelector<HTMLDetailsElement>('details.workspace-help'),summary=help?.querySelector<HTMLElement>(':scope > summary');
+ if(!help||!summary)return;
+ help.open=true;summary.focus({preventScroll:true});help.scrollIntoView({block:'start'});
 }
 export function installWorkbenchKeyboard(root:HTMLElement):void {
  root.addEventListener('keydown',event=>{

@@ -22,8 +22,10 @@ export function createViewContinuity(root:HTMLElement){
   const same=previous===key;previous=key;for(const detail of root.querySelectorAll<HTMLDetailsElement>('details[data-memory]'))detail.open=expanded.get(key)?.has(detail.dataset.memory??'')??detail.open;
   if(same)for(const name of openMenus){const menu=root.querySelector<HTMLDetailsElement>(`details.menu.${CSS.escape(name)}`);if(menu)menu.open=true;}
   openMenus=[];
-  if(!focused)return;const element=root.querySelector<HTMLElement>(focused.selector);if(!element)return;
+  if(!focused)return;const control=root.querySelector<HTMLElement>(focused.selector);if(!control)return;
+  // A row of a menu the render closed cannot take the focus: its menu's button does (ADR-145).
+  const menu=control.closest<HTMLDetailsElement>('details.menu'),element=(menu&&!menu.open?menu.querySelector<HTMLElement>(':scope > summary'):null)??control;
   // Navigation keeps its button focused; editor selection is restored only within its view.
-  if(same||element.matches('[data-view],[data-task]')){element.focus({preventScroll:true});if(same&&focused.selection&&(element instanceof HTMLTextAreaElement||element instanceof HTMLInputElement)){try{element.setSelectionRange(...focused.selection);}catch{}}}
+  if(same||control.matches('[data-view],[data-task]')){element.focus({preventScroll:true});if(same&&focused.selection&&(element instanceof HTMLTextAreaElement||element instanceof HTMLInputElement)){try{element.setSelectionRange(...focused.selection);}catch{}}}
  }};
 }

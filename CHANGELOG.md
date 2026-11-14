@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased – 2026-11-14 Telefonon egy menü a fejlécben, feliratos eszközök ahol elférnek (ADR-145, D5)
+
+- **Telefonon a fejlécben egy menügomb (☰) áll** a munkamenet és a téma gombja helyett. A menü sorai ikonnal és teljes felirattal jelennek meg; a téma hármas választó (Rendszer, Világos, Sötét).
+- **A teljes képernyő gomb a menü mellett maradt.**
+- **Az eszköztár eszközei feliratot kapnak, ahol a sorban elférnek:** először a lépés fő eszköze („Mintamegoldás kitöltése”, a szerzői Próbában „Sor szabályai”), utána a többi. 320 px-en a gyakorlás eszközei ikonok maradnak.
+- **A gyakorlásban az Újrakezdés és a súgóhoz vezető sor egy ⋯ gomb mögé került.** A súgósor kinyitja a listák alatti súgót, és odaviszi a képernyőt.
+- **Menüből indított művelet után a fókusz a menü gombjára kerül;** eddig elveszett (a széles képernyő munkamenet-menüjében is).
+- **A listák címsorának színes sávja lekerekített aljú** (a kék a „Felhasználható sorok”, a sárga a „Megoldás” előtt); eddig szögletesen ért véget.
+- **Javítás, fekvő kis telefon (568×320):** a módváltó két felirata egymásba csúszott; most a logó lép vissza helyettük.
+
 ## Unreleased – 2026-11-14 Nagyobb betűk: semmi 12 px alatt, a kód 13 px (ADR-143, D4b)
 
 - **Minden olvasnivaló szöveg legalább 12 px:** a tippek, a minősítés táblázata, a visszajelzés részletei, az állapotcímkék és a sorszámok is. Eddig sok helyen 11 px volt.

@@ -1,4 +1,4 @@
-import {markEditorDraft,markEditorApplied,reloadEditorFromArrangement,captureEditorRequest,adjacentMoveBoundary,dispatchWorkbenchAction} from './app/interactions.js';
+import {markEditorDraft,markEditorApplied,reloadEditorFromArrangement,captureEditorRequest,adjacentMoveBoundary,dispatchWorkbenchAction,openWorkspaceHelp} from './app/interactions.js';
 import {refreshAuthorStatus,captureAuthorRequest,authorRequest,startFromExample,startFromHelp,replaceDraft,formatLoaded,undoReplace,revertAuthorDraft,admitAuthorModel,setLearnerData} from './app/author-workspace.js';
 import {NEW_DRAFT_SETTINGS,setPreflightOption,settingsKey,settingsRequest} from './app/preflight-settings.js';
 import {revealLine} from './app/ui-utilities.js';
@@ -12,7 +12,7 @@ import {authorPreviewId,blockedReason,enterMode,enterView,landAfterAdmission,ref
 import {readClipboard} from './app/clipboard.js';
 import {trackActivity,setActivityAbort} from './app/activity.js';
 import {helpTrial,helpTrialFromHash} from './app/help-topics.js';
-import {cycleTheme} from './app/theme.js';
+import {cycleTheme,setTheme} from './app/theme.js';
 import {toggleSurface} from './app/surface.js';
 import {setCodeView} from './app/code-view.js';
 import {installPreview} from './app/author-session.js';
@@ -103,8 +103,11 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  if(b.hasAttribute('data-save-local')){try{saveLocal(snapshot());refreshAvailability(root,state,at());commit('Munkamenet elmentve ebbe a böngészőbe.');}catch(err){commit(err.message);}return;}
  if(b.hasAttribute('data-load-local')){try{const session=loadLocal();if(!session)throw Error('Ebben a böngészőben nincs mentett munka.');await importSession(session);}catch(err){notify(err.message);}return;}
  if(b.hasAttribute('data-theme-cycle')){cycleTheme();render();root.querySelector('[data-theme-cycle]')?.focus({preventScroll:true});return;}
+ // ADR-145: the narrow header's menu sets the theme by name and stays open (a background render keeps an open menu).
+ if(b.hasAttribute('data-theme-set')){setTheme(b.dataset.themeSet);view.render({background:true});ensurePolicy();root.querySelector('[data-theme-set][aria-pressed="true"]')?.focus({preventScroll:true});return;}
  // ADR-106: the whole workbench or only the code workspace on the full surface; the code view.
  if(b.hasAttribute('data-fullscreen')||b.hasAttribute('data-focus')){const action=b.hasAttribute('data-focus')?'data-focus':'data-fullscreen';await toggleSurface(root,action==='data-focus'?'focus':'app',render);root.querySelector('['+action+']')?.focus({preventScroll:true});return;}
+ if(b.hasAttribute('data-workspace-help')){openWorkspaceHelp(root);return;}
  if(b.hasAttribute('data-set-code-view')){setCodeView(root,b.dataset.setCodeView);render();root.querySelector(`[data-set-code-view="${b.dataset.setCodeView}"]`)?.focus({preventScroll:true});return;}
  const pasteAction=['author','model','editor','solution'].find(action=>b.hasAttribute('data-paste-'+action));
  if(pasteAction){

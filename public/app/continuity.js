@@ -44,11 +44,13 @@ export function createViewContinuity(root) {
             openMenus = [];
             if (!focused)
                 return;
-            const element = root.querySelector(focused.selector);
-            if (!element)
+            const control = root.querySelector(focused.selector);
+            if (!control)
                 return;
+            // A row of a menu the render closed cannot take the focus: its menu's button does (ADR-145).
+            const menu = control.closest('details.menu'), element = (menu && !menu.open ? menu.querySelector(':scope > summary') : null) ?? control;
             // Navigation keeps its button focused; editor selection is restored only within its view.
-            if (same || element.matches('[data-view],[data-task]')) {
+            if (same || control.matches('[data-view],[data-task]')) {
                 element.focus({ preventScroll: true });
                 if (same && focused.selection && (element instanceof HTMLTextAreaElement || element instanceof HTMLInputElement)) {
                     try {

@@ -52,6 +52,7 @@
     "src/workbench/author-session.ts": "public/app/author-session.js",
     "src/workbench/header-fit.ts": "public/app/header-fit.js",
     "src/workbench/toggletip.ts": "public/app/toggletip.js",
-    "src/workbench/list-fit.ts": "public/app/list-fit.js"
+    "src/workbench/list-fit.ts": "public/app/list-fit.js",
+    "src/workbench/toolbar-fit.ts": "public/app/toolbar-fit.js"
   }
 }

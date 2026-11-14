@@ -205,6 +205,14 @@ A felhasználó előre jóváhagyta („jóváhagyom, ha kizöldül mehet a D4b�
 - **Akadálymentességi sor** ([browser-a11y.playwright.py](../../tests/browser-a11y.playwright.py)): ugyanez a 12 px-es határ minden vizsgált nézetben (a súgóbuborékban, a menüben és a súgóoldalon is).
 - **Mutációs ellenőrzés:** hét rontás, mind megbukik a megfelelő teszten: 11 px-es tipp (egységteszt és elrendezés-kapu); 11 px-es menümegjegyzés (akadálymentességi sor); 12 px-es kód (egységteszt és elrendezés-kapu); nyitva hagyott blokk; saját méretű kódlista (egységteszt).
 
+## A listacím színes sávja (2026-11-14, a D5-tel együtt)
+
+A felhasználó kérése: „legyen kerekített a színes téglalaposkák alja”.
+
+- **A sáv (5×20 px) alja lekerekített:** a 15 px magas sáv alatt egy 5 px sugarú negyedkör áll, így a szabad (jobb alsó) sarka ível. A bal éle a panel keretén fut, a teteje a panel sarkát követi.
+- **A jelölés nem változott:** a sáv a címsor hátterének két rétege, nincs új elem.
+- **Bizonyíték:** az elrendezés-kapu (`surfaces`) minden nézetben ellenőrzi a két réteget (negyedkör a sáv alatt, a sávval egyező szélességben); a szögletes változatot megbuktatja.
+
 ## Újranyitva: a lap arca és a vágott sarok alakja (2026-11-13, D3b előtt)
 
 A felhasználó az éles felületet látva két döntést kifogásolt:

@@ -23,19 +23,20 @@ MEASURE=r"""()=>{const shown=s=>[...document.querySelectorAll(s)].filter(e=>e.of
   // ADR-117 (U1): the action-button component and its relatives (segment, menu, mode switch)
   controls:shown('button.btn,.segment button,.menu>summary,.mode-tabs button').map(b=>{const s=getComputedStyle(b);return [Math.round(box(b).height),s.fontSize,s.fontWeight];}),
   // ADR-143 (D2, D3b): every plate (a tool, a menu button, a mode tab, a step plate, the main action). Its face is a layer
-  // under the label, clipped to the plate's outline. The outline starts on the left side where the first corner ends: 39.94%
+  // under the label, clipped to the plate's outline. A menu's row is a list row (ADR-145): round, and without a face.
+  // The outline starts on the left side where the first corner ends: 39.94%
   // of the plate's height down for a bevel (a plate with a visible label), the round corner's radius for one without a
   // label; a plate with a line (pressed) has its face a pixel inside. Where the browser does not know shape() the plate is
   // the button's own rounded rectangle.
   plates:shown(PLATES).map(b=>{const s=getComputedStyle(b),h=parseFloat(s.getPropertyValue('--plate-h'))||box(b).height,clip=getComputedStyle(b,'::after').clipPath,round=Math.min(8,h*.22);
    const labelled=[...b.querySelectorAll('span,b,small')].some(e=>e.textContent.trim()&&box(e).width>1&&box(e).height>1&&getComputedStyle(e).visibility!=='hidden');
-   const start=parseFloat((clip.match(/^shape\((?:evenodd )?from [\d.]+px ([\d.]+)px/)||[])[1]),want=labelled?h*.3994:round;
-   const right=CSS.supports('clip-path','shape(from 0 0,line to 1px 1px)')?Math.abs(start-want)<=1.2:clip==='none'&&Math.abs(parseFloat(s.borderTopLeftRadius)-(labelled?h*.22:round))<=.6;
-   return right?null:`${b.getAttribute('aria-label')||b.textContent.trim().slice(0,24)} (${labelled?'labelled':'no label'}): the outline starts ${start} px down, not ${Math.round(want*10)/10}, at ${Math.round(h)} (${clip.slice(0,40)})`;}).filter(Boolean),
+   const start=parseFloat((clip.match(/^shape\((?:evenodd )?from [\d.]+px ([\d.]+)px/)||[])[1]),bevel=labelled&&!b.closest('.menu-panel'),want=bevel?h*.3994:round;
+   const right=CSS.supports('clip-path','shape(from 0 0,line to 1px 1px)')?Math.abs(start-want)<=1.2:clip==='none'&&Math.abs(parseFloat(s.borderTopLeftRadius)-(bevel?h*.22:round))<=.6;
+   return right?null:`${b.getAttribute('aria-label')||b.textContent.trim().slice(0,24)} (${bevel?'labelled':labelled?'a menu row':'no label'}): the outline starts ${start} px down, not ${Math.round(want*10)/10}, at ${Math.round(h)} (${clip.slice(0,40)})`;}).filter(Boolean),
   // a plate that can be pressed has a face: one flat tone, no gradient, and no shadow under it
-  faceless:shown(PLATES).filter(b=>!b.matches(':disabled,[aria-disabled=true],.locked')).filter(b=>{const f=getComputedStyle(b,'::after');return alpha(f.backgroundColor)===0||(f.backgroundImage!=='none'&&b.getAttribute('aria-pressed')!=='true')||getComputedStyle(b).boxShadow!=='none';}).map(b=>b.getAttribute('aria-label')||b.textContent.trim().slice(0,24)),
+  faceless:shown(PLATES).filter(b=>!b.matches(':disabled,[aria-disabled=true],.locked')&&!b.closest('.menu-panel')).filter(b=>{const f=getComputedStyle(b,'::after');return alpha(f.backgroundColor)===0||(f.backgroundImage!=='none'&&b.getAttribute('aria-pressed')!=='true')||getComputedStyle(b).boxShadow!=='none';}).map(b=>b.getAttribute('aria-label')||b.textContent.trim().slice(0,24)),
   // the label reads on its face: 4.5 to 1 (axe cannot see a face drawn by a pseudo-element, so this is measured here)
-  dim:shown(PLATES).filter(b=>!b.matches(':disabled,[aria-disabled=true],.locked')).map(b=>[b.getAttribute('aria-label')||b.textContent.trim().slice(0,24),contrast(getComputedStyle(b).color,getComputedStyle(b,'::after').backgroundColor)]).filter(([,c])=>c<4.5).map(([n,c])=>`${n}: ${c.toFixed(2)}`),
+  dim:shown(PLATES).filter(b=>!b.matches(':disabled,[aria-disabled=true],.locked')).map(b=>[b.getAttribute('aria-label')||b.textContent.trim().slice(0,24),contrast(getComputedStyle(b).color,alpha(getComputedStyle(b,'::after').backgroundColor)?getComputedStyle(b,'::after').backgroundColor:getComputedStyle(b.closest('.menu-panel')??document.body).backgroundColor)]).filter(([,c])=>c<4.5).map(([n,c])=>`${n}: ${c.toFixed(2)}`),
   // ADR-143 (D4a): plates of one group in one row stand apart (the editor's tools touched), and a button that is not a plate is soft
   // too: no square corner (a drag handle is part of its row; a task row keeps its stripe side straight)
   tight:(()=>{const all=shown(PLATES).filter(b=>!b.closest('.segment')),out=[],group=b=>b.parentElement.matches('details,li')?b.parentElement.parentElement:b.parentElement;
@@ -110,6 +111,10 @@ def surfaces(page,name):
     assert not s['square'],f"{name}: surfaces without their corner: {s['square']}"
     assert not s['chips'],f"{name}: status chips that are not flat pills: {s['chips']}"
     assert not s['segments'],f"{name}: segmented choices: {s['segments']}"
+    # A list title's coloured stripe ends in a rounded foot: a bar and, under it, a quarter disc as wide as the bar.
+    stripes=page.evaluate("""()=>[...document.querySelectorAll('.panel-title')].filter(e=>e.getClientRects().length).map(e=>{const c=getComputedStyle(e),size=c.backgroundSize.split(', '),at=c.backgroundPosition.split(', ');
+     return c.backgroundImage.startsWith('radial-gradient(circle at 0px 0px')&&size[0]==='5px 5px'&&size[1]==='5px 15px'&&at[0]==='0px 15px'&&at[1]==='0px 0px'?null:[c.backgroundImage.slice(0,40),c.backgroundSize,c.backgroundPosition].join(' | ')}).filter(Boolean)""")
+    assert not stripes,f"{name}: a list title's stripe has a square foot: {stripes}"
     top,height,view=page.evaluate('[scrollY,document.documentElement.scrollHeight,innerHeight]');found=set();y=0
     while True:
         page.evaluate('y=>scrollTo(0,y)',y);found|=set(page.evaluate(CORNERS))

@@ -12,6 +12,7 @@ import {icon,type IconName} from './icons.js';
 import {createViewContinuity} from './continuity.js';
 import {installHeaderFit} from './header-fit.js';
 import {installListFit} from './list-fit.js';
+import {installToolbarFit} from './toolbar-fit.js';
 import {installWorkbenchKeyboard,installAuthoringFlows,installMenus,installDisabledGuard} from './interactions.js';
 import {installToggletips} from './toggletip.js';
 import {authorDraftPending,canUndoReplace,refreshAuthorStatus} from './author-workspace.js';
@@ -21,7 +22,7 @@ import {drawRuleArcs,renderRuleBoard,renderTryConnecting,renderTryRules,tryRowRu
 import {installPaneSplit,paneSplit} from './pane-split.js';
 import {authorPreviewId,continuityKey,jsonPending,renderStepper,staleReason,stepOf,tryAdmission} from './flow.js';
 import {renderTaskStatus,taskStatus} from './task-status.js';
-import {THEME_LABEL,themeChoice,type ThemeChoice} from './theme.js';
+import {THEME_CHOICES,THEME_LABEL,themeChoice,type ThemeChoice} from './theme.js';
 import {CODE_VIEW_LABEL,codeView,viewSwitchesOffered,type CodeView} from './code-view.js';
 import {installSurface,surface} from './surface.js';
 const DEMO_NOTICE='codeline.local-demo-notice';
@@ -41,9 +42,13 @@ const tool=(attribute:string,label:string,name:IconName,extra=''):string=>{
 const actionBar=(label:string,start:string,status:string,end:string):string=>`<div class="action-bar" role="group" aria-label="${label}"><div class="action-start">${start}</div>${status||'<span class="action-status"></span>'}<div class="action-end">${end}</div></div>`;
 const languageName=(language:string):string=>language==='typescript'?'TypeScript':'JavaScript';
 export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:WorkbenchOptions){
- const continuity=createViewContinuity(root),fitHeader=installHeaderFit(root),fitLists=installListFit(root),tips=installToggletips(root);
+ const continuity=createViewContinuity(root),fitHeader=installHeaderFit(root),fitLists=installListFit(root),fitToolbar=installToolbarFit(root),tips=installToggletips(root);
  root.addEventListener('click',event=>{if(!(event.target instanceof Element)||!event.target.closest('[data-dismiss-notice]'))return;try{localStorage.setItem(DEMO_NOTICE,'seen');}catch{}root.querySelector('[data-validation-notice]')?.remove();root.querySelector<HTMLElement>('#workbench-main')?.focus({preventScroll:true});});installWorkbenchKeyboard(root);installDisabledGuard(root);installMenus(root);installSurface(root,()=>render());codeView(root);paneSplit(root);installPaneSplit(root,()=>drawRuleArcs(root,state));installAuthoringFlows(root,state,render,format);
  addEventListener('resize',()=>{drawRuleArcs(root,state);syncEditors(root);});
+ // ADR-145 (D5): a narrow screen gathers the header's and the toolbar's rarer tools in a menu each; crossing that
+ // width draws the page the other way.
+ const narrowScreen=typeof matchMedia==='function'?matchMedia('(max-width: 650px)'):null,narrow=():boolean=>narrowScreen?.matches===true;
+ narrowScreen?.addEventListener('change',()=>render({background:true}));
  // ADR-090: a code list scrolls sideways as one; its rule arcs follow the row controls pinned at its right edge.
  let arcFrame=0;
  root.addEventListener('scroll',event=>{if(arcFrame||!(event.target instanceof HTMLElement)||!event.target.matches('.drop-zone[data-zone]')||!event.target.querySelector(':scope > svg.zone-arcs'))return;arcFrame=requestAnimationFrame(()=>{arcFrame=0;drawRuleArcs(root,state);});},{capture:true,passive:true});
@@ -133,19 +138,34 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:Wor
   return `<footer class="evaluation-bar"><div class="report ${report?.status??'idle'}" role="status" aria-live="polite"><span class="report-symbol">${icon(report?.status==='accepted'?'check':report?'help':'code')}</span><div><b>${title}</b><p>${esc(message)}</p>${cause}${report?.status==='rejected'&&!state.learnerPreview&&preview&&state.authorModel?.authoring?.note?`<details data-ordering-policy><summary>Generált sorrendszabályok</summary><p>${esc(state.authorModel.authoring.note)}</p><a href="./samples/typescript/index.html" target="_blank" rel="noopener">TypeScript példák és ellenpéldák</a></details>`:''}${report&&!state.learnerPreview?`<details class="technical-details" data-memory="evaluation-details"><summary>Technikai részletek</summary><span>Keresett állapotok: ${report.exploredStates??0}</span></details>`:''}</div></div><div class="check-action">${tool('data-check','Ellenőrzés','check','class="primary check" aria-keyshortcuts="Control+Enter" title="Ellenőrzés (Ctrl + Enter)"')}</div></footer>${feedbackList(feedback,a)}${state.learnerPreview?'':renderWitness(report,e,preview?state.authorModel:null)}`;
  }
  /** One menu for the session (ADR-105): save, restore, export and import live together in the header. */
+ const sessionTools=():string=>`${tool('data-save-local','Mentés a böngészőbe','save')}${tool('data-load-local','Mentett munka megnyitása','reset',availabilityAttributes(state,'load-local'))}${tool('data-export-session','Exportálás fájlba…','download','aria-label="Exportálás fájlba: a munkamenet letöltése"')}${tool('data-import-session','Importálás fájlból…','upload','aria-label="Importálás fájlból: munkamenet megnyitása"')}<small>A böngészőbe mentett munka csak ezen az eszközön érhető el; hitelesített eredményt nem tartalmaz.</small>`;
  function sessionMenu():string {
-  return `<details class="menu session-menu"><summary aria-label="Munkamenet: mentés és megnyitás" title="Munkamenet">${icon('save')}<span>Munkamenet</span></summary><div class="menu-panel" role="group" aria-label="Munkamenet">${tool('data-save-local','Mentés a böngészőbe','save')}${tool('data-load-local','Mentett munka megnyitása','reset',availabilityAttributes(state,'load-local'))}${tool('data-export-session','Exportálás fájlba…','download','aria-label="Exportálás fájlba: a munkamenet letöltése"')}${tool('data-import-session','Importálás fájlból…','upload','aria-label="Importálás fájlból: munkamenet megnyitása"')}<small>A böngészőbe mentett munka csak ezen az eszközön érhető el; hitelesített eredményt nem tartalmaz.</small></div></details>`;
+  return `<details class="menu session-menu"><summary aria-label="Munkamenet: mentés és megnyitás" title="Munkamenet">${icon('save')}<span>Munkamenet</span></summary><div class="menu-panel" role="group" aria-label="Munkamenet">${sessionTools()}</div></details>`;
+ }
+ /** ADR-145 (D5): on a narrow screen the header's session menu and theme button are one menu behind one icon: rows
+  * with an icon and the whole label, the theme a choice of three (the button alone cycled, and did not say what comes).
+  * It keeps the session menu's name, so what opens that menu finds it either way. */
+ function appMenu():string {
+  const choice=themeChoice(),parts=THEME_CHOICES.map(value=>`<button type="button" data-theme-set="${value}" aria-pressed="${choice===value}" class="${choice===value?'active':''}">${THEME_LABEL[value]}</button>`).join('');
+  return `<details class="menu session-menu app-menu"><summary aria-label="Menü: munkamenet és megjelenés" title="Menü">${icon('menu')}</summary><div class="menu-panel" role="group" aria-label="Menü"><p class="menu-heading">Munkamenet</p>${sessionTools()}<hr class="menu-rule"><p class="menu-heading" id="theme-choice-label">Megjelenés</p><div class="segment theme-choice" role="group" aria-labelledby="theme-choice-label">${parts}</div></div></details>`;
  }
  /** Rendező | Megoldáskód: the only tabs left; the steps are not tabs. ADR-133: they, and the Kódnézet switch, are
   *  drawn only when the view switches are on; otherwise the workspace is the sorter alone, without a tab list. */
- function tryPanel(e:ExerciseSummary,a:AttemptSnapshot,{actions=true}:{actions?:boolean}={}):string {
+ function tryPanel(e:ExerciseSummary,a:AttemptSnapshot,{actions=true,helpBelow=false}:{actions?:boolean;helpBelow?:boolean}={}):string {
   const switches=viewSwitchesOffered(),v=switches&&state.view==='edit'?'edit':'sort',tab=(view:'sort'|'edit',label:string,name:IconName):string=>`<button type="button" id="tab-${view}" role="tab" data-view="${view}" aria-controls="panel-try" aria-selected="${v===view}" tabindex="${v===view?0:-1}" class="${v===view?'active':''}">${icon(name)}<span>${label}</span>${view==='edit'&&a.editorDirty?'<span class="dirty-dot" aria-label="Nem alkalmazott változtatás"></span>':''}</button>`;
   // ADR-106: the code view (editor or cards) and the focus surface sit with the workspace they change.
   const view=codeView(root),focused=surface(root)==='focus',styles=switches&&v==='sort'?`<div class="segment code-view-switch" role="group" aria-label="Kódnézet">${(['editor','cards'] as const).map((value:CodeView)=>`<button type="button" data-set-code-view="${value}" aria-pressed="${view===value}" class="${view===value?'active':''}" title="Kódnézet: ${CODE_VIEW_LABEL[value]}">${icon(value==='editor'?'rows':'cards')}<span>${CODE_VIEW_LABEL[value]}</span></button>`).join('')}</div>`:'';
-  const focus=tool('data-focus',focused?'Kilépés':'Fókusz',focused?'exit':'focus',`class="focus-toggle" aria-pressed="${focused}" title="${focused?'Kilépés a fókusz módból (Escape)':'Fókusz mód: csak a kódfelület, a lehető legnagyobb méretben'}"`);
-  const inspect=v==='sort'&&rulesAvailable(state)?tool('data-rule-panel-toggle','Sor szabályai','link',`class="inspector-toggle" aria-pressed="${!!state.rulePanelOpen}" aria-expanded="${!!state.rulePanelOpen}" aria-controls="try-rule-panel" title="${state.rulePanelOpen?'Szabálypanel bezárása':'Szabálypanel: a kijelölt sor szabályai és szerkesztésük'}"`):'';
+  // ADR-145 (D5): on a narrow screen a tool shows its label where the row has room for it: the tool the step is about
+  // first (rank 1), the others after it (rank 2); toolbar-fit measures. Újrakezdés and the way to the help under the
+  // lists, the two rarely needed, wait behind one icon where there are two of them.
+  const compact=actions&&narrow(),rules=v==='sort'&&rulesAvailable(state),fills=actions&&!state.learnerPreview;
+  const rank=(first:boolean):string=>compact?` data-label-rank="${first?1:2}"`:'';
+  const focus=tool('data-focus',focused?'Kilépés':'Fókusz',focused?'exit':'focus',`class="focus-toggle" aria-pressed="${focused}" title="${focused?'Kilépés a fókusz módból (Escape)':'Fókusz mód: csak a kódfelület, a lehető legnagyobb méretben'}"${rank(!rules&&!fills)}`);
+  const inspect=rules?tool('data-rule-panel-toggle','Sor szabályai','link',`class="inspector-toggle" aria-pressed="${!!state.rulePanelOpen}" aria-expanded="${!!state.rulePanelOpen}" aria-controls="try-rule-panel" title="${state.rulePanelOpen?'Szabálypanel bezárása':'Szabálypanel: a kijelölt sor szabályai és szerkesztésük'}"${rank(true)}`):'';
+  const more=compact&&helpBelow,reset=actions?tool('data-reset','Újrakezdés','reset',gate(availability(state,'reset',a))+(more?'':rank(false))):'',fill=fills?tool('data-all','Mintamegoldás kitöltése','file',rank(!rules)):'';
+  const tools=more?`${fill}${inspect}${focus}<details class="menu more-menu"><summary aria-label="További eszközök" title="További eszközök">${icon('more')}</summary><div class="menu-panel" role="group" aria-label="További eszközök">${reset}${tool('data-workspace-help','Súgó: kezelés és billentyűzet','help')}</div></details>`:`${reset}${fill}${inspect}${focus}`;
   const start=switches?`<div class="toolbar-start"><div class="segment try-tabs" role="tablist" aria-label="Megoldás">${tab('sort','Rendező','sort')}${tab('edit','Megoldáskód','edit')}</div>${styles}</div>`:'';
-  return `<div class="toolbar">${start}<div class="workspace-actions">${actions?tool('data-reset','Újrakezdés','reset',gate(availability(state,'reset',a)))+(state.learnerPreview?'':tool('data-all','Mintamegoldás kitöltése','file')):''}${inspect}${focus}</div></div><div id="panel-try"${switches?` role="tabpanel" aria-labelledby="tab-${v}"`:''}>${v==='edit'?editView(e,a):sortView(e,a)}</div>${v==='sort'?pickBar(a)||reportView(e,a):''}<p class="note" role="status" aria-live="polite">${esc(a.feedback||'')}</p>`;
+  return `<div class="toolbar">${start}<div class="workspace-actions">${tools}</div></div><div id="panel-try"${switches?` role="tabpanel" aria-labelledby="tab-${v}"`:''}>${v==='edit'?editView(e,a):sortView(e,a)}</div>${v==='sort'?pickBar(a)||reportView(e,a):''}<p class="note" role="status" aria-live="polite">${esc(a.feedback||'')}</p>`;
  }
  // ── Author step 1: the reference source (code or a whole CodeLine JSON) ──
  function jsonBlock(context:'source'|'rules'):string {
@@ -206,7 +226,7 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:Wor
  function header():string {
   const learner=!!state.learnerPreview,author=state.mode==='author',tryStep=author&&stepOf(state.view)==='try'&&!!authorPreviewId(state);
   const modeButton=(value:'author'|'practice',label:string,name:IconName):string=>`<button type="button" data-mode="${value}" aria-pressed="${state.mode===value}" class="${state.mode===value?'active':''}" title="${label}">${icon(name)}<span>${label}</span></button>`;
-  return `<a class="skip-link" href="#workbench-main">Ugrás a munkaterületre</a><p id="move-help" class="sr-only">Mozgatás: szóköz vagy Enter, majd nyilak, Home vagy End; Enter az elhelyezéshez, Escape a megszakításhoz.</p><div class="sr-only" data-move-status role="status" aria-live="polite"></div><header class="header"><div class="brand"><span class="brand-mark" aria-hidden="true"></span><strong>CodeLine<span class="brand-tail">Sorter</span></strong><small>Editor</small></div>${learner?'':`<div class="mode-switch mode-tabs" role="group" aria-label="Munkamód">${modeButton('author','Feladat készítése','plus')}${modeButton('practice','Gyakorlás','sort')}</div>`}<div class="header-actions">${learner||tryStep?tool('data-preview-toggle',learner?'Vissza a szerzői nézethez':'Tanulói nézet',learner?'back':'code','class="preview-toggle"'):''}${learner?'':sessionMenu()}${themeButton()}${tool('data-fullscreen','','fullscreen',`class="icon-only fullscreen-toggle" aria-pressed="${surface(root)==='app'}" aria-label="Teljes képernyő" title="${surface(root)==='app'?'Kilépés a teljes képernyőből':'Teljes képernyő'}"`)}</div></header><div class="focus-bar"><span class="brand-mark" aria-hidden="true"></span><strong>CodeLine<span class="brand-tail">Sorter</span></strong></div><input type="file" accept="application/json,.json" data-model-file hidden><input type="file" accept="application/json,.json" data-session-file hidden>`;
+  return `<a class="skip-link" href="#workbench-main">Ugrás a munkaterületre</a><p id="move-help" class="sr-only">Mozgatás: szóköz vagy Enter, majd nyilak, Home vagy End; Enter az elhelyezéshez, Escape a megszakításhoz.</p><div class="sr-only" data-move-status role="status" aria-live="polite"></div><header class="header"><div class="brand"><span class="brand-mark" aria-hidden="true"></span><strong>CodeLine<span class="brand-tail">Sorter</span></strong><small>Editor</small></div>${learner?'':`<div class="mode-switch mode-tabs" role="group" aria-label="Munkamód">${modeButton('author','Feladat készítése','plus')}${modeButton('practice','Gyakorlás','sort')}</div>`}<div class="header-actions">${learner||tryStep?tool('data-preview-toggle',learner?'Vissza a szerzői nézethez':'Tanulói nézet',learner?'back':'code','class="preview-toggle"'):''}${learner?themeButton():narrow()?appMenu():sessionMenu()+themeButton()}${tool('data-fullscreen','','fullscreen',`class="icon-only fullscreen-toggle" aria-pressed="${surface(root)==='app'}" aria-label="Teljes képernyő" title="${surface(root)==='app'?'Kilépés a teljes képernyőből':'Teljes képernyő'}"`)}</div></header><div class="focus-bar"><span class="brand-mark" aria-hidden="true"></span><strong>CodeLine<span class="brand-tail">Sorter</span></strong></div><input type="file" accept="application/json,.json" data-model-file hidden><input type="file" accept="application/json,.json" data-session-file hidden>`;
  }
  /** Pages is a Local Demo (AGENTS.md): the badge always names it; this line says once what that means, until the
   * viewer dismisses it (a per-viewer convenience in local storage; without storage it simply shows). */
@@ -235,12 +255,12 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:Wor
   // ADR-116: a phone on its side is narrow too (the same query as the stylesheet); wide, the list shows even when closed.
   const narrow=typeof matchMedia==='function'&&matchMedia('(max-width: 850px), (max-height: 500px) and (orientation: landscape)').matches;
   const library=`<aside class="library" aria-label="Gyakorlófeladatok"><details class="task-picker" data-memory="task-picker" ${narrow?'':'open'}><summary><span>Feladatok</span><b>${esc(e?.title??'')}</b></summary><nav aria-label="Feladatok">${createFieldRenderer(trusted,esc,e?.id??'')}</nav></details></aside>`;
-  const main=e&&a?`<main id="workbench-main" tabindex="-1">${heading(e.title,e.language,e.lines.length,`${e.description?`<p class="description">${esc(e.description)}</p>`:''}${tool('data-edit-example','Saját feladat ebből','plus','class="link-action"')}`)}${notice()}${tryPanel(e,a)}${help(e.language)}</main>`:'<main id="workbench-main"><p class="loading">Nincs gyakorlófeladat.</p></main>';
+  const main=e&&a?`<main id="workbench-main" tabindex="-1">${heading(e.title,e.language,e.lines.length,`${e.description?`<p class="description">${esc(e.description)}</p>`:''}${tool('data-edit-example','Saját feladat ebből','plus','class="link-action"')}`)}${notice()}${tryPanel(e,a,{helpBelow:true})}${help(e.language)}</main>`:'<main id="workbench-main"><p class="loading">Nincs gyakorlófeladat.</p></main>';
   return `<div class="shell practice-shell">${library}${main}</div>`;
  }
  function learnerShell():string {
   const e=ex(),a=at();if(!e||!a)return '';
-  return `<div class="shell learner-shell"><main id="workbench-main" tabindex="-1">${heading(e.title,e.language,e.lines.length,e.description?`<p class="description">${esc(e.description)}</p>`:'')}${notice()}${tryPanel(e,a)}${help(e.language)}</main></div>`;
+  return `<div class="shell learner-shell"><main id="workbench-main" tabindex="-1">${heading(e.title,e.language,e.lines.length,e.description?`<p class="description">${esc(e.description)}</p>`:'')}${notice()}${tryPanel(e,a,{helpBelow:true})}${help(e.language)}</main></div>`;
  }
  /** `background`: the render answers something the reader did not just do (ADR-136): an open menu stays open. */
  function render({background=false}:{background?:boolean}={}):void {
@@ -251,7 +271,7 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:Wor
   const fill=(selector:string,value:string):void=>{const editor=root.querySelector<HTMLTextAreaElement>(selector);if(editor)editor.value=value;};
   fill('#author-editor',state.author.source);fill('#model-editor',state.modelDraft);fill('#code-editor',at()?.draft??'');
   refreshAuthorStatus(root,state);syncEditors(root);drawRuleArcs(root,state);
-  root.dataset.renderedExercise=state.active??'';root.dataset.renderedView=v;root.dataset.renderedMode=state.mode;fitHeader();fitLists();scroll.restore(key);continuity.restore(key+':'+v+(v==='model'?':'+(state.rulesView??'visual'):v==='author'?':'+(state.sourceKind??'code'):''));tips.rendered({background});
+  root.dataset.renderedExercise=state.active??'';root.dataset.renderedView=v;root.dataset.renderedMode=state.mode;fitHeader();fitToolbar();fitLists();scroll.restore(key);continuity.restore(key+':'+v+(v==='model'?':'+(state.rulesView??'visual'):v==='author'?':'+(state.sourceKind??'code'):''));tips.rendered({background});
  }
  return {render};
 }
