@@ -1,4 +1,4 @@
-# ADR-154 – A szerver nyilvános címen: a látogató címe, és csak gyakorlás
+# ADR-170 – A szerver nyilvános címen: a látogató címe, és csak gyakorlás
 
 Állapot: **elfogadva** (2026-11-14). A felhasználó döntése: „az a fő célom, hogy ne tudjanak belenézni a fejlesztési know-how-ba”, majd „legyen az A, a motor fusson szerveren”. Kockázati osztály: szerver és megjelenítés. A validátor, a szerzői elemzés, a szabályok és az értékelés nem változott.
 
@@ -75,8 +75,8 @@ A `dependencies` közé került, mert a katalógus és a szerzői szolgáltatás
 
 ## Nyitott
 
-- **A kitelepítés maga nincs kész** (NY-60): a tárhely kiválasztása a felhasználó döntése; hozzá tartozik a `npm run deploy` parancs, a statikus fájlok gyorsítótárazása és tömörítése (ma `no-store`, tömörítés nélkül), és az, hogy a piszkozatok és a kéréskorlát memóriában élnek, ezért egy példány futhat.
-- **A motor addig nyilvános marad, amíg a Pages-kiadás és a nyilvános forrásrepó él** (NY-61): a Pages leállítása és a repó priváttá tétele távoli művelet, a felhasználó dönt róla.
+- **A kitelepítés maga nincs kész** (NY-70): a tárhely kiválasztása a felhasználó döntése; hozzá tartozik a `npm run deploy` parancs, a statikus fájlok gyorsítótárazása és tömörítése (ma `no-store`, tömörítés nélkül), és az, hogy a piszkozatok és a kéréskorlát memóriában élnek, ezért egy példány futhat.
+- **A motor addig nyilvános marad, amíg a Pages-kiadás és a nyilvános forrásrepó él** (NY-71): a Pages leállítása és a repó priváttá tétele távoli művelet, a felhasználó dönt róla.
 
 ## Korlát
 

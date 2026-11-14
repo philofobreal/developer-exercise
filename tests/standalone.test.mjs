@@ -1,4 +1,4 @@
-/** ADR-155: the standalone demonstration page. One file with a few finished exercises, the validator and the practice
+/** ADR-171: the standalone demonstration page. One file with a few finished exercises, the validator and the practice
  *  page. What derives rules from source code is not in it, and it checks exactly as the trusted server does. */
 import test from 'node:test';
 import assert from 'node:assert/strict';

@@ -1,4 +1,4 @@
-"""ADR-154: the server on a public address offers practice only.
+"""ADR-170: the server on a public address offers practice only.
 A visitor the server would refuse as an author (here: a configured token the page does not send) gets a page without
 authoring: no mode switch, no «Saját feladat ebből», no author-service tool, and no refused request in the background.
 The local author's page is unchanged. Run: python tests/browser-public.playwright.py. Requires Playwright and Chromium.

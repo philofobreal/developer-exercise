@@ -41,7 +41,7 @@ test('a disabled answer becomes focusable aria-disabled attributes with an escap
  assert.match(attributes,/aria-disabled="true"/);assert.match(attributes,/data-disabled-reason="a &lt; b &quot;c&quot;"/);assert.doesNotMatch(attributes,/\sdisabled[\s>=]/);
 });
 
-test('ADR-154: where authoring is not served it is hidden, and the author mode cannot be entered',async()=>{
+test('ADR-170: where authoring is not served it is hidden, and the author mode cannot be entered',async()=>{
  const {enterMode}=await import('../public/app/flow.js');
  const s={...make(),mode:'practice',view:'sort',active:'first',practiceActive:'first',previews:new Map()};
  assert.equal(state(availability(s,'authoring')),'enabled');assert.equal(state(availability(s,'format-solution')),'enabled');

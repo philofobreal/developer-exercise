@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased – 2026-11-14 Önálló bemutató oldal: egy fájl, néhány kész feladat (ADR-155)
+## Unreleased – 2026-11-14 Önálló bemutató oldal: egy fájl, néhány kész feladat (ADR-171)
 
 - **Új parancs: `npm run build:standalone`.** Az eredmény egyetlen HTML-fájl (`_standalone/codelinesorter.html`, 882 KiB), amely lemezről is megnyitható, és semmit nem tölt be máshonnan.
 - **Öt kész feladat van benne** (más válogatás a parancs után sorolható fel); a lap csak gyakorlás, az ellenőrzés a böngészőben fut, és az első ellenőrzés után a sorok közti szabályok megnyithatók.
@@ -8,9 +8,9 @@
 - **Az ítélet megegyezik a szerverével** (teszt tartja); a lap Local Demónak nevezi magát.
 - **Új fejlesztői függőség: `esbuild`** (csak a csomagoláshoz).
 
-## Unreleased – 2026-11-14 A szerver nyilvános címen: a látogató címe, és csak gyakorlás (ADR-154)
+## Unreleased – 2026-11-14 A szerver nyilvános címen: a látogató címe, és csak gyakorlás (ADR-170)
 
-- **Cél:** a motor (a validátor és a szerzői elemzés) a szerveren maradjon, ne a látogató böngészőjében fusson. Ez az első lépés; a kitelepítés maga még nincs kész (NY-60, NY-61).
+- **Cél:** a motor (a validátor és a szerzői elemzés) a szerveren maradjon, ne a látogató böngészőjében fusson. Ez az első lépés; a kitelepítés maga még nincs kész (NY-70, NY-71).
 - **Proxy mögött a kéréskorlát látogatónként számol.** Új beállítás: `CODELINE_TRUSTED_PROXIES` (a szerver előtti saját proxyk száma, alapérték 0).
 - **A szerzői kapu a látogató címéből dönt,** ezért a saját gépen futó proxy mögül érkező látogató nem számít helyi szerzőnek.
 - **Ahol a szerver nem ad szerzői szolgáltatást, a lap csak gyakorlás:** nincs módváltó, „Saját feladat ebből” és „Formázás”; a háttérben sincs elutasított kérés. A helyi szerző lapja nem változott.

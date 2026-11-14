@@ -1,4 +1,4 @@
-/** ADR-154: the server on a public address. Behind the operator's proxies the client is the forwarded address the last
+/** ADR-170: the server on a public address. Behind the operator's proxies the client is the forwarded address the last
  *  trusted proxy vouches for; the rate limit and the author gate both go by it, and the page can ask whether this
  *  client is served authoring. */
 import test from 'node:test';

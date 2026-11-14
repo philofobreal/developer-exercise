@@ -5,7 +5,7 @@
  *  - hidden: never meaningful in this situation (the view leaves the control out);
  *  - disabled, with a reason: possible later, not now (the reason says what to do);
  *  - enabled.
- * ADR-154: where the server serves no authoring to this client (`state.authoring===false`), authoring and the tools
+ * ADR-170: where the server serves no authoring to this client (`state.authoring===false`), authoring and the tools
  * that run on the author service are hidden: the page is practice only.
  * One draft at a time: while the CodeLine JSON or the source/settings differ from the applied model, the visual rule
  * editor waits, so two drafts of one model never diverge.

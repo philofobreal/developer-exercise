@@ -1,4 +1,4 @@
-/** Who the client is (ADR-154). Directly reached, the client is the socket's peer. Behind reverse proxies the peer is
+/** Who the client is (ADR-170). Directly reached, the client is the socket's peer. Behind reverse proxies the peer is
  * the last proxy, and only the proxies the operator runs can be believed about who called them: each appends its own
  * peer to `X-Forwarded-For`, so with `n` trusted proxies the client is the entry `n` places from the right. Everything
  * to its left is the client's own claim and is ignored.

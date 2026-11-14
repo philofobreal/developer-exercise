@@ -98,7 +98,7 @@ A Python-integráció első könyvtári szelete külön author parserport: rögz
 
 `npm run build:pages` a publikálható statikus demót az `_site/` mappába készíti. A **Local Demo / Preview Validation** a böngészőben fut, eredménye nem hitelesített vizsgaeredmény. A **Trusted Server Validation** a Node-szerveren tárolt szabályokat használja, tanulói kódot nem futtat és nem parse-ol. A saját szerzői előnézet egyik üzemmódban sem hiteles vizsgacsatorna.
 
-`npm run build:standalone` egyetlen HTML-fájlt készít a `_standalone/` mappába: néhány kész feladat, a validátor és a gyakorló lap, szerzői elemzés nélkül ([ADR-155](docs/adr/155-standalone-demonstration-page.md)). Lemezről is megnyitható; más válogatás: `npm run build:standalone -- stack-ts grade-ts`.
+`npm run build:standalone` egyetlen HTML-fájlt készít a `_standalone/` mappába: néhány kész feladat, a validátor és a gyakorló lap, szerzői elemzés nélkül ([ADR-171](docs/adr/171-standalone-demonstration-page.md)). Lemezről is megnyitható; más válogatás: `npm run build:standalone -- stack-ts grade-ts`.
 
 A projekt nem tartalmaz bejelentkezési rendszert vagy üzemi jogosultságkezelést. Éles vizsgaszolgáltatáshoz ezeket a [biztonsági szerződés](docs/security.md) szerint külön kell biztosítani.
 

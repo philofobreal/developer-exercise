@@ -34,7 +34,7 @@ const environmentGlobals:ReadonlySet<string>=new Set(['matchMedia','localStorage
 export function inspectModule(file:string,source:string):Violation[]{
  const out:Violation[]=[],normalized=file.replaceAll('\\','/'),generatedSchema=normalized==='src/core/schema-check.ts';
  const core=normalized.startsWith('src/core/'),ui=normalized.startsWith('src/workbench/'),author=normalized.startsWith('src/author/'),python=normalized.startsWith('src/python/');
- // ADR-155: the standalone page's practice engine. It ships to the visitor, so it reaches the validator through the
+ // ADR-171: the standalone page's practice engine. It ships to the visitor, so it reaches the validator through the
  // core's public interface only: never the author analysis, the server, the page or the network.
  const standalone=normalized.startsWith('src/standalone/');
  const report=(rule:string,message:string):void=>{out.push({file:normalized,rule,message});};

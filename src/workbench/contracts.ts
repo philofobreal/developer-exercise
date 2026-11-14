@@ -52,7 +52,7 @@ export type Mode='author'|'practice';
 export type RulesView='visual'|'json';
 /** `active`: the exercise whose attempt is shown — the author's preview or the practice exercise.
  * `modeViews`: the view each mode returns to. `ruleConnect`: a keyboard connection's first line. */
-export interface WorkbenchState {/** ADR-154: false where the server serves no authoring to this client; the page then offers practice only. */authoring?:boolean;exercises:ExerciseSummary[];active:string|null;previews:Map<string,string>;view:ViewName;mode:Mode;modeViews?:Partial<Record<Mode,ViewName>>;practiceActive?:string|null;rulesView?:RulesView;sourceKind?:'code'|'json';boardAll?:boolean;ruleConnect?:number;boardStatus?:string;feedbackFocus?:number;learnerPreview?:boolean;author:AuthorDraft;authorBaseline?:AuthorDraft;
+export interface WorkbenchState {/** ADR-170: false where the server serves no authoring to this client; the page then offers practice only. */authoring?:boolean;exercises:ExerciseSummary[];active:string|null;previews:Map<string,string>;view:ViewName;mode:Mode;modeViews?:Partial<Record<Mode,ViewName>>;practiceActive?:string|null;rulesView?:RulesView;sourceKind?:'code'|'json';boardAll?:boolean;ruleConnect?:number;boardStatus?:string;feedbackFocus?:number;learnerPreview?:boolean;author:AuthorDraft;authorBaseline?:AuthorDraft;
  /** The draft a load replaced and the loaded one; owned by author-workspace (`replaceDraft`, `undoReplace`). */
  authorReplaced?:{previous:AuthorDraft;loaded:AuthorDraft};
  /** ADR-118: the row picked by a touch or pen tap (drag-insert's onPick), by list and line id; its actions show in the action bar. */

@@ -1,4 +1,4 @@
-/** Builds the standalone demonstration page (ADR-155): one HTML file that runs from a disk or any static host, with a
+/** Builds the standalone demonstration page (ADR-171): one HTML file that runs from a disk or any static host, with a
  * few finished exercises, the validator and the practice page, and nothing that derives rules from source code.
  *
  *   npm run build:standalone                     the default selection

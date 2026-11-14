@@ -1,4 +1,4 @@
-"""ADR-155: the standalone demonstration page, opened from the disk.
+"""ADR-171: the standalone demonstration page, opened from the disk.
 One file: it loads nothing from anywhere, offers practice only on the shipped exercises, checks a solution in the page,
 and shows the rules between the rows after a check. Run: python tests/browser-standalone.playwright.py (after
 npm run build). Requires Playwright and Chromium.

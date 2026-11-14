@@ -1,12 +1,12 @@
-# ADR-155 – Önálló bemutató oldal: egy fájl, néhány kész feladat, szerzői elemzés nélkül
+# ADR-171 – Önálló bemutató oldal: egy fájl, néhány kész feladat, szerzői elemzés nélkül
 
 Állapot: **elfogadva** (2026-11-14). A felhasználó kérése: „lehetne-e olyan standalone oldalt összeállítani, ami pár előre kidolgozott feladatra csak validálna, és a dependenciákat is lehetne mutatni a sorok között?”, majd „az önálló bemutató oldal legyen az első”. Kockázati osztály: megjelenítés, dokumentáció és eszközök. A validátor, a szerzői elemzés, a szabályok és az értékelés nem változott.
 
 ## Kontextus
 
 - **A cél egy vállalati bemutató:** az oldal megmutatható és átadható legyen úgy, hogy a fejlesztés lényege ne legyen letölthető.
-- **A Pages-kiadás erre nem jó:** a teljes motort szállítja, a szerzői elemzést is ([ADR-154](154-public-server-practice-only.md)).
-- **A szerveres kiadás erre sok:** tárhely, üzemeltetés és kitelepítés kell hozzá (NY-60).
+- **A Pages-kiadás erre nem jó:** a teljes motort szállítja, a szerzői elemzést is ([ADR-170](170-public-server-practice-only.md)).
+- **A szerveres kiadás erre sok:** tárhely, üzemeltetés és kitelepítés kell hozzá (NY-70).
 - **A gyakorláshoz a szerzői elemzés nem kell.** A kész modellben a sorfüggőségek adatként állnak; az ellenőrzéshez a validátor elég. A kézzel írt motorforrásból a szerzői elemzés kb. 696 KB, a validátormag kb. 184 KB (a generált sémaellenőrző nélkül).
 
 ## Döntés
@@ -24,7 +24,7 @@
 
 - **Ugyanazokat a műveleteket adja, mint a szerver API-adaptere** ([api.ts](../../src/workbench/api.ts)); a csomagolás az adapter helyére teszi, a lap változatlan.
 - **Az ellenőrzés a szerveré:** a mag diagnózisa ugyanazzal a keresési kerettel és a tanulói felfedéssel ([ADR-027](027-disclosure-and-author-authorization.md), [ADR-147](147-learner-rule-panel-after-a-check.md)). A sorok közti szabályok az első ellenőrzés után nyithatók meg, ahogy a szerveren.
-- **Szerzői szolgáltatás nincs:** az `authorAccess` válasza „nem”, ezért a lap csak gyakorlás ([ADR-154](154-public-server-practice-only.md)); a szerzői műveletek hibát adnak.
+- **Szerzői szolgáltatás nincs:** az `authorAccess` válasza „nem”, ezért a lap csak gyakorlás ([ADR-170](170-public-server-practice-only.md)); a szerzői műveletek hibát adnak.
 - **Local Demo** (AGENTS.md): a lap így nevezi magát; a szállított feladatok szabályai a fájlban vannak, az ítélet nem hitelesített eredmény.
 
 ### 3. Határ az architektúra-kapuban (`standalone-boundary`)
@@ -52,7 +52,7 @@ A kész szabályokból a levezetés módszere részben kikövetkeztethető; a v�
 - **practice-api.ts:** *elrejti,* hogy a feladatok a betöltéskor egyszer lefordulnak, és hogy az ellenőrzés a mag diagnózisa a tanulói felfedéssel. *Interfésze:* `createPracticeApi(feladatok)` → a lap API-ja. *Hívója* a csomagolás által írt kétsoros adapter.
 - **build-standalone.mjs:** *elrejti,* hogyan lesz a lapból egy fájl, mi marad ki a modellből, és hol lép a gyakorló motor az adapter helyére. *Interfésze:* `buildStandalone(azonosítók)` és a parancs. Eszköz, a testvérei (`build-pages.mjs`, `publish-examples.mjs`) mintájára `.mjs`.
 - **Nincs harmadik listaforma:** a feladatlista a szerverkatalógus `list()` válasza, építéskor.
-- **design, rögzítve:** az ellenőrzés két sora és a keresési keret (50 000 állapot) három helyen áll (`catalog.mjs`, `pages-api.js`, `practice-api.ts`). Egy tulajdonos a magban lenne a helyes; az a mag interfészét szélesítené, ezért külön döntés (NY-62). Az egyezést teszt tartja.
+- **design, rögzítve:** az ellenőrzés két sora és a keresési keret (50 000 állapot) három helyen áll (`catalog.mjs`, `pages-api.js`, `practice-api.ts`). Egy tulajdonos a magban lenne a helyes; az a mag interfészét szélesítené, ezért külön döntés (NY-72). Az egyezést teszt tartja.
 - **design, rögzítve:** a súgóoldal külön dokumentum, a fájlban nincs benne; a rá mutató hivatkozásokat a csomagolás egy stílusszabállyal elrejti, a buborékok megmaradnak.
 - **design, rögzítve:** az ellenőrzés a fő szálon fut (nincs worker). A szállított feladatokon ez ezredmásodpercek kérdése; nagy modellnél a lap a keresés idejére megállna.
 
@@ -72,12 +72,12 @@ A kész szabályokból a levezetés módszere részben kikövetkeztethető; a v�
 
 ## Nyitott
 
-- **Az ellenőrzés egy tulajdonosa a magban** (NY-62): a három egyező hívás összevonása.
+- **Az ellenőrzés egy tulajdonosa a magban** (NY-72): a három egyező hívás összevonása.
 - **A válogatás a felhasználó döntése;** az alapértelmezés javaslat.
 
 ## Korlát
 
-- **A validátor és a szállított feladatok szabályai olvashatók a fájlból.** Aki ezt sem akarja kiadni, annak a szerveres kiadás kell ([ADR-154](154-public-server-practice-only.md)).
+- **A validátor és a szállított feladatok szabályai olvashatók a fájlból.** Aki ezt sem akarja kiadni, annak a szerveres kiadás kell ([ADR-170](170-public-server-practice-only.md)).
 - **A modellséma a mag része, ezért a fájlban van:** belőle a modell mezőinek neve és a szabályverziók címkéje (például `scoped-effect-analysis-v58`) kiolvasható. Ezek nevek, nem a levezetés kódja.
 - **Új feladat a fájlban nem készíthető.**
 - **A fájlban az akadálymentességi átvizsgálás nem futott külön;** a lap a gyakorló nézet, amelyet a meglévő sor vizsgál.

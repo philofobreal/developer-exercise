@@ -35,7 +35,7 @@ with sync_playwright() as p:
         page.add_script_tag(content=(PUBLIC/'vendor'/script).read_text(encoding='utf-8'))
     page.add_script_tag(content='''window.fetch = async (url,options) => {
       if(url === '/api/exercises')return {ok:true,json:async()=>({exercises:window.__fixture})};
-      // ADR-154: this harness stands for the local author's server, which serves authoring.
+      // ADR-170: this harness stands for the local author's server, which serves authoring.
       if(url === '/api/access')return {ok:true,json:async()=>({authoring:true})};
       throw Error('Only initial GET is mocked for this UI-only test: '+url);
     };''')

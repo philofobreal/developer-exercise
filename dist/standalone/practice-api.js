@@ -1,5 +1,5 @@
 /**
- * The practice-only engine of the standalone demonstration page (ADR-155): a handful of finished exercises checked in
+ * The practice-only engine of the standalone demonstration page (ADR-171): a handful of finished exercises checked in
  * the visitor's browser, with no server and no author analysis. It answers the same operations as the server API
  * adapter (`src/workbench/api.ts`), so the page runs on it unchanged.
  *
@@ -29,7 +29,7 @@ export function createPracticeApi(entries) {
         /** Checking runs to its end in the page; there is nothing in flight to stop. */
         abortPending: () => { },
         getExercises: async () => entries.map(entry => entry.summary),
-        /** No authoring is served: the page then offers practice only (ADR-154). */
+        /** No authoring is served: the page then offers practice only (ADR-170). */
         authorAccess: async () => false,
         evaluate: async (body) => {
             const submission = body;
