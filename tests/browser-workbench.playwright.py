@@ -603,7 +603,12 @@ def tap_to_place(browser):
     try:
         page.goto(BASE);practice(page)
         first=page.locator('.source-zone .code-row').first;text=first.locator('.code-text').inner_text()
+        # ADR-152: the page is scrolled past the height it has with the task list folded; the render after the tap keeps it there
+        before=page.evaluate("()=>{scrollTo(0,document.querySelector('.source-zone .code-row .drag-handle').getBoundingClientRect().top+scrollY-90);return scrollY}")
+        folded=page.evaluate("()=>{const picker=document.querySelector('.task-picker');return document.documentElement.scrollHeight-(picker.offsetHeight-picker.querySelector('summary').offsetHeight)-innerHeight}");assert before>folded+100,(before,folded)
+        assert page.evaluate("()=>{const handle=document.querySelector('.source-zone .code-row .drag-handle'),box=handle.getBoundingClientRect();return handle.contains(document.elementFromPoint(box.left+box.width/2,box.top+box.height/2))}"),'the handle is on the screen, under nothing'
         first.locator('.drag-handle').tap();expect(first).to_have_class(re.compile('picked'));expect(page.locator('[data-move-status]')).to_contain_text('Sor kijelölve')
+        assert page.evaluate('scrollY')==before,(before,page.evaluate('scrollY'))
         first.locator('.drag-handle').tap();expect(page.locator('.code-row.picked')).to_have_count(0);expect(page.locator('[data-move-status]')).to_contain_text('megszüntetve')
         page.locator('.source-zone .code-row').first.locator('.drag-handle').tap()
         slot=page.locator('.solution-zone .code-row.blank-row').nth(1);index=slot.get_attribute('data-index');slot.tap()
@@ -797,6 +802,50 @@ def focus_bar_and_full_screen_return(page):
     page.evaluate("()=>{const enter=Element.prototype.requestFullscreen;Element.prototype.requestFullscreen=function(...args){return new Promise(resolve=>setTimeout(resolve,300)).then(()=>enter.apply(this,args));};}")
     page.locator('[data-focus]').click();page.locator('[data-focus]').click();page.wait_for_timeout(900);page.wait_for_function(settled,arg=[None,False])
     assert page.evaluate(state)=={'surface':None,'native':False}
+def technology_filter(browser,url):
+    """ADR-152 (G2): the technology labels of the practice list. Every exercise shows its labels as chips where the
+    language's name stood (the square before the title names the language). Above the list every label stands with the
+    number of exercises under it: the summary of what the list is made of, and its filter. A label pressed narrows the
+    list to it and keeps the focus; pressed again it lets go; „és a korábbi verziók” takes the older versions of the same
+    technology too. The open exercise stays open. Under a title: from which versions the exercise runs, and for a
+    TypeScript exercise the compiler that checked it. The choice lasts for the page's life."""
+    context=watch(browser.new_context(viewport={'width':1440,'height':900}));page=context.new_page();failures=[];page.on('pageerror',lambda error:failures.append(str(error)))
+    facets="()=>[...document.querySelectorAll('[data-technology]')].map(b=>b.dataset.technology+' '+b.querySelector('b').textContent+' '+b.getAttribute('aria-pressed'))"
+    tasks=lambda:page.locator('.task[data-task]').count();groups="()=>[...document.querySelectorAll('.side-title')].map(h=>h.firstChild.textContent+' '+h.querySelector('span').textContent)"
+    try:
+        reset(page,url);practice(page);opened=page.locator('.task.selected').get_attribute('data-task')
+        assert page.evaluate(facets)==['ecmascript 5 1 false','ecmascript 2015 13 false','ecmascript 2018 1 false','ecmascript 2020 1 false','typescript 1.0 1 false','typescript 2.0 3 false'],page.evaluate(facets)
+        assert tasks()==16 and page.evaluate(groups)==['Kezdő 6','Közepes 7','Haladó 3'],page.evaluate(groups)
+        expect(page.locator('.task-picker nav > .tech-filter')).to_have_attribute('role','group');expect(page.get_by_role('group',name='JavaScript (ECMAScript)').get_by_role('button',name='ES2015 13 feladat',exact=True)).to_have_attribute('data-technology','ecmascript 2015')
+        graded=page.locator('.task[data-task="grade-ts"]');expect(graded.locator('.tech-chip')).to_have_text(['TS 1.0','ES5']);expect(graded.locator('.task-file')).to_have_attribute('aria-label','TypeScript')
+        assert 'TypeScript' not in graded.locator('small').inner_text() and 'JavaScript' not in page.locator('.task[data-task="celsius-js"] small').inner_text(),'the chips stand where the language name stood'
+        assert page.evaluate("()=>{const items=[...document.querySelectorAll('.task[data-task]')];return items.every(item=>item.querySelectorAll('.tech-chip').length>=1&&item.getBoundingClientRect().height<=72)}"),'every item is labelled and no taller than two lines of title and one of labels'
+        earlier=page.locator('[data-technology-earlier]');expect(earlier).to_be_disabled()
+        # a label pressed: the list narrows, the counts of the level groups follow, the focus stays on the label
+        chip=page.locator('[data-technology="typescript 2.0"]');chip.click();expect(chip).to_have_attribute('aria-pressed','true');expect(chip).to_be_focused()
+        assert tasks()==3 and page.evaluate(groups)==['Közepes 2','Haladó 1'],page.evaluate(groups)
+        assert page.locator('[data-technology][aria-pressed="true"]').count()==1
+        # the exercise that was open stays open, though the list no longer shows it
+        assert page.locator('.task.selected').count()==0 and page.locator(f'.task[data-task="{opened}"]').count()==0;expect(page.locator('.task-heading h1')).to_be_visible();expect(page.locator('[data-check]')).to_be_visible()
+        # the older versions too
+        expect(earlier).to_be_enabled();earlier.check();expect(earlier).to_be_focused();assert tasks()==4 and page.evaluate(groups)==['Kezdő 1','Közepes 2','Haladó 1'],page.evaluate(groups)
+        # choosing one of them keeps the filter; its title says from which versions it runs and what checked it
+        page.locator('.task[data-task="class-inventory-ts"]').click();expect(page.locator('.task[data-task="class-inventory-ts"]')).to_have_class('task selected')
+        expect(page.locator('.tech-note')).to_have_text(re.compile(r'^TypeScript 2\.0-tól · ES2018-tól · ellenőrizve: TypeScript \d+\.\d+$'))
+        expect(chip).to_have_attribute('aria-pressed','true');expect(earlier).to_be_checked();assert tasks()==4
+        # another label takes over, keeping the choice of older versions; by keyboard the chosen one lets go
+        other=page.locator('[data-technology="ecmascript 2015"]');other.click();expect(other).to_have_attribute('aria-pressed','true');expect(chip).to_have_attribute('aria-pressed','false');expect(earlier).to_be_checked();assert tasks()==14,tasks()
+        other.focus();page.keyboard.press('Space');expect(other).to_have_attribute('aria-pressed','false');expect(other).to_be_focused();assert tasks()==16;expect(earlier).to_be_disabled();expect(earlier).not_to_be_checked()
+        # a JavaScript exercise names no compiler
+        page.locator('.task[data-task="word-count-js"]').click();expect(page.locator('.tech-note')).to_have_text('ES2020-tól')
+        # the author's own draft is measured too, and nothing checked it for publication
+        page.locator('[data-mode="author"]').click();build(page,'function total(prices) {\n  const fees = prices.map(price => price * 2);\n  return fees.at(-1) ?? 0;\n}')
+        expect(page.locator('.tech-note')).to_have_text('ES2022-től')
+        # the choice lasts for the page's life: a reload starts without one
+        practice(page);chip=page.locator('[data-technology="typescript 2.0"]');chip.click();assert tasks()==3
+        page.reload();expect(page.locator('[data-step="source"]')).to_have_attribute('aria-current','step');practice(page);assert tasks()==16 and page.locator('[data-technology][aria-pressed="true"]').count()==0
+        assert not failures,failures
+    finally:context.close()
 def learner_rules(browser,url,pages):
     """ADR-147: the learner's look at an exercise's rules. Nothing of it stands on the page, or comes with the listing,
     before a first check; the first check brings the tool and a rule button per row, says so, and opens nothing. The
@@ -1600,6 +1649,8 @@ try:
             reset(page,BASE);case('node two code views, remembered, with their row geometry',lambda:code_views(page))
             reset(page,BASE);case('node pane separator and full-screen focus without scroll',lambda:split_and_full_screen_focus(page))
             case('node the tools and the panels are one frame; the rule panel docks behind a separator of its own',lambda:rules_split(browser,BASE))
+            case('node the practice list shows the technology labels, sums them up and narrows to a chosen one',lambda:technology_filter(browser,BASE))
+            case('pages the practice list shows the technology labels, sums them up and narrows to a chosen one',lambda:technology_filter(browser,f'http://127.0.0.1:{static.server_port}/developer-exercise/'))
             case('node the learner sees the rules only after a first check, read-only, where the author allows it',lambda:learner_rules(browser,BASE,False))
             case('pages the learner sees the rules only after a first check, read-only, where the author allows it',lambda:learner_rules(browser,f'http://127.0.0.1:{static.server_port}/developer-exercise/',True))
             reset(page,BASE);case('node focus bar and the return to the full-screen page',lambda:focus_bar_and_full_screen_return(page))

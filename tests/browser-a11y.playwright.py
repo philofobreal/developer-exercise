@@ -63,6 +63,10 @@ def author_flow(page,prefix):
     # ADR-133: the shipped page offers no view switches; the switched-off solution editor is scanned with them on.
     assert page.locator('[data-view],[data-set-code-view]').count()==0
     page.evaluate("""()=>localStorage.setItem('ngdynamic.view-switches.v1','on')""");page.reload();page.locator('[data-mode="practice"]').click();expect(page.locator('[data-check]')).to_be_visible()
+    # ADR-152: the practice list with its technology labels, and a label pressed.
+    if page.locator('details.task-picker').get_attribute('open') is None:page.locator('details.task-picker summary').click()
+    label=page.locator('[data-technology="typescript 2.0"]');expect(label).to_be_visible();scan(page,prefix+'-practice-labels')
+    label.click();expect(label).to_have_attribute('aria-pressed','true');scan(page,prefix+'-practice-label-pressed');label.click();expect(label).to_have_attribute('aria-pressed','false')
     page.locator('[data-view="edit"]').click();expect(page.locator('#code-editor')).to_be_visible();scan(page,prefix+'-practice-code')
     page.evaluate("""()=>localStorage.removeItem('ngdynamic.view-switches.v1')""")
     # ADR-124 (H2): the help page, whole and narrowed by the search.

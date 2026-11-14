@@ -54,6 +54,7 @@
     "src/workbench/learner-rules.ts": "public/app/learner-rules.js",
     "src/workbench/attempt.ts": "public/app/attempt.js",
     "src/workbench/drag-insert.ts": "public/app/drag-insert.js",
-    "src/workbench/persistence.ts": "public/app/persistence.js"
+    "src/workbench/persistence.ts": "public/app/persistence.js",
+    "src/workbench/technology-filter.ts": "public/app/technology-filter.js"
   }
 }

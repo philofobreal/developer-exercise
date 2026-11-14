@@ -95,7 +95,7 @@ SURFACES="""()=>{const shown=s=>[...document.querySelectorAll(s)].filter(e=>e.ch
   ['--r-inset','.dependency-details,.rule-item,.board-list,.feedback-details,.rule-kinds,.help-code,.validation-notice,.draft-notice,.stale-notice,.edit-paused'],['--r-float','.menu-panel,.activity,.toggletip-panel:popover-open'],
   ['--r-field','#app :is(input:not([type=checkbox],[type=radio],[type=file],[hidden]),select)']];
  const square=kinds.flatMap(([t,list])=>shown(list).filter(e=>radii(e).some(r=>Math.abs(r-token(t))>.1)).map(e=>`${name(e)}: ${radii(e)} for ${t} ${token(t)}`));
- const chips=shown('.context-label,.rule-badge,.verification-badge,.publish-badge,.mode-badge,.lock-label').filter(e=>{const s=getComputedStyle(e),h=e.getBoundingClientRect().height;
+ const chips=shown('.context-label,.rule-badge,.verification-badge,.publish-badge,.mode-badge,.lock-label,.tech-chip').filter(e=>{const s=getComputedStyle(e),h=e.getBoundingClientRect().height;
   return radii(e).some(r=>r<h/2)||s.boxShadow!=='none'||s.backgroundImage!=='none';}).map(name);
  const segments=shown('.segment').flatMap(g=>{const parts=[...g.querySelectorAll('button')],r=g.getBoundingClientRect(),control=parseFloat(getComputedStyle(g).getPropertyValue('--control-h'));
   const faced=parts.filter(b=>!/rgba\([^)]*, 0\)|transparent/.test(getComputedStyle(b).backgroundColor)),chosen=parts.filter(b=>b.classList.contains('active')),bad=[];

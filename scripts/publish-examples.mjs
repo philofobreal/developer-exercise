@@ -11,6 +11,7 @@ export async function publishExamples(examplesDir,outDir,{publication=DEFAULT_PU
  await mkdir(outDir,{recursive:true});
  for(const {file} of served)await copyFile(path.join(examplesDir,file),path.join(outDir,file));
  await writeFile(path.join(outDir,'manifest.json'),JSON.stringify(served.map(item=>item.file),null,2)+'\n');
- await writeFile(path.join(outDir,'publication.json'),JSON.stringify({policy:publication,served,skipped},null,2)+'\n');
+ // ADR-152: the compiler that checked the served exercises, for the page that shows them without checking again.
+ await writeFile(path.join(outDir,'publication.json'),JSON.stringify({policy:publication,compiler:{typescript:(await catalog.parser()).versionMajorMinor},served,skipped},null,2)+'\n');
  return {served,skipped};
 }

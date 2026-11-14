@@ -231,6 +231,23 @@ main {min-width:0;padding:24px 30px 28px;scroll-margin-top:15px}
 .task-content {min-width:0}
 .task-content strong {display:block;font-size:12px;font-weight:600;line-height:1.4}
 .task small {display:block;font-size:12px;color:var(--n-68);margin-top:2px}
+/* ADR-152 (G2): technology labels. A chip names a version (`TS 2.0`, `ES2018`) with the language's colour as its line.
+ * The filter above the list is also the list's summary: every label with the number of exercises under it; a label
+ * pressed narrows the list to it. */
+.task small:has(.tech-chip) {display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.tech-chip {display:inline-flex;align-items:center;height:18px;padding:0 6px;border:1px solid var(--border);border-radius:9px;background:var(--bg);color:var(--text);font:600 12px/1 var(--mono);white-space:nowrap}
+.tech-chip.typescript {border-color:color-mix(in srgb,var(--lang-ts) 60%,var(--border))}
+.tech-chip.ecmascript {border-color:color-mix(in srgb,var(--lang-js) 75%,var(--border))}
+.tech-filter {display:grid;grid-template-columns:minmax(0,1fr);gap:10px;margin:0 6px 18px}
+.tech-group {display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.tech-group-name {flex:0 0 100%;font-size:12px;font-weight:650;color:var(--n-70)}
+.tech-facet {display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:0 10px;border:1px solid var(--border);border-radius:14px;background:var(--bg);color:var(--text);font:600 12px var(--mono)}
+.tech-facet b {font:500 12px var(--ui);color:var(--muted)}
+.tech-facet[aria-pressed=true] {border-color:var(--blue);background:var(--blue-pale);color:var(--accent-text);box-shadow:inset 0 0 0 1px var(--blue)}
+.tech-facet[aria-pressed=true] b {color:inherit}
+.tech-earlier {display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.tech-note {color:var(--muted)}
+@media(pointer:coarse) {.tech-facet {min-height:36px}}
 /* Heading: the title, then one line of facts (language, rows, what validates). */
 .task-heading {margin:0 0 16px}
 .task-heading h1 {margin:0 0 6px;font-size:24px;font-weight:800;letter-spacing:-.5px;color:var(--n-96);overflow-wrap:anywhere}

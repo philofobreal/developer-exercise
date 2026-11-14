@@ -2,7 +2,7 @@
 
 Állapot: **elfogadva** (2026-11-14). A [refaktorterv](../terv-munkafelulet-refaktor.md) a felhasználóé; az F0 fázist jóváhagyta („amint végez és zöld, jóváhagyom és mehet a Refaktor F0”). Ez az ADR a terv T0.1–T0.5 taskjait zárja. Kockázati osztály: dokumentáció és eszközök (architektúra-kapu, kapufuttató, mérőeszköz, governance); a munkafelület kódja nem változott, látható változás nincs.
 
-Öt ponton tér el a megvalósítás a tervtől; ezek a „Nyitott” szakaszban állnak, a felhasználó megerősítésére várnak.
+Öt ponton tér el a megvalósítás a tervtől; ezeket a „Lezárt kérdések” szakasz rögzíti.
 
 ## Kontextus
 
@@ -109,12 +109,12 @@ A `public/ui.js` régi JS, a szabályok a T2.7-ig nem érik el (egy `innerHTML` 
 - **Mérőkapu:** zöld a mai kódon; az alapszint három mérés mediánja; a zajtábla kilenc mérésből való.
 - **Teljes kör:** `npm run gate` (az eszközlánc változása a teljes regressziót futtatja).
 
-## Nyitott
+## Lezárt kérdések (2026-11-14)
 
-A terv szerint a tervtől eltérő döntés a felhasználóé. Öt eltérés van; mindegyik a mai állapotban működik, és megerősítésre vár:
+A megvalósítás öt ponton tért el a tervtől. A felhasználó az első négyet megerősítette („jóváhagyom mind a három ajánlást”), az ötödiket a CI első futása zárta le:
 
 1. **Az időkeret 1,6-szoros, nem +20%;** a szigorú kapu a darabszám. Ok: a mért zaj.
-2. **A headless listán két modul áll, nem hét.** Ok: a többi ma DOM-típust vagy DOM-modult használ; fázisonként kerülnek fel.
-3. **A markup-szerződés adatfájl, és a tesztek által használt neveket tartalmazza** (158), nem a források mind a 197 nevét.
-4. **Az NY-42-ből az F0 annyit old meg, hogy a mérősor egyedül fut;** a leghosszabb sorok felosztása nem készült el (a munkafelület-sor egyetlen összefüggő folyam).
-5. **CI-ben az időkeret 2-szeres,** és a darabszámok ott még nincsenek megmérve; ha a CI-gép más számot ad, azt az első futás megmutatja.
+2. **A headless listán két modul állt, nem hét** (az [ADR-152](152-technology-labels-in-the-practice-list.md) óta három). Ok: a többi ma DOM-típust vagy DOM-modult használ; fázisonként kerülnek fel.
+3. **A markup-szerződés adatfájl, és a tesztek által használt neveket tartalmazza,** nem a források minden nevét.
+4. **Az NY-42-ből az F0 annyit oldott meg, hogy a mérősor egyedül fut;** a leghosszabb sorok felosztása nyitva maradt a [jegyzékben](../nyitott-tetelek.md).
+5. **CI-ben az időkeret 2-szeres.** A mérőkapu a CI-gépen az első futásra zöld lett (366d028), a darabszámok ott is az alapszinten belül vannak. Ha egy későbbi futás eltér, nem a keret tágul: a CI saját alapszintet kap.

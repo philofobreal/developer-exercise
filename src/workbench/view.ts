@@ -4,7 +4,8 @@ import {availability,availabilityAttributes,disabledAttributes,type Availability
 import type {WorkbenchOptions,ExerciseSummary,AttemptSnapshot,Report} from './contracts.js';
 import type {CodeLineExercise,Feedback} from '../../dist/index.js';
 import {renderDependencyTable,renderWitness} from './dependency-view.js';
-import {createFieldRenderer} from './fields.js';
+import {createFieldRenderer,renderTechnologyFilter} from './fields.js';
+import {technologyNote} from './technology-filter.js';
 import {beautifier} from '../formatter.js';
 import {validationMode} from './api.js';
 import {article,escapeHtml as esc,editorShell,highlight,syncEditors} from './ui-utilities.js';
@@ -222,7 +223,8 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:Wor
   return `<span class="mode-badge" role="note" title="${validationLabel()} · ${meaning}" aria-label="${validationLabel()}: ${meaning}"><span class="status-dot" aria-hidden="true"></span>${short}</span>`;
  };
  /** The heading of the exercise in hand: its title, language and size, and what validates it. */
- const heading=(title:string,language:string,rows?:number,extra=''):string=>`<div class="task-heading"><h1>${esc(title)}</h1><p class="task-meta">${languageBadge(language,rows)}${badge()}</p>${extra}</div>`;
+ // ADR-152: `note`: from which versions the exercise runs and which compiler checked it (technology-filter's sentence).
+ const heading=(title:string,language:string,rows?:number,extra='',note=''):string=>`<div class="task-heading"><h1>${esc(title)}</h1><p class="task-meta">${languageBadge(language,rows)}${note?`<span class="tech-note">${esc(note)}</span>`:''}${badge()}</p>${extra}</div>`;
  const themeButton=():string=>{const choice=themeChoice(),next:ThemeChoice=choice==='system'?'light':choice==='light'?'dark':'system',glyph:IconName=choice==='light'?'sun':choice==='dark'?'moon':'contrast';
   return tool('data-theme-cycle',THEME_LABEL[choice],glyph,`class="theme-toggle" aria-label="Téma: ${THEME_LABEL[choice]}. Váltás: ${THEME_LABEL[next]}" title="Téma: ${THEME_LABEL[choice]} (váltás: ${THEME_LABEL[next]})"`);};
  function header():string {
@@ -251,31 +253,35 @@ export function createWorkbenchView({root,state,ex,at,attempt,scroll,format}:Wor
   const decisions=authorDraftPending(state)?authorDecisions(state.authorInsight):0,loss=decisions?` <b data-rebuild-loss>A modell újrakészítése elveti ${article(decisions)} ${decisions} kézi szabálydöntést</b> (szűkítés, rögzítés, profil vagy feloldás).`:'';
   const banner=stale&&step!=='source'?`<div class="draft-notice notice tone-warning stale-notice" data-stale-notice role="note"><p>${esc(stale)}${loss}</p><div>${authorDraftPending(state)?tool('data-author-apply','Modell újrakészítése','reset')+tool('data-author-revert','Változtatások elvetése','back'):tool('data-open-json','JSON szerkesztése','settings')}</div></div>`:'';
   const body=step==='source'?sourceStep():step==='rules'?rulesStep():e&&a?`<section class="step-panel try-step" aria-labelledby="step-title"><h2 id="step-title" class="sr-only">Próba és kiadás</h2>${tryPanel(e,a)}${learnerData()}<div class="step-nav">${tool('data-goto="rules"','Vissza a szabályokhoz','back')}</div></section>`:'';
-  return `<div class="shell author-shell"><main id="workbench-main" class="author-flow" tabindex="-1"><div class="context-bar">${heading(state.author.title,state.author.language,e?.lines.length)}${stepper}</div>${notice()}${banner}${body}${help(state.author.language)}</main></div>`;
+  return `<div class="shell author-shell"><main id="workbench-main" class="author-flow" tabindex="-1"><div class="context-bar">${heading(state.author.title,state.author.language,e?.lines.length,'',state.authorModel?technologyNote(state.authorModel):'')}${stepper}</div>${notice()}${banner}${body}${help(state.author.language)}</main></div>`;
  }
  function practiceShell():string {
   const e=ex(),a=at(),trusted=state.exercises.filter(x=>!state.previews.has(x.id));
   // ADR-105: on a narrow screen the task list folds into a picker above the task; wide, it is the side list.
   // ADR-116: a phone on its side is narrow too (the same query as the stylesheet); wide, the list shows even when closed.
   const narrow=typeof matchMedia==='function'&&matchMedia('(max-width: 850px), (max-height: 500px) and (orientation: landscape)').matches;
-  const library=`<aside class="library" aria-label="Gyakorlófeladatok"><details class="task-picker" data-memory="task-picker" ${narrow?'':'open'}><summary><span>Feladatok</span><b>${esc(e?.title??'')}</b></summary><nav aria-label="Feladatok">${createFieldRenderer(trusted,esc,e?.id??'')}</nav></details></aside>`;
-  const main=e&&a?`<main id="workbench-main" tabindex="-1">${heading(e.title,e.language,e.lines.length,`${e.description?`<p class="description">${esc(e.description)}</p>`:''}${tool('data-edit-example','Saját feladat ebből','plus','class="link-action"')}`)}${notice()}${tryPanel(e,a,{helpBelow:true})}${help(e.language)}</main>`:'<main id="workbench-main"><p class="loading">Nincs gyakorlófeladat.</p></main>';
+  const library=`<aside class="library" aria-label="Gyakorlófeladatok"><details class="task-picker" data-memory="task-picker" ${narrow?'':'open'}><summary><span>Feladatok</span><b>${esc(e?.title??'')}</b></summary><nav aria-label="Feladatok">${renderTechnologyFilter(trusted,state.technologyFilter)}${createFieldRenderer(trusted,esc,e?.id??'',state.technologyFilter)}</nav></details></aside>`;
+  const main=e&&a?`<main id="workbench-main" tabindex="-1">${heading(e.title,e.language,e.lines.length,`${e.description?`<p class="description">${esc(e.description)}</p>`:''}${tool('data-edit-example','Saját feladat ebből','plus','class="link-action"')}`,technologyNote(e))}${notice()}${tryPanel(e,a,{helpBelow:true})}${help(e.language)}</main>`:'<main id="workbench-main"><p class="loading">Nincs gyakorlófeladat.</p></main>';
   return `<div class="shell practice-shell">${library}${main}</div>`;
  }
  function learnerShell():string {
   const e=ex(),a=at();if(!e||!a)return '';
-  return `<div class="shell learner-shell"><main id="workbench-main" tabindex="-1">${heading(e.title,e.language,e.lines.length,e.description?`<p class="description">${esc(e.description)}</p>`:'')}${notice()}${tryPanel(e,a,{helpBelow:true})}${help(e.language)}</main></div>`;
+  return `<div class="shell learner-shell"><main id="workbench-main" tabindex="-1">${heading(e.title,e.language,e.lines.length,e.description?`<p class="description">${esc(e.description)}</p>`:'',technologyNote(e))}${notice()}${tryPanel(e,a,{helpBelow:true})}${help(e.language)}</main></div>`;
  }
  /** `background`: the render answers something the reader did not just do (ADR-136): an open menu stays open. */
  function render({background=false}:{background?:boolean}={}):void {
   const v=state.view,learner=!!state.learnerPreview,key=continuityKey(state);
   continuity.capture({background});scroll.capture();
+  // ADR-152: the window keeps its scroll position over a render. Until the remembered disclosures are open again the
+  // new page can be shorter than the old one (the folded task list of a phone), and the measuring below lays it out in
+  // that state: the browser would clamp the scroll, and the tap that caused the render would land on another row.
+  root.style.minHeight=root.offsetHeight+'px';
   root.classList.toggle('learner-preview',learner);root.classList.toggle('author-mode',state.mode==='author'&&!learner);
   root.innerHTML=header()+(learner?learnerShell():state.mode==='practice'?practiceShell():authorShell());
   const fill=(selector:string,value:string):void=>{const editor=root.querySelector<HTMLTextAreaElement>(selector);if(editor)editor.value=value;};
   fill('#author-editor',state.author.source);fill('#model-editor',state.modelDraft);fill('#code-editor',at()?.draft??'');
   refreshAuthorStatus(root,state);syncEditors(root);drawRuleArcs(root,state);
-  root.dataset.renderedExercise=state.active??'';root.dataset.renderedView=v;root.dataset.renderedMode=state.mode;fitHeader();fitToolbar();fitLists();scroll.restore(key);continuity.restore(key+':'+v+(v==='model'?':'+(state.rulesView??'visual'):v==='author'?':'+(state.sourceKind??'code'):''));tips.rendered({background});
+  root.dataset.renderedExercise=state.active??'';root.dataset.renderedView=v;root.dataset.renderedMode=state.mode;fitHeader();fitToolbar();fitLists();scroll.restore(key);continuity.restore(key+':'+v+(v==='model'?':'+(state.rulesView??'visual'):v==='author'?':'+(state.sourceKind??'code'):''));root.style.minHeight='';tips.rendered({background});
  }
  return {render};
 }

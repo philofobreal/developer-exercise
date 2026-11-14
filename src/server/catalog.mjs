@@ -30,6 +30,8 @@ export function publicationPolicy(value){
 export function publicationNotice(policy){
   return policy==='publishable'?'Örökölt publikálási mód (CODELINE_PUBLICATION=publishable): nem igazolt modellek is kiszolgálhatók.':null;
 }
+/** ADR-152: the TypeScript release that checked a TypeScript exercise when this catalog admitted it. */
+const checkedWith=(model,verification,compiler)=>model.language==='typescript'&&verification&&compiler?{checkedWith:compiler.versionMajorMinor}:{};
 export class ExerciseCatalog{
   constructor(records){this.trusted=records;this.drafts=new Map();this.ts=null;this.skipped=[];}
   /** `publication` (ADR-027): which qualified models are served; a refused one is listed in `skipped`, its file untouched. */
@@ -53,7 +55,7 @@ export class ExerciseCatalog{
     if(!records.size)throw Error(`No publishable JSON exercises in examples/ (policy: ${publication})`);
     return catalog;
   }
-  list(){return [...this.trusted.values()].map(({model:d,verification})=>({id:d.id,revision:d.revision,language:d.language,title:d.title,description:d.description,...(d.level?{level:d.level}:{}),...(d.technologies?{technologies:d.technologies}:{}),...(verification?{verification:verification.status}:{}),
+  list(){return [...this.trusted.values()].map(({model:d,verification})=>({id:d.id,revision:d.revision,language:d.language,title:d.title,description:d.description,...(d.level?{level:d.level}:{}),...(d.technologies?{technologies:d.technologies}:{}),...(checkedWith(d,verification,this.ts)),...(verification?{verification:verification.status}:{}),
     lines:d.lines.map(l=>({id:l.id,code:l.code,fixed:l.fixed,normalization:l.normalization??'indent',functionBlock:l.functionBlock}))}));}
   async parser(){return this.ts??=(await import('typescript')).default;}
   /** Language audit beyond syntax (ADR-016): the installed compiler's standard library, read by base name only. */

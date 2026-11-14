@@ -21,6 +21,7 @@ import {parseImport,exportSession,readSession,restoreAttempt,downloadJSON,saveLo
 import {createAttempt,createAttemptController} from './app/attempt.js';
 import {createWorkbenchView} from './app/view.js';
 import {practiceOrder} from './app/fields.js';
+import {toggleTechnology} from './app/technology-filter.js';
 import {createInsertionDrag} from './app/drag-insert.js';
 import {createScrollMemory,syncEditors,handleEditorKey,copyToClipboard,escapeHtml} from './app/ui-utilities.js';
 import {formatSource,getExercises,compileDraft,checkSource,editRules,previewDraft,resolvePolicy,evaluate,loadTypeScriptFixture,abortPending} from './app/api.js';
@@ -110,6 +111,8 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  // ADR-106: the whole workbench or only the code workspace on the full surface; the code view.
  if(b.hasAttribute('data-fullscreen')||b.hasAttribute('data-focus')){const action=b.hasAttribute('data-focus')?'data-focus':'data-fullscreen';await toggleSurface(root,action==='data-focus'?'focus':'app',render);root.querySelector('['+action+']')?.focus({preventScroll:true});return;}
  if(b.hasAttribute('data-workspace-help')){openWorkspaceHelp(root);return;}
+ // ADR-152: a technology label narrows the practice list to it; pressed again, it lets go.
+ if(b.hasAttribute('data-technology')){const [id,version]=b.dataset.technology.split(' ');state.technologyFilter=toggleTechnology(state.technologyFilter,{id,version});render();return;}
  if(b.hasAttribute('data-set-code-view')){setCodeView(root,b.dataset.setCodeView);render();root.querySelector(`[data-set-code-view="${b.dataset.setCodeView}"]`)?.focus({preventScroll:true});return;}
  const pasteAction=['author','model','editor','solution'].find(action=>b.hasAttribute('data-paste-'+action));
  if(pasteAction){
@@ -267,6 +270,8 @@ root.addEventListener('paste',ev=>{
  });
 });
 root.addEventListener('change',ev=>{
+ // ADR-152: the technology filter may also take the older versions of the chosen technology.
+ if(ev.target.matches('[data-technology-earlier]')){if(state.technologyFilter){state.technologyFilter={...state.technologyFilter,earlier:ev.target.checked};render();}return;}
  // M2: choosing an example loads it at once (undoable); there is no separate load button.
  if(ev.target.matches('[data-start-example]')){const e=state.exercises.find(x=>x.id===ev.target.value);if(!e)return;startFromExample(state,e);state.sourceKind='code';render();root.querySelector('.open-menu > summary')?.focus({preventScroll:true});return;}
  if(ev.target.dataset.author){state.author[ev.target.dataset.author]=ev.target.value;refreshAuthorStatus(root,state);if(ev.target.dataset.author==='language')render();}

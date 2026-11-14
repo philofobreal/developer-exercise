@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-11-14 A technológiajelölés látszik és szűr a gyakorló listában (ADR-152, G2)
+
+- **Jelvények a listaelemen** (`TS 2.0`, `ES2018`), ott, ahol eddig a nyelv neve állt; az elem nem lett magasabb.
+- **A lista fölött minden jelvény a feladatok számával:** összesítő és szűrő egyben. Egy jelvény megnyomva a listát rá szűkíti; az „és a korábbi verziók” kapcsolóval a régebbi verziók is megjelennek.
+- **A cím alatt egy mondat:** „TypeScript 2.0-tól · ES2018-tól · ellenőrizve: TypeScript 5.8”. Az „ellenőrizve” az a fordító, amely a feladatot a katalógusba vételkor ellenőrizte.
+- **Javítás: telefonon a kirajzolás megtartja a görgetést.** Nyitott feladatlistával, lejjebb görgetve egy koppintás után az oldal elugorhatott, és a koppintás másik sorra esett; a kirajzolás most a saját idejére rögzíti az oldal magasságát.
+- **A mérőkapu a CI-gépen is zöld** (ADR-151, az ötödik nyitott pont lezárva).
+
 ## Unreleased – 2026-11-14 A munkafelület refaktorálásának alapjai: mérőkapu, szabályok, markup-szerződés (ADR-151, NY-58 F0)
 
 - **Mérőkapu a fő szál forró útjaira** (`npm run test:browser:perf`): nyolc forgatókönyv a 482 soros feladaton. A mai alapszint: billentyűs lerakás 322 ms, ellenőrzés 421 ms, a Próba megnyitása 264 ms, húzás mozdulatonként 184 ms; egy lerakás 15 503 DOM-csomópontot rajzol újra.

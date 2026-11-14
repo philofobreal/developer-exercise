@@ -31,9 +31,10 @@ function getTypeScript(){
   return globalThis.ts;
 }
 export async function getExercises(){
-  const res=await fetch(new URL('../examples/manifest.json',import.meta.url));
+  // ADR-152: the publication record names the compiler that checked the served exercises; a missing record names none.
+  const [res,published]=await Promise.all([fetch(new URL('../examples/manifest.json',import.meta.url)),fetch(new URL('../examples/publication.json',import.meta.url)).then(r=>r.ok?r.json():null).catch(()=>null)]);
   if(!res.ok)throw Error('Példafeladat-manifeszt nem tölthető be.');
-  const names=await res.json();
+  const names=await res.json(),compiler=typeof published?.compiler?.typescript==='string'?published.compiler.typescript:undefined;
   for(const name of names){
     const r=await fetch(new URL('../examples/'+encodeURIComponent(name),import.meta.url));
     if(!r.ok)throw Error('Hiányzik egy referenciafeladat: '+name);
@@ -41,7 +42,7 @@ export async function getExercises(){
     records.set(model.id,{model,compiled:assertSafeModel(model)});
   }
   return [...records.values()].map(({model:d})=>({
-    id:d.id,revision:d.revision,language:d.language,title:d.title,description:d.description,...(d.level?{level:d.level}:{}),...(d.technologies?{technologies:d.technologies}:{}),
+    id:d.id,revision:d.revision,language:d.language,title:d.title,description:d.description,...(d.level?{level:d.level}:{}),...(d.technologies?{technologies:d.technologies}:{}),...(d.language==='typescript'&&compiler?{checkedWith:compiler}:{}),
     lines:d.lines.map(l=>({id:l.id,code:l.code,fixed:l.fixed,normalization:l.normalization??'indent',functionBlock:l.functionBlock}))
   }));
 }

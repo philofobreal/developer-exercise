@@ -1,5 +1,6 @@
 /** Presentation ports: no graph/parser/HTTP implementation leaks into the view. */
-import type {Acknowledgement,CodeLineExercise,EditEffect,Feedback,LearnerRuleSheet,ModelVerification,Normalization,RefreshReport,RuleEdit,ValidationResult} from '../../dist/index.js';
+import type {Acknowledgement,CodeLineExercise,EditEffect,Feedback,LearnerRuleSheet,ModelVerification,Normalization,RefreshReport,RuleEdit,Technology,ValidationResult} from '../../dist/index.js';
+import type {TechnologyFilter} from './technology-filter.js';
 import type {KeptLearnerRules} from './learner-rules.js';
 import type {AuthorRuleSheet} from '../../dist/author/engine.js';
 import type {ReferenceAudit} from '../../dist/author/reference-audit.js';
@@ -11,7 +12,8 @@ export type LineId=number|string;
 export interface ExerciseLine {id:number;code:string;fixed?:boolean;normalization?:Normalization;sourceLine?:number;functionBlock?:number;}
 /** ADR-101: difficulty for the practice list. */
 export type ExerciseLevel='beginner'|'intermediate'|'advanced';
-export interface ExerciseSummary {id:string;revision:number;language:string;title:string;description:string;level?:ExerciseLevel;lines:ExerciseLine[];previewOnly?:boolean;}
+/** `technologies` (ADR-149): the measured labels; `checkedWith` (ADR-152): the TypeScript release that checked a TypeScript exercise for publication. */
+export interface ExerciseSummary {id:string;revision:number;language:string;title:string;description:string;level?:ExerciseLevel;technologies?:Technology[];checkedWith?:string;lines:ExerciseLine[];previewOnly?:boolean;}
 /** `feedback` (ADR-026): what the API discloses to the author and to the learner view; `slots`: the
  * sorter slot of each submitted line, so diagnostic positions mark the rows that were graded. */
 export type Report=Pick<ValidationResult,'status'|'message'>&Partial<ValidationResult>&{feedback?:{author?:Feedback;learner:Feedback};slots?:number[];
@@ -58,7 +60,9 @@ export interface WorkbenchState {exercises:ExerciseSummary[];active:string|null;
  /** ADR-108 (E7): the resolver's answer for the author's current request, and the last first-gate outcome. */
  authorPolicy?:PolicyResolution;sourceGate?:SourceGateRecord;settingsOrigin?:SettingsOrigin;
  /** ADR-147: the rules an evaluation's answer brought for the learner, by exercise (learner-rules owns it). */
- learnerRules?:Map<string,KeptLearnerRules>;}
+ learnerRules?:Map<string,KeptLearnerRules>;
+ /** ADR-152: the technology label the practice list is narrowed to (technology-filter owns its meaning). */
+ technologyFilter?:TechnologyFilter;}
 export interface AttemptPresentation {text:(id:LineId|null)=>string;fixed:(position:number)=>boolean;formattedAnswer:()=>string[];}
 export interface ScrollMemory {capture:()=>void;restore:(id:string)=>void;}
 export interface WorkbenchOptions {root:HTMLElement;state:WorkbenchState;ex:()=>ExerciseSummary|undefined;at:()=>AttemptSnapshot|undefined;attempt:AttemptPresentation;scroll:ScrollMemory;
