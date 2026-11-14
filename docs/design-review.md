@@ -56,5 +56,17 @@ A cél nem a minél több modul, hanem a **kisebb összetettség**: kevesebb fü
 - **Az [architektúra-kapu](../scripts/architecture-rules.ts) kikényszeríti:**
   - az importirányokat és a tiltott műveleteket;
   - a `information-hiding` szabályt: a core belső moduljait csak a tulajdonosuk importálhatja.
+  - a munkafelület négy szabályát ([K1, K3, K4, K11](ai-governance.md#a-munkafelület-szabályai-k1k12)): headless határ, DOM-írás csak az adapterben, globális figyelő csak behavior-modulban, kirajzolás közben nincs környezetolvasás.
 - **Ami review-feladat marad:** a mélység, a kohézió, a szivárgás és a nevek minősége. Ezeket statikus ellenőrzés nem bizonyítja; a fenti lista alapján, kimondva kell megítélni.
 - **Új belső modul:** ha a modul egy döntést rejt el, és csak meghatározott hívóknak szól, vedd fel a kapu tulajdonoslistájába.
+
+## 5. A munkafelület változásainál külön
+
+A [K-szabályok](ai-governance.md#a-munkafelület-szabályai-k1k12) review-kérdései:
+
+1. **Ki írja az állapotot?** Egy tulajdonos (ma a vezérlő, az F3-tól a store). Ha a változás új, kézzel szinkronban tartott állapotot hoz (a DOM-ban, egy modul változójában), az időbeli csatolás.
+2. **Hol történik DOM-írás, és ki veszi le a figyelőt?** Új `innerHTML` vagy `document`/`window` figyelő csak a felsorolt modulokban; a listára kerülés tervezési döntés.
+3. **Olvas-e környezetet, ami rajzol?** A médialekérdezés és a tároló adatként érkezzen.
+4. **Változik-e a markup-szerződés?** Ha igen: ADR, a jegyzék és a tesztek ugyanabban a commitban.
+5. **Érinti-e a forró utat?** Ha igen: a mérőkapu előtte–utána számai az ADR-ben; az alapszint csak javulással írható újra.
+6. **Refaktorálás-e?** Akkor nincs látható változás és nincs módosított tesztelvárás; ami mégis kell, külön commit.

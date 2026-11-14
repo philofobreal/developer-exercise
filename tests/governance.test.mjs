@@ -64,3 +64,20 @@ test('the governance table gives every element an owner, an enforcement and evid
   assert.ok(cells.every(cell=>cell.length>3),row);
  }
 });
+
+// ADR-151 (NY-58): the workbench's rules K1–K12 are written down where a contributor reads them.
+test('the workbench rules K1–K12 are recorded, each with an enforcement and a state; the working agreement names them',async()=>{
+ const text=await read('docs/ai-governance.md'),start=text.indexOf('## A munkafelület szabályai (K1–K12)');
+ assert.ok(start>=0,'the rule table exists');
+ const rows=text.slice(start).split('\n').filter(line=>/^\| K\d+ \|/.test(line));
+ assert.deepEqual(rows.map(row=>row.split('|')[1].trim()),Array.from({length:12},(_,index)=>'K'+(index+1)));
+ for(const row of rows){const cells=row.split('|').slice(1,-1).map(cell=>cell.trim());assert.equal(cells.length,4,row);assert.ok(cells.every(cell=>cell.length>1),row);}
+ // The machine rules named in the table exist in the gate.
+ const rules=await read('scripts/architecture-rules.ts');
+ for(const rule of ['presentation-headless','presentation-dom-write','presentation-behavior','presentation-environment']){assert.ok(text.includes('`'+rule+'`'),rule+' in the table');assert.ok(rules.includes("'"+rule+"'"),rule+' in the gate');}
+ const agents=await read('AGENTS.md');
+ assert.match(agents,/runtime frontend dependency/,'K8: a frontend dependency needs approval');
+ assert.match(agents,/docs\/markup-contract\.json/,'K5: the markup contract');
+ assert.match(agents,/test:browser:perf/,'K7: the performance lane');
+ assert.match(agents,/refactoring commit changes no visible text/,'K9: behaviour-preserving refactoring');
+});

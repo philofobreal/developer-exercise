@@ -66,3 +66,35 @@ test('ADR-134: the server API adapter alone may fetch; it may not grade or gener
  assert.ok(inspectModule('src/workbench/view.ts',"fetch('/api/exercises');").some(error=>error.rule==='presentation-policy'));
  assert.ok(inspectModule('src/workbench/local-demo.ts',"fetch('/api/exercises');").some(error=>error.rule==='presentation-policy'));
 });
+
+// ADR-151 (NY-58): the workbench's headless core and the three places DOM work is allowed (K1, K3, K4, K11).
+test('K1: a headless module names no DOM or browser global, not even as a type, and imports only headless modules',()=>{
+ const headless=(file,source)=>inspectModule(file,source).filter(error=>error.rule==='presentation-headless').length;
+ for(const name of ['document','window','Element','HTMLElement','localStorage','sessionStorage','matchMedia','getComputedStyle','requestAnimationFrame'])assert.equal(headless('src/workbench/attempt.ts',`const x=${name};`),1,name);
+ assert.equal(headless('src/workbench/attempt.ts','export function place(root:HTMLElement):void {}'),1,'a DOM type in a signature');
+ assert.equal(headless('src/workbench/author-session.ts',"import {escapeHtml} from './ui-utilities.js';"),1,'a DOM adapter');
+ assert.equal(headless('src/workbench/author-session.ts',"import {text} from './attempt.js';import type {WorkbenchState} from './contracts.js';import {formatSource} from '../formatter.js';"),0,'headless modules, types and the formatter port');
+ // A member of that name is not the global, and a module off the list is not bound by the rule.
+ assert.equal(headless('src/workbench/attempt.ts','const a={window:1,document:2};const b=a.window+a.document;'),0);
+ assert.equal(headless('src/workbench/view.ts','document.title="x";'),0);
+});
+test('K3: raw HTML is written into the page by the listed adapter modules only',()=>{
+ const writes=(file,source)=>inspectModule(file,source).some(error=>error.rule==='presentation-dom-write');
+ for(const member of ['innerHTML','outerHTML'])assert.ok(writes('src/workbench/rule-board.ts',`root.${member}='<b></b>';`),member);
+ assert.ok(writes('src/workbench/toggletip.ts',"panel.insertAdjacentHTML('beforeend','<b></b>');"));
+ for(const file of ['src/workbench/view.ts','src/workbench/ui-utilities.ts','src/workbench/activity.ts'])assert.equal(writes(file,"root.innerHTML='<b></b>';"),false,file);
+ assert.equal(writes('src/workbench/rule-board.ts','root.textContent="x";root.replaceChildren(node);'),false);
+});
+test('K4: listeners on the document or the window, and observers, belong to the listed behaviour modules',()=>{
+ const listens=(file,source)=>inspectModule(file,source).some(error=>error.rule==='presentation-behavior');
+ for(const source of ["document.addEventListener('click',f);","window.addEventListener('resize',f);","addEventListener('scroll',f);",'new ResizeObserver(f);','new MutationObserver(f);','new IntersectionObserver(f);'])assert.ok(listens('src/workbench/rule-panel.ts',source),source);
+ assert.equal(listens('src/workbench/rule-panel.ts',"root.addEventListener('click',f);button.addEventListener('click',f);"),false,'a listener on an element of its own');
+ for(const file of ['src/workbench/view.ts','src/workbench/interactions.ts','src/workbench/surface.ts','src/workbench/toggletip.ts','src/workbench/header-fit.ts','src/workbench/list-fit.ts','src/workbench/toolbar-fit.ts'])assert.equal(listens(file,"window.addEventListener('resize',f);new ResizeObserver(f);"),false,file);
+});
+test('K11: what draws from the state reads no environment while it draws',()=>{
+ const reads=(file,source)=>inspectModule(file,source).some(error=>error.rule==='presentation-environment');
+ for(const source of ["const narrow=matchMedia('(max-width:650px)').matches;","const seen=localStorage.getItem('k');","sessionStorage.setItem('k','v');"])for(const file of ['src/workbench/rule-board.ts','src/workbench/fields.ts','src/workbench/task-status.ts','src/workbench/flow.ts'])assert.ok(reads(file,source),file+' '+source);
+ // The view's own reads move into the snapshot in phase F3; until then it is not on the list.
+ assert.equal(reads('src/workbench/view.ts',"matchMedia('(max-width:650px)');"),false);
+ assert.equal(reads('src/workbench/rule-board.ts','const split=state.environment.narrow;'),false);
+});

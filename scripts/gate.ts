@@ -8,6 +8,8 @@
  *   --files=A,B   plan for these changed files instead of asking git (to see what a change would run)
  *   --dry         print the plan and stop
  *
+ * The browser suites run several at a time, except a suite that measures time (browser-perf), which runs alone at the end.
+ *
  * Hidden here: how the changed files are found, how a test's dependencies are read from its sources, and how the
  * commands of package.json are run and reported. What a change needs is gate-plan.ts's. The commands themselves stay
  * package.json's: this file reads `check` and `test:browser:all` and adds none of its own. */
@@ -32,6 +34,9 @@ function leaves(name:string):string[] {
 const built=new Set(leaves('build:pages')),isUnit=(command:string):boolean=>command.startsWith('node --test ');
 const verifiers=leaves('check').filter(command=>!built.has(command)&&!isUnit(command));
 const suites=leaves('test:browser:all');
+/** ADR-151: a suite that measures time runs by itself, after the others: beside three other browsers its numbers
+ *  would be the machine's, not the page's. */
+const measures=(command:string):boolean=>/tests\/browser-perf\./.test(command);
 
 // ── What changed ──
 function git(...args:string[]):string|null {
@@ -129,8 +134,10 @@ for(const command of verifiers)outcomes.push(await run(command.replace(/^node (?
 // node --test runs one file fewer at a time than there are cores; the gate runs nothing else beside it.
 if(plan.unit.length)outcomes.push(await run('unit tests',`node --test --test-concurrency=${os.availableParallelism()} ${plan.unit.join(' ')}`));
 if(plan.browser){
- const times=lastTimes(),order=[...suites].sort((a,b)=>(times[suiteName(b)]??0)-(times[suiteName(a)]??0));
- const ran=await pool(order.map(command=>()=>run(suiteName(command),command)),jobs);outcomes.push(...ran);
+ const times=lastTimes(),order=suites.filter(command=>!measures(command)).sort((a,b)=>(times[suiteName(b)]??0)-(times[suiteName(a)]??0));
+ const ran=await pool(order.map(command=>()=>run(suiteName(command),command)),jobs);
+ for(const command of suites.filter(measures))ran.push(await run(suiteName(command),command));
+ outcomes.push(...ran);
  writeFileSync(TIMES,JSON.stringify({...times,...Object.fromEntries(ran.map(outcome=>[outcome.name,outcome.seconds]))},null,1)+'\n');
 }
 const failed=outcomes.filter(outcome=>!outcome.ok);

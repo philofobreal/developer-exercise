@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-11-14 A munkafelület refaktorálásának alapjai: mérőkapu, szabályok, markup-szerződés (ADR-151, NY-58 F0)
+
+- **Mérőkapu a fő szál forró útjaira** (`npm run test:browser:perf`): nyolc forgatókönyv a 482 soros feladaton. A mai alapszint: billentyűs lerakás 322 ms, ellenőrzés 421 ms, a Próba megnyitása 264 ms, húzás mozdulatonként 184 ms; egy lerakás 15 503 DOM-csomópontot rajzol újra.
+- **A kapu szigorú része a darabszám** (stílus-újraszámolás, elrendezés, hozzáadott csomópont), mert futásról futásra azonos; az idő kerete tág (1,6-szoros), mert azonos kódon is 3–37%-ot szór.
+- **Négy új gépi szabály az architektúra-kapuban** (headless határ, DOM-írás csak az adapterben, globális figyelő csak behavior-modulban, kirajzolás közben nincs környezetolvasás), negatív tesztekkel; a K1–K12 szabályok a governance-dokumentumokban.
+- **Markup-szerződés:** a böngészős tesztek által használt 8 azonosító és 150 `data-*` név jegyzéke, teszttel őrizve.
+- **A munkafelület kódja és a látható felület nem változott.** A kapu a mérősort a többi böngészős sor után, egyedül futtatja (kb. 2 perc 20 másodperc).
+
 ## Unreleased – 2026-11-14 Javítva: a névtér exportált függvénye a helyén marad (ADR-150, NY-49, v58)
 
 - **Hibás elfogadás javítva.** A modell eddig elfogadta, hogy egy TypeScript `namespace` exportált függvénye az exportált változók elé vagy közé kerüljön, pedig a névtér objektumának kulcssorrendje megváltozik (`["penalty","bonus","total"]` → `["total","penalty","bonus"]`). A hívások eredménye azonos volt.
