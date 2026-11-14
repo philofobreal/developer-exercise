@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased – 2026-11-14 Nyelvjelvény a nyelv színében; a szabálypanel két oszlopba törik (NY-47, NY-48)
+
+- **A JavaScript jelvénye sárga, a TypeScripté TypeScript-kék,** a gyakorló listában és a címsorokban, mindkét témában. Eddig a lista jelvénye szürke volt, a kijelölt feladaté sárga, a TypeScripté is.
+- **A „Sor szabályai” panel a Próba lépésben két oszlopba törik,** ha 560 px-nél szélesebbre húzod: az „Előtte kell állnia” és az „Utána kell állnia” egymás mellett áll, mint az Elemzés és szabályok lépésben.
+
 ## Unreleased – 2026-11-14 A munkaterület egy keret, a szabálypanel szélessége állítható (ADR-146, D5b; NY-43)
 
 - **Az eszközök és a panelek egy keretben állnak:** felül az eszközsáv, alatta a két lista és (kérésre) a szabálypanel. Balra áll, ami a próbálkozást változtatja, jobbra, ami a nézetet.

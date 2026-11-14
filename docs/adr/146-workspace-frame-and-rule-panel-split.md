@@ -33,6 +33,15 @@ A felhasználó kérése: „ne rugaszkodjon el az alja az oldalnak ilyen módon
 - **A javítás:** az oldalsáv olyan hosszú, mint a mellette álló oldal; a benne lévő lista ragad a képernyő tetejére, legfeljebb képernyőnyi magas, és önmagában görög.
 - **Ára:** az oldal tetején a lista alsó 64 px-e a képernyő alatt kezdődik; az oldal görgetésével kerül elő.
 
+## Kiegészítés: a szabálypanel két oszlopba törik, ha elég széles (NY-47, 2026-11-14)
+
+A felhasználó kérése: a panel a Próba lépésben is „tudjon két oszlopba törni”, ahogy az Elemzés és szabályok lépésben.
+
+- **A panel saját szélessége dönt,** nem a képernyőé: 560 px-től az „Előtte kell állnia” és az „Utána kell állnia” egymás mellett áll, alatta egymás alatt. A szélességet az olvasó állítja az elválasztóval, ezért képernyőtöréspont itt nem mondana igazat.
+- **A kezdő szélességen (28%) a panel egyoszlopos** 1440 px-en (386 px); a két oszlophoz szélesebbre kell húzni (1440 px-en kb. 41%-tól).
+- **A lap (1100 px alatt) egyoszlopos marad:** 400 px széles.
+- **Bizonyíték:** a `rules_split` eset méri mindhárom állapotot; három rontás megbuktatja (a panel sosem törik; mindig két oszlopos; a panel nem tároló).
+
 ## Két terv („design it twice”)
 
 A keretre (a bemutató két változata):

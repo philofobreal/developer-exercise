@@ -213,6 +213,16 @@ A felhasználó kérése: „legyen kerekített a színes téglalaposkák alja�
 - **A jelölés nem változott:** a sáv a címsor hátterének két rétege, nincs új elem.
 - **Bizonyíték:** az elrendezés-kapu (`surfaces`) minden nézetben ellenőrzi a két réteget (negyedkör a sáv alatt, a sávval egyező szélességben); a szögletes változatot megbuktatja.
 
+## Nyelvjelvény: a nyelv saját színe (NY-48, 2026-11-14)
+
+A felhasználó kérése: „a javascriptnek legyen sárga a háttere, a typescriptnek pedig typescript kék. ezt következetesen az összes felületen vezesd át.”
+
+- **Egy szabály, két tokenpár:** a JavaScript jelvénye `#f7df1e` alapon sötét betű (13,96:1), a TypeScripté `#3178c6` alapon fehér betű (4,53:1). Mindkét témában ugyanaz: ezek a nyelvek saját színei, nem a felület palettájáé.
+- **Minden felületen:** a gyakorló lista (kijelölt és nem kijelölt sor), a feladat címsora, a szerzői lépések címsora, a tanulói előnézet. A súgóoldalon nincs nyelvjelvény.
+- **A kijelölést a sor jelzi,** nem a jelvény: a kék sáv és a halvány háttér megmaradt. Eddig a lista jelvénye szürke volt, a kijelölté sárga, a TypeScripté is.
+- **Ára:** a TypeScript-kéken a fehér betű kontrasztja 4,53:1, vagyis éppen a 4,5:1 határ fölött van. A kapu méri; a kék sötétítése már nem a TypeScript színe lenne.
+- **Bizonyíték:** az elrendezés-kapu (`surfaces`) minden nézetben és mindkét témában ellenőrzi a jelvény színét nyelv szerint és a felirat kontrasztját; három rontás megbuktatja (a TypeScript sárga; csak a kijelölt sor színes; sötét betű a kéken).
+
 ## Újranyitva: a lap arca és a vágott sarok alakja (2026-11-13, D3b előtt)
 
 A felhasználó az éles felületet látva két döntést kifogásolt:

@@ -823,6 +823,9 @@ def rules_split(browser,url):
         # a line's rules are longer than the panel: it scrolls in itself, the frame does not grow
         page.locator('.solution-zone [data-rule-line]').nth(3).click();expect(page.locator('.rule-inspector .rule-panel')).to_be_visible()
         assert page.evaluate("()=>{const p=document.querySelector('.rule-inspector');return p.scrollHeight>p.clientHeight+20}"),'the rules of a line are longer than the panel'
+        # NY-47: at its first width the panel holds what stands before and after the line one under the other
+        columns="()=>getComputedStyle(document.querySelector('.rule-inspector .rule-columns')).gridTemplateColumns.split(' ').length"
+        assert page.evaluate(columns)==1,'one column in a narrow panel'
         assert abs(page.evaluate(boxes)['frame']['height']-closed['frame']['height'])<=1,'the panel\'s content does not size the frame'
         # by pointer: 180 px to the left widens the panel by that much; the lists' split stays
         box=split.bounding_box();page.mouse.move(box['x']+6,box['y']+80);page.mouse.down();page.mouse.move(box['x']-174,box['y']+80,steps=6);page.mouse.up()
@@ -832,7 +835,11 @@ def rules_split(browser,url):
         # by keyboard: the separator goes where the arrow points
         split.focus();page.keyboard.press('ArrowLeft');expect(split).to_have_attribute('aria-valuenow',str(value+2));left=page.evaluate(boxes)['rules']['left'];assert left<dragged['rules']['left'],(left,dragged['rules'])
         page.keyboard.press('ArrowRight');expect(split).to_have_attribute('aria-valuenow',str(value));page.keyboard.press('Home');expect(split).to_have_attribute('aria-valuenow','50')
-        assert abs(share(page.evaluate(boxes))-50)<1;page.keyboard.press('End');expect(split).to_have_attribute('aria-valuenow','20')
+        assert abs(share(page.evaluate(boxes))-50)<1
+        # NY-47: made wide, it breaks into two columns, as on the Elemzés és szabályok step; the panel's own width decides
+        sides=page.evaluate("()=>[...document.querySelectorAll('.rule-inspector .rule-columns>*')].map(e=>{const r=e.getBoundingClientRect();return [Math.round(r.left),Math.round(r.top),Math.round(r.width)]})")
+        assert page.evaluate(columns)==2 and len(sides)==2 and sides[0][1]==sides[1][1] and sides[1][0]>sides[0][0]+sides[0][2]-1 and min(sides[0][2],sides[1][2])>=250,('two columns side by side in a wide panel',sides)
+        page.keyboard.press('End');expect(split).to_have_attribute('aria-valuenow','20')
         narrowest=page.evaluate(boxes);assert narrowest['rules']['width']>=280,('the panel keeps a width its rows can be read in',narrowest['rules'])
         page.keyboard.press('ArrowLeft');page.keyboard.press('ArrowLeft');page.keyboard.press('ArrowLeft');expect(split).to_have_attribute('aria-valuenow','26')
         # remembered apart from the lists' split
@@ -840,10 +847,12 @@ def rules_split(browser,url):
         page.reload();current(page,'source');build(page,rules_source);to_try(page);page.locator('.inspector-toggle').click()
         expect(page.locator('[data-pane-split="rules"]')).to_have_attribute('aria-valuenow','26');expect(page.locator('[data-pane-split="lists"]')).to_have_attribute('aria-valuenow','42')
         assert abs(share(page.evaluate(boxes))-26)<1
+        page.locator('[data-rule-line]').nth(3).click();expect(page.locator('.rule-inspector .rule-columns')).to_be_visible()
         # a narrower screen: the sheet over the page, as high as the screen, and no separator for it
         page.set_viewport_size({'width':1024,'height':768});expect(page.locator('.rule-inspector')).to_be_visible()
         assert page.evaluate("getComputedStyle(document.querySelector('[data-pane-split=\"rules\"]')).display")=='none','beside the sheet the separator is gone, for the keyboard too'
         sheet=page.evaluate(boxes)['rules'];assert sheet['height']>=760 and abs(sheet['right']-1024)<=1,sheet
+        assert page.evaluate(columns)==1,'the sheet is narrow: one column'
         page.set_viewport_size({'width':390,'height':800});sheet=page.evaluate(boxes)['rules'];assert sheet['height']>=120 and sheet['bottom']<=801,('a phone: the sheet has its own height',sheet)
         assert not failures,failures
     finally:context.close()

@@ -115,6 +115,14 @@ def surfaces(page,name):
     stripes=page.evaluate("""()=>[...document.querySelectorAll('.panel-title')].filter(e=>e.getClientRects().length).map(e=>{const c=getComputedStyle(e),size=c.backgroundSize.split(', '),at=c.backgroundPosition.split(', ');
      return c.backgroundImage.startsWith('radial-gradient(circle at 0px 0px')&&size[0]==='5px 5px'&&size[1]==='5px 15px'&&at[0]==='0px 15px'&&at[1]==='0px 0px'?null:[c.backgroundImage.slice(0,40),c.backgroundSize,c.backgroundPosition].join(' | ')}).filter(Boolean)""")
     assert not stripes,f"{name}: a list title's stripe has a square foot: {stripes}"
+    # NY-48: a language badge wears its language's own colours wherever it stands, selected or not: JavaScript yellow,
+    # TypeScript blue, with a label that reads on it.
+    badges=page.evaluate("""()=>{const lum=c=>{const v=c.match(/[\\d.]+/g).slice(0,3).map(Number).map(x=>{x/=255;return x<=.03928?x/12.92:((x+.055)/1.055)**2.4});return .2126*v[0]+.7152*v[1]+.0722*v[2]},ratio=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
+     const want={js:'rgb(247, 223, 30)',ts:'rgb(49, 120, 198)'};
+     return [...document.querySelectorAll('.task-file,.language-badge')].filter(e=>e.getClientRects().length).map(e=>{const s=getComputedStyle(e),kind=e.classList.contains('ts')?'ts':e.classList.contains('js')?'js':null;
+      return kind&&s.backgroundColor===want[kind]&&e.textContent.trim().toLowerCase()===kind&&ratio(s.color,s.backgroundColor)>=4.5?null:`${e.className} ${e.textContent}: ${s.backgroundColor}, ${ratio(s.color,s.backgroundColor).toFixed(2)}`}).filter(Boolean)}""")
+    assert not badges,f"{name}: a language badge without its language's colours: {badges}"
+    assert page.locator('.task-file,.language-badge').count()>0,f"{name}: no language badge in the view"
     top,height,view=page.evaluate('[scrollY,document.documentElement.scrollHeight,innerHeight]');found=set();y=0
     while True:
         page.evaluate('y=>scrollTo(0,y)',y);found|=set(page.evaluate(CORNERS))
