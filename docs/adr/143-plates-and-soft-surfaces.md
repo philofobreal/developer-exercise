@@ -1,6 +1,6 @@
 # ADR-143 – Vizuális irány: lecsapott lap minden feliratos gombon, lágy felületek
 
-Állapot: **elfogadva, megvalósítás folyamatban** (2026-11-13; a bemutatót a felhasználó jóváhagyta: „jóváhagyom, mehet a D2”; a D2, a D3, a D3b és a D4a kész, lásd lent). **A lap arcát és a vágott sarok alakját és technikáját a D3b felülírta** (a „Döntés” két pontja: átmenet, vonal, árnyék; `corner-shape`). A felhasználó egy saját gombmintát mutatott („Rounded Industrial Buttons”, CleanActive 02.1), és a három, valódi felületen kipróbált változat közül a harmadikat választotta: „mehet a 3. változat, a panelek is lágyuljanak”. Kockázati osztály: megjelenítés. Módosítja az [ADR-140](140-button-system.md) sziluett-szabályát (a lecsapott sarok ott csak a döntés gombjaié volt) és az [ADR-138](138-three-surfaces.md) szögletes sarkait; a három felület és a gombkomponens szerkezete marad.
+Állapot: **elfogadva, megvalósítás folyamatban** (2026-11-13; a bemutatót a felhasználó jóváhagyta: „jóváhagyom, mehet a D2”; a D2, a D3, a D3b, a D4a és a D4b kész, lásd lent). **A lap arcát és a vágott sarok alakját és technikáját a D3b felülírta** (a „Döntés” két pontja: átmenet, vonal, árnyék; `corner-shape`). A felhasználó egy saját gombmintát mutatott („Rounded Industrial Buttons”, CleanActive 02.1), és a három, valódi felületen kipróbált változat közül a harmadikat választotta: „mehet a 3. változat, a panelek is lágyuljanak”. Kockázati osztály: megjelenítés. Módosítja az [ADR-140](140-button-system.md) sziluett-szabályát (a lecsapott sarok ott csak a döntés gombjaié volt) és az [ADR-138](138-three-surfaces.md) szögletes sarkait; a három felület és a gombkomponens szerkezete marad.
 
 ## Kontextus
 
@@ -173,6 +173,37 @@ A felhasználó jóváhagyta a lépést („jóváhagyom, mehet a D4a, az eltér
 - **Állapotok** (`button_states`): a fő művelet, az ellenőrzés és az eltávolító művelet mindegyikének saját arca van, és a felirata legalább 4,5 : 1 arányban elüt tőle.
 - **Mutációs ellenőrzés:** hét rontás, mind megbuktatja a megfelelő tesztet: összeérő eszközök; szögletes sima gombok; szögletes ⓘ; a körvonal vissza a lapra; egy gyűrű a vonalas lapon; az eltávolító gomb arc nélkül; az eltávolító gomb halvány felirattal.
 - **Közeli képek** mindkét témában: a fókuszban álló „Formázás”, a kiválasztott mód fókuszban, a nyitott ⓘ, az eltávolítás megerősítése, a sor szabályai, a súgóoldal „Kipróbálom” gombjai.
+
+## D4b: tipográfia (2026-11-14)
+
+A felhasználó előre jóváhagyta („jóváhagyom, ha kizöldül mehet a D4b”); a D4a zöld kapuja és pusha után indult.
+
+- **Semmi olvasnivaló nincs 12 px alatt.** 57 helyen állt 11 px-es (egy helyen 10 px-es) szöveg: tippek, a modelláttekintés, a minősítés táblázata, a visszajelzés bizonyítéka, a lenyitók címei, az állapotcímkék és jelvények, a sorszámok, a szabályok kódrészletei. Mind 12 px lett.
+- **A kód mérete egy token** (`--code-fs`): 13 px, keskeny képernyőn (650 px alatt) 12 px. A kódlista, a szerkesztő (szöveg, kiemelés, sorszámok), a súgó kódpéldái és a szabálypanel kódrészlete ebből veszi. Eddig négy helyen állt külön szám.
+- **Telefonon a kártyanézet 13 px-e megmaradt** (eddig is annyi volt); a telefonos szerkesztő 11 px-ről 12 px-re nőtt. A tervben „telefonon 12 px” állt: ez a legkisebb érték, nem csökkentés.
+- **A gombfelirat változatlan** (13 px, 600).
+
+### Mit mozdított
+
+- **Az oldalak magassága** asztalon 1–9 px-szel, a leghosszabb telefonos nézetekben legfeljebb 32 px-szel nőtt (15 nézet × 4 beállítás előtte–utána képe).
+- **A listák a ragadós sáv fölött maradnak** ([ADR-144](144-lists-end-above-the-result-bar.md)): a mérés a nagyobb betűkkel is 0 px-t ad.
+- **Ismert ár:** 13 px-es kódnál egy sorba kevesebb karakter fér. A kódlista vízszintesen görget, a sor végi gombok a szélén állnak ([ADR-090](090-single-horizontal-scroll-per-code-list.md)); a hosszú sor vége így gyakrabban kerül a gombok alá, amíg a listát nem görgetik.
+
+### Tervezési review (docs/design-review.md)
+
+- **A kód mérete egy helyen áll;** a hat szabály a tokent olvassa. Egy egységteszt név szerint ellenőrzi, hogy mind a hat abból vesz.
+- **design, rögzítve:** a szöveg méretei továbbra is számok a szabályokban (12, 13, 14 px…), nem skála. A 12 px-es alsó határt teszt őrzi, de teljes típusskála (tokenekkel) nem készült; az külön döntés volna.
+
+### Hiba útközben
+
+- **Egy nyitva hagyott blokk elnyelte a stíluslap többi részét.** A token beillesztésekor a keskeny képernyő `@media` blokkját nem zártam le, így a stíluslap szinte minden szabálya csak 650 px alatt érvényesült. A betűméret-felmérés mutatta meg (asztalon 14 px-es kód); push előtt javítottam. Azóta egységteszt ellenőrzi, hogy minden blokk le van zárva.
+
+### Bizonyíték
+
+- **Egységteszt** ([stylesheet.test.mjs](../../tests/stylesheet.test.mjs)): minden blokk lezárt; a stíluslapban nincs 12 px alatti betűméret; a kód hat szabálya a tokenből vesz.
+- **Elrendezés-kapu** ([browser-layout.playwright.py](../../tests/browser-layout.playwright.py)): a látható szövegek számított mérete legalább 12 px minden nézetben; a kód 13 px (keskeny képernyőn a szerkesztőben 12 px).
+- **Akadálymentességi sor** ([browser-a11y.playwright.py](../../tests/browser-a11y.playwright.py)): ugyanez a 12 px-es határ minden vizsgált nézetben (a súgóbuborékban, a menüben és a súgóoldalon is).
+- **Mutációs ellenőrzés:** hét rontás, mind megbukik a megfelelő teszten: 11 px-es tipp (egységteszt és elrendezés-kapu); 11 px-es menümegjegyzés (akadálymentességi sor); 12 px-es kód (egységteszt és elrendezés-kapu); nyitva hagyott blokk; saját méretű kódlista (egységteszt).
 
 ## Újranyitva: a lap arca és a vágott sarok alakja (2026-11-13, D3b előtt)
 

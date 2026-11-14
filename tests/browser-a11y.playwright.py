@@ -17,6 +17,12 @@ def scan(page,name,include=None):
     page.add_script_tag(content=AXE)
     result=page.evaluate("""([tags,include])=>axe.run(include?{include:[include]}:document,{runOnly:{type:'tag',values:tags},resultTypes:['violations']})""",[TAGS,include])
     found=[v for v in result['violations'] if v['id'] not in WAIVED]
+    # ADR-143 (D4b): nothing to read is under 12 px, in every scanned view (the bubble, the menu, the help page too)
+    small=page.evaluate("""include=>{const out=new Set(),root=include?document.querySelector(include):document.body,walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node;
+     while(node=walker.nextNode()){const e=node.parentElement;if(!node.textContent.trim()||!e||!e.checkVisibility()||e.closest('svg,script,style'))continue;const r=e.getBoundingClientRect();if(r.width<2||r.height<2)continue;
+      const size=parseFloat(getComputedStyle(e).fontSize);if(size<12)out.add(size+'px '+e.tagName.toLowerCase()+'.'+(e.className||e.parentElement.className)+': '+node.textContent.trim().slice(0,20));}
+     return [...out];}""",include)
+    assert not small,f'{name}: text under 12 px: {small}'
     if found and os.environ.get('A11Y_COLLECT'):
         for v in found:print(f"FOUND {name}: {v['id']} ({v['impact']}) {[n['target'] for n in v['nodes']][:6]} :: {v['nodes'][0]['failureSummary'][:220]}",flush=True)
         return

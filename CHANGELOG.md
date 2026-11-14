@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-14 Nagyobb betűk: semmi 12 px alatt, a kód 13 px (ADR-143, D4b)
+
+- **Minden olvasnivaló szöveg legalább 12 px:** a tippek, a minősítés táblázata, a visszajelzés részletei, az állapotcímkék és a sorszámok is. Eddig sok helyen 11 px volt.
+- **A kód asztalon 13 px** (eddig 12 px), a kódlistákban, a szerkesztőben és a súgó példáiban. Telefonon a szerkesztő 11 px-ről 12 px-re nőtt; a kártyanézet 13 px maradt.
+- **Egy sorba így valamivel kevesebb kód fér;** a hosszú sor vége a lista görgetésével érhető el, mint eddig.
+
 ## Unreleased – 2026-11-14 A fókuszkeret követi a gombot, a gombok nem érnek össze, a többi gomb is lágy (ADR-143, D4a)
 
 - **A fókuszkeret a gomb alakját követi,** a letört sarokkal együtt. Eddig lekerekített téglalap volt, amely a letörésnél elállt a gombtól.

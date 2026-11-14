@@ -1,6 +1,6 @@
 """Layout gate (ADR-116, M1): the practice view and the author's Try step on desktop, laptop, tablet and phone (upright and on its side),
 in the light and the dark theme. It checks what a machine can measure, not taste: the page never scrolls sideways, no header control runs
-off the screen, every toolbar control in view has one height, every action button (ADR-117) has one type style and at most three heights, every plate (ADR-143) has its outline (a bevel with a label, round without one), a flat face its label reads on, and at most two are filled (also on the Kód and the Elemzés step), every surface has its soft corner with nothing square standing in it, a status chip is a flat pill, a segmented choice is one group with one chosen part, plates in a row stand apart and their focus ring follows them, no button has a square corner, the lists end above the sticky result bar wherever the screen leaves them room (ADR-144), a phone on its side keeps the header and the toolbar to one row and shows the
+off the screen, every toolbar control in view has one height, every action button (ADR-117) has one type style and at most three heights, every plate (ADR-143) has its outline (a bevel with a label, round without one), a flat face its label reads on, and at most two are filled (also on the Kód and the Elemzés step), every surface has its soft corner with nothing square standing in it, a status chip is a flat pill, a segmented choice is one group with one chosen part, plates in a row stand apart and their focus ring follows them, no button has a square corner, no text is under 12 px and code is 13 px, the lists end above the sticky result bar wherever the screen leaves them room (ADR-144), a phone on its side keeps the header and the toolbar to one row and shows the
 lists on the first screen, focus gives the lists at least 40 % of the height, and a task list closed on a narrow screen is visible when the
 screen widens. Screenshots of every view land in test-results/layout-*.png."""
 import os,socket,subprocess,time,urllib.request
@@ -43,6 +43,12 @@ MEASURE=r"""()=>{const shown=s=>[...document.querySelectorAll(s)].filter(e=>e.of
    return out;})(),
   square:shown('button').filter(b=>!b.matches(PLATES+',.drag-handle,.segment button')).filter(b=>{const s=getComputedStyle(b),r=['TopLeft','TopRight','BottomRight','BottomLeft'].map(k=>parseFloat(s['border'+k+'Radius']));
    return (b.matches('.task')?[r[1],r[2]]:r).some(v=>!(v>0));}).map(b=>(b.className||'button')+' '+label(b)),
+  // ADR-143 (D4b): nothing to read is under 12 px, and code is 13 px (12 px in an editor on a narrow screen)
+  small:(()=>{const out=new Set(),walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let node;
+   while(node=walker.nextNode()){const e=node.parentElement;if(!node.textContent.trim()||!e||!e.checkVisibility()||e.closest('svg,script,style'))continue;const r=box(e);if(r.width<2||r.height<2)continue;
+    const size=parseFloat(getComputedStyle(e).fontSize);if(size<12)out.add(`${size}px ${e.tagName.toLowerCase()}.${e.className||e.parentElement.className}: ${node.textContent.trim().slice(0,20)}`);}
+   return [...out];})(),
+  code:[...new Set(shown('#app .code-text,.editor-frame textarea').map(e=>parseFloat(getComputedStyle(e).fontSize)))],
   // every role's label reads on its face, resting and hovered (a hover is not in view while this runs)
   roles:(()=>{const probe=document.createElement('i');document.documentElement.append(probe);const of=t=>{probe.style.color=`var(${t})`;return getComputedStyle(probe).color;};
    const bad=[['--text','--plate'],['--text','--plate-hover'],['--accent-text','--plate-on'],['--blue-ink','--blue'],['--blue-ink','--blue-hover'],['--yellow-ink','--yellow'],['--yellow-ink','--yellow-hover'],['--d-76','--d-18'],['--d-92','--d-34']].map(([ink,face])=>[ink,face,contrast(of(ink),of(face))]).filter(([,,c])=>c<4.5).map(([ink,face,c])=>`${ink} on ${face}: ${c.toFixed(2)}`);
@@ -139,6 +145,8 @@ def step(page,name):
     assert not m['dim'],f"{name}: labels under 4.5 to 1 on their plate: {m['dim']}"
     assert not m['roles'],f"{name}: a role's label under 4.5 to 1 on its face: {m['roles']}"
     assert not m['tight'],f"{name}: plates closer than 4 px in a row: {m['tight']}"
+    assert not m['small'],f"{name}: text under 12 px: {m['small']}"
+    assert all(size==(13 if m['width']>650 or size==13 else 12) for size in m['code']),f"{name}: code sizes {m['code']} (13 px; 12 px in an editor on a narrow screen)"
     assert not m['square'],f"{name}: buttons with a square corner: {m['square']}"
     assert len(m['filled'])<=2,f"{name}: more than two filled plates on the screen: {m['filled']}"
     assert all(marked for _,marked in m['pressed']),f"{name}: a pressed button without its line and mark: {m['pressed']}"
@@ -159,6 +167,8 @@ def check(page,name,side,focused=False):
     assert not m['dim'],f"{name}: labels under 4.5 to 1 on their plate: {m['dim']}"
     assert not m['roles'],f"{name}: a role's label under 4.5 to 1 on its face: {m['roles']}"
     assert not m['tight'],f"{name}: plates closer than 4 px in a row: {m['tight']}"
+    assert not m['small'],f"{name}: text under 12 px: {m['small']}"
+    assert all(size==(13 if m['width']>650 or size==13 else 12) for size in m['code']),f"{name}: code sizes {m['code']} (13 px; 12 px in an editor on a narrow screen)"
     assert not m['square'],f"{name}: buttons with a square corner: {m['square']}"
     assert len(m['filled'])<=2,f"{name}: more than two filled plates on the screen: {m['filled']}"
     assert all(marked for _,marked in m['pressed']),f"{name}: a pressed button without its line and mark: {m['pressed']}"
