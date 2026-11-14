@@ -25,7 +25,7 @@ A core, a szerzői elemzés, a generátor, a validátor, a modell- és munkamene
    - végül ez a fájl.
 2. **Ez a terv viselkedésmegőrző refaktorálás.** A felhasználó által látható szöveg, a műveletek jelentése, az elrendezés és a böngészős tesztek elvárásai nem változnak.
    - Ha egy teszt mégis változna, az a hiba jele, nem a teszté. Tesztet csak ADR-ben indokolva, ugyanabban a commitban szabad módosítani, gyengíteni soha (AGENTS.md).
-3. **Fázisonként egy ADR készül**, „design it twice” összevetéssel és a [tervezési ellenőrzőlistával](design-review.md). Az ADR a fázis indulásakor a következő szabad számot kapja (2026-11-14-én ez a 150); a szövegben „F0 ADR-je” néven szerepel.
+3. **Fázisonként egy ADR készül**, „design it twice” összevetéssel és a [tervezési ellenőrzőlistával](design-review.md). Az ADR a fázis indulásakor a következő szabad számot kapja (2026-11-14-én, az NY-49 javítása után ez a 151); a szövegben „F0 ADR-je” néven szerepel.
 4. **Minden commit után `npm run gate` fut.** Fázis végén `npm run gate -- --full`. Push, deploy és új futásidejű függőség csak a felhasználó jóváhagyásával (AGENTS.md és a 6. szakasz).
 5. **Ha egy task a tervtől eltérő döntést kíván,** állj meg, és kérdezd meg a felhasználót. Ilyen döntés például: látható változás, új függőség, tesztelvárás módosítása.
 

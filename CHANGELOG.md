@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-11-14 Javítva: a névtér exportált függvénye a helyén marad (ADR-150, NY-49, v58)
+
+- **Hibás elfogadás javítva.** A modell eddig elfogadta, hogy egy TypeScript `namespace` exportált függvénye az exportált változók elé vagy közé kerüljön, pedig a névtér objektumának kulcssorrendje megváltozik (`["penalty","bonus","total"]` → `["total","penalty","bonus"]`). A hívások eredménye azonos volt.
+- **Az ok:** a TypeScript az exportált függvényt a deklaráció helyén írja a névtér objektumára; a generátor ezt az értékadást nem ismerte.
+- **Új szabályverzió: v58.** A 16 szállított feladat és a 24 minta szabályai nem változtak (nincs bennük ilyen névtér), csak a címkéjük.
+- **Két új korpuszprogram** méri a névtér kulcssorrendjét; az alapszint meglévő értékei változatlanok.
+- **A technológiajelölés TypeScript-táblája a valódi fordítókkal ellenőrizve:** a 2.0 és újabb kiadásokhoz rendelt 41 elem mindegyike abban a kiadásban jelent meg, amelyet a jelölés megnevez (ADR-149).
+
 ## Unreleased – 2026-11-14 A munkafelület refaktorterve beütemezve (NY-58)
 
 - **A felhasználó terve a repóban van:** [docs/terv-munkafelulet-refaktor.md](docs/terv-munkafelulet-refaktor.md) (headless alkalmazásmag, régiós kirajzolás, mérőkapu, nézetszerződés; hét fázis).

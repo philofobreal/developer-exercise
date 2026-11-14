@@ -454,6 +454,20 @@
   "intentRejections": 0,
   "justifiedRejections": 138
  },
+ "cov-ts-namespace-exports": {
+  "neighbours": 242,
+  "accepted": 5,
+  "completenessGaps": 0,
+  "intentRejections": 0,
+  "justifiedRejections": 237
+ },
+ "cov-ts-namespace-private-function": {
+  "neighbours": 115,
+  "accepted": 4,
+  "completenessGaps": 0,
+  "intentRejections": 0,
+  "justifiedRejections": 111
+ },
  "contract-grid-reads": {
   "neighbours": 143,
   "accepted": 14,

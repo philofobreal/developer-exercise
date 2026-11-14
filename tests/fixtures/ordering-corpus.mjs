@@ -171,7 +171,14 @@ const fixtures=[
  {id:'cov-instanceof-in',origin:'coverage',language:'javascript',source:[
   'function evaluate() {','  class Animal {}','  class Dog extends Animal {}','  const pet = new Dog();','  const isAnimal = pet instanceof Animal;',"  const hadName = 'name' in pet;","  pet.name = 'Rex';","  const hasName = 'name' in pet;",'  return [isAnimal, hadName, hasName];','}']},
  {id:'cov-ts-assertions',origin:'coverage',language:'typescript',source:[
-  'interface Shape {','  kind: string;','  size?: number;','}','function evaluate(): Array<string | number> {',"  const raw: unknown = { kind: 'box', size: 3 };",'  const shape = raw as Shape;','  const size = shape.size!;',"  const config = { kind: 'circle' } satisfies Shape;",'  return [shape.kind, size * 2, config.kind];','}']}
+  'interface Shape {','  kind: string;','  size?: number;','}','function evaluate(): Array<string | number> {',"  const raw: unknown = { kind: 'box', size: 3 };",'  const shape = raw as Shape;','  const size = shape.size!;',"  const config = { kind: 'circle' } satisfies Shape;",'  return [shape.kind, size * 2, config.kind];','}']},
+ // NY-49 (v58, ADR-150): a namespace's exported function is written onto the namespace object where it stands
+ // (`Timing.total = total`), so the creation order of the namespace's keys is the order of its exported rows.
+ // The second probe is a caller listing those keys. A member that is not exported adds no key.
+ {id:'cov-ts-namespace-exports',origin:'coverage',language:'typescript',probes:['evaluate()','Object.keys(Timing)'],source:[
+  'namespace Timing {','  const base = 1;','  export const penalty = 2;','  export const bonus = 3;','  export function total(time: number, faults: number): number {','    return base * time + faults * penalty - bonus;','  }','  export interface Result {','    seconds: number;','  }','}','function evaluate(): number {','  return Timing.total(10, 1);','}']},
+ {id:'cov-ts-namespace-private-function',origin:'coverage',language:'typescript',probes:['evaluate()','Object.keys(Units)'],source:[
+  'namespace Units {','  function double(value: number): number {','    return value * 2;','  }','  export const meter = 1;','  export const kilo = double(500);','}','function evaluate(): number[] {','  return [Units.meter, Units.kilo];','}']}
 ];
 
 // ADR-050: the `valid` input contract (valid plain-data inputs). The probes pass valid data only.

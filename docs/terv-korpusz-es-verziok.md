@@ -98,7 +98,7 @@ A felhasználó kérdése: össze lehet-e ma rakni bármilyen szabályos forrás
 | Eredmény | Programok | Megjegyzés |
 | --- | --- | --- |
 | Nincs hibásan elfogadott sorrend | 21 | minden JavaScript-kiadás ES2015-től ES2025-ig; `async`/`await`, `for await`; `satisfies`, generikusok, leképezett típus, `enum`, osztálytagok, túlterhelés |
-| **Valódi hibás elfogadás** | 1 | TypeScript `namespace`: az exportált tagok felcserélhetők, pedig a névtér objektumának kulcssorrendje megváltozik (`["penalty","total"]` → `["total","penalty"]`); futtatva igazolva. A függvények eredménye azonos. Jegyzék: NY-49 |
+| **Valódi hibás elfogadás** | 1 | TypeScript `namespace`: az exportált tagok felcserélhetők, pedig a névtér objektumának kulcssorrendje megváltozik (`["penalty","total"]` → `["total","penalty"]`); futtatva igazolva. A függvények eredménye azonos. **Javítva: [ADR-150](adr/150-namespace-exported-function-keeps-its-place.md), v58** |
 | Hamis jelzés, az orákulum hibája | 1 | saját osztály `[Symbol.iterator]` taggal: a tanú a saját `Reflect.get` hívását reflexiónak jelöli; a javított tanúval 0 hibás elfogadás. Jegyzék: NY-50 |
 | Hamis jelzés, az orákulum túl szigorú | 1 | szabványos dekorátor: az alkalmazás sorrendjét szövegesen hasonlítja; a hatással járó dekorátor tagjait a modell köti (futtatva igazolva). Jegyzék: NY-50 |
 | Nem mérhető | 1 | `using`: a Node 22 `vm` környezetében nincs `Symbol.dispose`. A Node 24 valószínűleg megoldja (G4) |
@@ -328,7 +328,7 @@ A felhasználó kérése (2026-11-14): minden adósság, amelyet a terv lépése
 
 | Tétel | Mi marad hátra | Miért marad | Mikor |
 | --- | --- | --- | --- |
-| **NY-49** | TypeScript `namespace`: hibásan felcserélhető exportált tagok (1.6) | most talált generátorhiba; új szabályverzió kell | **a G1 után, a G2 előtt** (helyesség) |
+| ~~NY-49~~ | TypeScript `namespace`: hibásan felcserélhető exportált tagok (1.6) | generátorhiba | **kész** ([ADR-150](adr/150-namespace-exported-function-keeps-its-place.md), v58) |
 | **NY-50** | az orákulum három korlátja: hamis reflexiójelzés `Symbol.` olvasásra, szöveges dekorátor-összevetés, `Symbol.dispose` hiánya | nélkülük a 15., 17. és 18. TS-lecke hamis hibát vagy semmit nem mér | a G5 előtt; a `Symbol.dispose` a G4-gyel |
 | **NY-51** | **RxJS teljes lefedettsége:** a nyilvános felület 173 exportjából a 8 lecke 17-et használ. Hátra van: a lusta létrehozás modellje, az időalapú operátorok (virtuális idő az orákulumban), a forró és hideg folyam, az ütemezők, a teljes operátortábla, és egy kampányfajta, amely RxJS-programokat generál. A cél: bármilyen oktatói RxJS-kódra helyes és minél teljesebb modell | a G8 csak a szinkron magot fedi | a G8 mérése után, három lépésben: lusta létrehozás → idő → teljes tábla és kampány |
 | **NY-52** | **Általános library-ismeret:** típuscsomag szállítása és a hívások leírása library-nként egységes módon, méretkerettel a Local Demóban | a G8 az RxJS-t egyedi esetként köti be | a második library (Angular) előtt |

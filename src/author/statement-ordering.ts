@@ -555,6 +555,11 @@ export function statementOrdering(file: ts.SourceFile, compiler: Compiler, optio
    return barrier('erased-declaration-shape');
   }
   if (compiler.isFunctionDeclaration(node)) {
+   // v58 (ADR-150): TypeScript emits an exported function of a namespace as the function and, where the declaration
+   // stands, a write of the namespace object's property (`N.f = f`). The row keeps that write's place, as the
+   // namespace's exported variables, classes, enums and inner namespaces already do: the creation order of the
+   // namespace's keys is theirs.
+   if (node.body && compiler.isModuleBlock(list) && mods.includes(S.ExportKeyword)) return barrier(kindName(node));
    if (node.body && node.name && hoistingList(list) && mods.every(kind => kind === S.ExportKeyword || kind === S.DefaultKeyword || kind === S.AsyncKeyword) && !decorated(node) && unique(checker.getSymbolAtLocation(node.name)) && ownsRows(node, ...braces(node.body))) return {...base, kind: 'position-free', reason: 'hoisted-function-declaration'};
    return barrier('function-declaration-not-hoistable');
   }

@@ -14,6 +14,9 @@ proc=subprocess.Popen(['node','server.mjs'],cwd=ROOT,env={**os.environ,'HOST':'1
 SOURCE='function calc(values) {\n  const total = values.length;\n  const first = values[0];\n  return [total, first];\n}'
 def scan(page,name,include=None):
     """`include`: a selector the scan is limited to (an open floating bubble, ADR-141); else the whole document."""
+    # The progress indicator fades out when its work is done (ADR-127): mid-fade its text has any contrast between
+    # full and none. The scan reads it shown or gone, never in between.
+    page.wait_for_function("!document.querySelector('.activity[data-phase=leaving]')")
     page.add_script_tag(content=AXE)
     result=page.evaluate("""([tags,include])=>axe.run(include?{include:[include]}:document,{runOnly:{type:'tag',values:tags},resultTypes:['violations']})""",[TAGS,include])
     found=[v for v in result['violations'] if v['id'] not in WAIVED]

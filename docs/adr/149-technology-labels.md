@@ -39,6 +39,7 @@
 - **A dekorátor a régi (kísérleti) mód szerint számít** (TypeScript 1.5), mert az első kapu ma így ellenőrzi; a szabványos dekorátor (5.0) a G4-gyel különül el.
 - **A fordító még nem számozott könyvtárfájljai** (`lib.esnext.*`) táblázatból kapnak kiadást (ES2025: halmazműveletek, iterátor-segédek, `Promise.try`, `Float16Array`); ami a táblában nincs, a következő kiadásnak (2026) számít. A G4 fordítóváltása után ezek nagy része számozott fájl lesz.
 - **A jelölés nem bizonyítja, hogy a kód egy régi környezetben fut.** Azt mondja meg, melyik kiadás elemeit használja.
+- **A verziószám a TypeScript valódi kiadási száma** (például 4.9: ebben jelent meg a `satisfies`), nem belső számozás, és nem a fordítóé, amellyel a feladat készült. A modul belül egy számként tárolja (4009), ez soha nem hagyja el.
 - **Nem vizsgált szintaxis:** a paraméterlista záró vesszője (ES2017), a hashbang (ES2023), az ismétlődő nevű csoport a reguláris kifejezésben (ES2025).
 
 ## Két terv („design it twice”)
@@ -75,5 +76,6 @@ A mérés helyére:
   - **eltérés-teszt:** mind a 16 szállított feladat jelölése megegyezik azzal, amit a sorai mérnek;
   - a szerver és a Local Demo listája viszi a jelölést; a piszkozat mért; a hamis importált jelölés nem marad meg; a hiányzó megkerül.
 - **Mutációs ellenőrzés:** 17 rontás a lefordított és a bekötött fájlokon, mind megbuktatja a teszteket (saját nevek, típus nélküli fogadó, számozatlan könyvtárfájlok, dekorátor-metaadat, TypeScript-mező, nem rögzítő csoport, felső szintű `await`, a legrégebbi deklaráció, típus és érték, kétszer megnevezett technológia, szöveges verzió-összevetés, megtartott importált jelölés és a lista a szerveren és a Local Demóban).
+- **A TypeScript-tábla a valódi fordítókkal ellenőrizve** (2026-11-14, egyszeri próba 33 letöltött kiadással, 1.8-tól 5.4-ig): a 2.0 és újabb kiadásokhoz rendelt 41 elem mindegyike hibát ad a megnevezett kiadás előtti fordítóban, és elfogadott a megnevezettben (a segédtípusoknál a könyvtárfájl tartalma dönt). Az 1.3–1.8 kiadásokhoz rendelt 15 elem a kiadási jegyzetekből való, régi fordítóval nincs ellenőrizve.
 - **Teljes kör:** `npm run gate` (mag és szerzői elemzés: a teljes regresszió), változatlan alapszinttel.
 - **Méret:** a Local Demo könyvtárcsomagja 1,94 MB-ról 2,05 MB-ra nőtt (a legújabb könyvtár fájljai); lustán töltődik, mint eddig ([ADR-113](113-local-demo-standard-library-and-source-check.md)).
