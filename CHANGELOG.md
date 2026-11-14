@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased – 2026-11-14 Terv: verzióhoz kötött JS-, TS- és RxJS-anyag egy fában (NY-44, NY-45)
+
+- **Elkészült a közös terv,** jóváhagyásra vár: [docs/terv-korpusz-es-verziok.md](docs/terv-korpusz-es-verziok.md). Technológiajelölés minden feladaton (a 16 meglévőn is), fa a gyakorló listában, 20 JavaScript-, 20 TypeScript- és 8 RxJS-lecke, újabb eszközlánc.
+- **Mért kiindulás:** a 16 feladat a 88 vizsgált nyelvi elemből 18-at használ, a korpusz lényegében ES2015-ig tart; az első kapu ma TypeScript-forrásban elutasítja az ES2023 utáni könyvtári elemeket; a TypeScript 7.0 natív program, a legújabb betölthető fordító a 6.0.3.
+- **Ez a lépés kódot nem változtat.** A terv hét döntést kér a felhasználótól.
+
 ## Unreleased – 2026-11-14 A gombrendszer lezárva (ADR-140, D6)
 
 - **Kilenc lépésben elkészült a gombrendszer és a vizuális irány** (D1–D5b): letört lap a feliratos gombokon, kerek ikon- és sorgombok, sík tónusú arc, a lapot követő fókuszkeret, lágy felületek, legalább 12 px-es szöveg, telefonos menük, egy keretbe fogott munkaterület.

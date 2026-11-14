@@ -9,6 +9,8 @@ Kockázati osztályok ([ai-governance.md](ai-governance.md)):
 
 A generátor, a validátor és a felület ebben a feladatban **nem változik**.
 
+**Kiegészítés (2026-11-14):** ez a terv a [közös terv](terv-korpusz-es-verziok.md) (NY-44, NY-45) TypeScript-ága lett. A közös terv a leckéket fába rendezi, technológiajelölést ad nekik, és megmérte a C0 (b) kérdését: az első kapu ma TypeScript-forrásban elutasítja az ES2023 utáni könyvtári elemeket, a `using`-ot és a szabványos dekorátort (ott az 1.2 szakasz). A fordító- és könyvtárváltás a közös terv G4 lépése, külön jóváhagyással.
+
 ## 0. Ha ügynökként veszed fel ezt a szálat
 
 1. **Olvasd el, ebben a sorrendben:**
