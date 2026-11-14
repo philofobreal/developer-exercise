@@ -123,3 +123,35 @@ test('ADR-113: without the standard library (a failed fetch) the demo falls back
   await assert.rejects(api.checkSource({source:'const a = 1;',language:'javascript',policy:{unknownPolicy:'block'}}),/csak a szerveren választható/);
  }finally{globalThis.fetch=nativeFetch;globalThis.ts=originalTS;}
 });
+
+test('ADR-155 (T1.2): the exercises download side by side, and are admitted in the manifest\'s order',async()=>{
+ const nativeFetch=globalThis.fetch,originalTS=globalThis.ts;
+ globalThis.ts={...createRequire(import.meta.url)('typescript'),sys:undefined};
+ const names=JSON.parse(await readFile(new URL('../_site/examples/manifest.json',import.meta.url),'utf8'));
+ const example=url=>{const name=decodeURIComponent(String(url).split('/').pop());return String(url).includes('/examples/')&&names.includes(name)?name:null;};
+ const read=async url=>{try{return new Response(await readFile(fileURLToPath(url instanceof URL?url:new URL(url))),{status:200});}catch{return new Response('Not found',{status:404});}};
+ try{
+  // The later an exercise stands in the manifest, the sooner its download answers; none answers before all were asked for.
+  let asked=0,open=0,most=0;const answered=[];
+  globalThis.fetch=async url=>{
+   const name=example(url);if(!name)return read(url);
+   asked++;open++;most=Math.max(most,open);
+   await new Promise(resolve=>setTimeout(resolve,3*(names.length-names.indexOf(name))));
+   assert.equal(asked,names.length,'every download was started before the first one answered');
+   open--;answered.push(name);return read(url);
+  };
+  const api=await import('../_site/app/pages-api.js?side-by-side'),listed=await api.getExercises();
+  assert.equal(most,names.length,'all the downloads were open at once');
+  assert.deepEqual(answered,[...names].reverse(),'the downloads answered in the opposite order');
+  assert.deepEqual(listed.map(exercise=>exercise.id+'.json'),names,'the list stands in the manifest\'s order');
+  // Two exercises are missing; the later one answers first. The first of the manifest's order is the one named.
+  const missing=[names[2],names[names.length-2]];
+  globalThis.fetch=async url=>{
+   const name=example(url);if(!name)return read(url);
+   await new Promise(resolve=>setTimeout(resolve,3*(names.length-names.indexOf(name))));
+   return missing.includes(name)?new Response('Not found',{status:404}):read(url);
+  };
+  const broken=await import('../_site/app/pages-api.js?side-by-side-missing');
+  await assert.rejects(broken.getExercises(),error=>error.message==='Hiányzik egy referenciafeladat: '+missing[0]);
+ }finally{globalThis.fetch=nativeFetch;globalThis.ts=originalTS;}
+});

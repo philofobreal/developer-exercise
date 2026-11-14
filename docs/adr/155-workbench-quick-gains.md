@@ -38,6 +38,13 @@
 - **A látvány nem változik:** a sorok ugyanazokat az osztályokat viselik, a beszúrási jel ugyanoda kerül. (A terv „egyetlen elemes előnézete” csak látható változással volna megvalósítható; lásd a korlátot.)
 - **A takarítás (`clear`) csak a jelölt sorokat érinti,** nem a lista minden sorát.
 
+### T1.2 – A példafeladatok párhuzamos letöltése (Local Demo)
+
+- **A Local Demo a jegyzék minden feladatát egyszerre kéri le** (`public/app/pages-api.js`), nem egymás után.
+- **A befogadás sorrendje a jegyzéké marad:** a feladatok a jegyzék sorrendjében kerülnek ellenőrzésre és a listába, bármelyik letöltés válaszolt előbb.
+- **A hibaüzenet is a jegyzék sorrendjét követi:** több hiányzó feladat közül a jegyzékben első kerül a hibaüzenetbe.
+- Ez bekötés jellegű módosítás a régi JS-határon (ADR-001); a befogadás szabálya (`assertSafeModel`) nem változott.
+
 ### T1.7 – Egy tulajdonos a JSON-piszkozat állapotára
 
 - **Csak az `author-workspace` dönti el,** hogy a CodeLine JSON alkalmazott-e (`modelDraftStatus`): ő birtokolja a modell szövegét (`modelJson`, gyorsítótárazva). A nézet, a folyamat (`jsonPending`) és a szerkesztő beviteli kezelője őt kérdezi; a kezelő a szerkesztő éppen gépelt szövegével.
@@ -63,6 +70,10 @@ T1.4:
 2. **Testvérszelektor egyetlen osztállyal** (`.drop-at ~ .code-row`). Elvetve: az írás egy elem, de a böngésző így is a határ utáni összes testvért újraszámolja.
 3. **Ugyanazok az osztályok, különbségként írva (választott).**
 
+T1.2:
+1. **Előre ellenőrzött katalógus build időben.** Elvetve erre a fázisra ([ADR-154](154-curriculum-tree-in-the-practice-list.md) döntése): a böngésző megbízna egy olyan ellenőrzésben, amelyet nem ő futtatott; csak mért lassúságra kerül elő, a G6 szállítási döntése előtt.
+2. **Párhuzamos letöltés, a befogadás a jegyzék sorrendjében (választott).** A letöltések számát a böngésző korlátozza (HTTP/1.1-en kiszolgálónként hat kapcsolat), saját korlát nem kell.
+
 T1.7:
 1. **A kezelő olvassa az állapotot** (`jsonPending(state)`). Elvetve: a kezelő a `ui.js` kezelője előtt is futhat, amikor az állapot még a régi szöveget tartja.
 2. **A tulajdonos a szöveget is megkaphatja (választott):** alapértelmezésben az állapotét, a kezelőtől a szerkesztőét.
@@ -85,6 +96,11 @@ T1.7:
   - mutatóeszköz, későbbi mozdulat: 104 → 84 ms, ebből stílusszámítás 22,3 → 3,9 ms;
   - billentyű, későbbi lépés: 93 → 68 ms, ebből stílusszámítás 25,4 → 4,3 ms;
   - az első előnézet (a határ utáni összes sor megmozdul): mutatóval 230 → 248 ms, billentyűvel 181 → 178 ms: **nem változott** (a különbség szórás).
+- **T1.2, egységteszt** ([pages-api.test.mjs](../../tests/pages-api.test.mjs)): fordított sorrendben válaszoló letöltésekkel minden letöltés nyitva van, mielőtt az első válaszol; a lista a jegyzék sorrendjében áll; két hiányzó feladat közül a jegyzékben első kerül a hibaüzenetbe, pedig a másik válaszol előbb. A teszt elbukik, ha a később elbukó letöltés hibája kezeletlen marad.
+- **T1.2, mérés** (a szállított 16 feladat, a gyakorlólista megjelenéséig, 7 futás mediánja; előtte → utána):
+  - letöltésenként 80 ms késleltetéssel: 2035 → 1004 ms (**−51%**; a terv célja legalább −30%);
+  - letöltésenként 200 ms késleltetéssel: 4031 → 1534 ms (−62%);
+  - késleltetés nélkül: 500 → 449 ms (a szóráson belül: helyi gépen a letöltés eddig sem számított).
 - **T1.5, nyomkövetés** (kényszerített és keret szerinti elrendezések egy forgatókönyvben, előtte → utána): Próba megnyitása 7 → 5; billentyűs lerakás 8 → 6; ellenőrzés 7 → 6. Az ívek két kényszerítése egyre csökkent, a magasságrögzítésé megszűnt.
 - **A görgetés megtartása** ([browser-workbench.playwright.py](../../tests/browser-workbench.playwright.py), `tap_to_place`): a rögzítés nélkül is zöld.
 - **Mérősáv és teljes kör:** a fázis végén, a többi taskkal együtt (lásd lent).
@@ -95,4 +111,5 @@ T1.7:
   - **az első előnézet:** a határ utáni összes sor 85 ms-os átmenettel 8 px-t mozdul; 436 sornál ez 71–118 ms stílusszámítás és ugyanennyi réteg. Csak látható változással szüntethető meg (egy elemes előnézet: távtartó vagy csak a jel). **Ez a felhasználó döntése.** A szállított feladatok 5–34 sorosak; ott ez a költség nem mérhető.
   - **a későbbi lépések 65–85 ms-a** nagyrészt rétegezés és festés: amíg bármi mozog, a böngésző képkockánként a teljes, 15 ezer csomópontos oldal rétegeit frissíti. Ezt a T1.6 és az F4 csökkentheti.
 - **Talált, nem javított eltérés:** a beszúrási jel helye 8–16 px-t tér el attól függően, honnan érkezik a határ (például a 2. határnál lefelé lépve 56 px, felfelé lépve 40 px), mert a jel a szomszéd sor éppen mozgásban lévő helyéhez igazodik. A változtatás ezt bájtra megtartotta; a javítás látható változás volna (jegyzék: NY-62).
+- **A T1.2 a hálózati várakozást rövidíti, a befogadást nem:** a 16 feladat lefordítása és ellenőrzése hálózat nélkül 15–48 ms (Node-ban mérve), tehát 64 feladatnál is a tizedmásodperc nagyságrendjében marad. Az előre ellenőrzött katalógusra ezért ma nincs mért ok; a G6 szállítási döntése előtt a szállított katalóguson újra kell mérni.
 - **Az elrendezés ideje alig változik:** a kirajzolás első elrendezése (a teljes új oldalé) adja az idő nagy részét, a megszűnt kényszerítések kis részfákat érintettek. A darabszám csökkent; a nagy nyereség az F4 régiós kirajzolásáé.

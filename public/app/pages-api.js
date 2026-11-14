@@ -39,10 +39,15 @@ export async function getExercises(){
   const [res,published]=await Promise.all([fetch(new URL('../examples/manifest.json',import.meta.url)),fetch(new URL('../examples/publication.json',import.meta.url)).then(r=>r.ok?r.json():null).catch(()=>null)]);
   if(!res.ok)throw Error('Példafeladat-manifeszt nem tölthető be.');
   const names=await res.json(),compiler=typeof published?.compiler?.typescript==='string'?published.compiler.typescript:undefined;
-  for(const name of names){
-    const r=await fetch(new URL('../examples/'+encodeURIComponent(name),import.meta.url));
+  // ADR-155 (T1.2): the exercises download side by side. They are admitted in the manifest's order, and the first one
+  // of that order that is missing is the one named, whichever download answered first.
+  const loads=names.map(name=>fetch(new URL('../examples/'+encodeURIComponent(name),import.meta.url)).then(r=>{
     if(!r.ok)throw Error('Hiányzik egy referenciafeladat: '+name);
-    const model=await r.json();
+    return r.json();
+  }));
+  for(const load of loads)load.catch(()=>{});
+  for(const load of loads){
+    const model=await load;
     records.set(model.id,{model,compiled:assertSafeModel(model)});
   }
   return [...records.values()].map(({model:d})=>({
