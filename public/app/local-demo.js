@@ -42,6 +42,7 @@ export function abortPending() {
     worker = undefined;
     stopped = true;
 }
+export const getCurriculum = engine('getCurriculum');
 export const getExercises = engine('getExercises');
 /** The Local Demo runs the author engine in the visitor's own browser: authoring is always offered. */
 export const authorAccess = async () => true;

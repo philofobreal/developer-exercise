@@ -23,7 +23,7 @@ for(const [file,modules] of [['generator.mjs',['code-line-projection.js']],['lan
 // Only models the trusted catalog would serve, under the same policy (ADR-035).
 const publication=publicationPolicy(process.env.CODELINE_PUBLICATION);
 if(publicationNotice(publication))console.warn(publicationNotice(publication));
-const {served,skipped}=await publishExamples(path.join(root,'examples'),path.join(out,'examples'),{publication});
+const {served,skipped}=await publishExamples(path.join(root,'examples'),path.join(out,'examples'),{publication,curriculumFile:path.join(root,'curriculum','curriculum.json')});
 for(const {file,status,reason} of skipped)console.warn(`Kihagyott feladat (${publication}): ${file} [${status}] – ${reason}`);
 await writeFile(path.join(out,'.nojekyll'),'');
 await copyFile(path.join(root,'docs/schema.json'),path.join(out,'schema.json'));

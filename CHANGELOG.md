@@ -17,6 +17,15 @@
 - **A `typescript` futásidejű függőség lett,** mert a szerver futás közben tölti be.
 - **A validátor, a szabályok és az értékelés nem változott.**
 
+## Unreleased – 2026-11-14 A gyakorló lista a tananyag fája (ADR-154, G3)
+
+- **A feladatlista fa:** témakör (JavaScript, TypeScript), alatta modul (Alapok, Gyűjtemények, Algoritmusok; Ráhangoló), alatta a feladatok tanítási sorrendben. Egy ág gomb, amely nyit és csuk, a végén az alatta álló feladatok számával.
+- **A nyitott feladat ága nyitva áll;** amit az olvasó megnyit vagy becsuk, úgy marad az oldal életéig. Szűrés alatt minden talált ág nyitott.
+- **A szint szövegként áll a listaelemen** („· Közepes”); a szint szerinti csoportokat a fa váltotta fel.
+- **Tananyagjegyzék** (`curriculum/curriculum.json`): a fa szerkezete egy fájlban, a feladatokon kívül. A szerver (`GET /api/curriculum`) és a Local Demo a listával együtt adja.
+- **Jegyzék nélkül a lista úgy áll, mint eddig** (szint szerint); a jegyzékből kimaradó feladat a „További feladatok” ágba kerül.
+- **A fa listaeleme tömörebb (NY-60):** nem írja ki a verziószámot, és a nyitott feladat nyila a címe mellé került. Asztalon így minden elem címkéje egysoros.
+
 ## Unreleased – 2026-11-14 Három felületi javítás: nincs aláhúzás gombban, varratmentes panelsáv, egy oszlopban álló sorikonok (ADR-153, NY-59)
 
 - **Gombban nincs aláhúzás.** A bekapcsolt gomb (a kiválasztott mód, a kapcsolók) felirata alól eltűnt a 2 px-es vonal; az állapotot a halvány kék lap és a kék körvonal jelzi. A zárolt beállítás „Miért?” lenyílója aláhúzás helyett nyilat kapott.

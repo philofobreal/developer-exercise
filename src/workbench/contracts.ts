@@ -1,6 +1,7 @@
 /** Presentation ports: no graph/parser/HTTP implementation leaks into the view. */
 import type {Acknowledgement,CodeLineExercise,EditEffect,Feedback,LearnerRuleSheet,ModelVerification,Normalization,RefreshReport,RuleEdit,Technology,ValidationResult} from '../../dist/index.js';
 import type {TechnologyFilter} from './technology-filter.js';
+import type {Curriculum,OpenedBranches} from './curriculum.js';
 import type {KeptLearnerRules} from './learner-rules.js';
 import type {AuthorRuleSheet} from '../../dist/author/engine.js';
 import type {ReferenceAudit} from '../../dist/author/reference-audit.js';
@@ -62,7 +63,10 @@ export interface WorkbenchState {/** ADR-170: false where the server serves no a
  /** ADR-147: the rules an evaluation's answer brought for the learner, by exercise (learner-rules owns it). */
  learnerRules?:Map<string,KeptLearnerRules>;
  /** ADR-152: the technology label the practice list is narrowed to (technology-filter owns its meaning). */
- technologyFilter?:TechnologyFilter;}
+ technologyFilter?:TechnologyFilter;
+ /** ADR-154: the curriculum the catalog sent, and the branches of its tree the reader opened or closed by hand
+ *  (curriculum owns both). */
+ curriculum?:Curriculum;branches?:OpenedBranches;}
 export interface AttemptPresentation {text:(id:LineId|null)=>string;fixed:(position:number)=>boolean;formattedAnswer:()=>string[];}
 export interface ScrollMemory {capture:()=>void;restore:(id:string)=>void;}
 export interface WorkbenchOptions {root:HTMLElement;state:WorkbenchState;ex:()=>ExerciseSummary|undefined;at:()=>AttemptSnapshot|undefined;attempt:AttemptPresentation;scroll:ScrollMemory;

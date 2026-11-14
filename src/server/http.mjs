@@ -30,6 +30,7 @@ export function createApplication({catalog,staticRoot,authorToken,trustedProxies
     catch{return json(res,400,{error:'Malformed URL'});}
     try{
       if(req.method==='GET'&&route==='/api/exercises')return json(res,200,{exercises:catalog.list()});
+      if(req.method==='GET'&&route==='/api/curriculum')return json(res,200,{curriculum:catalog.curriculum});
       if(req.method==='POST'&&route==='/api/evaluate')return json(res,200,catalog.evaluate(await readJson(req,1024*1024)));
       // ADR-170: whether this client may author, so the page offers authoring only where the server would serve it.
       // The answer grants nothing: every author route decides again.

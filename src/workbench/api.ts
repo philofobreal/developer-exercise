@@ -28,6 +28,8 @@ async function jsonRequest(url:string,body:unknown):Promise<unknown> {
  }catch(error){if(controller.signal.aborted)throw new Error(STOPPED);throw error;}
  finally{inFlight.delete(controller);}
 }
+/** ADR-154: the curriculum manifest of the catalog; a server without one, or one that cannot be reached, has none. */
+export const getCurriculum=async():Promise<unknown>=>{try{const response=await fetch('/api/curriculum');return response.ok?((await response.json()) as {curriculum?:unknown}).curriculum??null:null;}catch{return null;}};
 export const getExercises=async():Promise<unknown>=>{const response=await fetch('/api/exercises');if(!response.ok)throw new Error(`HTTP ${response.status}`);return (refusal(await response.json()) as {exercises?:unknown}).exercises;};
 /** ADR-170: whether the server serves authoring to this client. An unanswered question counts as no: the page then
  *  offers practice only, and nothing it shows would be refused. */

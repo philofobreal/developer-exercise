@@ -29,6 +29,8 @@ export function createPracticeApi(entries) {
         /** Checking runs to its end in the page; there is nothing in flight to stop. */
         abortPending: () => { },
         getExercises: async () => entries.map(entry => entry.summary),
+        /** A handful of exercises is a flat list: no curriculum manifest is shipped, and the page then groups them by level. */
+        getCurriculum: async () => null,
         /** No authoring is served: the page then offers practice only (ADR-170). */
         authorAccess: async () => false,
         evaluate: async (body) => {

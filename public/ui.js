@@ -22,9 +22,10 @@ import {createAttempt,createAttemptController} from './app/attempt.js';
 import {createWorkbenchView} from './app/view.js';
 import {practiceOrder} from './app/fields.js';
 import {toggleTechnology} from './app/technology-filter.js';
+import {readCurriculum,toggleBranch} from './app/curriculum.js';
 import {createInsertionDrag} from './app/drag-insert.js';
 import {createScrollMemory,syncEditors,handleEditorKey,copyToClipboard,escapeHtml} from './app/ui-utilities.js';
-import {formatSource,getExercises,authorAccess,compileDraft,checkSource,editRules,previewDraft,resolvePolicy,evaluate,loadTypeScriptFixture,abortPending} from './app/api.js';
+import {formatSource,getExercises,getCurriculum,authorAccess,compileDraft,checkSource,editRules,previewDraft,resolvePolicy,evaluate,loadTypeScriptFixture,abortPending} from './app/api.js';
 // ADR-132 (P2): after 10 s the progress chip offers to stop waiting; the API knows how (a request, or the Local Demo worker).
 setActivityAbort(abortPending);
 const root=document.querySelector('#app');
@@ -114,6 +115,8 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
  if(b.hasAttribute('data-workspace-help')){openWorkspaceHelp(root);return;}
  // ADR-152: a technology label narrows the practice list to it; pressed again, it lets go.
  if(b.hasAttribute('data-technology')){const [id,version]=b.dataset.technology.split(' ');state.technologyFilter=toggleTechnology(state.technologyFilter,{id,version});render();return;}
+ // ADR-154: a branch of the curriculum tree opens or closes; the choice is the reader's until the page is left.
+ if(b.hasAttribute('data-branch')){state.branches=toggleBranch(state.branches,b.dataset.branch,b.getAttribute('aria-expanded')==='true');render();return;}
  if(b.hasAttribute('data-set-code-view')){setCodeView(root,b.dataset.setCodeView);render();root.querySelector(`[data-set-code-view="${b.dataset.setCodeView}"]`)?.focus({preventScroll:true});return;}
  const pasteAction=['author','model','editor','solution'].find(action=>b.hasAttribute('data-paste-'+action));
  if(pasteAction){
@@ -320,7 +323,7 @@ function openHelpTrial(trial){if(state.authoring===false){notify(AUTHORING_NOT_S
  *  answer redraws the page under the reader's first click. A refusal leaves it to `ensurePolicy`, as before. */
 async function startingPolicy(){const key=settingsKey(state.author);try{state.authorPolicy=await resolvePolicy({language:state.author.language,...settingsRequest(state.author)});policyKey=key;}catch{}}
 // ADR-170: where the server serves no authoring to this client, the page asks for no author policy and opens in practice.
-async function init(){try{const [exercises,authoring]=await Promise.all([getExercises(),authorAccess().then(async served=>{if(served)await startingPolicy();return served;})]);state.authoring=authoring;state.exercises=practiceOrder(exercises);for(const e of state.exercises)state.attempts.set(e.id,createAttempt(e));if(!state.exercises.length)throw Error('Üres feladatlista.');state.practiceActive=state.exercises[0].id;if(!authoring)enterMode(state,'practice');render();
+async function init(){try{const [exercises,curriculum,authoring]=await Promise.all([getExercises(),getCurriculum(),authorAccess().then(async served=>{if(served)await startingPolicy();return served;})]);state.authoring=authoring;state.exercises=practiceOrder(exercises);state.curriculum=readCurriculum(curriculum);for(const e of state.exercises)state.attempts.set(e.id,createAttempt(e));if(!state.exercises.length)throw Error('Üres feladatlista.');state.practiceActive=state.exercises[0].id;if(!authoring)enterMode(state,'practice');render();
  // ADR-135: the help page's „Kipróbálom” opens the workbench at #kiprobalom=<topic>.<outcome>; the address is cleared after.
  const trial=helpTrialFromHash(location.hash);if(trial){history.replaceState(null,'',location.pathname+location.search);openHelpTrial(trial);}}catch(err){root.innerHTML=`<div class="loading" role="alert">${escapeHtml(err.message)}</div>`;}}
 init();

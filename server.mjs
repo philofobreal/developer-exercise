@@ -8,7 +8,7 @@ import {trustedProxyCount} from './dist/server/client-address.js';
 const root=path.dirname(fileURLToPath(import.meta.url));
 const publication=publicationPolicy(process.env.CODELINE_PUBLICATION);
 if(publicationNotice(publication))console.warn(publicationNotice(publication));
-const catalog=await ExerciseCatalog.open(path.join(root,'examples'),{publication});
+const catalog=await ExerciseCatalog.open(path.join(root,'examples'),{publication,curriculumFile:path.join(root,'curriculum','curriculum.json')});
 for(const {file,status,reason} of catalog.skipped)console.warn(`Kihagyott feladat (${publication}): ${file} [${status}] – ${reason}`);
 const authorToken=process.env.CODELINE_AUTHOR_TOKEN||undefined;
 const server=createApplication({catalog,staticRoot:path.join(root,'public'),authorToken,trustedProxies:trustedProxyCount(process.env.CODELINE_TRUSTED_PROXIES)});

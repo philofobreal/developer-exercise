@@ -6,7 +6,7 @@ browser's pointercancel transition before dragover/drop.
 import json,os,socket,subprocess,sys,threading,time,urllib.request
 from http.server import SimpleHTTPRequestHandler
 from playwright.sync_api import sync_playwright,expect
-from browser_support import ROOT,ARTIFACTS,launch,StaticServer
+from browser_support import ROOT,ARTIFACTS,launch,StaticServer,open_task
 
 with socket.socket() as sock:
     sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
@@ -33,7 +33,7 @@ def identities(page,zone='solution'):
     return page.locator('.'+zone+'-zone .code-row').evaluate_all('(rows)=>rows.map(r=>r.dataset.lineId)')
 def select(page,url,exercise,fill=False):
     page.goto(url);page.locator('[data-mode="practice"]').click();expect(page.locator('[data-task]').first).to_be_visible()
-    page.locator('[data-task="'+exercise['id']+'"]').click()
+    open_task(page,exercise['id']).click()
     if fill:page.locator('[data-all]').click()
     page.evaluate("window.__drag=[];for(const type of ['dragstart','pointercancel','dragover','drop','dragend'])document.addEventListener(type,e=>window.__drag.push({type,prevented:e.defaultPrevented,caret:!!document.querySelector('.insert-caret')}));")
 def rotated(exercise,before,upto=None):
