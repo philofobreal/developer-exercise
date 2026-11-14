@@ -4,7 +4,10 @@ import path from 'node:path';
 export interface Violation {file:string;rule:string;message:string;}
 // ADR-011/013: the generator reaches only the typed language-independent projection; the registry wires the JS/TS analysis.
 // ADR-015: the projection binds its provenance with the core's digest, the only definition of it.
-const typedAuthorWiring=new Set(['src/author/generator.mjs -> dist/author/code-line-projection.js','src/author/languages.mjs -> dist/author/js-ts-ordering.js','src/author/languages.mjs -> dist/author/source-nesting.js','src/author/code-line-projection.ts -> dist/index.js']);
+const typedAuthorWiring=new Set(['src/author/generator.mjs -> dist/author/code-line-projection.js','src/author/languages.mjs -> dist/author/js-ts-ordering.js','src/author/languages.mjs -> dist/author/source-nesting.js','src/author/code-line-projection.ts -> dist/index.js',
+ // ADR-148 (NY-41): the article before a name or a number has one definition, the core's; the two preflight modules
+ // whose findings name a binding at the start of a sentence use it.
+ 'src/author/preflight/binding-safety.ts -> dist/index.js','src/author/preflight/object-state.ts -> dist/index.js']);
 // ADR-037: core-internal modules hide one decision for named owners; no other module, not even
 // the public index, may import them. A new caller is a design decision, recorded here.
 const internalOwners:Record<string,readonly string[]>={

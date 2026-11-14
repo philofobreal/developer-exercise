@@ -1,6 +1,7 @@
 import type { ExerciseDefinition, Normalization, OrderingProfile, OrderingEdge, ValidationResult } from './types.js';
 import validateShape from './schema-check.js';
 import { compileDefinition, isModelError, type CompiledRules } from './model.js';
+import { withArticle } from './article.js';
 
 /** Kept source-compatible with the user-proposed interface. IDs are transport identities, not semantic identities. */
 export interface CodeLine {
@@ -117,7 +118,7 @@ export function compileCodeLineExercise(raw: CodeLineExercise): AdaptResult {
       if(block.kind==='function'){owner=block.functionBlock!;break;}
       scope=block.parentScopeId;
     }
-    if(l.functionBlock!==owner)return invalid(`A(z) ${l.id}. sor functionBlock értéke nem felel meg a blokk-hierarchiának (elvárt: ${owner}).`);
+    if(l.functionBlock!==owner)return invalid(`${withArticle(l.id, true)}. sor functionBlock értéke nem felel meg a blokk-hierarchiának (elvárt: ${owner}).`);
   }
   const tokens = raw.lines.map((l,index)=>({id:refId(l.id),code:l.code,scope:l.scopeId,after:l.dependencies.map(refId),normalization:l.normalization??'indent' as Normalization,...(l.fixed?{fixedPosition:index}:{})}));
   const edges:OrderingEdge[]=(raw.edges??[]).map(e=>({before:refId(e.before),after:refId(e.after)}));

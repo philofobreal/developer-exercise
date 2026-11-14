@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-11-14 „A” vagy „az”, nem „a(z)” (ADR-148, NY-41)
+
+- **A visszajelzések helyes névelőt írnak:** „A 4. sornak a 3. sor előtt kell állnia”, „Az 5. sor…”, „az „if (x) {” sort…”. Eddig „A(z) 4. sor a(z) 3. sor előtt kell állnia” állt.
+- **A „kell állnia” mondat nyelvtanilag is helyes lett** (részes eset: „sornak”).
+- **A szerző üzeneteiben is:** a szabályszerkesztés, a forrás vizsgálata és a rögzítés üzenetei; nyolc helyen a szám előtt beégetett „a” is javult („rögzítve az 5. helyen”).
+- **Kódrészlet előtt a névelő olvasási megegyezést követ** (az első kimondott karakter szerint); egy angol szónál ritkán tévedhet.
+
 ## Unreleased – 2026-11-14 A tanuló az első ellenőrzés után megnézheti a sorok szabályait (ADR-147, NY-46)
 
 - **A gyakorló feladatokban az első ellenőrzés után megjelenik a „Sor szabályai” eszköz** és minden soron egy láncszem gomb. A panel megmutatja, mely soroknak kell a kijelölt sor előtt és után állniuk. A panel magától nem nyílik ki, és ellenőrzés előtt nincs.

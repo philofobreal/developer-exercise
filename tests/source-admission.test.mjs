@@ -39,8 +39,8 @@ test('every source of the repository stays far inside the nesting budget',()=>{
 
 test('too deep or too long sources are refused with an author error, in both languages, never a RangeError',()=>{
  for(const language of ['javascript','typescript']){
-  for(const n of [MAX_NESTING+1,1000,3000])refused(nested(n),language,/Túl mély egymásba ágyazás a\(z\) 1\. sorban/);
-  refused(Array.from({length:70},()=>'if (a) {').join('\n')+'\n'+Array.from({length:70},()=>'}').join('\n'),language,/65\. sorban/);
+  for(const n of [MAX_NESTING+1,1000,3000])refused(nested(n),language,/Túl mély egymásba ágyazás \(1\. sor\)/);
+  refused(Array.from({length:70},()=>'if (a) {').join('\n')+'\n'+Array.from({length:70},()=>'}').join('\n'),language,/\(65\. sor\)/);
   refused('const y = 1'+' + 1'.repeat(10000)+';',language,/túl hosszú vagy túl összetett/);
  }
  assert.equal(generateCodeLineExercise({source:nested(MAX_NESTING),language:'typescript'},ts).lines.length,1);

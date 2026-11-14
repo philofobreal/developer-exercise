@@ -3,6 +3,7 @@ import { matchContent } from './content-match.js';
 import { validateSubmission } from './validator.js';
 import { reachability } from './reachability.js';
 import { explainConstraints } from './constraint-explanation.js';
+import { withArticle } from './article.js';
 export const disclosureLevels = ['verdict', 'positions', 'rules', 'provenance'];
 export const ruleKey = (before, after) => before + '\u0000' + after;
 const MAX_REPORTED = 12, MAX_REPAIRED = 3;
@@ -138,7 +139,7 @@ const rows = (positions) => positions.map(p => `${p + 1}.`).join(', ') + ' sor';
 function contentDiagnostics(def, lines, match, budget) {
     const out = [];
     for (const position of match.unknown)
-        out.push({ ...base('unknown-content', 'error', 'proven', 'positions'), positions: [position], positionScope: 'all', summary: `A(z) ${row(position)} (${quote(lines[position])}) nem része a feladatnak.`, detail: `A(z) ${row(position)} tartalma egyetlen referenciasorral sem egyezik, ezért nem szerepelhet a megoldásban.`, evidence: 'A sor tartalma (a behúzási szabály szerint) egyik referenciasorral sem egyezik.', fix: { level: 'guidance', text: 'Töröld ezt a sort, vagy javítsd a tartalmát.' } });
+        out.push({ ...base('unknown-content', 'error', 'proven', 'positions'), positions: [position], positionScope: 'all', summary: `${withArticle(row(position), true)} (${quote(lines[position])}) nem része a feladatnak.`, detail: `${withArticle(row(position), true)} tartalma egyetlen referenciasorral sem egyezik, ezért nem szerepelhet a megoldásban.`, evidence: 'A sor tartalma (a behúzási szabály szerint) egyik referenciasorral sem egyezik.', fix: { level: 'guidance', text: 'Töröld ezt a sort, vagy javítsd a tartalmát.' } });
     // Components of the content graph: tokens with equal keys, and each position with its matches.
     const n = def.tokens.length, parent = Array.from({ length: n + lines.length }, (_, i) => i);
     const find = (x) => { while (parent[x] !== x) {
@@ -165,11 +166,11 @@ function contentDiagnostics(def, lines, match, budget) {
         const codes = new Set(tokens.map(i => def.tokens[i].code.replace(/^[ \t]*/, '')));
         const named = codes.size === 1 ? quote(def.tokens[tokens[0]].code) : 'egymással felcserélhető';
         if (positions.length > tokens.length)
-            out.push({ ...base('extra-line', 'error', 'proven', 'rules'), positions, positionScope: 'some', summary: `A(z) ${named} sor ${positions.length}-szor szerepel, de csak ${tokens.length}-szer kell.`, detail: `A(z) ${rows(positions)} tartalma azonos szerepű; közülük ${positions.length - tokens.length} fölösleges. Hogy melyik, az a tartalomból nem dönthető el.`, evidence: 'Az azonos tartalmú beküldött sorok száma meghaladja a referencia ilyen sorainak számát.', limits: 'Nem nevezhető meg, melyik azonos tartalmú sor a fölösleges.', fix: { level: 'guidance', text: `Távolíts el ${positions.length - tokens.length} ilyen sort.` } });
+            out.push({ ...base('extra-line', 'error', 'proven', 'rules'), positions, positionScope: 'some', summary: `${withArticle(named, true)} sor ${positions.length}-szor szerepel, de csak ${tokens.length}-szer kell.`, detail: `${withArticle(rows(positions), true)} tartalma azonos szerepű; közülük ${positions.length - tokens.length} fölösleges. Hogy melyik, az a tartalomból nem dönthető el.`, evidence: 'Az azonos tartalmú beküldött sorok száma meghaladja a referencia ilyen sorainak számát.', limits: 'Nem nevezhető meg, melyik azonos tartalmú sor a fölösleges.', fix: { level: 'guidance', text: `Távolíts el ${positions.length - tokens.length} ilyen sort.` } });
         else if (positions.length < tokens.length)
-            out.push({ ...base('missing-line', 'error', 'proven', 'rules'), summary: positions.length ? `A(z) ${named} sorból ${tokens.length} kell, de csak ${positions.length} szerepel.` : `Hiányzik ${tokens.length === 1 ? 'egy' : tokens.length} sor: ${named}.`, detail: `A referencia ${tokens.length} ilyen sort tartalmaz, a beküldés ${positions.length}-t.`, evidence: 'A beküldött sorok tartalma kevesebbszer fordul elő, mint a referenciában.', fix: { level: 'guidance', text: 'Pótold a hiányzó sort a megfelelő helyre.' } });
+            out.push({ ...base('missing-line', 'error', 'proven', 'rules'), summary: positions.length ? `${withArticle(named, true)} sorból ${tokens.length} kell, de csak ${positions.length} szerepel.` : `Hiányzik ${tokens.length === 1 ? 'egy' : tokens.length} sor: ${named}.`, detail: `A referencia ${tokens.length} ilyen sort tartalmaz, a beküldés ${positions.length}-t.`, evidence: 'A beküldött sorok tartalma kevesebbszer fordul elő, mint a referenciában.', fix: { level: 'guidance', text: 'Pótold a hiányzó sort a megfelelő helyre.' } });
         else if (new Set(tokens.map(i => match.tokenKeys[i])).size > 1 && perfectMatching(tokens, positions, match.matching, budget) === false)
-            out.push({ ...base('wrong-multiplicity', 'error', 'proven', 'rules'), positions, positionScope: 'some', summary: 'A sorok előfordulási száma nem egyezik a feladatéval.', detail: `A(z) ${rows(positions)} együtt sem feleltethető meg a referencia azonos szerepű sorainak.`, evidence: 'A tartalmi párosítás (behúzással és pontos egyezéssel) nem teljes.', limits: 'Nem nevezhető meg egyetlen hibás sor.' });
+            out.push({ ...base('wrong-multiplicity', 'error', 'proven', 'rules'), positions, positionScope: 'some', summary: 'A sorok előfordulási száma nem egyezik a feladatéval.', detail: `${withArticle(rows(positions), true)} együtt sem feleltethető meg a referencia azonos szerepű sorainak.`, evidence: 'A tartalmi párosítás (behúzással és pontos egyezéssel) nem teljes.', limits: 'Nem nevezhető meg egyetlen hibás sor.' });
     }
     return out;
 }
@@ -200,12 +201,12 @@ function fixedDiagnostics(def, lines, match) {
     const out = [];
     for (const position of match.pinnedMismatch) {
         const token = def.tokens.find(t => t.fixedPosition === position);
-        out.push({ ...base('fixed-position', 'error', 'proven', 'positions'), positions: [position], positionScope: 'all', references: [token.id], summary: `A(z) ${row(position)} rögzített hely: itt a(z) ${quote(token.code)} sornak kell állnia.`, detail: `A rögzített sorok nem mozdíthatók; a(z) ${row(position)} helyén most ${quote(lines[position])} áll.`, evidence: 'A rögzített sor tartalma nem a kötelező sorhelyen áll.', fix: { level: 'guidance', text: `Állítsd vissza a(z) ${quote(token.code)} sort a(z) ${row(position)} helyére.` } });
+        out.push({ ...base('fixed-position', 'error', 'proven', 'positions'), positions: [position], positionScope: 'all', references: [token.id], summary: `${withArticle(row(position), true)} rögzített hely: itt ${withArticle(quote(token.code))} sornak kell állnia.`, detail: `A rögzített sorok nem mozdíthatók; ${withArticle(row(position))} helyén most ${quote(lines[position])} áll.`, evidence: 'A rögzített sor tartalma nem a kötelező sorhelyen áll.', fix: { level: 'guidance', text: `Állítsd vissza ${withArticle(quote(token.code))} sort ${withArticle(row(position))} helyére.` } });
     }
     match.candidates.forEach((items, position) => {
         if (items.length || !match.matching[position].length)
             return;
-        out.push({ ...base('fixed-position', 'error', 'proven', 'positions'), positions: [position], positionScope: 'all', summary: `A(z) ${row(position)} (${quote(lines[position])}) csak a rögzített helyén állhat.`, detail: 'Ez a tartalom a feladatban csak rögzített sorként szerepel, és a rögzített helye máshol van.', evidence: 'A sor tartalma kizárólag rögzített referenciasorokkal egyezik, amelyek másik sorhelyhez kötöttek.', fix: { level: 'guidance', text: 'Töröld innen ezt a sort.' } });
+        out.push({ ...base('fixed-position', 'error', 'proven', 'positions'), positions: [position], positionScope: 'all', summary: `${withArticle(row(position), true)} (${quote(lines[position])}) csak a rögzített helyén állhat.`, detail: 'Ez a tartalom a feladatban csak rögzített sorként szerepel, és a rögzített helye máshol van.', evidence: 'A sor tartalma kizárólag rögzített referenciasorokkal egyezik, amelyek másik sorhelyhez kötöttek.', fix: { level: 'guidance', text: 'Töröld innen ezt a sort.' } });
     });
     return out;
 }
@@ -369,15 +370,15 @@ function ruleDiagnostic(v, compiled, lines, candidates, lo, hi, origins, options
     const reason = categories.map(c => reasonText[c]).filter(Boolean);
     const name = (t, positions) => positions.length === 1 ? row(positions[0]) : quote(tokens[t].code) + ' sor';
     const where = exact
-        ? `A(z) ${row(posA[0])} (${quote(lines[posA[0]])}) a(z) ${row(posB[0])} (${quote(lines[posB[0]])}) előtt kell állnia, de most utána áll.`
-        : `A(z) ${quote(a.code)} sornak a(z) ${quote(b.code)} sor előtt kell állnia, de az ilyen tartalmú sorok mindegyike most a másik után áll (${rows([...posA, ...posB].sort((x, y) => x - y))}).`;
+        ? `${withArticle(row(posA[0]), true)}nak (${quote(lines[posA[0]])}) ${withArticle(row(posB[0]))} (${quote(lines[posB[0]])}) előtt kell állnia, de most utána áll.`
+        : `${withArticle(quote(a.code), true)} sornak ${withArticle(quote(b.code))} sor előtt kell állnia, de az ilyen tartalmú sorok mindegyike most a másik után áll (${rows([...posA, ...posB].sort((x, y) => x - y))}).`;
     // A block rule binds a member between its block's open and close lines; name the member and the block.
     const block = compiled.definition.blocks.find(k => k.open === a.id && k.close !== b.id || k.close === b.id && k.open !== a.id);
     const member = block ? (block.open === a.id ? v.b : v.a) : -1, opener = block ? tokens.find(t => t.id === block.open).code : '';
     const summary = code === 'scope-boundary'
-        ? (member < 0 ? 'Egy blokk záró sora a nyitó sora előtt áll.' : `A(z) ${name(member, member === v.a ? posA : posB)} a(z) ${quote(opener)} blokkhoz tartozik, de kívül áll rajta.`)
-        : code === 'profile-conflict' ? `A(z) „${v.profile}” alternatív sorrend sem teljesül.`
-            : exact ? `A(z) ${row(posA[0])} a(z) ${row(posB[0])} előtt kell állnia.` : `A(z) ${quote(a.code)} sor a(z) ${quote(b.code)} sor előtt kell állnia.`;
+        ? (member < 0 ? 'Egy blokk záró sora a nyitó sora előtt áll.' : `${withArticle(name(member, member === v.a ? posA : posB), true)} ${withArticle(quote(opener))} blokkhoz tartozik, de kívül áll rajta.`)
+        : code === 'profile-conflict' ? `${withArticle('„' + v.profile + '”', true)} alternatív sorrend sem teljesül.`
+            : exact ? `${withArticle(row(posA[0]), true)}nak ${withArticle(row(posB[0]))} előtt kell állnia.` : `${withArticle(quote(a.code), true)} sornak ${withArticle(quote(b.code))} sor előtt kell állnia.`;
     const rule = code === 'profile-conflict' ? 'A feladat több alternatív sorrendet enged meg, de mindegyikben van megsértett szabály; ez ennek az alternatívának a szabálya.'
         : v.transitive ? `A szabály közvetett: ${chain.length - 2} köztes soron keresztül következik a feladat közvetlen szabályaiból.`
             : code === 'scope-boundary' ? 'Egy blokk sorainak a nyitó és a záró sora között kell állniuk.'
@@ -390,9 +391,9 @@ function ruleDiagnostic(v, compiled, lines, candidates, lo, hi, origins, options
         positions: [...new Set([...posA, ...posB])].sort((x, y) => x - y), positionScope: exact ? 'all' : 'some', references: [...(posA.length === 1 ? [a.id] : []), ...(posB.length === 1 ? [b.id] : [])],
         rule: { before: a.id, after: b.id, origins: v.transitive ? [] : origins, categories, ...(v.profile ? { profile: v.profile } : {}), ...(chain ? { path: chain } : {}) },
         summary, detail,
-        evidence: exact ? 'Mindkét sor tartalma egyértelmű, így a helyük minden lehetséges hozzárendelésben ez.' : `A(z) ${quote(a.code)} sor minden lehetséges helye (${lo[v.a] + 1}.–) a(z) ${quote(b.code)} sor minden lehetséges helye (–${hi[v.b] + 1}.) után van.`,
+        evidence: exact ? 'Mindkét sor tartalma egyértelmű, így a helyük minden lehetséges hozzárendelésben ez.' : `${withArticle(quote(a.code), true)} sor minden lehetséges helye (${lo[v.a] + 1}.–) ${withArticle(quote(b.code))} sor minden lehetséges helye (–${hi[v.b] + 1}.) után van.`,
         ...(exact ? {} : { limits: 'Az azonos tartalmú sorok közül nem nevezhető meg, melyik a hibás.' }),
-        fix: { level: 'guidance', text: `Helyezd a(z) ${quote(a.code)} sort a(z) ${quote(b.code)} sor elé.` }
+        fix: { level: 'guidance', text: `Helyezd ${withArticle(quote(a.code))} sort ${withArticle(quote(b.code))} sor elé.` }
     };
 }
 /** v3 multi-line units must stay contiguous and in order; proven when every member is forced. */
@@ -405,7 +406,7 @@ function unitDiagnostics(def, lines, byId, lo, forced, budget) {
         if (!members.every(forced) || members.every((t, i) => !i || lo[t] === lo[members[i - 1]] + 1))
             continue;
         const positions = members.map(t => lo[t]);
-        out.push({ ...base('unit-split', 'error', 'proven', 'rules'), positions: [...positions].sort((x, y) => x - y), positionScope: 'all', references: [...unit.tokenIds], summary: `A(z) ${rows([...positions].sort((x, y) => x - y))} egy többsoros egység, amelyet szétszakít az elrendezés.`, detail: `Ezeknek a soroknak (${quote(lines[positions[0]])} …) egymás után, ebben a sorrendben kell állniuk.`, evidence: 'Az egység minden sorának tartalma egyértelmű, és a helyük nem folytonos.', fix: { level: 'guidance', text: 'Helyezd az egység sorait közvetlenül egymás után.' } });
+        out.push({ ...base('unit-split', 'error', 'proven', 'rules'), positions: [...positions].sort((x, y) => x - y), positionScope: 'all', references: [...unit.tokenIds], summary: `${withArticle(rows([...positions].sort((x, y) => x - y)), true)} egy többsoros egység, amelyet szétszakít az elrendezés.`, detail: `Ezeknek a soroknak (${quote(lines[positions[0]])} …) egymás után, ebben a sorrendben kell állniuk.`, evidence: 'Az egység minden sorának tartalma egyértelmű, és a helyük nem folytonos.', fix: { level: 'guidance', text: 'Helyezd az egység sorait közvetlenül egymás után.' } });
     }
     return out;
 }
@@ -458,7 +459,7 @@ function scopeDiagnostics(def, lines, byId, candidates, lo, hi, forced, reported
             if (!(inside && !member || outside && member))
                 return;
             const position = p, opener = lines[lo[c.open]];
-            out.push({ ...base('scope-boundary', 'error', 'proven', 'rules'), positions: [position], positionScope: 'all', references: [token.id], summary: inside ? `A(z) ${row(position)} nem tartozhat ebbe a blokkba.` : `A(z) ${row(position)} a(z) ${quote(opener)} blokkhoz tartozik, de kívül áll rajta.`, detail: inside ? `A(z) ${row(position)} (${quote(lines[position])}) a(z) ${quote(opener)} kezdetű blokkon belül áll, pedig nem annak a része.` : `A(z) ${row(position)} (${quote(lines[position])}) helye a(z) ${quote(opener)} kezdetű blokkon belül van.`, evidence: exact ? 'A sor és a blokkhatárok tartalma egyértelmű, így a helyük minden lehetséges hozzárendelésben ez.' : 'A sor helye egyértelmű, és a blokk azonos tartalmú határsorainak minden olyan lehetséges helye mellett, ahol a blokk a nyitó sora után zárul, ugyanígy áll a blokkhoz képest.', fix: { level: 'guidance', text: inside ? 'Vidd ki a sort ebből a blokkból.' : 'Vidd be a sort a blokkba.' } });
+            out.push({ ...base('scope-boundary', 'error', 'proven', 'rules'), positions: [position], positionScope: 'all', references: [token.id], summary: inside ? `${withArticle(row(position), true)} nem tartozhat ebbe a blokkba.` : `${withArticle(row(position), true)} ${withArticle(quote(opener))} blokkhoz tartozik, de kívül áll rajta.`, detail: inside ? `${withArticle(row(position), true)} (${quote(lines[position])}) ${withArticle(quote(opener))} kezdetű blokkon belül áll, pedig nem annak a része.` : `${withArticle(row(position), true)} (${quote(lines[position])}) helye ${withArticle(quote(opener))} kezdetű blokkon belül van.`, evidence: exact ? 'A sor és a blokkhatárok tartalma egyértelmű, így a helyük minden lehetséges hozzárendelésben ez.' : 'A sor helye egyértelmű, és a blokk azonos tartalmú határsorainak minden olyan lehetséges helye mellett, ahol a blokk a nyitó sora után zárul, ugyanígy áll a blokkhoz képest.', fix: { level: 'guidance', text: inside ? 'Vidd ki a sort ebből a blokkból.' : 'Vidd be a sort a blokkba.' } });
             seen.add(t);
         });
     }
@@ -554,13 +555,13 @@ function moveRepair(compiled, lines, candidates, common, options) {
     };
     const single = (moves) => {
         const [{ from, to }] = moves;
-        return { ...base('single-move-repair', 'notice', 'general', 'positions'), positions: [from], positionScope: 'some', summary: `Egyetlen sor áthelyezése elég: a(z) ${row(from)} (${quote(lines[from])}) máshová kerülve elfogadható megoldást ad.`, detail: 'Ez nem bizonyítja, hogy éppen ez a sor a hibás: más áthelyezés is javíthatja az elrendezést.', evidence: 'A validátor az áthelyezett elrendezést elfogadta.', limits: 'Ellenőrzött kiút, nem bizonyított ok.', fix: { level: 'verified', move: { from, to }, moves: [{ from, to }], text: `Ha a(z) ${row(from)}t a(z) ${row(to)} helyére teszed, a megoldás elfogadott.` } };
+        return { ...base('single-move-repair', 'notice', 'general', 'positions'), positions: [from], positionScope: 'some', summary: `Egyetlen sor áthelyezése elég: ${withArticle(row(from))} (${quote(lines[from])}) máshová kerülve elfogadható megoldást ad.`, detail: 'Ez nem bizonyítja, hogy éppen ez a sor a hibás: más áthelyezés is javíthatja az elrendezést.', evidence: 'A validátor az áthelyezett elrendezést elfogadta.', limits: 'Ellenőrzött kiút, nem bizonyított ok.', fix: { level: 'verified', move: { from, to }, moves: [{ from, to }], text: `Ha ${withArticle(row(from))}t ${withArticle(row(to))} helyére teszed, a megoldás elfogadott.` } };
     };
     const double = (first, second) => {
         // The second move counts positions after the first; name its line by its original position.
         const original = moveLine(lines.map((_, i) => i), fixedSlots, first.from, first.to)[second.from];
         const positions = [...new Set([first.from, original])].sort((x, y) => x - y);
-        return { ...base('two-move-repair', 'notice', 'general', 'positions'), positions, positionScope: 'some', summary: `Két sor áthelyezése elég: a(z) ${rows(positions)} máshová kerülve elfogadható megoldást ad.`, detail: 'Egyetlen áthelyezés nem javítja az elrendezést, kettő igen. Ez nem bizonyítja, hogy éppen ezek a sorok a hibásak.', evidence: 'A validátor a kétszer áthelyezett elrendezést elfogadta.', limits: 'Ellenőrzött kiút, nem bizonyított ok.', fix: { level: 'verified', move: first, moves: [first, second], text: `Ha a(z) ${row(first.from)}t a(z) ${row(first.to)} helyére teszed, majd az így kapott elrendezés ${row(second.from)}át a(z) ${row(second.to)} helyére, a megoldás elfogadott.` } };
+        return { ...base('two-move-repair', 'notice', 'general', 'positions'), positions, positionScope: 'some', summary: `Két sor áthelyezése elég: ${withArticle(rows(positions))} máshová kerülve elfogadható megoldást ad.`, detail: 'Egyetlen áthelyezés nem javítja az elrendezést, kettő igen. Ez nem bizonyítja, hogy éppen ezek a sorok a hibásak.', evidence: 'A validátor a kétszer áthelyezett elrendezést elfogadta.', limits: 'Ellenőrzött kiút, nem bizonyított ok.', fix: { level: 'verified', move: first, moves: [first, second], text: `Ha ${withArticle(row(first.from))}t ${withArticle(row(first.to))} helyére teszed, majd az így kapott elrendezés ${row(second.from)}át ${withArticle(row(second.to))} helyére, a megoldás elfogadott.` } };
     };
     const tried = new Set();
     const one = (move) => {
@@ -623,18 +624,18 @@ function repair(compiled, lines, candidates, diagnostic, options, budget) {
     const fixedSlots = new Set(def.tokens.flatMap(t => t.fixedPosition === undefined ? [] : [t.fixedPosition]));
     const states = clampInt(options.repairStates, 5_000, 200_000);
     let partial = null;
-    for (const [from, to, text] of [[pa, pb, `a(z) ${row(pb)} elé`], [pb, pa, `a(z) ${row(pa)} után`]]) {
+    for (const [from, to, text] of [[pa, pb, `${withArticle(row(pb))} elé`], [pb, pa, `${withArticle(row(pa))} után`]]) {
         const moved = moveLine(lines, fixedSlots, from, to);
         if (!moved || budget.used > budget.limit)
             continue;
         const check = validateSubmission(compiled, { exerciseId: def.id, revision: def.revision, lines: moved }, { maxStates: states });
         budget.spend(check.exploredStates + moved.length);
         if (check.accepted)
-            return { level: 'verified', move: { from, to }, text: `Ha a(z) ${row(from)}t ${text} helyezed, a megoldás elfogadott.` };
+            return { level: 'verified', move: { from, to }, text: `Ha ${withArticle(row(from))}t ${text} helyezed, a megoldás elfogadott.` };
         const after = matchContent(def.tokens, moved).candidates;
         const first = (t) => after.findIndex(items => items.includes(t)), last = (t) => after.length - 1 - [...after].reverse().findIndex(items => items.includes(t));
         if (!partial && first(a) < last(b))
-            partial = { level: 'partial', move: { from, to }, text: `Ha a(z) ${row(from)}t ${text} helyezed, ez az ütközés megszűnik, de más hiba még maradhat.` };
+            partial = { level: 'partial', move: { from, to }, text: `Ha ${withArticle(row(from))}t ${text} helyezed, ez az ütközés megszűnik, de más hiba még maradhat.` };
     }
     return partial;
 }

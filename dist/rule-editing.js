@@ -22,6 +22,7 @@ import { validateSubmission } from './validator.js';
 import { compileCodeLineExercise } from './code-line.js';
 import { editabilityOrder, explainConstraints } from './constraint-explanation.js';
 import { evidenceStatus, sourceTextDigest } from './evidence.js';
+import { withArticle } from './article.js';
 const AUTHOR_RULE = 'author-rule';
 const fail = (error, message, index, acknowledge) => ({ ok: false, error, message, index, ...(acknowledge ? { acknowledge } : {}) });
 const isId = (value) => Number.isSafeInteger(value) && value > 0;
@@ -75,7 +76,7 @@ function apply(draft, explanation, edit) {
         if (!isId(id))
             throw new EditFailure('invalid-edit', 'A sorazonosító pozitív egész szám.');
         if (!position.has(id))
-            throw new EditFailure('unknown-line', `A(z) ${id}. azonosítójú sor nem létezik.`);
+            throw new EditFailure('unknown-line', `${withArticle(id, true)}. azonosítójú sor nem létezik.`);
         return id;
     };
     const pair = (before, after) => {
@@ -119,7 +120,7 @@ function apply(draft, explanation, edit) {
             const [before, after] = pair(edit.before, edit.after);
             const note = edit.note === undefined ? '' : noteText(edit.note);
             if (explained(before).ancestors.includes(after))
-                throw new EditFailure('cycle', `A(z) ${after}. sornak már meg kell előznie a(z) ${before}. sort; a szabály kört okozna.`);
+                throw new EditFailure('cycle', `${withArticle(after, true)}. sornak már meg kell előznie ${withArticle(before)}. sort; a szabály kört okozna.`);
             if (position.get(before) > position.get(after))
                 throw new EditFailure('against-reference', 'Kötelező szabály csak a referencia sorrendjével összhangban adható hozzá; eltérő sorrendhez használj profilt.');
             const relaxed = authoring.relaxations?.find(entry => pairOf(entry, before, after));
@@ -160,8 +161,8 @@ function apply(draft, explanation, edit) {
             const constraint = direct(before, after);
             if (!constraint) {
                 if (explained(after).ancestors.includes(before))
-                    throw new EditFailure('transitive-only', `A(z) ${before} → ${after} sorrend csak tranzitív következmény; a köztes közvetlen szabályok egyikét kell módosítani.`);
-                throw new EditFailure('not-a-constraint', `A(z) ${before} → ${after} között nincs szabály.`);
+                    throw new EditFailure('transitive-only', `${withArticle(before, true)} → ${after} sorrend csak tranzitív következmény; a köztes közvetlen szabályok egyikét kell módosítani.`);
+                throw new EditFailure('not-a-constraint', `${withArticle(before, true)} → ${after} között nincs szabály.`);
             }
             const generated = constraint.reasons.filter(reason => reason.category !== 'author');
             // An author rule is peeled off first; a generated constraint on the same pair stays.
@@ -172,7 +173,7 @@ function apply(draft, explanation, edit) {
                 return;
             }
             if (constraint.removal === 'impossible')
-                throw new EditFailure('hard-constraint', `A(z) ${before} → ${after} szerkezeti szabály (${constraint.reasons.map(reason => reason.code).join(', ')}); nem távolítható el.`);
+                throw new EditFailure('hard-constraint', `${withArticle(before, true)} → ${after} szerkezeti szabály (${constraint.reasons.map(reason => reason.code).join(', ')}); nem távolítható el.`);
             // Redundant only through constraints that stay: author rules may be removed freely later,
             // so a generated constraint implied by them alone still needs its acknowledgement (ADR-021).
             const authorOnly = new Set(explanation.lines.flatMap(item => item.predecessors).filter(item => item.reasons.every(reason => reason.category === 'author')).map(item => item.before + ':' + item.after));
@@ -198,7 +199,7 @@ function apply(draft, explanation, edit) {
         case 'set-note': {
             const [before, after] = pair(edit.before, edit.after);
             if (!direct(before, after))
-                throw new EditFailure('not-a-constraint', `A(z) ${before} → ${after} nem közvetlen szabály; megjegyzés csak ahhoz fűzhető.`);
+                throw new EditFailure('not-a-constraint', `${withArticle(before, true)} → ${after} nem közvetlen szabály; megjegyzés csak ahhoz fűzhető.`);
             setNote(before, after, noteText(edit.note));
             return;
         }
@@ -227,7 +228,7 @@ function apply(draft, explanation, edit) {
         case 'add-profile-rule': {
             const found = profile(edit.profile), [before, after] = pair(edit.before, edit.after);
             if (explained(before).ancestors.includes(after))
-                throw new EditFailure('cycle', `A(z) ${after}. sornak már meg kell előznie a(z) ${before}. sort; a profilszabály kört okozna.`);
+                throw new EditFailure('cycle', `${withArticle(after, true)}. sornak már meg kell előznie ${withArticle(before)}. sort; a profilszabály kört okozna.`);
             if (!found.edges.some(edge => pairOf(edge, before, after)))
                 found.edges.push({ before, after });
             return;

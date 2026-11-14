@@ -1,6 +1,6 @@
 # ADR-141 – A ⓘ buboréka lebeg, és semmit nem tol el (NY-39)
 
-Állapot: **elfogadva** (2026-11-12). A felhasználó jóváhagyta a [javítási tervet](../terv-sugo-buborekok.md) („rendben, mehet”). Kockázati osztály: megjelenítés; a motor, a szabályok és az értékelés nem változott. Az [ADR-135](135-help-trial-and-highlighted-examples.md) helycsinálását váltja fel, az [ADR-124](124-help-from-one-source.md) buborékjának tartalmát megtartja. A terv T2 és T3 lépése lent egészíti ki; a három lépéssel az NY-39 lezárult.
+Állapot: **elfogadva** (2026-11-12). **A névelő szabályát a mag és a szerzői elemzés üzeneteire az [ADR-148](148-article-as-it-is-read.md) terjeszti ki.** A felhasználó jóváhagyta a [javítási tervet](../terv-sugo-buborekok.md) („rendben, mehet”). Kockázati osztály: megjelenítés; a motor, a szabályok és az értékelés nem változott. Az [ADR-135](135-help-trial-and-highlighted-examples.md) helycsinálását váltja fel, az [ADR-124](124-help-from-one-source.md) buborékjának tartalmát megtartja. A terv T2 és T3 lépése lent egészíti ki; a három lépéssel az NY-39 lezárult.
 
 ## Kontextus
 

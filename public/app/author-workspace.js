@@ -147,7 +147,7 @@ export function undoReplace(state) {
 }
 /** An example is a starting point: its reference becomes the unapplied draft (undoable, `replaceDraft`). */
 export function startFromExample(state, exercise) {
-    replaceDraft(state, { ...NEW_DRAFT_SETTINGS, title: exercise.title, description: exercise.description, ...(exercise.level ? { level: exercise.level } : {}), language: exercise.language, source: exercise.lines.map(line => line.code).join('\n'), message: `A(z) „${exercise.title}” példa betöltve. A modell a Modell készítése gombbal készül el belőle.` });
+    replaceDraft(state, { ...NEW_DRAFT_SETTINGS, title: exercise.title, description: exercise.description, ...(exercise.level ? { level: exercise.level } : {}), language: exercise.language, source: exercise.lines.map(line => line.code).join('\n'), message: `Példa betöltve: „${exercise.title}”. A modell a Modell készítése gombbal készül el belőle.` });
 }
 /** ADR-135 (NY-31): „Kipróbálom” in the help loads the example's source under exactly the settings its outcome names
  * (the ones the help's test runs), every other setting at its default, so the workbench reproduces what the help says.

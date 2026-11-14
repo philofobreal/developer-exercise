@@ -1,5 +1,6 @@
 import validateShape from './schema-check.js';
 import { compileDefinition, isModelError } from './model.js';
+import { withArticle } from './article.js';
 const invalid = (message) => ({ status: 'invalid_reference', accepted: false, reason: 'invalid_model', message, exploredStates: 0 });
 const refId = (id) => `n:${id}`;
 /** Compile and audit once at publication time. Never compile rules supplied by a learner. */
@@ -53,7 +54,7 @@ export function compileCodeLineExercise(raw) {
             scope = block.parentScopeId;
         }
         if (l.functionBlock !== owner)
-            return invalid(`A(z) ${l.id}. sor functionBlock értéke nem felel meg a blokk-hierarchiának (elvárt: ${owner}).`);
+            return invalid(`${withArticle(l.id, true)}. sor functionBlock értéke nem felel meg a blokk-hierarchiának (elvárt: ${owner}).`);
     }
     const tokens = raw.lines.map((l, index) => ({ id: refId(l.id), code: l.code, scope: l.scopeId, after: l.dependencies.map(refId), normalization: l.normalization ?? 'indent', ...(l.fixed ? { fixedPosition: index } : {}) }));
     const edges = (raw.edges ?? []).map(e => ({ before: refId(e.before), after: refId(e.after) }));

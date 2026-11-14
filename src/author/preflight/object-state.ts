@@ -14,6 +14,7 @@
 import type ts from 'typescript';
 import type {ReferenceFacts} from './flow-paths.js';
 import type {RuntimeAnalysis, RuntimeFinding} from './binding-safety.js';
+import {withArticle} from '../../../dist/index.js';
 
 export function objectStateOf(facts: ReferenceFacts): RuntimeAnalysis {
  const {compiler, file, checker} = facts, S = compiler.SyntaxKind;
@@ -72,8 +73,8 @@ export function objectStateOf(facts: ReferenceFacts): RuntimeAnalysis {
      if (!hit) continue;
      const at = hit[0]!, text = at.getText(file).replace(/\s+/g, ' '), shown = text.length > 40 ? text.slice(0, 37) + '…' : text;
      findings.push(kind.nullish
-      ? {line: facts.lineOf(at), code: 'OS001', certainty: 'definite', origin: 'runtime-value', binding: name, message: `A(z) „${name}” értéke itt biztosan ${kind.label} (${where}. sor), ezért a(z) „${shown}” futáskor biztosan TypeError.`}
-      : {line: facts.lineOf(at), code: 'OS002', certainty: 'definite', origin: 'runtime-value', binding: name, message: `A(z) „${name}” nem függvény, hanem ${kind.label} (${where}. sor), ezért a(z) „${shown}” futáskor biztosan TypeError.`});
+      ? {line: facts.lineOf(at), code: 'OS001', certainty: 'definite', origin: 'runtime-value', binding: name, message: `${withArticle('„' + name + '”', true)} értéke itt biztosan ${kind.label} (${where}. sor), ezért ${withArticle('„' + shown + '”')} futáskor biztosan TypeError.`}
+      : {line: facts.lineOf(at), code: 'OS002', certainty: 'definite', origin: 'runtime-value', binding: name, message: `${withArticle('„' + name + '”', true)} nem függvény, hanem ${kind.label} (${where}. sor), ezért ${withArticle('„' + shown + '”')} futáskor biztosan TypeError.`});
      break;
     }
    }

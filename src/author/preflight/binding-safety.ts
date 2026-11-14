@@ -22,6 +22,7 @@
  */
 import type ts from 'typescript';
 import {referenceFacts, type Block, type ReferenceFacts} from './flow-paths.js';
+import {withArticle} from '../../../dist/index.js';
 
 export interface RuntimeFinding {line: number; code: string; message: string; certainty: 'definite'; origin: 'runtime-order' | 'runtime-value'; binding: string;}
 export interface RuntimeAnalysis {completeness: 'within-supported-scope' | 'budget-exceeded'; findings: RuntimeFinding[];}
@@ -121,7 +122,7 @@ export function bindingSafetyOf(facts: ReferenceFacts): RuntimeAnalysis {
    if (direct) {
     const lines = [...new Set(direct.map(node => facts.lineOf(node)))];
     report({line: lines[0]!, code: 'BS001', certainty: 'definite', origin: 'runtime-order', binding: declaration.name,
-     message: `A(z) „${declaration.name}” a deklarációja (${where}. sor) előtt kerül kiolvasásra vagy írásra${lines.length > 1 ? ` minden ágon (${lines.map(line => line + '.').join(', ')} sor)` : ''}; ez futáskor biztosan ReferenceError (TDZ).`});
+     message: `${withArticle('„' + declaration.name + '”', true)} a deklarációja (${where}. sor) előtt kerül kiolvasásra vagy írásra${lines.length > 1 ? ` minden ágon (${lines.map(line => line + '.').join(', ')} sor)` : ''}; ez futáskor biztosan ReferenceError (TDZ).`});
     continue;
    }
    // Calls whose callee certainly reaches an access.
@@ -133,7 +134,7 @@ export function bindingSafetyOf(facts: ReferenceFacts): RuntimeAnalysis {
     return !!hit;
    });
    if (calls && access) report({line: facts.lineOf(calls[0]!), code: 'BS002', certainty: 'definite', origin: 'runtime-order', binding: declaration.name,
-    message: `A(z) ${callText(calls[0] as ts.CallExpression)} hívás olyan függvényt futtat, amely a(z) „${declaration.name}” értékét a ${facts.lineOf(access)}. sorban a deklarációja (${where}. sor) előtt használja; ez futáskor biztosan ReferenceError (TDZ).`});
+    message: `${withArticle(callText(calls[0] as ts.CallExpression), true)} hívás olyan függvényt futtat, amely ${withArticle('„' + declaration.name + '”')} értékét ${withArticle(facts.lineOf(access))}. sorban a deklarációja (${where}. sor) előtt használja; ez futáskor biztosan ReferenceError (TDZ).`});
   }
  }
  findings.sort((a, b) => a.line - b.line);

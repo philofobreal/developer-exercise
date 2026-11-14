@@ -199,7 +199,7 @@ export function renderFindingGroups(findings:readonly GateDiagnostic[]):string {
   const first=group[0]!,head=`<span class="diagnostic-kind">${esc(CERTAINTY[first.certainty])}</span>`,origin=`<small class="diagnostic-origin">${esc(ORIGIN[first.origin])} · ${esc(first.code)}</small>`;
   if(group.length===1)return `<li class="diagnostic certainty-${first.certainty}" data-diagnostic="${esc(first.code)}">${head}${lineButton(first.line)}<span class="diagnostic-message">${esc(first.message)}</span>${origin}</li>`;
   const lines=group.map(item=>`<li>${lineButton(item.line)}<span class="diagnostic-message">${esc(item.message)}</span></li>`).join('');
-  return `<li class="diagnostic diagnostic-group certainty-${first.certainty}" data-diagnostic="${esc(first.code)}" data-diagnostic-count="${group.length}">${head}<span class="diagnostic-count">${group.length} sor</span><div class="diagnostic-message">${esc(cause(group))}${first.origin==='environment'?renderInfo('project-context','Hiányzó projektkontextus'):''}</div>${origin}<details class="diagnostic-lines"><summary>A ${group.length} sor</summary><ol>${lines}</ol></details></li>`;
+  return `<li class="diagnostic diagnostic-group certainty-${first.certainty}" data-diagnostic="${esc(first.code)}" data-diagnostic-count="${group.length}">${head}<span class="diagnostic-count">${group.length} sor</span><div class="diagnostic-message">${esc(cause(group))}${first.origin==='environment'?renderInfo('project-context','Hiányzó projektkontextus'):''}</div>${origin}<details class="diagnostic-lines"><summary>${article(group.length,true)} ${group.length} sor</summary><ol>${lines}</ol></details></li>`;
  };
  return `<ol class="diagnostic-list">${groupFindings(findings).map(row).join('')}</ol>`;
 }

@@ -33,7 +33,7 @@ for(const language of ['javascript','typescript'])registerLanguageAdapter(langua
   if(typeof source!=='string'||source.length>50_000)throw new AuthoringError('Legfeljebb 50 KB forráskód támogatott.');
   // ADR-103: the recursive parsers and the checker must never see a nesting their stack or time budget cannot take.
   const excess=nestingExcess(source,ts);
-  if(excess)throw new AuthoringError(`Túl mély egymásba ágyazás a(z) ${excess.line}. sorban: legfeljebb ${MAX_NESTING} szint (zárójel, blokk, sablonkifejezés) támogatott.`);
+  if(excess)throw new AuthoringError(`Túl mély egymásba ágyazás (${excess.line}. sor): legfeljebb ${MAX_NESTING} szint (zárójel, blokk, sablonkifejezés) támogatott.`);
   if(language==='javascript'){
    try{parseJavaScript(source,{ecmaVersion:'latest',sourceType:'script',allowHashBang:true});}
    catch(scriptError){if(/Not enough stack space/.test(scriptError.message))throw new AuthoringError(TOO_COMPLEX);try{parseJavaScript(source,{ecmaVersion:'latest',sourceType:'module',allowHashBang:true});}catch{throw new AuthoringError(`Szintaktikai hiba ${scriptError.loc?.line??1}. sor: ${scriptError.message}`);}}

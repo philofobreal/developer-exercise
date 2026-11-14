@@ -1,4 +1,5 @@
 import { referenceFacts } from './flow-paths.js';
+import { withArticle } from '../../../dist/index.js';
 const MAX_CALL_DEPTH = 8;
 export function bindingSafety(compiler, source, language) {
     return bindingSafetyOf(referenceFacts(compiler, source, language));
@@ -122,7 +123,7 @@ export function bindingSafetyOf(facts) {
             if (direct) {
                 const lines = [...new Set(direct.map(node => facts.lineOf(node)))];
                 report({ line: lines[0], code: 'BS001', certainty: 'definite', origin: 'runtime-order', binding: declaration.name,
-                    message: `A(z) „${declaration.name}” a deklarációja (${where}. sor) előtt kerül kiolvasásra vagy írásra${lines.length > 1 ? ` minden ágon (${lines.map(line => line + '.').join(', ')} sor)` : ''}; ez futáskor biztosan ReferenceError (TDZ).` });
+                    message: `${withArticle('„' + declaration.name + '”', true)} a deklarációja (${where}. sor) előtt kerül kiolvasásra vagy írásra${lines.length > 1 ? ` minden ágon (${lines.map(line => line + '.').join(', ')} sor)` : ''}; ez futáskor biztosan ReferenceError (TDZ).` });
                 continue;
             }
             // Calls whose callee certainly reaches an access.
@@ -137,7 +138,7 @@ export function bindingSafetyOf(facts) {
             });
             if (calls && access)
                 report({ line: facts.lineOf(calls[0]), code: 'BS002', certainty: 'definite', origin: 'runtime-order', binding: declaration.name,
-                    message: `A(z) ${callText(calls[0])} hívás olyan függvényt futtat, amely a(z) „${declaration.name}” értékét a ${facts.lineOf(access)}. sorban a deklarációja (${where}. sor) előtt használja; ez futáskor biztosan ReferenceError (TDZ).` });
+                    message: `${withArticle(callText(calls[0]), true)} hívás olyan függvényt futtat, amely ${withArticle('„' + declaration.name + '”')} értékét ${withArticle(facts.lineOf(access))}. sorban a deklarációja (${where}. sor) előtt használja; ez futáskor biztosan ReferenceError (TDZ).` });
         }
     }
     findings.sort((a, b) => a.line - b.line);

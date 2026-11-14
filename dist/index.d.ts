@@ -12,4 +12,5 @@ export * from './content-match.js';
 export * from './diagnostics.js';
 export * from './language-ir.js';
 export * from './code-line-v3.js';
+export * from './article.js';
 export * from './render-plan.js';

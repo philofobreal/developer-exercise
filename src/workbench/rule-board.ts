@@ -38,8 +38,8 @@ export function connectButton(state:WorkbenchState,id:number):string {
 /** A board row's pin (WAI-ARIA toggle button): a pinned line may stand only at its reference
  * position in a solution (`fixed`, ADR-002); the core applies it as a typed `set-fixed` edit. */
 export function pinButton(id:number,index:number,fixed:boolean,gate=''):string {
- const place=`${index+1}. helyen`;
- return `<button type="button"${gate} class="pin-toggle" data-rule-pin="${id}" aria-pressed="${fixed}" aria-label="${fixed?`${article(id,true)} #${id} sor rögzítésének feloldása (most a ${place} rögzített)`:`${article(id,true)} #${id} sor rögzítése a ${place}`}" title="${fixed?`Rögzített: a megoldásban csak a ${place} állhat. Kattints a feloldáshoz.`:`Rögzítés: a sor a megoldásban csak a ${place} állhat.`}">${icon('pin')}</button>`;
+ const place=`${article(index+1)} ${index+1}. helyen`;
+ return `<button type="button"${gate} class="pin-toggle" data-rule-pin="${id}" aria-pressed="${fixed}" aria-label="${fixed?`${article(id,true)} #${id} sor rögzítésének feloldása (most ${place} rögzített)`:`${article(id,true)} #${id} sor rögzítése ${place}`}" title="${fixed?`Rögzített: a megoldásban csak ${place} állhat. Kattints a feloldáshoz.`:`Rögzítés: a sor a megoldásban csak ${place} állhat.`}">${icon('pin')}</button>`;
 }
 // ADR-093: the colour keys stay in sight; the longer explanation of the controls folds away.
 const legend='<div class="board-legend"><span class="board-legend-keys"><span class="rule-swatch before" aria-hidden="true"></span>előtte kell állnia <span class="rule-swatch selected" aria-hidden="true"></span>kijelölt <span class="rule-swatch after" aria-hidden="true"></span>utána kell állnia</span><details class="legend-help" data-memory="legend-help"><summary>Jelmagyarázat</summary><p>Láncszem: a sor szabályai. Kör: kipipálja a sor kapcsolatait; pipára kattintva megszünteted, üres körre kattintva létrehozod a kapcsolatot. Rajzszög: a sort a helyére rögzíted, vagy feloldod.</p></details></div>';

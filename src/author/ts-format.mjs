@@ -57,7 +57,7 @@ export function formatTypedSource(source, language, ts){
   const original=parse(source.replace(/\r\n?/g,'\n'));
   if(original.parseDiagnostics.length){
     const d=original.parseDiagnostics[0],place=original.getLineAndCharacterOfPosition(d.start??0);
-    throw new AuthoringError(`Szintaktikai hiba a(z) ${place.line+1}. sorban: ${ts.flattenDiagnosticMessageText(d.messageText,' ')}`);
+    throw new AuthoringError(`Szintaktikai hiba (${place.line+1}. sor): ${ts.flattenDiagnosticMessageText(d.messageText,' ')}`);
   }
   const signature=syntaxSignature(original,ts);
   // Line breaks first, then the language service indents; a changed syntax tree is never returned.

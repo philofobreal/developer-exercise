@@ -2,7 +2,7 @@ import {markEditorDraft,markEditorApplied,reloadEditorFromArrangement,captureEdi
 import {keepLearnerRules} from './app/learner-rules.js';
 import {learnerLevel,refreshAuthorStatus,captureAuthorRequest,authorRequest,startFromExample,startFromHelp,replaceDraft,formatLoaded,undoReplace,revertAuthorDraft,admitAuthorModel,setLearnerData} from './app/author-workspace.js';
 import {NEW_DRAFT_SETTINGS,setPreflightOption,settingsKey,settingsRequest} from './app/preflight-settings.js';
-import {revealLine} from './app/ui-utilities.js';
+import {revealLine,article} from './app/ui-utilities.js';
 import {readRuleEdit,readRuleKindEdits,recordRuleRefusal,ruleCount,settleRuleKind,settleRuleSelection} from './app/rule-panel.js';
 import {availability,reasonOf,refreshAvailability} from './app/availability.js';
 /** ADR-120: the rule editor's own last check (the view and the guard already refused a disabled control). */
@@ -92,7 +92,7 @@ async function toggleLink(anchor,line){
  delete state.ruleConnect;
  if(!pair||!draftId){render();return;}
  state.ruleSelection={line:anchor,message:''};
- if(link?.removal==='impossible'){state.ruleSelection.message=`A(z) #${link.before} → #${link.after} szerkezeti kapcsolat (blokk vagy egység); nem szüntethető meg.`;render();return;}
+ if(link?.removal==='impossible'){state.ruleSelection.message=`${article(link.before,true)} #${link.before} → #${link.after} szerkezeti kapcsolat (blokk vagy egység); nem szüntethető meg.`;render();return;}
  const blocked=ruleEditBlocked(state);if(blocked){state.ruleSelection.message=blocked;render();return;}
  await authorApply({draftId,edits:[{kind:link?'remove-rule':'add-rule',before:pair.before,after:pair.after}]},{preserveAttempt:true,request:editRules});
 }
@@ -185,7 +185,7 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
   const blocked=ruleEditBlocked(state);if(blocked){state.boardStatus=blocked;render();return;}
   await authorApply({draftId,edits:[{kind:'set-fixed',line,fixed}]},{preserveAttempt:true,request:editRules});
   const done=state.authorModel?.lines.find(item=>item.id===line)?.fixed===fixed;
-  state.boardStatus=done?(fixed?`A(z) #${line} sor rögzítve a ${place}. helyen.`:`A(z) #${line} sor rögzítése feloldva.`):'A rögzítés nem módosult.';
+  state.boardStatus=done?(fixed?`${article(line,true)} #${line} sor rögzítve ${article(place)} ${place}. helyen.`:`${article(line,true)} #${line} sor rögzítése feloldva.`):'A rögzítés nem módosult.';
   render();root.querySelector(`[data-rule-pin="${line}"]`)?.focus({preventScroll:true});return;
  }
  if(b.dataset.ruleConnect){
