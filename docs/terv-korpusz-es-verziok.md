@@ -1,6 +1,6 @@
 # Terv: verzióhoz kötött JS-, TS- és RxJS-anyag egy fában (NY-44, NY-45)
 
-Állapot: **jóváhagyásra vár** (2026-11-14). Ez kidolgozás: kódváltozás nincs benne. A felhasználó kérései szó szerint a [jegyzékben](nyitott-tetelek.md) állnak (NY-44, NY-45). A terv az [NY-40 tervét](terv-typescript-tananyag.md) magába foglalja: az lesz a TypeScript-ág.
+Állapot: **jóváhagyva** (2026-11-14): a felhasználó mind a hét ajánlást elfogadta („jóváhagyom mind a hét ajánlást, mehet a G1”), és kérte az előre látható adósságok beütemezését (10. szakasz). Ez kidolgozás: kódváltozás nincs benne. A felhasználó kérései szó szerint a [jegyzékben](nyitott-tetelek.md) állnak (NY-44, NY-45). A terv az [NY-40 tervét](terv-typescript-tananyag.md) magába foglalja: az lesz a TypeScript-ág.
 
 **A terv négy dolgot ad:**
 1. **Technológiajelölés:** minden feladat megnevezi, mely nyelvből, libraryből és frameworkből áll, verzióval. A jelölés mért, nem becsült, és a 16 meglévő feladat is megkapja.
@@ -8,7 +8,7 @@
 3. **Anyag:** 20 JavaScript-, 20 TypeScript- és 8 RxJS-lecke, amelyek a 16 meglévő feladatra és egymásra épülnek. Minden lecke egyben tesztkorpusz.
 4. **Eszközlánc:** újabb TypeScript-fordító, újabb szabványos könyvtár az ellenőrzéshez, RxJS-típusok.
 
-A 8. szakasz hét döntést kér. Mindegyikhez ajánlás tartozik.
+A 8. szakasz hét döntését a felhasználó az ajánlás szerint hozta meg.
 
 ## 1. Amit a mérés mutat (2026-11-14)
 
@@ -90,6 +90,22 @@ Próba: 12 soros program (`of`, `pipe(filter, map, scan)`, `subscribe`), RxJS 7.
 - **Az értékelést ez nem érinti:** a tanuló sorrendjét a modell szabályai döntik el, kód nem fut és nem elemződik.
 
 Verziók: `rxjs` 7.8.2 a legújabb stabil (2025-02-22); a 9.0.0-beta.1 előzetes (2026-10-09). A típusleírások 250 fájlban kb. 0,4 MB.
+
+### 1.6 Söprés: 25 próbaprogram a korpuszból hiányzó elemekkel
+
+A felhasználó kérdése: össze lehet-e ma rakni bármilyen szabályos forráskódból olyan feladatot, amely úgy értékel, ahogy a kód a valóságban fut? **A válasz: nem bármilyenből.** A söprés a korpuszból hiányzó elemeket vitte végig a generátoron, az első kapun és az orákulumon (ES2015–ES2025 kiadásonként, aszinkron kód, klasszikus vezérlés, hét TypeScript-program).
+
+| Eredmény | Programok | Megjegyzés |
+| --- | --- | --- |
+| Nincs hibásan elfogadott sorrend | 21 | minden JavaScript-kiadás ES2015-től ES2025-ig; `async`/`await`, `for await`; `satisfies`, generikusok, leképezett típus, `enum`, osztálytagok, túlterhelés |
+| **Valódi hibás elfogadás** | 1 | TypeScript `namespace`: az exportált tagok felcserélhetők, pedig a névtér objektumának kulcssorrendje megváltozik (`["penalty","total"]` → `["total","penalty"]`); futtatva igazolva. A függvények eredménye azonos. Jegyzék: NY-49 |
+| Hamis jelzés, az orákulum hibája | 1 | saját osztály `[Symbol.iterator]` taggal: a tanú a saját `Reflect.get` hívását reflexiónak jelöli; a javított tanúval 0 hibás elfogadás. Jegyzék: NY-50 |
+| Hamis jelzés, az orákulum túl szigorú | 1 | szabványos dekorátor: az alkalmazás sorrendjét szövegesen hasonlítja; a hatással járó dekorátor tagjait a modell köti (futtatva igazolva). Jegyzék: NY-50 |
+| Nem mérhető | 1 | `using`: a Node 22 `vm` környezetében nincs `Symbol.dispose`. A Node 24 valószínűleg megoldja (G4) |
+
+- **Az első kapu három TypeScript-programot állít meg** (`using`, szabványos dekorátor, ES2023 utáni könyvtári elem): 1.2.
+- **Teljesség:** a 25 programban 2 mért rés (mindkettő ismeretlen hívás kezdőértékben). A legtöbb programnak kevés elfogadott sorrendje van: az alapértelmezett szigorú bemeneti szerződés mellett az ismeretlen hívások kötnek.
+- **Amit ez nem bizonyít:** a söprés 25 kézzel írt program, nem bizonyítás. Egy hiba 25 programból azt mutatja, hogy a korpuszon kívüli elemek rejthetnek továbbiakat; ezért lesz minden lecke korpusz.
 
 ## 2. Technológiajelölés
 
@@ -305,3 +321,21 @@ Minden lépés külön jóváhagyás után indul, saját ADR-rel és tervezési 
 - Más nyelv (Python), más library.
 - A 16 szállított feladat sorainak vagy szabályainak módosítása; csak a jelölést kapják meg.
 - Futásidejű függőség a szerveren vagy a Local Demóban az értékeléshez: az értékelés változatlanul nem futtat és nem elemez tanulói kódot.
+
+## 10. Előre látható adósságok és ütemezésük
+
+A felhasználó kérése (2026-11-14): minden adósság, amelyet a terv lépései előre láthatóan hátrahagynak, kapjon tételt és helyet az ütemezésben. A tételek a [jegyzékben](nyitott-tetelek.md) állnak.
+
+| Tétel | Mi marad hátra | Miért marad | Mikor |
+| --- | --- | --- | --- |
+| **NY-49** | TypeScript `namespace`: hibásan felcserélhető exportált tagok (1.6) | most talált generátorhiba; új szabályverzió kell | **a G1 után, a G2 előtt** (helyesség) |
+| **NY-50** | az orákulum három korlátja: hamis reflexiójelzés `Symbol.` olvasásra, szöveges dekorátor-összevetés, `Symbol.dispose` hiánya | nélkülük a 15., 17. és 18. TS-lecke hamis hibát vagy semmit nem mér | a G5 előtt; a `Symbol.dispose` a G4-gyel |
+| **NY-51** | **RxJS teljes lefedettsége:** a nyilvános felület 173 exportjából a 8 lecke 17-et használ. Hátra van: a lusta létrehozás modellje, az időalapú operátorok (virtuális idő az orákulumban), a forró és hideg folyam, az ütemezők, a teljes operátortábla, és egy kampányfajta, amely RxJS-programokat generál. A cél: bármilyen oktatói RxJS-kódra helyes és minél teljesebb modell | a G8 csak a szinkron magot fedi | a G8 mérése után, három lépésben: lusta létrehozás → idő → teljes tábla és kampány |
+| **NY-52** | **Általános library-ismeret:** típuscsomag szállítása és a hívások leírása library-nként egységes módon, méretkerettel a Local Demóban | a G8 az RxJS-t egyedi esetként köti be | a második library (Angular) előtt |
+| **NY-53** | **Verziók karbantartása:** több library-verzió egymás mellett (RxJS 8 vagy 9 stabil megjelenésekor); a natív TypeScript-fordító, amint betölthető felületet ad; évente az új ECMAScript-kiadás (elemtábla, könyvtár, Node) | a G4 és a G8 egy-egy verziót rögzít | eseményhez kötve; évente júliusban felülvizsgálat |
+| **NY-54** | **A jelölés mérési korlátai:** a típusellenőrző viselkedésében megjelenő újdonság (kézi jelölés indokkal); típus nélküli JavaScript-fogadón a metódus neve alapján dönt; régi futtatókörnyezetben nem fut próba | a mérés egy fordítóval és egy futtatóval dolgozik | a G6 mérései után, ha a kézi jelölések száma indokolja |
+| **NY-55** | **Kimaradó nyelvi elemek:** modulok és több fájl, felső szintű `await`, dinamikus `import`, időzítők és eseményhurok, `WeakRef` | a lánc egy fájlt elemez, a futás nem lehet véletlenszerű | a G9 után külön terv (a többfájlos feladat sémaváltozás) |
+| **NY-56** | **Angular-ág:** sablon, függőséginjektálás, dekorátorok, jelek | a terv csak a jelölés készletébe veszi fel | a G4 és az NY-52 után: felmérés és terv |
+| **NY-57** | **Tananyag a tanulónak, a szerző saját fája:** a lecke szövege a felületen; a szerző saját feladatainak fába rendezése; haladás több eszközön | a G3 a szállított tananyag fáját adja | a G3 után, bemutatóval |
+
+**A helyesség legfontosabb forrása változatlanul a valódi tanári kód** (a felhasználótól várt anyag): a tananyag és a söprés nem pótolja.

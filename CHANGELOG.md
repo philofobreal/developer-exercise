@@ -4,7 +4,9 @@
 
 - **Elkészült a közös terv,** jóváhagyásra vár: [docs/terv-korpusz-es-verziok.md](docs/terv-korpusz-es-verziok.md). Technológiajelölés minden feladaton (a 16 meglévőn is), fa a gyakorló listában, 20 JavaScript-, 20 TypeScript- és 8 RxJS-lecke, újabb eszközlánc.
 - **Mért kiindulás:** a 16 feladat a 88 vizsgált nyelvi elemből 18-at használ, a korpusz lényegében ES2015-ig tart; az első kapu ma TypeScript-forrásban elutasítja az ES2023 utáni könyvtári elemeket; a TypeScript 7.0 natív program, a legújabb betölthető fordító a 6.0.3.
-- **Ez a lépés kódot nem változtat.** A terv hét döntést kér a felhasználótól.
+- **Ez a lépés kódot nem változtat.** A felhasználó mind a hét ajánlást jóváhagyta.
+- **Söprés 25 próbaprogrammal** a korpuszból hiányzó elemeken: 21 programban nincs hibásan elfogadott sorrend; egy valódi hibás elfogadás (TypeScript `namespace` exportált tagjai, NY-49), két hamis jelzés az orákulum hibájából (NY-50), egy nem mérhető program (`using`).
+- **Kilenc előre látható adósság kapott tételt és helyet az ütemezésben** (NY-49–NY-57), köztük az RxJS teljes lefedettsége (NY-51).
 
 ## Unreleased – 2026-11-14 A gombrendszer lezárva (ADR-140, D6)
 
