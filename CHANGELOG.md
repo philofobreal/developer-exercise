@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-11-14 Három felületi javítás: nincs aláhúzás gombban, varratmentes panelsáv, egy oszlopban álló sorikonok (ADR-153, NY-59)
+
+- **Gombban nincs aláhúzás.** A bekapcsolt gomb (a kiválasztott mód, a kapcsolók) felirata alól eltűnt a 2 px-es vonal; az állapotot a halvány kék lap és a kék körvonal jelzi. A zárolt beállítás „Miért?” lenyílója aláhúzás helyett nyilat kapott.
+- **A „Felhasználható sorok” és a „Megoldás” panel színes sávján nincs halvány csík.** Tört képpontarányú kijelzőn (110%, 125%, 175%) a sáv és a lekerekített lába között varrat látszott.
+- **A Próba lépésben a sorok szabályikonjai egy oszlopban állnak,** a rögzített sorokban is, és a szabályívek nem futnak más sorok ikonjai mögé. (Rögzített első sornál minden ív 20 px-rel jobbra került.)
+- **A feladat címe:** „Legrövidebb út rácson (szélességi keresés, BFS)”.
+
 ## Unreleased – 2026-11-14 A technológiajelölés látszik és szűr a gyakorló listában (ADR-152, G2)
 
 - **Jelvények a listaelemen** (`TS 2.0`, `ES2018`), ott, ahol eddig a nyelv neve állt; az elem nem lett magasabb.

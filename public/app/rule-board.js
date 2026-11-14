@@ -121,7 +121,10 @@ export function drawRuleArcs(root, state) {
         }
         // ADR-090: the row controls stay at the zone's right edge while the list scrolls sideways; the arcs
         // follow their visible place (the layer is in the zone's content coordinates).
-        const controls = rows[0]?.querySelector('.row-actions'), visible = controls ? controls.getBoundingClientRect().left - zone.getBoundingClientRect().left - zone.clientLeft - 6 : zone.clientWidth - 8, anchor = visible + zone.scrollLeft;
+        // ADR-153 (NY-59c): they stand before the leftmost row controls of the list, whichever row those belong to. The first
+        // row alone does not say where: a fixed row's controls can be narrower, and then the arcs ran behind the other rows' icons.
+        const lefts = rows.map(row => row.querySelector('.row-actions')).filter((box) => !!box && box.offsetWidth > 0).map(box => box.getBoundingClientRect().left);
+        const visible = lefts.length ? Math.min(...lefts) - zone.getBoundingClientRect().left - zone.clientLeft - 6 : zone.clientWidth - 8, anchor = visible + zone.scrollLeft;
         paintArcs(layer, state, new Map(rows.map(row => [Number(row.dataset.lineId), row.offsetTop + row.offsetHeight / 2])), anchor, Math.min(140, visible - 60), Math.ceil(anchor + 8), zone.scrollHeight);
     }
 }

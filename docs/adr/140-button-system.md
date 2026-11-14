@@ -11,7 +11,7 @@
     - a lépés fő művelete (Modell készítése, Tovább a próbához, Ellenőrzés).
   - **kerekített** (8 px, kicsiben 6 px): minden eszköz és kapcsoló, azaz az eszközsor, a sorgombok, a fejléc eszközei és a szegmentált választók.
 - **Nézetenként legfeljebb egy kitöltött lecsapott gomb.** A gyakorlásban és a Próba lépésben ez a sárga „Ellenőrzés”, a lépésekben a kék fő művelet.
-- **Bekapcsolt állapot** (`aria-pressed`): halvány kék lap, kék vonal és egy 2 px-es alsó jelzővonal, így nem csak a szín jelzi.
+- **Bekapcsolt állapot** (`aria-pressed`): halvány kék lap, kék vonal és egy 2 px-es alsó jelzővonal, így nem csak a szín jelzi. *Módosítva: a 2 px-es jelzővonal megszűnt, gombban nincs aláhúzás ([ADR-153](153-no-underline-seamless-stripe-aligned-row-icons.md)); a jel a lap és a vonal.*
 - **Állapotok minden családban:** alap, lenyomva, dolgozik (az ikon forog, a felirat nem változik), letiltva (az ok mellette, ADR-120), törlés vagy hiba (piros szöveg, piros vonal).
 - **Méretek a meglévő tokenekre:**
   - nagy (48 px): a lépés fő művelete; a lépéslap 58 px;

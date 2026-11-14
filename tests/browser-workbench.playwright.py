@@ -309,6 +309,25 @@ def header_logo_fits(browser):
             page.locator('[data-step="source"]').click()
             state=page.evaluate(HEADER_STATE);assert state['fits'] and state['page']<=width,f'{width}px, wide font: {state}'
         finally:context.close()
+def rule_icons_in_one_column(browser):
+    """ADR-153 (NY-59c): in the Try lists a row's rule icons stand in one column, in a fixed row too: its tag takes the room
+    the three move buttons take in the other rows. The arcs of the selected row stand before the controls of every row, so
+    none runs behind an icon; that holds where a fixed row's controls are narrower too (the tag is shrunk by the test: the
+    first row alone used to say where the arcs stand)."""
+    measure="""()=>{const rows=[...document.querySelectorAll('.solution-zone > .code-row')],left=e=>Math.round(e.getBoundingClientRect().left*10)/10;
+      return {fixed:rows.filter(row=>row.classList.contains('fixed-row')).map(row=>row.dataset.index),icons:[...new Set(rows.map(row=>left(row.querySelector('[data-rule-line]'))))],
+       controls:Math.min(...rows.map(row=>left(row.querySelector('.row-actions')))),arcs:[...document.querySelectorAll('.solution-zone .zone-arcs path.arc')].map(path=>Math.round(path.getBoundingClientRect().right*10)/10)}}"""
+    for shrunk in [False,True]:
+        context=watch(browser.new_context(viewport={'width':1440,'height':900},bypass_csp=shrunk));page=context.new_page()
+        try:
+            reset(page,BASE);build(page,rules_source);pin=page.locator('.board-row[data-board-line="1"] [data-rule-pin]');pin.click();expect(pin).to_have_attribute('aria-pressed','true')
+            to_try(page);page.locator('[data-all]').click();expect(page.locator('.solution-zone .fixed-tag')).to_have_count(1)
+            if shrunk:page.add_style_tag(content='.solution-row .fixed-tag{min-width:0!important}')
+            page.locator('.solution-zone [data-rule-line="5"]').click();expect(page.locator('.solution-zone .zone-arcs path.arc')).not_to_have_count(0)
+            m=page.evaluate(measure);assert m['fixed']==['0'],m
+            assert len(m['icons'])==(2 if shrunk else 1),f"the rule icons of the rows stand at {m['icons']}"
+            assert max(m['arcs'])<=m['controls'],f"an arc runs behind the row controls ({'shrunk tag' if shrunk else 'as drawn'}): {m}"
+        finally:context.close()
 def result_bar_sticks(browser):
     """ADR-139: the result bar (Ellenőrzés) sticks to the bottom of the screen in practice and in the author's Try step, at
     every width, as a step's action bar does: with the page at its top the bar is on the screen, at the bottom or (its
@@ -1395,7 +1414,7 @@ def settle(page):
 def button_states(page):
     """ADR-140 (D1), ADR-143 (D3b): the plate's states. A plate is one flat tone: no gradient, no shadow, no line. A disabled
     one is a hollow plate (a line, no face, a muted label) whether it is :disabled or aria-disabled with its reason; a busy
-    one is not disabled to the eye; a pressed one has another face, a line and a 2 px mark; the main action, the check and the
+    one is not disabled to the eye; a pressed one has another face and a line, and no mark on the face (ADR-153); the main action, the check and the
     removing action each have a face of their own that their label reads on."""
     state=page.evaluate("""()=>{const look=b=>{const s=getComputedStyle(b),f=getComputedStyle(b,'::after'),l=getComputedStyle(b,'::before');
       return {opacity:s.opacity,cursor:s.cursor,color:s.color,shadow:s.boxShadow,ground:s.backgroundColor+' '+s.backgroundImage,face:f.backgroundColor,image:f.backgroundImage,mark:f.backgroundSize,line:l.content!=='none'&&!/, 0\\)$/.test(l.backgroundColor)&&!b.hasAttribute('data-busy-shown')};};
@@ -1414,7 +1433,8 @@ def button_states(page):
         assert clear(state[name]['face']) and state[name]['line'] and state[name]['color']!=plain['color'],(name,'a hollow plate with a muted label',state[name],plain)
     assert all(state['off'][k]==state['reason'][k] for k in ('face','line','color')),'the two kinds of disabled look the same'
     assert state['busy']['cursor']=='progress' and state['busy']['opacity']=='1' and state['busy']['face']==plain['face'] and not state['busy']['line'],state['busy']
-    assert state['on']['face']!=plain['face'] and state['on']['line'] and 'gradient' in state['on']['image'] and state['on']['mark'].endswith(' 2px'),state['on']
+    # ADR-153: a pressed plate has its own face and a line around it; nothing is drawn on the face (no mark under the label)
+    assert state['on']['face']!=plain['face'] and state['on']['line'] and state['on']['image']=='none',state['on']
     # the roles (the main action, the learner's check, an action that removes): each has its own face, and its label reads on it
     faces=[face for _,_,face in state['roles']]
     assert len(set(faces+[plain['face']]))==4,('every role has its own face',state['roles'],plain['face'])
@@ -1662,6 +1682,7 @@ try:
             case('node the four view buttons are switched off; the key turns them back on',lambda:view_switches_off(browser))
             case('node a menu opened before a background answer stays open',lambda:background_render_keeps_menu(page))
             case('node the app bar keeps the wordmark wherever it fits, EDITOR beside it on the desktop',lambda:header_logo_fits(browser))
+            case('node the rule icons of the Try lists stand in one column, the arcs before them',lambda:rule_icons_in_one_column(browser))
             case('node the result bar sticks to the bottom in practice and in Try, at every width',lambda:result_bar_sticks(browser))
             case('node a long wait offers Megszakítás after 10 s and the page works on',lambda:activity_abort(browser,BASE,False))
             case('pages the compiler download is named; Megszakítás restarts the worker, exercises still check',lambda:activity_abort(browser,f'http://127.0.0.1:{static.server_port}/developer-exercise/',True))
@@ -1669,7 +1690,7 @@ try:
             reset(page,BASE);case('node sample loading preserves newer reference edits',lambda:stale_source_sample(page))
             for name,action in [('author format preserves newer edits',lambda:stale_format(page,True)),('solution format preserves newer edits',lambda:stale_format(page,False)),('stale check failure cannot replace newer attempt',lambda:stale_check_failure(page))]:
                 reset(page,BASE);case('node '+name,action)
-            reset(page,BASE);case('node button states: disabled one way, busy not disabled, pressed marked',lambda:button_states(page))
+            reset(page,BASE);case('node button states: disabled one way, busy not disabled, pressed lined and unmarked',lambda:button_states(page))
             case('node every ⓘ: nothing moves, inside the screen, ring off the label, 44 px on touch, closes three ways',lambda:toggletips_everywhere(browser,BASE))
             case('node a phone has one header menu beside full screen: labelled rows, the theme as a choice, focus back to its button',lambda:header_menu(browser,BASE))
             case('node a narrow toolbar labels the tools the row has room for and keeps the rare two behind one icon',lambda:toolbar_menu(browser,BASE))

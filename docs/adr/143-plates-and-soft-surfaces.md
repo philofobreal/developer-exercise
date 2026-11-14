@@ -23,7 +23,7 @@
   - A sűrűség a mai: 36 px (érintésre 44), a fő művelet 44 px, a lépéslap 58 px. A minta 50, 44 és 65 px-es méretei nem.
 - **Ikon- és sorgomb:** kerekített. Az ikongomb ugyanazt a lapot kapja, a sorgomb lapos marad.
 - **Kitöltés:** egy képernyőn legfeljebb két teli lap van: az aktuális lépés és a fő művelet (a sárga „Ellenőrzés” vagy a kék). A módváltó kiválasztott fele halvány lap, kék vonallal és a 2 px-es jellel, nem teli kék.
-- **Bekapcsolt állapot:** a halvány lap mellett megmarad a 2 px-es jel (az ADR-140 D1 szerint). A mintában a bekapcsolt gombot csak egy halványabb árnyalat jelezte.
+- **Bekapcsolt állapot:** a halvány lap mellett megmarad a 2 px-es jel (az ADR-140 D1 szerint). *Módosítva: a jel megszűnt ([ADR-153](153-no-underline-seamless-stripe-aligned-row-icons.md)).* A mintában a bekapcsolt gombot csak egy halványabb árnyalat jelezte.
 - **Az állapot nem gomb:** a minősítés, a jelvények és a címkék pirula alakú, lapos címkék; a minta színkészlete rájuk kerülhet, de gombnak nem látszhatnak.
 - **Összetartozó választók** (Forráskód | CodeLine JSON, Vizuális | JSON): egy kerekített csoport, benne a kiválasztott rész kis lap.
 - **Lágy felületek:** a lépés kerete 12 px, a panel 10 px, a betét 8 px, a lebegő felület 12 px sugarat kap; a mezők 8 px-et. A kód mögé nem kerül díszítő átmenet.

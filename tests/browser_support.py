@@ -52,6 +52,28 @@ def analysis_options(page):
     return box
 
 
+def pixels(page,clip):
+    """The painted RGB of every device pixel in `clip` (CSS px), row by row: a screenshot at the device's own scale,
+    decoded with zlib alone. What a seam of one device pixel looks like is lost in a screenshot scaled to CSS pixels."""
+    import struct,zlib
+    data=page.screenshot(clip=clip,scale='device');pos=8;idat=b'';width=height=depth=color=0
+    while pos<len(data):
+        length,kind=struct.unpack('>I4s',data[pos:pos+8]);chunk=data[pos+8:pos+8+length];pos+=12+length
+        if kind==b'IHDR':width,height,depth,color=struct.unpack('>IIBB',chunk[:10])
+        elif kind==b'IDAT':idat+=chunk
+    assert depth==8 and color in (2,6),'an 8-bit RGB or RGBA screenshot'
+    size=3 if color==2 else 4;stride=width*size;raw=zlib.decompress(idat);previous=bytearray(stride);rows=[]
+    for y in range(height):
+        kind=raw[y*(stride+1)];line=bytearray(raw[y*(stride+1)+1:(y+1)*(stride+1)])
+        for i in range(stride):
+            a=line[i-size] if i>=size else 0;b=previous[i];c=previous[i-size] if i>=size else 0
+            if kind==1:line[i]=(line[i]+a)&255
+            elif kind==2:line[i]=(line[i]+b)&255
+            elif kind==3:line[i]=(line[i]+(a+b)//2)&255
+            elif kind==4:
+                p=a+b-c;pa,pb,pc=abs(p-a),abs(p-b),abs(p-c);line[i]=(line[i]+(a if pa<=pb and pa<=pc else b if pb<=pc else c))&255
+        rows.append([tuple(line[x*size:x*size+3]) for x in range(width)]);previous=line
+    return rows
 def pixel(page,x,y):
     """The painted RGB at (x, y): what the reader sees, after any forced darkening of the browser
     (computed styles do not show it). Decodes the 1×1 PNG screenshot with zlib alone."""

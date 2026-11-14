@@ -5,7 +5,7 @@ lists on the first screen, focus gives the lists at least 40 % of the height, an
 screen widens. Screenshots of every view land in test-results/layout-*.png."""
 import os,socket,subprocess,time,urllib.request
 from playwright.sync_api import sync_playwright,expect
-from browser_support import ROOT,ARTIFACTS,launch
+from browser_support import ROOT,ARTIFACTS,launch,pixels
 with socket.socket() as sock:sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
 BASE=f'http://127.0.0.1:{port}'
 proc=subprocess.Popen(['node','server.mjs'],cwd=ROOT,env={**os.environ,'HOST':'127.0.0.1','PORT':str(port)},stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
@@ -60,8 +60,10 @@ MEASURE=r"""()=>{const shown=s=>[...document.querySelectorAll(s)].filter(e=>e.of
    const solid=['--blue','--blue-hover','--yellow','--yellow-hover'].map(t=>{probe.style.color=`var(${t})`;return getComputedStyle(probe).color;});probe.remove();
    const face=b=>{if(b.matches(PLATES))return getComputedStyle(b,'::after').backgroundColor;const s=getComputedStyle(b),stops=s.backgroundImage.match(/(?:rgba?|color)\([^()]*\)/g);return stops?stops[stops.length-1]:s.backgroundColor;};
    return shown('button,summary').filter(b=>solid.includes(face(b))).map(b=>b.getAttribute('aria-label')||b.textContent.trim().slice(0,24));})(),
-  // a pressed plate: a line around it and a 2 px mark on its face
-  pressed:shown(':is(button.btn,.mode-tabs button)[aria-pressed=true]').map(b=>{const f=getComputedStyle(b,'::after'),line=getComputedStyle(b,'::before');return [(b.getAttribute('aria-label')||b.textContent.trim()),f.backgroundImage.includes('gradient')&&/ 2px$/.test(f.backgroundSize)&&parseFloat(f.backgroundSize)!==0&&line.content!=='none'&&alpha(line.backgroundColor)>0];}),
+  // a pressed plate: a line around it, and nothing drawn on its face (ADR-153: no mark under the label)
+  pressed:shown(':is(button.btn,.mode-tabs button)[aria-pressed=true]').map(b=>{const f=getComputedStyle(b,'::after'),line=getComputedStyle(b,'::before');return [(b.getAttribute('aria-label')||b.textContent.trim()),f.backgroundImage==='none'&&line.content!=='none'&&alpha(line.backgroundColor)>0];}),
+  // ADR-153: nothing in a button is underlined, whatever its state
+  underlined:shown('button,summary,a.btn,[role=button]').filter(b=>[b,...b.querySelectorAll('*')].some(e=>getComputedStyle(e).textDecorationLine!=='none')).map(b=>b.getAttribute('aria-label')||b.textContent.trim().slice(0,24)),
   zoneTop:Math.round(box(document.querySelector('.drop-zone')??document.body).top),
   zones:shown('.drop-zone').map(z=>Math.round(box(z).height)),
   // the lists side by side share their height; stacked, their heights add up
@@ -111,9 +113,10 @@ def surfaces(page,name):
     assert not s['square'],f"{name}: surfaces without their corner: {s['square']}"
     assert not s['chips'],f"{name}: status chips that are not flat pills: {s['chips']}"
     assert not s['segments'],f"{name}: segmented choices: {s['segments']}"
-    # A list title's coloured stripe ends in a rounded foot: a bar and, under it, a quarter disc as wide as the bar.
+    # A list title's coloured stripe ends in a rounded foot: a bar and a quarter disc as wide as the bar. The disc's layer
+    # starts a pixel under the bar's end, so the two overlap (ADR-153: edge to edge they showed a seam at 125%).
     stripes=page.evaluate("""()=>[...document.querySelectorAll('.panel-title')].filter(e=>e.getClientRects().length).map(e=>{const c=getComputedStyle(e),size=c.backgroundSize.split(', '),at=c.backgroundPosition.split(', ');
-     return c.backgroundImage.startsWith('radial-gradient(circle at 0px 0px')&&size[0]==='5px 5px'&&size[1]==='5px 15px'&&at[0]==='0px 15px'&&at[1]==='0px 0px'?null:[c.backgroundImage.slice(0,40),c.backgroundSize,c.backgroundPosition].join(' | ')}).filter(Boolean)""")
+     return c.backgroundImage.startsWith('radial-gradient(circle at 0px 1px')&&size[0]==='5px 6px'&&size[1]==='5px 15px'&&at[0]==='0px 14px'&&at[1]==='0px 0px'?null:[c.backgroundImage.slice(0,40),c.backgroundSize,c.backgroundPosition].join(' | ')}).filter(Boolean)""")
     assert not stripes,f"{name}: a list title's stripe has a square foot: {stripes}"
     # NY-48: a language badge wears its language's own colours wherever it stands, selected or not: JavaScript yellow,
     # TypeScript blue, with a label that reads on it.
@@ -162,7 +165,8 @@ def step(page,name):
     assert all(size==(13 if m['width']>650 or size==13 else 12) for size in m['code']),f"{name}: code sizes {m['code']} (13 px; 12 px in an editor on a narrow screen)"
     assert not m['square'],f"{name}: buttons with a square corner: {m['square']}"
     assert len(m['filled'])<=2,f"{name}: more than two filled plates on the screen: {m['filled']}"
-    assert all(marked for _,marked in m['pressed']),f"{name}: a pressed button without its line and mark: {m['pressed']}"
+    assert all(lined for _,lined in m['pressed']),f"{name}: a pressed button without its line, or with a mark on its face: {m['pressed']}"
+    assert not m['underlined'],f"{name}: an underlined button: {m['underlined']}"
     surfaces(page,name)
     if name.endswith('author-source'):focus_ring(page,name)
     print(f"PASS layout: {name} {m['width']}x{m['height']} filled {len(m['filled'])}",flush=True)
@@ -199,7 +203,8 @@ def check(page,name,side,focused=False):
     assert all(size==(13 if m['width']>650 or size==13 else 12) for size in m['code']),f"{name}: code sizes {m['code']} (13 px; 12 px in an editor on a narrow screen)"
     assert not m['square'],f"{name}: buttons with a square corner: {m['square']}"
     assert len(m['filled'])<=2,f"{name}: more than two filled plates on the screen: {m['filled']}"
-    assert all(marked for _,marked in m['pressed']),f"{name}: a pressed button without its line and mark: {m['pressed']}"
+    assert all(lined for _,lined in m['pressed']),f"{name}: a pressed button without its line, or with a mark on its face: {m['pressed']}"
+    assert not m['underlined'],f"{name}: an underlined button: {m['underlined']}"
     if focused:assert m['pressed'],f"{name}: the focus toggle is pressed in focus mode"
     if side:
         assert m['toolRows']==1,f"{name}: the toolbar takes {m['toolRows']} rows on a phone on its side"
@@ -302,6 +307,21 @@ def sidebar(browser):
     assert page.evaluate("()=>{const l=document.querySelector('.task-picker');l.scrollTop=l.scrollHeight;const last=[...l.querySelectorAll('[data-task]')].pop().getBoundingClientRect();return last.bottom<=innerHeight&&last.top>=0}"),'the last task is reached by scrolling the list'
     print('PASS layout: a task list closed on a narrow screen is visible in the wide sidebar',flush=True)
     page.context.close()
+def seamless_stripes(browser):
+    """ADR-153 (NY-59b): a list title's stripe is one colour from under its top to its foot, at every device pixel ratio.
+    Its bar and its rounded foot are two layers; laid edge to edge they were smoothed apart on a 125% screen, a pale
+    line across the stripe where the rounding begins."""
+    for scheme in ['light','dark']:
+        for ratio in [1,1.1,1.25,1.5,1.75,2,2.5]:
+            context=browser.new_context(viewport={'width':1440,'height':900},color_scheme=scheme,device_scale_factor=ratio);page=context.new_page();page.goto(BASE)
+            page.locator('[data-mode="practice"]').click();expect(page.locator('[data-check]')).to_be_visible()
+            for pane in ['pool-pane','answer-pane']:
+                box=page.locator(f'#{pane} .panel-title').bounding_box()
+                # the column through the stripe's middle: from 2 px under its top to where its foot is still as wide
+                column=pixels(page,{'x':round(box['x'])+2,'y':int(box['y'])+3,'width':1,'height':13});colours={colour for row in column for colour in row}
+                assert len(colours)==1,f"{scheme} {pane} at {ratio}: the stripe is not one colour: {sorted(colours)}"
+            context.close()
+    print('PASS layout: a list title\'s stripe has no seam at any pixel ratio',flush=True)
 try:
     for _ in range(100):
         try:urllib.request.urlopen(BASE+'/api/exercises',timeout=.5);break
@@ -313,7 +333,7 @@ try:
                 for name,width,height,touch,side in VIEWPORTS:
                     context=browser.new_context(viewport={'width':width,'height':height},is_mobile=touch,has_touch=touch,color_scheme=scheme)
                     views(context.new_page(),f'{scheme}-{name}',side);context.close()
-            sidebar(browser);lists_above_bar(browser)
+            sidebar(browser);lists_above_bar(browser);seamless_stripes(browser)
             print('PASS layout total: every view in both themes',flush=True)
         finally:browser.close()
 finally:
