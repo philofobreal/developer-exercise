@@ -1,6 +1,6 @@
 # Nyitott tételek jegyzéke
 
-Állapot: 2026-11-13, szabályverzió `scoped-effect-analysis-v57`. Ez az egyetlen hely, ahol a lezáratlan tételek össze vannak gyűjtve: a még meg nem oldott generátorhiányok, mérési korlátok, döntések és tervezési adósságok. A részletek a forrásként megadott ADR-ben vannak.
+Állapot: 2026-11-14, szabályverzió `scoped-effect-analysis-v57`. Ez az egyetlen hely, ahol a lezáratlan tételek össze vannak gyűjtve: a még meg nem oldott generátorhiányok, mérési korlátok, döntések és tervezési adósságok. A részletek a forrásként megadott ADR-ben vannak.
 
 **Szabályok:**
 - Minden ADR, amelynek „Nyitott” szakasza van, ide kerül. Ezt a [governance-teszt](../tests/governance.test.mjs) ellenőrzi.
@@ -31,7 +31,8 @@
 | NY-55 | **Kimaradó nyelvi elemek:** több fájl és modulok, felső szintű `await`, dinamikus `import`, időzítők, `WeakRef` | döntés, generátor | nincs | [terv](terv-korpusz-es-verziok.md) 10. | a G9 után külön terv |
 | NY-56 | **Angular-ág:** felmérés és terv (sablon, függőséginjektálás, dekorátorok, jelek) | döntés | nincs | [terv](terv-korpusz-es-verziok.md) 10. | a G4 és az NY-52 után |
 | NY-57 | **Tananyag a tanulónak, a szerző saját fája, haladás több eszközön** | felület, döntés | nincs | [terv](terv-korpusz-es-verziok.md) 10. | a G3 után, bemutatóval |
-| NY-42 | **A kapu alsó határa a leghosszabb sor:** a `browser-workbench` (374 mp) és a három hosszú egységtesztfájl (168, 128 és 104 mp) nem osztható szét | tervezés | felületi változás kb. 7 perc, teljes kör kb. 12 perc; felosztással kb. 5, illetve 9 perc lenne elérhető | [ADR-142](adr/142-fast-deploy-and-local-gate.md) | csak ha a 7, illetve 12 perc zavar; a munkafelület-sor esetei közös oldalon, egymás után futnak, ezért a felosztás tervezést kér |
+| NY-58 | **A munkafelület refaktorálása** ([terv](terv-munkafelulet-refaktor.md)): headless alkalmazásmag (store, típusos Intent-szótár, selectorok, gesztusgép), régiós és kulcsolt kirajzolás, mérőkapuval védett időkeretek, dokumentált nézetszerződés; viselkedésmegőrző, hét fázisban (F0–F6) | tervezés, felület | mért kiindulás (486 soros feladat): billentyűs lerakás 280–288 ms, húzás eseményenként 118–120 ms, ellenőrzés 222–254 ms a fő szálon; indulás lassított hálózaton 3,7 s | [terv](terv-munkafelulet-refaktor.md) | **beütemezve** (a terv 10. szakasza): F0 az NY-49 után; F1 a G3 után; F2–F5 a G3 és a G4 után (másik ügynökkel a G5–G8 alatt, különben a G8 után); az NY-57 elé be kell fejezni |
+| NY-42 | **A kapu alsó határa a leghosszabb sor:** a `browser-workbench` (374 mp) és a három hosszú egységtesztfájl (168, 128 és 104 mp) nem osztható szét | tervezés | felületi változás kb. 7 perc, teljes kör kb. 12 perc; felosztással kb. 5, illetve 9 perc lenne elérhető | [ADR-142](adr/142-fast-deploy-and-local-gate.md) | **az NY-58 F0 lépésével együtt:** a T0.2 új böngészős mérősort ad a teljes körhöz, az nem lehet a kapu új alsó határa; addig csak ha a 7, illetve 12 perc zavar; a munkafelület-sor esetei közös oldalon, egymás után futnak, ezért a felosztás tervezést kér |
 | NY-03 | **Hatásösszegzés** a felső szintű függvényekre (`var v = f()`) | generátor | **0 mért rés** (a korábban ide sorolt 31 rés más okú volt, [ADR-069](adr/069-deep-hostile-input-and-own-class-names.md)) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md) | csak ha egy mérés esetet mutat |
 | NY-05 | **2d maradéka:** saját objektumot kapó ismeretlen függvény (a referencia megtartása) | generátor | **0 mért rés** (2026-11-04: a korpusz `Object.entries(totals)` tanúja már nem rés, a kampányban sincs ilyen) | [ADR-040](adr/040-unknown-calls-and-unescaped-objects.md), [ADR-059](adr/059-read-only-builtins.md) | csak ha egy mérés esetet mutat |
 | NY-08 | **Érték-perturbáció korlátja:** egy literál egyszerre, legfeljebb 96 változat | mérés | a rés felső becslés marad | [ADR-067](adr/067-value-perturbation-in-measurement.md) | csak ha egy rés gyanúsan szándékhű |
@@ -39,15 +40,25 @@
 | NY-13 | **`primitive`/`pure`/`readOnly`:** három egymásra épülő osztályozó | tervezés | nincs | [ADR-050](adr/050-input-contract.md) | nem sürgős |
 | NY-33 | **A v3 egységmodell bekötése a szerzői láncba** (overload-csoport, `});` jellegű lezáró sorok egységként) | tervezés | mért haszon nincs (az NY-04 lezárásakor) | [ADR-079](adr/079-overload-header-blocks.md) | külön epic, saját tervezési körrel |
 
-### Sorrend (2026-11-13, a gyors telepítés és a helyi kapu után)
+### Sorrend (2026-11-14, a két terv és az adósságok beütemezése után)
 
-Felülvizsgálva 2026-11-13-án: minden nyitott tétel aktuális. Azóta lezárult az NY-38 ([ADR-144](adr/144-lists-end-above-the-result-bar.md)); két új tétel került fel (NY-41, NY-42).
+Felülvizsgálva 2026-11-14-én: minden nyitott tétel aktuális. Azóta elkészült a G1 ([ADR-149](adr/149-technology-labels.md)); tíz új tétel került fel (NY-49–NY-58).
 
-1. **NY-44 és NY-45:** a [közös terv](terv-korpusz-es-verziok.md) jóváhagyva (2026-11-14). Sorrend: G1 jelölés (kész, [ADR-149](adr/149-technology-labels.md)) → **NY-49** (hibás elfogadás javítása) → G2 a jelölés felülete → G3 a fa → G4 eszközlánc → **NY-50** → G5–G7 az anyag → G8 RxJS → **NY-51** → G9. A többi adósság (NY-52–NY-57) a terv 10. szakasza szerint.
-2. **NY-40 TypeScript-tananyag:** a közös terv TypeScript-ága (G5–G7); a C0 (b) kérdése megmérve (a közös terv 1.2 szakasza). A C0 többi része bármikor elvégezhető, és nem ütközik a felületi munkával; a C1–C5 a gombrendszer után, vagy egy másik ügynökkel (például Codexszel) párhuzamosan. A tananyag minden lépése a teljes kört futtatja (kb. 12 perc).
-4. **Valódi tanári kód mérése:** a helyesség és a teljesség következő forrása; a felhasználótól kell hozzá anyag. A tananyag nem pótolja.
-5. **NY-42**, ha a kapu ideje zavar; **NY-28** (`pages-api`), ha módosítani kell.
-6. **Parkoló, csak mért eset esetén:** NY-33, NY-03, NY-05, NY-08, NY-13.
+1. **Egységes sorrend (2026-11-14, a két terv és az adósságok együtt):**
+   1. **NY-49** (hibás elfogadás: TypeScript `namespace`). A G1 kész ([ADR-149](adr/149-technology-labels.md)).
+   2. **NY-58 F0** (mérőkapu, szabályok, markup-szerződés; vele az NY-42).
+   3. **G2** (a jelölés felülete) → **G3** (a lista fája; a betöltés módjáról is itt dől el a döntés).
+   4. **NY-58 F1** (gyors nyereség; a T1.2 a G6 előtt).
+   5. **G4** (eszközlánc) → **NY-50** (az orákulum három korlátja).
+   6. **G5 → G6 → G7 → G8** (az anyag és az RxJS). **Az NY-58 F2–F5 ezek alatt párhuzamosan fut, ha másik ügynök viszi;** egy ügynökkel a G8 után.
+   7. **NY-58 F6** → **NY-51** (RxJS teljes lefedettsége) → **G9** (lezárás).
+   8. **NY-57** (tananyag a tanulónak; már az új szerkezetre) → **NY-52, NY-56** (általános library-ismeret, Angular-ág) → **NY-55** (kimaradó nyelvi elemek).
+   - Eseményhez kötött: **NY-53** (verziók), **NY-54** (a jelölés korlátai, a G6 után).
+   - Az indoklás: a [közös terv](terv-korpusz-es-verziok.md) 10. szakasza és a [refaktorterv](terv-munkafelulet-refaktor.md) 10. szakasza.
+2. **NY-40 TypeScript-tananyag:** a közös terv TypeScript-ága (G5–G7); a C0 kérdései megmérve (a közös terv 1.2 és 1.6 szakasza).
+3. **Valódi tanári kód mérése:** a helyesség és a teljesség legfontosabb forrása; a felhasználótól kell hozzá anyag. A tananyag és a söprés nem pótolja. Bármikor beilleszthető, amint az anyag megvan.
+4. **NY-28** (`pages-api`), ha módosítani kell; a T1.2 és a G8 bekötés jellegű módosítása nem migráció.
+5. **Parkoló, csak mért eset esetén:** NY-33, NY-03, NY-05, NY-08, NY-13.
 
 ## Elfogadott korlátok (nem rések, nem javítandók)
 

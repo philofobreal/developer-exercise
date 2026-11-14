@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased – 2026-11-14 A munkafelület refaktorterve beütemezve (NY-58)
+
+- **A felhasználó terve a repóban van:** [docs/terv-munkafelulet-refaktor.md](docs/terv-munkafelulet-refaktor.md) (headless alkalmazásmag, régiós kirajzolás, mérőkapu, nézetszerződés; hét fázis).
+- **Három azonosító változott az ütközések miatt:** a tétel NY-58 lett (az NY-49 már foglalt), az ADR a következő szabad számot kapja, a governance-szabályok neve K1–K12.
+- **Új 10. szakasz:** hol fed át más tételekkel (a jelölés felülete, a lista fája, a kapu felosztása, a betöltés módja, az eszközlánc), mi hiányzott (a mérés rögzített feladatkészleten fusson), és hol áll a sorrendben.
+- **A jegyzék egy egységes sorrendet kapott** a két tervre és az adósságokra. Kód nem változott.
+
 ## Unreleased – 2026-11-14 Technológiajelölés: minden feladat megnevezi a nyelvét és annak verzióját (ADR-149, G1)
 
 - **Új mező a feladat modelljében:** `technologies`, például „ECMAScript 2020” vagy „TypeScript 2.0”. A verzió a legújabb elem, amelyet a kód használ.
