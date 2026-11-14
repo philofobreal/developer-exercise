@@ -1,6 +1,6 @@
 /** GitHub Pages static demo adapter. All evaluation is local and demonstrative.
  * This is NEVER an authoritative server-grade grading endpoint. */
-import {compileCodeLineExercise,validateSubmission,diagnoseSubmission,channelFeedback,codeLineDiagnosticReasons} from '../dist/index.js';
+import {compileCodeLineExercise,validateSubmission,diagnoseSubmission,evaluationDisclosure,withLearnerFeedback,codeLineDiagnosticReasons} from '../dist/index.js';
 import {generateCodeLineExercise,DEPENDENCY_POLICY} from '../author/generator.mjs';
 import {getLanguageAdapter} from '../author/languages.mjs';
 import {auditReference} from '../author/audit.mjs';
@@ -53,7 +53,8 @@ export async function compileDraft(body){
   }else{
     // ADR-108 (E1): the same policy resolution as the server, in the browser.
     policy=resolveAuthorPolicy(body??{},await environment());const refusal=policyRefusal(policy);if(refusal)throw Error(refusal);
-    model=generateCodeLineExercise({...(body??{}),...generatorOptions(policy)},getTypeScript());
+    // ADR-147: as on the server, the learner's level is the author's choice beside the source.
+    model=withLearnerFeedback(generateCodeLineExercise({...(body??{}),...generatorOptions(policy)},getTypeScript()),body?.learnerFeedback);
   }
   if(body?.refreshDependencies)({model,report:refresh}=await refreshAuthorModel(model,{generate:input=>generateCodeLineExercise(input,getTypeScript()),audit:reference=>auditReference(reference,getTypeScript())}));
   if(!model.lines?.length||model.lines.length>MODEL_LIMIT)throw Error('Túl sok kódsor.');
@@ -82,7 +83,7 @@ export async function compileDraft(body){
 export async function editRules(body){
   const ref=drafts.get(body?.draftId);
   if(!ref||!Array.isArray(body.edits))throw Error('Érvénytelen vagy lejárt szerzői előnézet.');
-  const {result,verification}=await editAuthorModel(ref.model,body.edits,{generate:input=>generateCodeLineExercise(input,getTypeScript())},{audit:ref.audit.semantics});
+  const {result,verification}=await editAuthorModel(withLearnerFeedback(ref.model,body.learnerFeedback),body.edits,{generate:input=>generateCodeLineExercise(input,getTypeScript())},{audit:ref.audit.semantics});
   if(!result.ok)return result;
   const draftId='pages-'+nextDraft++,model={...result.model,id:'author-'+draftId},compiled=assertSafeModel(model);
   drafts.delete(body.draftId);drafts.set(draftId,{model,compiled,audit:ref.audit,verification,snapshot:ref.snapshot});
@@ -121,15 +122,17 @@ export async function previewDraft(body){
   // As on the server: a preview carrying the current source passes the second gate itself.
   if(!ref.tryProof&&typeof body.source==='string')await admit(ref,body);
   if(!ref.tryProof)throw Error('A Próba lépés még nincs megnyitva ehhez a modellhez: előbb a második kapun (Szabályok → Próba) kell átmenni.');
+  // ADR-147: as on the server, the author's current choice of the learner's level travels with the preview.
+  ref.model=withLearnerFeedback(ref.model,body.learnerFeedback);
   const report=diagnoseSubmission(ref.compiled,{exerciseId:ref.model.id,revision:ref.model.revision,lines:body.lines},{maxStates:30_000,reasons:ref.reasons??=codeLineDiagnosticReasons(ref.model)});
-  return {...report.verdict,feedback:channelFeedback(report,'author-preview',ref.model.learnerFeedback)};
+  return {...report.verdict,...evaluationDisclosure(report,'author-preview',ref.model)};
 }
 export async function evaluate(body){
   const ref=records.get(body?.exerciseId);
   if(!ref)throw Error('Ismeretlen referenciafeladat.');
   // ADR-027: the learner level is the exercise author's explicit choice, never provenance.
   const report=diagnoseSubmission(ref.compiled,body,{maxStates:50_000});
-  return {...report.verdict,feedback:channelFeedback(report,'learner',ref.model.learnerFeedback)};
+  return {...report.verdict,...evaluationDisclosure(report,'learner',ref.model)};
 }
 export async function loadTypeScriptFixture(){
   const res=await fetch(new URL('../samples/copy-field-utility.service.ts',import.meta.url));

@@ -6,12 +6,14 @@
  * Activating a check removes that link, an empty circle creates one, so the same two activations
  * also restore a removed link. A pointer drag from one circle onto another row is the same
  * toggle. This presents the core's rule sheet and reports intent only; whether a link may be
- * created or removed is a typed edit the core decides (ADR-018, ADR-021). Both surfaces exist
- * only for the author's own draft. */
+ * created or removed is a typed edit the core decides (ADR-018, ADR-021). The board and every
+ * editing control exist only for the author's own draft; the sorter's arcs and the rule button are
+ * also a learner's, read-only, where an evaluation brought the rules (ADR-147). */
 import {availability,disabledAttributes} from './availability.js';
 import type {CodeLineExercise,DirectConstraint} from '../../dist/index.js';
 import type {WorkbenchState} from './contracts.js';
-import {createRuleMarks,ruleButton,rulesAvailable} from './rule-panel.js';
+import {createRuleMarks,ruleButton,rulesAvailable,rulesEditable,shownRules,type ShownRule} from './rule-panel.js';
+import {LEARNER_LEGEND} from './learner-rules.js';
 import {icon} from './icons.js';
 import {article,escapeHtml as esc} from './ui-utilities.js';
 import {formatForIDE,referenceLayout} from '../formatter.js';
@@ -51,16 +53,17 @@ export function renderRuleBoard(state:WorkbenchState,highlight:(code:string)=>st
  return `<section class="rule-board" aria-labelledby="rule-board-title"><div class="board-heading"><h3 id="rule-board-title">A referencia sorai és szabályai</h3>${toggle(state)}</div>${legend}${connecting(state)}<p class="board-status" role="status" aria-live="polite" data-board-status>${esc(state.boardStatus??'')}</p><div class="board-frame"><svg class="board-arcs" data-board-arcs aria-hidden="true" focusable="false"></svg><ol class="board-list" data-board-list aria-label="A referencia sorai">${rows}</ol></div></section>`;
 }
 /** The Try step's rule inspector head (ADR-107): the same legend and drawing switch as the board. */
-export const renderTryRules=(state:WorkbenchState):string=>rulesAvailable(state)?`<div class="try-rules">${toggle(state)}${legend}</div>`:'';
+export const renderTryRules=(state:WorkbenchState):string=>rulesAvailable(state)?`<div class="try-rules">${toggle(state)}${rulesEditable(state)?legend:LEARNER_LEGEND}</div>`:'';
 /** Connecting is an action on the rows, so its instructions stay above the lists, panel open or not. */
-export const renderTryConnecting=(state:WorkbenchState):string=>rulesAvailable(state)?connecting(state):'';
+export const renderTryConnecting=(state:WorkbenchState):string=>rulesEditable(state)?connecting(state):'';
 /** Row controls for a sorter row of the author's preview; nothing for learners or practice. */
-export const tryRowRuleControls=(state:WorkbenchState,id:unknown):string=>typeof id==='number'&&rulesAvailable(state)?ruleButton(state,id)+connectButton(state,id):'';
+/** A sorter row's rule controls: the rules of the line for either reader; connecting lines is the author's (ADR-147). */
+export const tryRowRuleControls=(state:WorkbenchState,id:unknown):string=>typeof id==='number'&&rulesAvailable(state)?ruleButton(state,id)+(rulesEditable(state)?connectButton(state,id):''):'';
 
-/** What to draw: the selected line's direct constraints, and on request every non-structural one. */
-function shownConstraints(state:WorkbenchState):DirectConstraint[] {
+/** What to draw: the selected line's direct rules, and on request every non-structural one. */
+function shownConstraints(state:WorkbenchState):ShownRule[] {
  const line=state.ruleSelection?.line;
- return (state.authorInsight?.rules?.constraints??[]).filter(c=>line!==undefined&&(c.before===line||c.after===line)||!!state.boardAll&&c.removal!=='impossible');
+ return shownRules(state).filter(c=>line!==undefined&&(c.before===line||c.after===line)||!!state.boardAll&&!c.structural);
 }
 /** Arcs bulge left from `anchor`; positions are row centres measured after rendering. */
 function paintArcs(svg:SVGSVGElement,state:WorkbenchState,centre:Map<number,number>,anchor:number,reach:number,width:number,height:number):void {

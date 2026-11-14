@@ -1,5 +1,6 @@
 /** Presentation ports: no graph/parser/HTTP implementation leaks into the view. */
-import type {Acknowledgement,CodeLineExercise,EditEffect,Feedback,ModelVerification,Normalization,RefreshReport,RuleEdit,ValidationResult} from '../../dist/index.js';
+import type {Acknowledgement,CodeLineExercise,EditEffect,Feedback,LearnerRuleSheet,ModelVerification,Normalization,RefreshReport,RuleEdit,ValidationResult} from '../../dist/index.js';
+import type {KeptLearnerRules} from './learner-rules.js';
 import type {AuthorRuleSheet} from '../../dist/author/engine.js';
 import type {ReferenceAudit} from '../../dist/author/reference-audit.js';
 import type {AuthorPolicy,PolicyResolution} from '../../dist/author/preflight/config-resolver.js';
@@ -13,7 +14,9 @@ export type ExerciseLevel='beginner'|'intermediate'|'advanced';
 export interface ExerciseSummary {id:string;revision:number;language:string;title:string;description:string;level?:ExerciseLevel;lines:ExerciseLine[];previewOnly?:boolean;}
 /** `feedback` (ADR-026): what the API discloses to the author and to the learner view; `slots`: the
  * sorter slot of each submitted line, so diagnostic positions mark the rows that were graded. */
-export type Report=Pick<ValidationResult,'status'|'message'>&Partial<ValidationResult>&{feedback?:{author?:Feedback;learner:Feedback};slots?:number[]};
+export type Report=Pick<ValidationResult,'status'|'message'>&Partial<ValidationResult>&{feedback?:{author?:Feedback;learner:Feedback};slots?:number[];
+ /** ADR-147: the exercise's rules for the learner, where its author allows them; only an evaluation's answer carries it. */
+ rules?:LearnerRuleSheet};
 export interface AttemptSnapshot {answer:(LineId|null)[];pool:LineId[];draft:string;report:Report|null;feedback:string;generation:number;editorDirty?:boolean;editorGeneration?:number;}
 export type ImportEmit='verbatim'|'elide-unused';
 /** The exercise's input contract (ADR-050): `any` (default) or valid plain data. */
@@ -24,7 +27,9 @@ export type KeyOrder='observed'|'ignored';
 export type ClassFields='either'|'define';
 /** ADR-108 (E7): the preflight options of the request's `policy` object; absent is the resolver's start value. */
 export type PreflightOptions=Partial<Pick<AuthorPolicy,'portability'|'unknownPolicy'|'tsDiagnostics'|'jsCheck'|'objectState'>>;
-export interface AuthorDraft {title:string;description:string;level?:ExerciseLevel|'';language:string;source:string;message:string;importEmit?:ImportEmit;inputs?:InputContract;keyOrder?:KeyOrder;classFields?:ClassFields;policy?:PreflightOptions;}
+/** ADR-027, ADR-147: how much the learner is told; absent means `positions`. */
+export type LearnerFeedback='positions'|'rules'|'graph';
+export interface AuthorDraft {title:string;description:string;level?:ExerciseLevel|'';learnerFeedback?:LearnerFeedback;language:string;source:string;message:string;importEmit?:ImportEmit;inputs?:InputContract;keyOrder?:KeyOrder;classFields?:ClassFields;policy?:PreflightOptions;}
 /** ADR-108 (E8): where the applied model's analysis settings come from when they are not the author's choices of
  * this session: `recorded` in a session file, or `partial` (an older session or a model file: the model's recorded
  * environment, start values for the rest). */
@@ -51,7 +56,9 @@ export interface WorkbenchState {exercises:ExerciseSummary[];active:string|null;
  /** ADR-118: the row picked by a touch or pen tap (drag-insert's onPick), by list and line id; its actions show in the action bar. */
  rowPick?:{list:'pool'|'answer';id:string};authorRequestGeneration?:number;authorModel?:CodeLineExercise;authorInsight?:AuthorInsight;ruleSelection?:RuleSelection;rulePanelOpen?:boolean;ruleKind?:RuleKindSelection;modelDraft:string;modelMessage:string;
  /** ADR-108 (E7): the resolver's answer for the author's current request, and the last first-gate outcome. */
- authorPolicy?:PolicyResolution;sourceGate?:SourceGateRecord;settingsOrigin?:SettingsOrigin;}
+ authorPolicy?:PolicyResolution;sourceGate?:SourceGateRecord;settingsOrigin?:SettingsOrigin;
+ /** ADR-147: the rules an evaluation's answer brought for the learner, by exercise (learner-rules owns it). */
+ learnerRules?:Map<string,KeptLearnerRules>;}
 export interface AttemptPresentation {text:(id:LineId|null)=>string;fixed:(position:number)=>boolean;formattedAnswer:()=>string[];}
 export interface ScrollMemory {capture:()=>void;restore:(id:string)=>void;}
 export interface WorkbenchOptions {root:HTMLElement;state:WorkbenchState;ex:()=>ExerciseSummary|undefined;at:()=>AttemptSnapshot|undefined;attempt:AttemptPresentation;scroll:ScrollMemory;

@@ -3,6 +3,7 @@
   "id": "celsius-js",
   "revision": 1,
   "language": "javascript",
+  "learnerFeedback": "graph",
   "title": "Celsius átváltása Fahrenheitre",
   "description": "Átváltás két állandóval. A két állandó deklarációja felcserélhető; a visszatérés a végén áll. A bemenet szám.",
   "level": "beginner",

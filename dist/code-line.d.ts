@@ -130,8 +130,9 @@ export interface CodeLineExercise {
             after: number;
         }[];
     }[];
-    /** ADR-027: the learner's disclosure level, an explicit author decision; absent means `positions`. */
-    learnerFeedback?: 'positions' | 'rules';
+    /** ADR-027, ADR-147: the learner's disclosure level, an explicit author decision; absent means `positions`.
+     * `rules` names the violated line pairs; `graph` also lets the learner see the exercise's rules after a check. */
+    learnerFeedback?: 'positions' | 'rules' | 'graph';
     authoring?: {
         strategy?: string;
         reason?: string;

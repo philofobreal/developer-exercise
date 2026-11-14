@@ -6,6 +6,7 @@
   "description": "Absztrakt ősosztály, védett mezők, paraméterproperty, super-hívás és felüldefiniált metódus. Az ősosztály tagjai, a két mezővel együtt, bármilyen sorrendben állhatnak. A metódustörzsek sorai kötöttek: a this.balance frissítése és a this.history.push(…) sem cserélhető, mert egy nem szám összeg mindkettőben kódot futtathat. A leszármazott osztály az ős után áll. A kulcsok sorrendje nem számít: az objektumokat kulcssorrendtől függetlenül hasonlítjuk, ezért a két mező egymáshoz képest szabad.",
   "level": "advanced",
   "language": "typescript",
+  "learnerFeedback": "graph",
   "lines": [
     {
       "id": 1,

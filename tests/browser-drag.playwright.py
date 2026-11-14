@@ -66,7 +66,9 @@ def pointer_drag(page,source,target,unrelated_cancel=False,fraction=.85):
     page.mouse.up()
 
 try:
-    for _ in range(100):
+    # Under the whole regression (unit tests and four suites at once) the server has needed more than 10 s to start,
+    # twice; the wait is 30 s. It decides nothing about what is tested.
+    for _ in range(300):
         try:exercises=json.load(urllib.request.urlopen(BASE+'/api/exercises',timeout=.5))['exercises'];break
         except Exception:time.sleep(.1)
     else:raise AssertionError('Test server did not start')

@@ -3,6 +3,7 @@
   "id": "word-count-js",
   "revision": 2,
   "language": "javascript",
+  "learnerFeedback": "graph",
   "title": "Szógyakoriság Map-pel",
   "description": "Szavak megszámlálása Map-pel, majd rendezés gyakoriság szerint. A Map létrehozása és a szöveg felbontása felcserélhető; a számlálás a ciklusban és a rendezés ezekre épül. A bemenet egyszerű szöveg és egy szám.",
   "level": "intermediate",

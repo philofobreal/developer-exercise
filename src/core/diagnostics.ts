@@ -133,10 +133,40 @@ export type FeedbackChannel = 'author-preview' | 'learner';
 /** The single disclosure policy (ADR-027), used alike by the trusted server and the Pages demo:
  * the author preview sees everything and the learner level beside it; a learner gets the level
  * the exercise's author chose (`learnerFeedback`, default `positions`), never reasons or
- * provenance. An unknown stored value falls back to `positions`. */
+ * provenance; `graph` (ADR-147) reads as `rules` here. An unknown stored value falls back to `positions`. */
 export function channelFeedback(report: DiagnosticReport, channel: FeedbackChannel, learnerFeedback?: string): { author?: Feedback; learner: Feedback } {
- const learner = discloseReport(report, learnerFeedback === 'rules' ? 'rules' : 'positions');
+ const learner = discloseReport(report, learnerFeedback === 'rules' || learnerFeedback === 'graph' ? 'rules' : 'positions');
  return channel === 'author-preview' ? { author: discloseReport(report, 'provenance'), learner } : { learner };
+}
+/** The model with the author's current choice of the learner's level (it needs no re-analysis, so it travels with the
+ * author's requests): the same object unless `level` is a known level other than the model's. */
+export function withLearnerFeedback(model: CodeLineExercise, level: unknown): CodeLineExercise {
+ if (level !== 'positions' && level !== 'rules' && level !== 'graph' || level === (model.learnerFeedback ?? 'positions')) return model;
+ const { learnerFeedback: _replaced, ...rest } = model;
+ return level === 'positions' ? rest : { ...rest, learnerFeedback: level };
+}
+/** ADR-147: what a learner may see of an exercise's rules where its author allows it (`learnerFeedback: 'graph'`):
+ * every direct rule as the pair of lines it orders, and whether the pair is the code's own structure (a block and
+ * its lines). Never a reason, an origin, a category or a note. */
+export interface LearnerRuleSheet { constraints: { before: number; after: number; structural: boolean }[]; }
+const learnerSheets = new WeakMap<CodeLineExercise, LearnerRuleSheet | null>();
+function learnerRuleSheet(model: CodeLineExercise): LearnerRuleSheet | undefined {
+ if (model.learnerFeedback !== 'graph') return undefined;
+ let sheet = learnerSheets.get(model);
+ if (sheet === undefined) {
+  const explanation = explainConstraints(model);
+  sheet = 'status' in explanation ? null : { constraints: explanation.lines.flatMap(line => line.predecessors).map(c => ({ before: c.before, after: c.after, structural: c.removal === 'impossible' })) };
+  learnerSheets.set(model, sheet);
+ }
+ return sheet ?? undefined;
+}
+/** Everything one evaluation's answer discloses beside the verdict (ADR-027, ADR-147), used alike by the trusted
+ * server and the Pages demo: the feedback per viewer and, where the author allows it, the learner's rule sheet.
+ * The sheet travels with an evaluation's answer only. An exercise's listing never carries it, so no rule reaches a
+ * learner before a first check: that is kept here, at the answer, not by the view. */
+export function evaluationDisclosure(report: DiagnosticReport, channel: FeedbackChannel, model: CodeLineExercise): { feedback: { author?: Feedback; learner: Feedback }; rules?: LearnerRuleSheet } {
+ const rules = learnerRuleSheet(model);
+ return { feedback: channelFeedback(report, channel, model.learnerFeedback), ...(rules ? { rules } : {}) };
 }
 
 /** Bound provenance of a CodeLine v2 model as diagnostic reasons; empty when unbound or absent. */

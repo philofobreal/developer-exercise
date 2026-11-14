@@ -3,6 +3,7 @@
   "id": "vowels-js",
   "revision": 1,
   "language": "javascript",
+  "learnerFeedback": "graph",
   "title": "Magánhangzók számlálása",
   "description": "Magánhangzók megszámlálása egy szövegben. A három előkészítő sor (a magánhangzók, a kisbetűs szöveg és a számláló) bármilyen sorrendben állhat; a ciklus utánuk, a visszatérés a végén áll. A bemenet szöveg.",
   "level": "beginner",

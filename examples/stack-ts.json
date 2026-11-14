@@ -3,6 +3,7 @@
   "id": "stack-ts",
   "revision": 1,
   "language": "typescript",
+  "learnerFeedback": "graph",
   "title": "Generikus verem – interface és osztály",
   "description": "Generikus verem interface-szel és privát tömbbel. Az interface két tagja felcserélhető, és az interface az osztály után is állhat. Az osztály mezője és öt tagja (getter és metódusok) bármilyen sorrendben állhat; a tagok törzse a helyén marad.",
   "level": "intermediate",

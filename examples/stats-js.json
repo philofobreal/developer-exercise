@@ -3,6 +3,7 @@
   "id": "stats-js",
   "revision": 1,
   "language": "javascript",
+  "learnerFeedback": "graph",
   "title": "Statisztika egy tömbből",
   "description": "Darabszám, átlag és terjedelem egy számtömbből, ciklussal. A három gyűjtőváltozó deklarációja, a ciklusmag három sora és a darabszám (a ciklus előtt vagy után) bármilyen sorrendben állhat; a ciklus a gyűjtőváltozók után, a visszatérés a végén áll. A bemenet nem üres számtömb.",
   "level": "intermediate",

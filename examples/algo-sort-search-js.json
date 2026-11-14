@@ -3,6 +3,7 @@
   "id": "algo-sort-search-js",
   "revision": 2,
   "language": "javascript",
+  "learnerFeedback": "graph",
   "title": "Beszúrásos rendezés + bináris keresés",
   "description": "Két felső szintű függvény, egymásba ágyazott for/while ciklusok és megosztott } else { határ. A két függvénydeklaráció sorrendje szabad; a current/j és a low/high kezdőértékek felcserélhetők. Az else-ág és a ciklusmag sorai kötöttek.",
   "level": "advanced",

@@ -11,6 +11,7 @@ import { article, escapeHtml as esc } from './ui-utilities.js';
 import { icon } from './icons.js';
 import { renderFindingGroups } from './preflight-settings.js';
 import { helpLink, renderInfo } from './help-topics.js';
+import { learnerLineName, learnerRules, renderLearnerRulePanel } from './learner-rules.js';
 const editabilityLabel = { hard: 'Szerkezeti', proven: 'Bizonyított', conservative: 'Konzervatív', pedagogical: 'Szerzői', legacy: 'Ismeretlen eredetű' };
 const categoryLabel = { structure: 'szerkezet', unit: 'egység', data: 'adatfüggés', effect: 'hatás', policy: 'sorrendpolitika', conservative: 'konzervatív becslés', author: 'szerzői szabály', unknown: 'ismeretlen eredet' };
 const statusLabel = { 'analysis-verified': 'Elemzéssel igazolt', conservative: 'Konzervatív', 'author-modified': 'Szerzői döntéssel módosított', unverified: 'Nem igazolt' };
@@ -35,7 +36,16 @@ function context(state) {
     // A sheet saved before ADR-054 has no meanings; the codes still show.
     return model && rules ? { model, constraints: rules.constraints, meanings: rules.meanings ?? {} } : null;
 }
-export const rulesAvailable = (state) => !!context(state);
+/** The author's own rules are in front: they can be edited. */
+export const rulesEditable = (state) => !!context(state);
+/** Rules can be shown: the author's own, or (ADR-147) those a learner may see after a check. */
+export const rulesAvailable = (state) => rulesEditable(state) || !!learnerRules(state);
+export function shownRules(state) {
+    const found = context(state);
+    if (found)
+        return found.constraints.map(c => ({ before: c.before, after: c.after, structural: c.removal === 'impossible', editability: c.editability }));
+    return (learnerRules(state)?.rules ?? []).map(rule => ({ ...rule, editability: rule.structural ? 'hard' : 'shown' }));
+}
 /** How each removable class of rule is lifted; mirrors the acknowledgement the core asks for (ADR-018). */
 /** ADR-065: the step that lifts a rule, by the core's removal requirement (DirectConstraint.removal). */
 const liftStep = {
@@ -115,13 +125,13 @@ export function renderRuleCause(state, path) {
 }
 /** Sorter row classes: the selected line and its direct predecessors and successors. */
 export function createRuleMarks(state) {
-    const found = context(state), line = state.ruleSelection?.line;
-    if (!found || line === undefined)
+    const rules = shownRules(state), line = state.ruleSelection?.line;
+    if (!rules.length || line === undefined)
         return () => '';
-    const before = new Set(found.constraints.filter(c => c.after === line).map(c => c.before)), after = new Set(found.constraints.filter(c => c.before === line).map(c => c.after));
+    const before = new Set(rules.filter(c => c.after === line).map(c => c.before)), after = new Set(rules.filter(c => c.before === line).map(c => c.after));
     return id => typeof id !== 'number' ? '' : id === line ? ' rule-selected' : before.has(id) ? ' rule-before' : after.has(id) ? ' rule-after' : '';
 }
-export const ruleButton = (state, id) => `<button type="button" class="rule-toggle" data-rule-line="${id}" aria-pressed="${state.ruleSelection?.line === id}" aria-label="${article(id, true)} #${id} sor szabályai" title="Szabályok megjelenítése és szerkesztése">${icon('link')}</button>`;
+export const ruleButton = (state, id) => `<button type="button" class="rule-toggle" data-rule-line="${id}" aria-pressed="${state.ruleSelection?.line === id}" ${rulesEditable(state) ? `aria-label="${article(id, true)} #${id} sor szabályai" title="Szabályok megjelenítése és szerkesztése"` : `aria-label="A sor szabályai: ${learnerLineName(state, id)}" title="A sor szabályai"`}>${icon('link')}</button>`;
 function effectView(effect) {
     if (!effect)
         return '';
@@ -131,7 +141,7 @@ function effectView(effect) {
 export function renderRulePanel(state) {
     const found = context(state), selection = state.ruleSelection;
     if (!found)
-        return '';
+        return renderLearnerRulePanel(state);
     if (!selection)
         return `<p class="rule-hint" data-rule-hint>${icon('link')}<span>Jelölj ki egy sort a láncszem gombjával: itt jelennek meg a szabályai, és itt szerkesztheted őket. A tanulói nézet ebből semmit nem mutat.</span></p>`;
     const { model, constraints } = found, index = model.lines.findIndex(line => line.id === selection.line), line = model.lines[index];

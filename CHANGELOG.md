@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased – 2026-11-14 A tanuló az első ellenőrzés után megnézheti a sorok szabályait (ADR-147, NY-46)
+
+- **A gyakorló feladatokban az első ellenőrzés után megjelenik a „Sor szabályai” eszköz** és minden soron egy láncszem gomb. A panel megmutatja, mely soroknak kell a kijelölt sor előtt és után állniuk. A panel magától nem nyílik ki, és ellenőrzés előtt nincs.
+- **A hibás megoldásnál a megsértett szabály két sora is megjelenik** a visszajelzésben, nem csak a hibás hely.
+- **A szerző feladatonként állítja,** a „Tanulói adatok és kiadás” részben: csak a hibás hely; a megsértett sorpár is; vagy a sorpár és a szabálypanel. Új feladatnál az alapérték a legszűkebb.
+- **Mind a 16 szállított gyakorló feladat megkapta** a szabálypanelt.
+- **A szabályok okát a tanuló egyik szinten sem látja.**
+
 ## Unreleased – 2026-11-14 Nyelvjelvény a nyelv színében; a szabálypanel két oszlopba törik (NY-47, NY-48)
 
 - **A JavaScript jelvénye sárga, a TypeScripté TypeScript-kék,** a gyakorló listában és a címsorokban, mindkét témában. Eddig a lista jelvénye szürke volt, a kijelölt feladaté sárga, a TypeScripté is.

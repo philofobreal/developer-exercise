@@ -1,6 +1,6 @@
 # ADR-027 – Felfedési politika, szerveroldali szerzői jogosultság és publikálási szabály (F2)
 
-Állapot: implementálva (F2.1–F2.3). Az [ADR-026](026-learner-feedback-and-row-marks.md) mechanizmusára épül. A validátor döntése nem változik.
+Állapot: implementálva (F2.1–F2.3). **A tanulói szint harmadik értékét (`graph`: az első ellenőrzés után megnyitható szabálypanel) az [ADR-147](147-learner-rule-panel-after-a-check.md) írja le;** a „csak a megsértett párok” szabály a `positions` és a `rules` szintre érvényes. Az [ADR-026](026-learner-feedback-and-row-marks.md) mechanizmusára épül. A validátor döntése nem változik.
 
 ## Kontextus
 

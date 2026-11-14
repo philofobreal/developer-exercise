@@ -9,7 +9,7 @@ import path from 'node:path';
 import {generateCodeLineExercise,AuthoringError,DEPENDENCY_POLICY} from '../author/generator.mjs';
 import {getLanguageAdapter} from '../author/languages.mjs';
 import {auditReference} from '../author/audit.mjs';
-import {compileCodeLineExercise,validateSubmission,diagnoseSubmission,channelFeedback,codeLineDiagnosticReasons,publicationRefusal,DEFAULT_PUBLICATION_POLICY} from '../../dist/index.js';
+import {compileCodeLineExercise,validateSubmission,diagnoseSubmission,evaluationDisclosure,withLearnerFeedback,codeLineDiagnosticReasons,publicationRefusal,DEFAULT_PUBLICATION_POLICY} from '../../dist/index.js';
 import {authorRuleSheet,editAuthorModel,refreshAuthorModel,verifyAuthorModel} from '../../dist/author/engine.js';
 import {createReferenceAuditor} from '../../dist/author/reference-audit.js';
 import {auditMode,generatorOptions,policyRefusal,recordedContract,resolveAuthorPolicy} from '../../dist/author/preflight/config-resolver.js';
@@ -79,7 +79,8 @@ export class ExerciseCatalog{
     }else{
       // ADR-108 (E1): the effective author policy; a refused option is a structured 422, never ignored.
       policy=resolveAuthorPolicy(body??{});const refusal=policyRefusal(policy);if(refusal)throw new ServiceError(422,refusal,{policy});
-      model=generateCodeLineExercise({...(body??{}),...generatorOptions(policy)},await this.parser());
+      // ADR-147: the learner's level is the author's choice beside the source; the analysis does not know it.
+      model=withLearnerFeedback(generateCodeLineExercise({...(body??{}),...generatorOptions(policy)},await this.parser()),body?.learnerFeedback);
     }
     if(body?.refreshDependencies)try{const parser=await this.parser();({model,report:refresh}=await refreshAuthorModel(model,{generate:input=>generateCodeLineExercise(input,parser),audit:reference=>auditReference(reference,parser)}));}catch(error){throw new ServiceError(422,error.message);}
     const draftId=randomUUID();model.id=`author-${draftId}`;
@@ -111,7 +112,7 @@ export class ExerciseCatalog{
     this.prune();if(typeof body?.draftId!=='string'||!Array.isArray(body?.edits))throw new ServiceError(400,'Invalid rule edit');
     const item=this.drafts.get(body.draftId);if(!item)throw new ServiceError(404,'Preview not found or expired');
     const parser=await this.parser();
-    const {result,verification}=await editAuthorModel(item.model,body.edits,{generate:input=>generateCodeLineExercise(input,parser)},{audit:item.audit.semantics});
+    const {result,verification}=await editAuthorModel(withLearnerFeedback(item.model,body.learnerFeedback),body.edits,{generate:input=>generateCodeLineExercise(input,parser)},{audit:item.audit.semantics});
     if(!result.ok)return result;
     const draftId=randomUUID(),model={...result.model,id:`author-${draftId}`},compiled=compileCodeLineExercise(model);
     if('status' in compiled)throw new ServiceError(422,compiled.message);
@@ -155,15 +156,17 @@ export class ExerciseCatalog{
     // so re-evaluating after a rule edit is one request; without that evidence it needs the transition.
     if(!item.tryProof&&typeof body.source==='string')this.admit(item,body);
     if(!item.tryProof)throw new ServiceError(409,'A Próba lépés még nincs megnyitva ehhez a modellhez: előbb a második kapun (Szabályok → Próba) kell átmenni.');
+    // ADR-147: the author's current choice of the learner's level travels with the preview (it needs no re-analysis).
+    item.model=withLearnerFeedback(item.model,body.learnerFeedback);
     // F1 (ADR-026): the verdict, plus feedback for the author and for the learner view of the draft.
     const report=diagnoseSubmission(item.compiled,{exerciseId:item.model.id,revision:item.model.revision,lines:body.lines},{maxStates:30_000,reasons:item.reasons??=codeLineDiagnosticReasons(item.model)});
-    return {...report.verdict,feedback:channelFeedback(report,'author-preview',item.model.learnerFeedback)};
+    return {...report.verdict,...evaluationDisclosure(report,'author-preview',item.model)};
   }
   evaluate(body){
     if(!body||typeof body.exerciseId!=='string'||!Array.isArray(body.lines)||body.lines.length>500)throw new ServiceError(400,'Invalid submission');
     const item=this.trusted.get(body.exerciseId);if(!item)throw new ServiceError(404,'Exercise not found');
-    // ADR-027: the learner level is the exercise author's explicit choice, never provenance.
+    // ADR-027, ADR-147: what the learner is told is the exercise author's explicit choice, never provenance.
     const report=diagnoseSubmission(item.compiled,body,{maxStates:50_000});
-    return {...report.verdict,feedback:channelFeedback(report,'learner',item.model.learnerFeedback)};
+    return {...report.verdict,...evaluationDisclosure(report,'learner',item.model)};
   }
 }

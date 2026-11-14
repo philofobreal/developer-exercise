@@ -3,6 +3,7 @@
   "id": "fib-memo-js",
   "revision": 1,
   "language": "javascript",
+  "learnerFeedback": "graph",
   "title": "Fibonacci memoizálással",
   "description": "Rekurzív Fibonacci memoizálással. A két korai kilépés, a számítás, a tárolás és a visszatérés sorrendje kötött: a memo egy hívó által átadott Map is lehet. A bemenet nemnegatív egész szám.",
   "level": "intermediate",

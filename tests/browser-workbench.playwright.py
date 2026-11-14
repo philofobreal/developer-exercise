@@ -797,6 +797,91 @@ def focus_bar_and_full_screen_return(page):
     page.evaluate("()=>{const enter=Element.prototype.requestFullscreen;Element.prototype.requestFullscreen=function(...args){return new Promise(resolve=>setTimeout(resolve,300)).then(()=>enter.apply(this,args));};}")
     page.locator('[data-focus]').click();page.locator('[data-focus]').click();page.wait_for_timeout(900);page.wait_for_function(settled,arg=[None,False])
     assert page.evaluate(state)=={'surface':None,'native':False}
+def learner_rules(browser,url,pages):
+    """ADR-147: the learner's look at an exercise's rules. Nothing of it stands on the page, or comes with the listing,
+    before a first check; the first check brings the tool and a rule button per row, says so, and opens nothing. The
+    panel is read-only: what must stand before and after the picked line, by its code, with no number, reason or author
+    control. It is kept for the exercise through Újrakezdés and a task change, and forgotten by a reload. The author
+    sets it per exercise: a new draft has it off, the learner's view of a draft follows the choice without re-analysis,
+    and the author's own rule panel stays the editor it was."""
+    context=watch(browser.new_context(viewport={'width':1440,'height':900}));page=context.new_page();failures=[];page.on('pageerror',lambda error:failures.append(str(error)))
+    answers=[];page.on('response',lambda response:answers.append(response) if '/api/' in response.url and response.request.method in ('GET','POST') and ('evaluate' in response.url or response.url.endswith('/api/exercises')) else None)
+    seen="()=>({tool:document.querySelectorAll('.inspector-toggle').length,rows:document.querySelectorAll('.code-row [data-rule-line]').length,lines:[...document.querySelectorAll('.code-row')].filter(row=>/^\\d+$/.test(row.dataset.lineId??'')).length,connect:document.querySelectorAll('[data-rule-connect]').length,panel:document.querySelectorAll('.rule-inspector').length})"
+    try:
+        reset(page,url);practice(page);first=page.locator('[data-task]').first.get_attribute('data-task')
+        assert page.evaluate(seen)|{'lines':0}=={'tool':0,'rows':0,'lines':0,'connect':0,'panel':0},('nothing of the rules before a check',page.evaluate(seen))
+        if not pages:
+            listing=[answer for answer in answers if answer.url.endswith('/api/exercises')];assert listing and not re.search(r'"before"|"after"|"rules"|"learnerFeedback"',listing[-1].text()),'the listing carries no rule'
+        # a partial, wrong check is a check: the tool and the row buttons come, the panel does not
+        page.locator('.source-zone [data-move]').nth(1).click();page.locator('.source-zone [data-move]').first.click()
+        page.locator('[data-check]').click();expect(page.locator('.report')).not_to_have_class('report idle')
+        expect(page.locator('.inspector-toggle')).to_have_count(1);state=page.evaluate(seen)
+        assert state['rows']==state['lines']>0 and state['connect']==0 and state['panel']==0,('after the first check: a rule button on every line, nothing opened',state)
+        expect(page.locator('.note')).to_contain_text('Mostantól megnézheted a sorok szabályait');expect(page.locator('.inspector-toggle')).to_have_attribute('aria-pressed','false')
+        if not pages:
+            answer=[item for item in answers if 'evaluate' in item.url][-1].json();assert answer['rules']['constraints'] and all(sorted(rule)==['after','before','structural'] for rule in answer['rules']['constraints']),answer.get('rules')
+        # the learner opens it: a hint, then the picked line's rules; nothing to edit
+        page.locator('.inspector-toggle').click();panel=page.locator('.rule-inspector');expect(panel).to_be_visible();expect(panel.locator('[data-rule-hint]')).to_contain_text('Jelölj ki egy sort')
+        opener=page.locator('.solution-zone .code-row [data-rule-line]').first;expect(opener).to_have_attribute('aria-label',re.compile(r'^A sor szabályai: \S'));opener.click()
+        expect(page.locator('.solution-zone .code-row.rule-selected')).to_have_count(1);expect(panel.locator('[data-rule-panel]')).to_be_visible()
+        expect(panel.locator('.rule-column h4')).to_have_text([re.compile(r'^Előtte kell állnia · \d+$'),re.compile(r'^Utána kell állnia · \d+$')])
+        marked=page.locator('.code-row.rule-before,.code-row.rule-after').count();listed=panel.locator('.rule-item').count();assert marked==listed>0,('every listed rule marks its line',marked,listed)
+        assert panel.locator('[data-rule-edit],[data-rule-form],select,[data-rule-note],input:not([data-board-all])').count()==0,'the learner\'s panel edits nothing'
+        text=panel.inner_text();assert not re.search(r'#\d|SZERZŐI|Eltávolítás|referencia|Rögzítés',text),('no number and no author wording',text[:300])
+        assert page.locator('svg.zone-arcs path.arc').count()>=0 and not page.locator('[data-rule-connect]').count()
+        # a rule leads to its other line; Escape closes the panel and returns the focus to the tool
+        other=panel.locator('.rule-jump').first;target=other.get_attribute('data-rule-line');other.click();expect(panel.locator('[data-rule-panel]')).to_have_attribute('data-rule-panel-line',target);expect(page.locator('#rule-panel-title')).to_be_focused()
+        page.keyboard.press('Escape');expect(panel).to_have_count(0);expect(page.locator('.inspector-toggle')).to_be_focused()
+        # kept for the exercise: through Újrakezdés and a visit to another task, which has nothing before its own check
+        page.locator('[data-reset]').click();expect(page.locator('.inspector-toggle')).to_have_count(1)
+        page.locator('[data-task]').nth(1).click();expect(page.locator('[data-task]').nth(1)).to_have_attribute('aria-current','page');expect(page.locator('.inspector-toggle')).to_have_count(0);assert page.evaluate(seen)['rows']==0
+        page.locator(f'[data-task="{first}"]').click();expect(page.locator('.inspector-toggle')).to_have_count(1)
+        # a right answer is an answer too, on the other task; and a reload forgets everything
+        page.locator('[data-task]').nth(1).click();page.locator('[data-all]').click();page.locator('[data-check]').click();expect(page.locator('.report')).to_have_class(re.compile('accepted|ok|success'));expect(page.locator('.inspector-toggle')).to_have_count(1)
+        page.reload();practice(page);expect(page.locator('[data-check]')).to_be_visible();assert page.evaluate(seen)['tool']==0 and page.evaluate(seen)['rows']==0,'a reload forgets the rules'
+        # the author: a new draft has the panel off for the learner; the choice needs no re-analysis
+        page.locator('[data-mode="author"]').click();build(page,rules_source);to_try(page);page.locator('[data-all]').click()
+        def level():
+            data=page.locator('details.learner-data')
+            if data.get_attribute('open') is None:data.locator('summary').click()
+            return page.locator('[data-learner="learnerFeedback"]')
+        expect(level()).to_have_value('positions');assert level().locator('option').count()==3
+        page.locator('[data-check]').click();expect(page.locator('.report')).not_to_have_class('report idle')
+        expect(page.locator('.inspector-toggle')).to_have_count(1);page.locator('.inspector-toggle').click();expect(page.locator('.rule-inspector')).to_be_visible();assert page.locator('[data-rule-connect]').count()>0,'the author\'s own rule tools are there'
+        page.locator('[data-preview-toggle]').click();expect(page.locator('#app.learner-preview')).to_have_count(1)
+        page.locator('[data-check]').click();expect(page.locator('.report')).not_to_have_class('report idle');expect(page.locator('.inspector-toggle')).to_have_count(0)
+        page.locator('[data-preview-toggle]').click();expect(page.locator('#app.learner-preview')).to_have_count(0)
+        level().select_option('graph');expect(level()).to_have_value('graph');current(page,'try');expect(page.locator('[data-stale-notice]')).to_have_count(0)
+        expect(page.locator('.rule-inspector')).to_be_visible();assert page.locator('.rule-inspector [data-board-all]').count()==1,'the author\'s panel is still open and still the author\'s'
+        page.locator('[data-preview-toggle]').click();expect(page.locator('#app.learner-preview')).to_have_count(1);expect(page.locator('.inspector-toggle')).to_have_count(0)
+        page.locator('[data-check]').click();expect(page.locator('.inspector-toggle')).to_have_count(1);expect(page.locator('.rule-inspector')).to_have_count(0);assert page.locator('[data-rule-connect]').count()==0
+        page.locator('.inspector-toggle').click();page.locator('.solution-zone .code-row [data-rule-line]').nth(3).click();panel=page.locator('.rule-inspector')
+        expect(panel.locator('.rule-item').first).to_be_visible();assert panel.locator('[data-rule-edit],[data-rule-form],select').count()==0 and not re.search(r'#\d|SZERZŐI',panel.inner_text())
+        # back in the author's view the panel is the editor again
+        page.locator('[data-preview-toggle]').click();expect(page.locator('#app.learner-preview')).to_have_count(0)
+        if not page.locator('.rule-inspector').count():page.locator('.inspector-toggle').click()
+        expect(page.locator('.rule-inspector')).to_be_visible()
+        if not page.locator('.rule-inspector [data-rule-panel]').count():page.locator('.solution-zone .code-row [data-rule-line]').nth(3).click()
+        expect(page.locator('.rule-inspector [data-rule-panel]')).to_contain_text('SZERZŐI SZABÁLYOK');assert page.locator('.rule-inspector [data-rule-form]').count()>0 and page.locator('[data-rule-connect]').count()>0
+        # the level survives a rule edit (it travels with the author's requests)
+        page.locator('.rule-inspector [data-rule-edit="fixed"]').click();expect(page.locator('.rule-inspector [data-rule-edit="fixed"]')).to_have_attribute('aria-pressed','true')
+        expect(level()).to_have_value('graph')
+        # also a choice made just before the edit, which no preview has carried yet
+        level().select_option('rules');page.locator('.rule-inspector [data-rule-edit="fixed"]').click();expect(page.locator('.rule-inspector [data-rule-edit="fixed"]')).to_have_attribute('aria-pressed','false');expect(level()).to_have_value('rules')
+        assert not failures,failures
+    finally:context.close()
+    # a touch screen has no row buttons: the picked row's bar leads to its rules, and offers the learner no author tool
+    context=watch(browser.new_context(viewport={'width':390,'height':820},is_mobile=True,has_touch=True));page=context.new_page();page.on('pageerror',lambda error:failures.append(str(error)))
+    try:
+        reset(page,url);page.locator('[data-mode="practice"]').click();expect(page.locator('[data-check]')).to_be_visible()
+        page.locator('[data-all]').click();page.locator('.solution-zone .code-row .code-text').nth(1).tap();bar=page.locator('.pick-bar');expect(bar).to_be_visible()
+        assert bar.locator('[data-rule-line],[data-rule-connect]').count()==0,'before a check the picked row has no rule tool'
+        bar.locator('[data-unpick]').tap();page.locator('[data-check]').click();expect(page.locator('.inspector-toggle')).to_have_count(1)
+        page.locator('.solution-zone .code-row .code-text').nth(1).tap();expect(bar.locator('[data-rule-line]')).to_have_text('Sor szabályai');assert bar.locator('[data-rule-connect]').count()==0,'the learner gets no connecting tool'
+        bar.locator('[data-rule-line]').tap();sheet=page.locator('.rule-inspector');expect(sheet.locator('[data-rule-panel]')).to_be_visible();expect(sheet.locator('.rule-column h4').first).to_contain_text('Előtte kell állnia')
+        box=sheet.bounding_box();assert box['height']>=200 and box['y']+box['height']<=821 and page.evaluate('document.documentElement.scrollWidth')<=390,box
+        assert not failures,failures
+    finally:context.close()
 def rules_split(browser,url):
     """ADR-146: the tools and the panels are one frame, and the rule panel docks in it behind a separator of its own.
     The separator moves by pointer and by keyboard the way it moves on the screen (left widens the panel), within
@@ -1515,6 +1600,8 @@ try:
             reset(page,BASE);case('node two code views, remembered, with their row geometry',lambda:code_views(page))
             reset(page,BASE);case('node pane separator and full-screen focus without scroll',lambda:split_and_full_screen_focus(page))
             case('node the tools and the panels are one frame; the rule panel docks behind a separator of its own',lambda:rules_split(browser,BASE))
+            case('node the learner sees the rules only after a first check, read-only, where the author allows it',lambda:learner_rules(browser,BASE,False))
+            case('pages the learner sees the rules only after a first check, read-only, where the author allows it',lambda:learner_rules(browser,f'http://127.0.0.1:{static.server_port}/developer-exercise/',True))
             reset(page,BASE);case('node focus bar and the return to the full-screen page',lambda:focus_bar_and_full_screen_return(page))
             reset(page,BASE);case('node first gate: a definite language error stays on the source step',lambda:source_gate(page))
             reset(page,BASE);case('node second gate: stale source keeps the Try step closed',lambda:second_gate(page))

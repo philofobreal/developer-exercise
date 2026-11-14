@@ -3,6 +3,7 @@
   "id": "greeting-js",
   "revision": 1,
   "language": "javascript",
+  "learnerFeedback": "graph",
   "title": "Üdvözlés névből",
   "description": "Teljes név, monogram és hossz. A teljes név és a monogram felcserélhető; a hossz a teljes név után áll, mert azt méri. A bemenet két nem üres szöveg.",
   "level": "beginner",

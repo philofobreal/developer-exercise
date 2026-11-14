@@ -76,8 +76,9 @@ export interface CodeLineExercise {
   edges?: { before: number; after: number }[];
   /** Each profile adds AND constraints; alternative profiles are OR. */
   profiles?: { id: string; edges: { before: number; after: number }[] }[];
-  /** ADR-027: the learner's disclosure level, an explicit author decision; absent means `positions`. */
-  learnerFeedback?: 'positions' | 'rules';
+  /** ADR-027, ADR-147: the learner's disclosure level, an explicit author decision; absent means `positions`.
+   * `rules` names the violated line pairs; `graph` also lets the learner see the exercise's rules after a check. */
+  learnerFeedback?: 'positions' | 'rules' | 'graph';
   authoring?: { strategy?: string; reason?: string; note?: string; omittedBlocks?: number; semanticEquivalenceProven?: false; dependencyPolicy?: DependencyPolicy; dependencyHints?: {name:string; declarationLine:number; usageLine:number}[]; provenance?: ConstraintProvenance[]; evidence?: ModelEvidence; ruleNotes?: RuleNote[]; relaxations?: RuleRelaxation[] };
 }
 export type AdaptResult = { definition: ExerciseDefinition; compiled: CompiledRules } | ValidationResult;

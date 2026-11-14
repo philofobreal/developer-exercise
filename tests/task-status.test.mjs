@@ -127,6 +127,16 @@ test('ADR-123 (M5): the learner’s title, description and level change the appl
  assert.equal(staleReason(state),'');assert.equal(tryAdmission(state).ok,true);assert.equal(taskStatus(state).tone,'ok');
  assert.equal(setLearnerData(state,'level',''),true);assert.equal('level' in state.authorModel,false);
  assert.equal(setLearnerData(state,'level','expert'),false);assert.equal(setLearnerData(state,'source','x'),false);assert.equal(state.author.source,SOURCE);
+ // ADR-147: the learner's level is learner data too: it reaches the draft, the baseline, the model and the applied JSON,
+ // needs no re-analysis, and `positions` is the absence of the field.
+ const {learnerLevel}=await import('../public/app/author-workspace.js');
+ assert.deepEqual(learnerLevel(state),{learnerFeedback:'positions'},'an author request always says the level');
+ assert.equal(setLearnerData(state,'learnerFeedback','graph'),true);
+ assert.equal(state.author.learnerFeedback,'graph');assert.equal(state.authorBaseline.learnerFeedback,'graph');assert.equal(state.authorModel.learnerFeedback,'graph');
+ assert.equal(JSON.parse(state.modelDraft).learnerFeedback,'graph');assert.equal('learnerFeedback' in state.exercises[0],false,'the listed preview does not carry it');
+ assert.deepEqual(learnerLevel(state),{learnerFeedback:'graph'});assert.equal(staleReason(state),'');assert.equal(tryAdmission(state).ok,true);
+ assert.equal(setLearnerData(state,'learnerFeedback','provenance'),false);assert.equal(state.authorModel.learnerFeedback,'graph');
+ assert.equal(setLearnerData(state,'learnerFeedback','positions'),true);assert.equal('learnerFeedback' in state.authorModel,false);assert.equal('learnerFeedback' in state.author,false);
  state.modelDraft='{own unapplied JSON';setLearnerData(state,'title','Még újabb');assert.equal(state.modelDraft,'{own unapplied JSON','an unapplied JSON draft stays as typed');
 });
 

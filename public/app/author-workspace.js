@@ -49,15 +49,18 @@ export function modelJson(model) {
 }
 const LEVELS = ['beginner', 'intermediate', 'advanced'];
 const isLevel = (value) => LEVELS.includes(value);
+const isLearnerFeedback = (value) => value === 'positions' || value === 'rules' || value === 'graph';
 /** ADR-123 (M5): the learner-facing text of the task (title, description, level) is set in the Próba és kiadás step and
  * changes the applied model in place. It is no evidence: the gates' fingerprints leave it out and grading never reads
  * it, so no reanalysis follows and no step turns stale. The draft, the applied baseline, the model, its listed preview
  * and an applied CodeLine JSON all change together; an unapplied JSON draft is the author's own and stays as typed.
  * An unknown field or level changes nothing (false). */
 export function setLearnerData(state, field, value) {
-    if (field !== 'title' && field !== 'description' && field !== 'level')
+    if (field !== 'title' && field !== 'description' && field !== 'level' && field !== 'learnerFeedback')
         return false;
     if (field === 'level' && value !== '' && !isLevel(value))
+        return false;
+    if (field === 'learnerFeedback' && !isLearnerFeedback(value))
         return false;
     const current = state.authorModel, applied = !!current && state.modelDraft === modelJson(current);
     // A new model object, never an in-place change: its cached JSON (modelJson) belongs to the old one.
@@ -68,12 +71,19 @@ export function setLearnerData(state, field, value) {
     if (state.authorBaseline)
         targets.push(state.authorBaseline);
     const listed = model ? state.exercises.find(exercise => exercise.id === model.id) : undefined;
+    // The listed preview carries what the practice list shows; the learner's level is not part of that.
     if (model)
         targets.push(model);
-    if (listed)
+    if (listed && field !== 'learnerFeedback')
         targets.push(listed);
     for (const target of targets) {
-        if (field !== 'level')
+        if (field === 'learnerFeedback') {
+            if (isLearnerFeedback(value) && value !== 'positions')
+                target.learnerFeedback = value;
+            else
+                delete target.learnerFeedback;
+        }
+        else if (field !== 'level')
             target[field] = value;
         else if (isLevel(value))
             target.level = value;
@@ -84,6 +94,9 @@ export function setLearnerData(state, field, value) {
         state.modelDraft = modelJson(model);
     return true;
 }
+/** ADR-147: the learner's level as every author request carries it beside its own body. It always travels, `positions`
+ *  too: the draft on the other side may hold an older choice, and the level needs no re-analysis. */
+export const learnerLevel = (state) => ({ learnerFeedback: state.author.learnerFeedback ?? 'positions' });
 const nextRequest = (state) => state.authorRequestGeneration = (state.authorRequestGeneration ?? 0) + 1;
 const previewId = (state) => state.previews.keys().next().value;
 /** Capture at user intent, before file/clipboard/network I/O; the latest reference action wins. */
@@ -164,7 +177,7 @@ export function admitAuthorModel(state, model, source, { keepPending = false, po
         delete state.settingsOrigin;
     nextRequest(state);
     const pending = keepPending && authorDraftPending(state) ? state.author : undefined, environment = model.authoring?.evidence?.environment, importEmit = environment?.importEmit, inputs = environment?.inputs, keyOrder = environment?.keyOrder, classFields = environment?.classFields;
-    const author = { title: model.title, description: model.description, ...(model.level ? { level: model.level } : {}), language: model.language, source: source ?? model.lines.map(l => l.code).join('\n'), message: '', ...(importEmit ? { importEmit } : {}), ...(inputs === 'valid' ? { inputs } : {}), ...(keyOrder === 'ignored' ? { keyOrder } : {}), ...(classFields === 'define' ? { classFields } : {}) };
+    const author = { title: model.title, description: model.description, ...(model.level ? { level: model.level } : {}), ...(model.learnerFeedback && model.learnerFeedback !== 'positions' ? { learnerFeedback: model.learnerFeedback } : {}), language: model.language, source: source ?? model.lines.map(l => l.code).join('\n'), message: '', ...(importEmit ? { importEmit } : {}), ...(inputs === 'valid' ? { inputs } : {}), ...(keyOrder === 'ignored' ? { keyOrder } : {}), ...(classFields === 'define' ? { classFields } : {}) };
     const preflight = Object.fromEntries(['portability', 'unknownPolicy', 'tsDiagnostics', 'jsCheck', 'objectState'].flatMap(path => policy?.requested[path] ? [[path, policy.requested[path]]] : []));
     if (Object.keys(preflight).length)
         author.policy = preflight;

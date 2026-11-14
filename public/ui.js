@@ -1,5 +1,6 @@
 import {markEditorDraft,markEditorApplied,reloadEditorFromArrangement,captureEditorRequest,adjacentMoveBoundary,dispatchWorkbenchAction,openWorkspaceHelp} from './app/interactions.js';
-import {refreshAuthorStatus,captureAuthorRequest,authorRequest,startFromExample,startFromHelp,replaceDraft,formatLoaded,undoReplace,revertAuthorDraft,admitAuthorModel,setLearnerData} from './app/author-workspace.js';
+import {keepLearnerRules} from './app/learner-rules.js';
+import {learnerLevel,refreshAuthorStatus,captureAuthorRequest,authorRequest,startFromExample,startFromHelp,replaceDraft,formatLoaded,undoReplace,revertAuthorDraft,admitAuthorModel,setLearnerData} from './app/author-workspace.js';
 import {NEW_DRAFT_SETTINGS,setPreflightOption,settingsKey,settingsRequest} from './app/preflight-settings.js';
 import {revealLine} from './app/ui-utilities.js';
 import {readRuleEdit,readRuleKindEdits,recordRuleRefusal,ruleCount,settleRuleKind,settleRuleSelection} from './app/rule-panel.js';
@@ -52,7 +53,7 @@ function ensurePolicy(){
  resolvePolicy({language:state.author.language,...settingsRequest(state.author)}).then(resolution=>{if(key===policyKey){state.authorPolicy=resolution;view.render({background:true});ensurePolicy();}},()=>{if(key===policyKey)policyKey='';});
 }
 /** A preview request with the second gate's evidence: the author's current source and analysis settings. */
-const gateEvidence=body=>({...authorRequest(state.author),...body});
+const gateEvidence=body=>({...authorRequest(state.author),...learnerLevel(state),...body});
 const entersTry=next=>state.mode==='author'&&!state.learnerPreview&&(next==='sort'||next==='edit')&&state.view!=='sort'&&state.view!=='edit';
 async function go(next){
  // A refused Try lands on Rules, where the stale notice offers rebuilding or discarding the change.
@@ -66,7 +67,8 @@ async function authorApply(body,{preserveAttempt=false,sessionImport,settingsOri
  delete state.boardStatus;
  // ADR-123: a rebuild of an applied model reports how many rules it changed.
  const rulesBefore=body.source!==undefined&&authorPreviewId(state)?ruleCount(state.authorInsight):undefined;
- let data;try{data=await request(body);}catch(error){if(!current())return;if(error?.details?.gate&&typeof body.source==='string')state.sourceGate={gate:error.details.gate,source:body.source};throw error;}
+ // ADR-147: every author request carries the author's current choice of the learner's level beside its own body.
+ let data;try{data=await request({...body,...learnerLevel(state)});}catch(error){if(!current())return;if(error?.details?.gate&&typeof body.source==='string')state.sourceGate={gate:error.details.gate,source:body.source};throw error;}
  if(!current())return;
  if(data.ok===false){if(state.ruleSelection)recordRuleRefusal(state.ruleSelection,data,body.edits);render();return data;}
  const restoredAttempt=sessionImport?restoreAttempt(sessionImport,data.model):undefined;
@@ -241,7 +243,9 @@ root.addEventListener('click',ev=>dispatchWorkbenchAction(ev,async b=>{const a=a
    delete state.feedbackFocus;
    try{const preview=state.previews.get(state.active),{lines,slots}=submitted(a);
       // ADR-108 (E6): an author preview is evaluated only through the second gate; the request carries its evidence.
-      const report=preview?await previewDraft(gateEvidence({draftId:preview,lines})):await evaluate({exerciseId:ex().id,revision:ex().revision,lines});if(at()===a&&a.generation===generation)a.report={...report,slots};}
+      const report=preview?await previewDraft(gateEvidence({draftId:preview,lines})):await evaluate({exerciseId:ex().id,revision:ex().revision,lines});if(at()===a&&a.generation===generation){a.report={...report,slots};
+       // ADR-147: the first answer that brings the exercise's rules says so; the panel stays the learner's to open.
+       if(keepLearnerRules(state,report))a.feedback='Mostantól megnézheted a sorok szabályait: „Sor szabályai” az eszközsávban, vagy a láncszem a sor végén.';}}
    catch(error){if(at()===a&&a.generation===generation)a.report={status:'indeterminate',message:error instanceof Error&&/^A Próba lépés|^A műveletet megszakítottad/.test(error.message)?error.message:'A validációs szerver nem érhető el.',exploredStates:0};}render();return;
  }
 },error=>notify(error instanceof Error?error.message:'A művelet nem sikerült.')));
