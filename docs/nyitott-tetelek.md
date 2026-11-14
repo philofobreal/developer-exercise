@@ -49,7 +49,7 @@ Felülvizsgálva 2026-11-14-én: minden nyitott tétel aktuális. Azóta elkész
    1. ~~NY-49~~ kész ([ADR-150](adr/150-namespace-exported-function-keeps-its-place.md), v58); a G1 kész ([ADR-149](adr/149-technology-labels.md)).
    2. ~~NY-58 F0~~ kész ([ADR-151](adr/151-workbench-headless-core-foundations.md)): mérőkapu, szabályok, markup-szerződés. Az NY-42-ből annyi, hogy a mérősor egyedül fut.
    3. ~~G2~~ kész ([ADR-152](adr/152-technology-labels-in-the-practice-list.md)) → ~~G3~~ kész ([ADR-154](adr/154-curriculum-tree-in-the-practice-list.md): a lista a tananyag fája; a katalógus betöltése nem változott, a T1.2 a párhuzamos példatöltést valósítja meg). A G3 bemutatója és megvalósítása között elkészült az ~~NY-59~~ (három felületi javítás, [ADR-153](adr/153-no-underline-seamless-stripe-aligned-row-icons.md)).
-   4. **NY-58 F1** (gyors nyereség; a T1.2 a G6 előtt).
+   4. ~~NY-58 F1~~ kész ([ADR-155](adr/155-workbench-quick-gains.md)): hat task; a T1.6 mérve az F4-be került. Két döntés a felhasználónál: a húzás egy elemes előnézete (látható változás) és az NY-62.
    5. **G4** (eszközlánc) → **NY-50** (az orákulum három korlátja) → **NY-61** (a feladatleírások szabványa és a 16 meglévő leírás; a G5 előtt, hogy az új leckék már e szerint készüljenek).
    6. **G5 → G6 → G7 → G8** (az anyag és az RxJS), utána **NY-58 F2–F5** (a felhasználó döntése: ugyanaz az ügynök viszi, a G8 után).
    7. **NY-58 F6** → **NY-51** (RxJS teljes lefedettsége) → **G9** (lezárás).

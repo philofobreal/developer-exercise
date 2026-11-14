@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased – 2026-11-14 A munkafelület gyors nyeresége (ADR-155, NY-58 F1)
+
+Viselkedésmegőrző: a látható szöveg, az elrendezés és a műveletek jelentése nem változott.
+
+- **A Local Demo egyszerre tölti le a feladatokat.** Lassú hálózaton az indulás a felére rövidül (letöltésenként 80 ms késleltetéssel 2035 → 1004 ms); a lista sorrendje és a hibaüzenet a jegyzék sorrendjét követi.
+- **A húzás és a billentyűs célmozgatás lépései olcsóbbak:** a sorok közepe listánként egyszer mérődik, a határ bináris kereséssel adódik, az előnézet csak a változó sorokhoz nyúl (a stílusszámítás lépésenként 22–25 → 4 ms a 436 soros listán).
+- **Egy kirajzolás kevesebb elrendezést kényszerít ki:** az ívek mérése és rajzolása kettévált, a visszanyitás a mérések elé került; a magasságrögzítés (ADR-152) megszűnt, mert az oka szűnt meg.
+- **A szabályok szerkeszthetősége kirajzolásonként egyszer dől el,** nem soronként (482 sornál kb. 25 ms kirajzolásonként).
+- **A „nem alkalmazott JSON” állapotnak egy tulajdonosa van** (`modelDraftStatus`).
+- **Nem valósult meg, mérve:** a `content-visibility` a sorokon (az F4 kulcsolt listáival jön); a húzás 16 ms-os célja látható változás nélkül nem érhető el (a felhasználó döntése).
+- **Talált eltérés (NY-62):** a beszúrási jel helye 8–16 px-t függ a mozgás irányától; megtartva, nem javítva.
+
 ## Unreleased – 2026-11-14 A gyakorló lista a tananyag fája (ADR-154, G3)
 
 - **A feladatlista fa:** témakör (JavaScript, TypeScript), alatta modul (Alapok, Gyűjtemények, Algoritmusok; Ráhangoló), alatta a feladatok tanítási sorrendben. Egy ág gomb, amely nyit és csuk, a végén az alatta álló feladatok számával.

@@ -4,59 +4,59 @@
  "scenarios": {
   "unit": {
    "units": 1.0,
-   "task": 43.0,
+   "task": 43.6,
    "styles": 1,
    "layouts": 2,
    "added": 18001
   },
   "type-key": {
-   "units": 0.808,
-   "task": 30.6,
+   "units": 0.791,
+   "task": 37.8,
    "styles": 2,
    "layouts": 3,
    "added": 3505
   },
   "make-model": {
-   "units": 8.469,
-   "task": 336.1,
+   "units": 7.491,
+   "task": 330.4,
    "styles": 37,
    "layouts": 12,
-   "added": 9427
+   "added": 9428
   },
   "open-try": {
-   "units": 6.44,
-   "task": 264.4,
+   "units": 6.601,
+   "task": 266.1,
    "styles": 10,
    "layouts": 4,
-   "added": 15498
+   "added": 15499
   },
   "key-target": {
-   "units": 2.054,
-   "task": 84.7,
+   "units": 2.113,
+   "task": 84.0,
    "styles": 3,
    "layouts": 2,
    "added": 2
   },
   "key-place": {
-   "units": 7.675,
-   "task": 322.2,
-   "styles": 15,
+   "units": 5.965,
+   "task": 256.0,
+   "styles": 13,
    "layouts": 5,
-   "added": 15503
+   "added": 15504
   },
   "drag-move": {
-   "units": 3.818,
-   "task": 184.3,
-   "styles": 6,
+   "units": 4.018,
+   "task": 145.7,
+   "styles": 5,
    "layouts": 3,
    "added": 1
   },
   "check": {
-   "units": 10.165,
-   "task": 421.3,
-   "styles": 18,
+   "units": 9.481,
+   "task": 395.1,
+   "styles": 16,
    "layouts": 6,
-   "added": 17662
+   "added": 17663
   }
  }
 }
