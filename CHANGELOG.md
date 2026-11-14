@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased – 2026-11-13 Sík gombok, valódi letörés két kerekített csúccsal (ADR-143, D3b)
+
+- **A gombokon nincs többé átmenet, vonal és árnyék:** minden gomb egyetlen sík tónus. Az alapgomb halványszürke, a fő művelet és az aktuális lépés sík kék, az „Ellenőrzés” sík sárga.
+- **A lecsapott sarok valódi ferde letörés,** mindkét csúcsán külön kerekítéssel (eddig egyetlen domború ív volt). Chrome-ban és Edge-ben a 135-ös, Safariban a 18.4-es verziótól látszik; régebbi böngészőben a gomb lekerekített téglalap. Eddig a vágott sarok csak Chrome-ban és Edge-ben látszott.
+- **A bekapcsolt gomb** halványkék, kék vonallal és a 2 px-es jellel.
+- **A letiltott gomb üres lap hajszálvonallal** és tompa felirattal, hogy világos háttéren se tűnjön el.
+- **Javított kontraszt sötét témában:** a teli kék gomb rámutatva eddig világosabb lett, és a fehér felirat alig volt olvasható rajta (4,03 : 1); most sötétebb lesz.
+- **Új mérés a tesztekben:** minden gomb feliratának kontrasztja az arcán, nyugalomban és rámutatva.
+
 ## Unreleased – 2026-11-13 A listák a ragadós lábléc fölött érnek véget (ADR-144, NY-38 lezárva)
 
 - **A két kódlista alja nem kerül az „Ellenőrzés” sávja alá.** Eddig alacsony laptopképernyőn (1366×650) a listák alsó másfél sora, ellenőrzés után több is, a sáv alatt maradt, amíg az oldalt nem görgették. A Pages-en az első látogatáskor (a Local Demo értesítéssel) ez minden szokásos képernyőn így volt.

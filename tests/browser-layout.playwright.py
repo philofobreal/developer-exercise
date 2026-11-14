@@ -1,6 +1,6 @@
 """Layout gate (ADR-116, M1): the practice view and the author's Try step on desktop, laptop, tablet and phone (upright and on its side),
 in the light and the dark theme. It checks what a machine can measure, not taste: the page never scrolls sideways, no header control runs
-off the screen, every toolbar control in view has one height, every action button (ADR-117) has one type style and at most three heights, every plate (ADR-143) has its shape and its face and at most two are filled (also on the Kód and the Elemzés step), every surface has its soft corner with nothing square standing in it, a status chip is a flat pill, a segmented choice is one group with one chosen part, the lists end above the sticky result bar wherever the screen leaves them room (ADR-144), a phone on its side keeps the header and the toolbar to one row and shows the
+off the screen, every toolbar control in view has one height, every action button (ADR-117) has one type style and at most three heights, every plate (ADR-143) has its outline (a bevel with a label, round without one), a flat face its label reads on, and at most two are filled (also on the Kód and the Elemzés step), every surface has its soft corner with nothing square standing in it, a status chip is a flat pill, a segmented choice is one group with one chosen part, the lists end above the sticky result bar wherever the screen leaves them room (ADR-144), a phone on its side keeps the header and the toolbar to one row and shows the
 lists on the first screen, focus gives the lists at least 40 % of the height, and a task list closed on a narrow screen is visible when the
 screen widens. Screenshots of every view land in test-results/layout-*.png."""
 import os,socket,subprocess,time,urllib.request
@@ -11,8 +11,10 @@ BASE=f'http://127.0.0.1:{port}'
 proc=subprocess.Popen(['node','server.mjs'],cwd=ROOT,env={**os.environ,'HOST':'127.0.0.1','PORT':str(port)},stdout=subprocess.DEVNULL,stderr=subprocess.PIPE)
 # name, width, height, touch, phone on its side
 VIEWPORTS=[('desktop',1440,900,False,False),('laptop',1280,720,False,False),('tablet',880,1100,True,False),('phone',390,844,True,False),('phone-side',780,360,True,True),('phone-side-wide',915,412,True,True)]
-MEASURE="""()=>{const shown=s=>[...document.querySelectorAll(s)].filter(e=>e.offsetParent&&getComputedStyle(e).visibility!=='hidden');
- const box=e=>e.getBoundingClientRect();
+MEASURE=r"""()=>{const shown=s=>[...document.querySelectorAll(s)].filter(e=>e.offsetParent&&getComputedStyle(e).visibility!=='hidden');
+ const box=e=>e.getBoundingClientRect(),PLATES='button.btn:not(.link-action),.menu>summary,.mode-tabs button,.stepper .step';
+ const rgb=c=>(c.match(/rgba?\(([^)]+)\)/)||['','0,0,0,0'])[1].split(/[\s,/]+/).filter(Boolean).map(Number),alpha=c=>{const p=rgb(c);return p.length>3?p[3]:1;};
+ const light=c=>{const [r,g,b]=rgb(c).map(v=>{v/=255;return v<=.03928?v/12.92:((v+.055)/1.055)**2.4;});return .2126*r+.7152*g+.0722*b;},contrast=(a,b)=>{const [x,y]=[light(a),light(b)].sort((p,q)=>q-p);return (x+.05)/(y+.05);};
  return {scroll:document.documentElement.scrollWidth,width:innerWidth,height:innerHeight,
   header:Math.round(box(document.querySelector('.header')??document.body).height),
   offscreen:shown('.header button,.header summary').filter(b=>box(b).right>innerWidth+1).map(b=>b.getAttribute('aria-label')||b.textContent.trim()),
@@ -20,24 +22,32 @@ MEASURE="""()=>{const shown=s=>[...document.querySelectorAll(s)].filter(e=>e.off
   toolRows:new Set(shown('.toolbar button').map(b=>Math.round(box(b).top+box(b).height/2))).size,
   // ADR-117 (U1): the action-button component and its relatives (segment, menu, mode switch)
   controls:shown('button.btn,.segment button,.menu>summary,.mode-tabs button').map(b=>{const s=getComputedStyle(b);return [Math.round(box(b).height),s.fontSize,s.fontWeight];}),
-  // ADR-143 (D2): every plate (a tool, a menu button, a mode tab, a step plate, the main action). One with a visible label
-  // has the cut (28% of its height on the top left corner, 14% on the top right, the soft corner where the browser knows
-  // corner-shape); one without a visible label is evenly rounded. A pressed one carries a 2 px mark under its label.
-  plates:shown('button.btn:not(.link-action),.menu>summary,.mode-tabs button,.stepper .step').map(b=>{const s=getComputedStyle(b),h=parseFloat(s.getPropertyValue('--plate-h'))||box(b).height;
+  // ADR-143 (D2, D3b): every plate (a tool, a menu button, a mode tab, a step plate, the main action). Its face is a layer
+  // under the label, clipped to the plate's outline. The outline starts on the left side where the first corner ends: 39.94%
+  // of the plate's height down for a bevel (a plate with a visible label), the round corner's radius for one without a
+  // label; a plate with a line (pressed) has its face a pixel inside. Where the browser does not know shape() the plate is
+  // the button's own rounded rectangle.
+  plates:shown(PLATES).map(b=>{const s=getComputedStyle(b),h=parseFloat(s.getPropertyValue('--plate-h'))||box(b).height,clip=getComputedStyle(b,'::after').clipPath,round=Math.min(8,h*.22);
    const labelled=[...b.querySelectorAll('span,b,small')].some(e=>e.textContent.trim()&&box(e).width>1&&box(e).height>1&&getComputedStyle(e).visibility!=='hidden');
-   const tl=parseFloat(s.borderTopLeftRadius),tr=parseFloat(s.borderTopRightRadius),soft=CSS.supports('corner-shape','bevel')?s.getPropertyValue('corner-top-left-shape'):'unsupported';
-   // the computed corner is a superellipse with its exponent: .35 is the soft cut, 1 is `round`
-   const curve=soft==='round'?1:parseFloat(soft.replace('superellipse(','')),shaped=k=>soft==='unsupported'||Math.abs(curve-k)<.01;
-   const right=labelled?Math.abs(tl-h*.28)<=1&&Math.abs(tr-h*.14)<=1&&shaped(.35):Math.abs(tl-tr)<.1&&Math.abs(tl-Math.min(8,h*.22))<=.6&&shaped(1);
-   return right?null:`${b.getAttribute('aria-label')||b.textContent.trim().slice(0,24)} (${labelled?'labelled':'no label'}): ${s.borderTopLeftRadius}/${s.borderTopRightRadius} ${soft} at ${Math.round(h)}`;}).filter(Boolean),
-  faceless:shown('button.btn:not(.link-action),.menu>summary,.mode-tabs button,.stepper .step').filter(b=>!b.matches(':disabled,[aria-disabled=true],.locked')&&!getComputedStyle(b).backgroundImage.includes('gradient')).map(b=>b.getAttribute('aria-label')||b.textContent.trim().slice(0,24)),
-  // at most two filled plates on a screen: the current step and the main action. Filled = the face ends in a solid brand colour
-  // (resting or hovered), whichever element carries it; comparing whole faces missed a third one while the pointer was on a step.
+   const start=parseFloat((clip.match(/^shape\((?:evenodd )?from [\d.]+px ([\d.]+)px/)||[])[1]),want=labelled?h*.3994:round;
+   const right=CSS.supports('clip-path','shape(from 0 0,line to 1px 1px)')?Math.abs(start-want)<=1.2:clip==='none'&&Math.abs(parseFloat(s.borderTopLeftRadius)-(labelled?h*.22:round))<=.6;
+   return right?null:`${b.getAttribute('aria-label')||b.textContent.trim().slice(0,24)} (${labelled?'labelled':'no label'}): the outline starts ${start} px down, not ${Math.round(want*10)/10}, at ${Math.round(h)} (${clip.slice(0,40)})`;}).filter(Boolean),
+  // a plate that can be pressed has a face: one flat tone, no gradient, and no shadow under it
+  faceless:shown(PLATES).filter(b=>!b.matches(':disabled,[aria-disabled=true],.locked')).filter(b=>{const f=getComputedStyle(b,'::after');return alpha(f.backgroundColor)===0||(f.backgroundImage!=='none'&&b.getAttribute('aria-pressed')!=='true')||getComputedStyle(b).boxShadow!=='none';}).map(b=>b.getAttribute('aria-label')||b.textContent.trim().slice(0,24)),
+  // the label reads on its face: 4.5 to 1 (axe cannot see a face drawn by a pseudo-element, so this is measured here)
+  dim:shown(PLATES).filter(b=>!b.matches(':disabled,[aria-disabled=true],.locked')).map(b=>[b.getAttribute('aria-label')||b.textContent.trim().slice(0,24),contrast(getComputedStyle(b).color,getComputedStyle(b,'::after').backgroundColor)]).filter(([,c])=>c<4.5).map(([n,c])=>`${n}: ${c.toFixed(2)}`),
+  // every role's label reads on its face, resting and hovered (a hover is not in view while this runs)
+  roles:(()=>{const probe=document.createElement('i');document.documentElement.append(probe);const of=t=>{probe.style.color=`var(${t})`;return getComputedStyle(probe).color;};
+   const bad=[['--text','--plate'],['--text','--plate-hover'],['--accent-text','--plate-on'],['--blue-ink','--blue'],['--blue-ink','--blue-hover'],['--yellow-ink','--yellow'],['--yellow-ink','--yellow-hover']].map(([ink,face])=>[ink,face,contrast(of(ink),of(face))]).filter(([,,c])=>c<4.5).map(([ink,face,c])=>`${ink} on ${face}: ${c.toFixed(2)}`);
+   probe.remove();return bad;})(),
+  // at most two filled plates on a screen: the current step and the main action. Filled = the face is a solid brand colour
+  // (resting or hovered), whichever element carries it.
   filled:(()=>{const probe=document.createElement('i');document.documentElement.append(probe);
-   const solid=['--blue','--blue-hover','--yellow'].map(t=>{probe.style.color=`var(${t})`;return getComputedStyle(probe).color;});probe.remove();
-   const face=b=>{const s=getComputedStyle(b),stops=s.backgroundImage.match(/(?:rgba?|color)\([^()]*\)/g);return stops?stops[stops.length-1]:s.backgroundColor;};
+   const solid=['--blue','--blue-hover','--yellow','--yellow-hover'].map(t=>{probe.style.color=`var(${t})`;return getComputedStyle(probe).color;});probe.remove();
+   const face=b=>{if(b.matches(PLATES))return getComputedStyle(b,'::after').backgroundColor;const s=getComputedStyle(b),stops=s.backgroundImage.match(/(?:rgba?|color)\([^()]*\)/g);return stops?stops[stops.length-1]:s.backgroundColor;};
    return shown('button,summary').filter(b=>solid.includes(face(b))).map(b=>b.getAttribute('aria-label')||b.textContent.trim().slice(0,24));})(),
-  pressed:shown(':is(button.btn,.mode-tabs button)[aria-pressed=true]').map(b=>{const mark=getComputedStyle(b,'::after');return [(b.getAttribute('aria-label')||b.textContent.trim()),mark.content!=='none'&&mark.height==='2px'&&parseFloat(mark.width)>8];}),
+  // a pressed plate: a line around it and a 2 px mark on its face
+  pressed:shown(':is(button.btn,.mode-tabs button)[aria-pressed=true]').map(b=>{const f=getComputedStyle(b,'::after'),line=getComputedStyle(b,'::before');return [(b.getAttribute('aria-label')||b.textContent.trim()),f.backgroundImage.includes('gradient')&&/ 2px$/.test(f.backgroundSize)&&parseFloat(f.backgroundSize)!==0&&line.content!=='none'&&alpha(line.backgroundColor)>0];}),
   zoneTop:Math.round(box(document.querySelector('.drop-zone')??document.body).top),
   zones:shown('.drop-zone').map(z=>Math.round(box(z).height)),
   // the lists side by side share their height; stacked, their heights add up
@@ -74,7 +84,7 @@ SURFACES="""()=>{const shown=s=>[...document.querySelectorAll(s)].filter(e=>e.ch
  const chips=shown('.context-label,.rule-badge,.verification-badge,.publish-badge,.mode-badge,.lock-label').filter(e=>{const s=getComputedStyle(e),h=e.getBoundingClientRect().height;
   return radii(e).some(r=>r<h/2)||s.boxShadow!=='none'||s.backgroundImage!=='none';}).map(name);
  const segments=shown('.segment').flatMap(g=>{const parts=[...g.querySelectorAll('button')],r=g.getBoundingClientRect(),control=parseFloat(getComputedStyle(g).getPropertyValue('--control-h'));
-  const faced=parts.filter(b=>getComputedStyle(b).backgroundImage.includes('gradient')),chosen=parts.filter(b=>b.classList.contains('active')),bad=[];
+  const faced=parts.filter(b=>!/rgba\([^)]*, 0\)|transparent/.test(getComputedStyle(b).backgroundColor)),chosen=parts.filter(b=>b.classList.contains('active')),bad=[];
   if(Math.abs(r.height-control)>1)bad.push(`${name(g)}: ${r.height} px high beside ${control} px controls`);
   if(chosen.length!==1||faced.length!==1||faced[0]!==chosen[0])bad.push(`${name(g)}: ${chosen.length} chosen, ${faced.length} with a face`);
   for(const b of parts){const c=b.getBoundingClientRect(),x=c.left+c.width/2;if(r.top<0||r.bottom>innerHeight)continue;
@@ -100,9 +110,11 @@ def step(page,name):
     assert m['scroll']<=m['width'],f"{name}: the page scrolls sideways ({m['scroll']} > {m['width']})"
     assert not m['offscreen'],f"{name}: header controls off the screen: {m['offscreen']}"
     assert not m['plates'],f"{name}: plates with the wrong shape: {m['plates']}"
-    assert not m['faceless'],f"{name}: plates without the plate's face: {m['faceless']}"
+    assert not m['faceless'],f"{name}: plates without a flat face: {m['faceless']}"
+    assert not m['dim'],f"{name}: labels under 4.5 to 1 on their plate: {m['dim']}"
+    assert not m['roles'],f"{name}: a role's label under 4.5 to 1 on its face: {m['roles']}"
     assert len(m['filled'])<=2,f"{name}: more than two filled plates on the screen: {m['filled']}"
-    assert all(marked for _,marked in m['pressed']),f"{name}: a pressed button without its mark: {m['pressed']}"
+    assert all(marked for _,marked in m['pressed']),f"{name}: a pressed button without its line and mark: {m['pressed']}"
     surfaces(page,name)
     print(f"PASS layout: {name} {m['width']}x{m['height']} filled {len(m['filled'])}",flush=True)
 def check(page,name,side,focused=False):
@@ -115,9 +127,11 @@ def check(page,name,side,focused=False):
     assert len(heights)<=3,f"{name}: buttons in {len(heights)} heights {heights} (at most 3: default, small, and the header's or the main action's)"
     assert len(fonts)==1,f"{name}: buttons in {len(fonts)} type styles {fonts} (one: 13 px, 600)"
     assert not m['plates'],f"{name}: plates with the wrong shape: {m['plates']}"
-    assert not m['faceless'],f"{name}: plates without the plate's face: {m['faceless']}"
+    assert not m['faceless'],f"{name}: plates without a flat face: {m['faceless']}"
+    assert not m['dim'],f"{name}: labels under 4.5 to 1 on their plate: {m['dim']}"
+    assert not m['roles'],f"{name}: a role's label under 4.5 to 1 on its face: {m['roles']}"
     assert len(m['filled'])<=2,f"{name}: more than two filled plates on the screen: {m['filled']}"
-    assert all(marked for _,marked in m['pressed']),f"{name}: a pressed button without its mark: {m['pressed']}"
+    assert all(marked for _,marked in m['pressed']),f"{name}: a pressed button without its line and mark: {m['pressed']}"
     if focused:assert m['pressed'],f"{name}: the focus toggle is pressed in focus mode"
     if side:
         assert m['toolRows']==1,f"{name}: the toolbar takes {m['toolRows']} rows on a phone on its side"

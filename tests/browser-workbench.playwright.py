@@ -148,9 +148,10 @@ def preflight_ui(page):
     and give the choice back; a refused source lists its findings with the certainty in words, the line as a
     button that selects it in the editor, and the step's state; an edited source marks the findings out of date."""
     page.locator('[data-step="source"]').click();page.locator('[data-source-kind="code"]').click();box=analysis_options(page)
-    # The Format action is a labelled, visible button again (it had become a bare, borderless icon).
+    # The Format action is a labelled, visible button again (it had become a bare, borderless icon). A plate has no line:
+    # what makes it a button to the eye is its face, the layer under the label (ADR-143, D3b).
     fmt=page.locator('[data-author-format]');expect(fmt).to_be_visible();expect(fmt).to_have_text('Formázás')
-    assert fmt.evaluate("b=>getComputedStyle(b).borderTopColor!=='rgba(0, 0, 0, 0)'")
+    assert fmt.evaluate("b=>!/^rgba\\(.*, 0\\)$|^transparent$/.test(getComputedStyle(b,'::after').backgroundColor)")
     # ADR-123 (M5): the Kód step holds what the source check looks for; the environment and the profile are in Elemzés és szabályok.
     expect(box.locator('legend',has_text='Forrás biztonságossága')).to_have_count(1)
     for legend in ['Elemzési környezet','Haladó profil']:expect(box.locator('legend',has_text=legend)).to_have_count(0)
@@ -1199,22 +1200,25 @@ def settle(page):
         if now==drawn:return
         drawn=now
 def button_states(page):
-    """ADR-140 (D1): the button component's states. A disabled button is one muted plate whether it is :disabled or
-    aria-disabled with its reason; a busy one is not disabled to the eye; a pressed one is a pale plate with a mark."""
-    state=page.evaluate("""()=>{const look=b=>{const s=getComputedStyle(b);return {opacity:s.opacity,cursor:s.cursor,background:s.backgroundColor+' '+s.backgroundImage,shadow:s.boxShadow,color:s.color};};
+    """ADR-140 (D1), ADR-143 (D3b): the plate's states. A plate is one flat tone: no gradient, no shadow, no line. A disabled
+    one is a hollow plate (a line, no face, a muted label) whether it is :disabled or aria-disabled with its reason; a busy
+    one is not disabled to the eye; a pressed one has another face, a line and a 2 px mark."""
+    state=page.evaluate("""()=>{const look=b=>{const s=getComputedStyle(b),f=getComputedStyle(b,'::after'),l=getComputedStyle(b,'::before');
+      return {opacity:s.opacity,cursor:s.cursor,color:s.color,shadow:s.boxShadow,ground:s.backgroundColor+' '+s.backgroundImage,face:f.backgroundColor,image:f.backgroundImage,mark:f.backgroundSize,line:l.content!=='none'&&!/, 0\\)$/.test(l.backgroundColor)&&!b.hasAttribute('data-busy-shown')};};
      const host=document.querySelector('.toolbar')||document.querySelector('#workbench-main'),make=(attributes)=>{const b=document.createElement('button');b.type='button';b.className='btn';b.textContent='x';for(const [k,v] of Object.entries(attributes))b.setAttribute(k,v);host.append(b);return b;};
      const plain=make({}),off=make({disabled:''}),reason=make({'aria-disabled':'true','data-disabled-reason':'ok'}),busy=make({disabled:'','aria-busy':'true'}),on=make({'aria-pressed':'true'});
-     const result={plain:look(plain),off:look(off),reason:look(reason),busy:look(busy),on:look(on),mark:getComputedStyle(on,'::after').height};
+     const result={plain:look(plain),off:look(off),reason:look(reason),busy:look(busy),on:look(on)};
      for(const b of [plain,off,reason,busy,on])b.remove();return result;}""")
+    clear=lambda colour:colour.replace(' ','') in ('rgba(0,0,0,0)','transparent')
+    plain=state['plain']
+    assert not clear(plain['face']) and plain['image']=='none' and plain['shadow']=='none' and not plain['line'],('a plate is one flat tone',plain)
+    assert clear(plain['ground'].split(' none')[0]),('the face is the layer under the label, not the button',plain)
     for name in ('off','reason'):
         assert state[name]['opacity']=='1' and state[name]['cursor']=='not-allowed',(name,state[name])
-        assert state[name]['background']!=state['plain']['background'] and state[name]['color']!=state['plain']['color'],(name,state[name],state['plain'])
-    assert state['off']['background']==state['reason']['background'] and state['off']['color']==state['reason']['color'],'the two kinds of disabled look the same'
-    assert state['busy']['cursor']=='progress' and state['busy']['opacity']=='1' and state['busy']['background']==state['plain']['background'],state['busy']
-    assert state['on']['background']!=state['plain']['background'] and state['mark']=='2px',state
-    # ADR-143 (D2): a plate has a face (a gradient and a shadow); the disabled one is flat.
-    assert 'gradient' in state['plain']['background'] and state['plain']['shadow']!='none',state['plain']
-    assert 'gradient' not in state['off']['background'] and state['off']['shadow']=='none',state['off']
+        assert clear(state[name]['face']) and state[name]['line'] and state[name]['color']!=plain['color'],(name,'a hollow plate with a muted label',state[name],plain)
+    assert all(state['off'][k]==state['reason'][k] for k in ('face','line','color')),'the two kinds of disabled look the same'
+    assert state['busy']['cursor']=='progress' and state['busy']['opacity']=='1' and state['busy']['face']==plain['face'] and not state['busy']['line'],state['busy']
+    assert state['on']['face']!=plain['face'] and state['on']['line'] and 'gradient' in state['on']['image'] and state['on']['mark'].endswith(' 2px'),state['on']
 def toggletips_everywhere(browser,url):
     """ADR-141 (T3): the ⓘ of every place, on a desktop and a phone, light and dark: opening it moves nothing; the bubble
     stands inside the screen; the focus ring stays off the label; on a touch screen the target is 44 px and leaves the

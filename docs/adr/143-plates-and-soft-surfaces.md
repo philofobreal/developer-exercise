@@ -1,6 +1,6 @@
 # ADR-143 – Vizuális irány: lecsapott lap minden feliratos gombon, lágy felületek
 
-Állapot: **elfogadva, megvalósítás folyamatban** (2026-11-13; a bemutatót a felhasználó jóváhagyta: „jóváhagyom, mehet a D2”; a D2 és a D3 kész, lásd lent). A felhasználó egy saját gombmintát mutatott („Rounded Industrial Buttons”, CleanActive 02.1), és a három, valódi felületen kipróbált változat közül a harmadikat választotta: „mehet a 3. változat, a panelek is lágyuljanak”. Kockázati osztály: megjelenítés. Módosítja az [ADR-140](140-button-system.md) sziluett-szabályát (a lecsapott sarok ott csak a döntés gombjaié volt) és az [ADR-138](138-three-surfaces.md) szögletes sarkait; a három felület és a gombkomponens szerkezete marad.
+Állapot: **elfogadva, megvalósítás folyamatban** (2026-11-13; a bemutatót a felhasználó jóváhagyta: „jóváhagyom, mehet a D2”; a D2, a D3 és a D3b kész, lásd lent). **A lap arcát és a vágott sarok alakját és technikáját a D3b felülírta** (a „Döntés” két pontja: átmenet, vonal, árnyék; `corner-shape`). A felhasználó egy saját gombmintát mutatott („Rounded Industrial Buttons”, CleanActive 02.1), és a három, valódi felületen kipróbált változat közül a harmadikat választotta: „mehet a 3. változat, a panelek is lágyuljanak”. Kockázati osztály: megjelenítés. Módosítja az [ADR-140](140-button-system.md) sziluett-szabályát (a lecsapott sarok ott csak a döntés gombjaié volt) és az [ADR-138](138-three-surfaces.md) szögletes sarkait; a három felület és a gombkomponens szerkezete marad.
 
 ## Kontextus
 
@@ -159,7 +159,60 @@ Mit jelent ez a döntésekre:
 - **A `corner-shape` nem tudja a kért alakot.** A kérés valódi ferde letörés, amelynek mindkét csúcsa külön kerekített; a `superellipse` egyetlen ívet rajzol, a `bevel` csúcsa éles. A „Technika” pont (CSS `corner-shape`, SVG nélkül) ezért újra eldöntendő a D3b-ben: a kivágott forma a keretvonalat, az árnyékot és a fókuszkeretet is érinti.
 - **Ami nem változik:** minden feliratos gomb lap, a sűrűség, a szerepek (teli, sárga, bekapcsolt, letiltott), a felirat nélküli gomb kerekítése.
 
+## D3b: a lap új arca és a letörés két kerekített csúccsal (2026-11-13)
+
+A felhasználó a bemutató négy arca és két sarokváltozata közül választott: „jóváhagyom, mehet a 2. sarok és az C arc”. (A javaslatom az A arc volt, vékony vonallal; a döntés a felhasználóé.)
+
+- **Alak (2. sarok):** a bal felső és a jobb alsó sarok valódi ferde letörés, mindkét csúcsán külön ívvel; a másik két sarok kerek. Minden a lap magasságát követi: a letörés a magasság 30%-a, a csúcsok kerekítése 24%-a, a kerek sarkok 22%-a. A felhasználó saját mintájának rajzolóját követi (ott minden csúcs külön ívet kap), CSS-ben.
+- **Arc (C):** egyetlen sík tónus. Nincs átmenet, vonal és árnyék.
+  - alap: halványszürke; rámutatva egy árnyalattal sötétebb;
+  - teli kék (fő művelet, aktuális lépés) és sárga (Ellenőrzés): sík szín;
+  - bekapcsolt: halványkék arc, kék vonal és a 2 px-es jel;
+  - letiltott: üres lap hajszálvonallal és tompa felirattal.
+- **Technika:** a lap az arcának kivágása (`clip-path: shape()`), mert szegély nem tudja követni a letörést. Az arc a felirat alatti réteg (`::after`), nem maga a gomb: a gombra tett kivágás a fókuszkeretet is levágná. A gomb átlátszó szegélyt tart, amelyet a kényszerített színek (Windows nagy kontraszt) kirajzolnak.
+- **Egy körvonal mindkét alakra:** minden sarok két görbe egy 45 fokos él körül. Hosszú éllel és rövid görbékkel letörés; ha a két görbe összeér, kerek sarok. A felirat nélküli gomb (`--plate-cut:0`) így ugyanabból a szabályból kerekített téglalap.
+- **A vonal** (bekapcsolt, letiltott) gyűrű az arc alatt (`::before`): a körvonal és az egy képponttal beljebb futó körvonal különbsége. A dolgozó gomb forgó jele ugyanezt a helyet használja, ezért a dolgozó lapnak nincs vonala.
+- **A választócsoport** kiválasztott része is sík (halványkék, kék vonal), árnyék nélkül.
+- **Megszűnt** a `corner-shape`, az átmenet, a lap árnyéka és a hozzájuk tartozó hét token, valamint a lépéslap két régi díszítő szabálya (`.step.current::after`).
+
+### Eltérés a bemutatótól
+
+- **A letiltott gomb nem halvány tónus, hanem üres lap hajszálvonallal.** A bemutató előtt jeleztem, hogy a C arcban a letiltott gomb világos témában szinte eltűnik; a körvonal bármilyen háttéren (oldal, menü) látszik. Egy sorral visszaállítható, ha a felhasználó a tónust kéri.
+- **A kerek sarkok valódi körívek** (két görbéből); a bemutatón egy görbéből álltak, kissé szögletesebben.
+- **Sötét témában a teli kék gomb rámutatva sötétebb lesz, nem világosabb.** Az új kontrasztmérés találta: a világosabb kéken (#4876f7) a fehér felirat 4,03 : 1 volt, a szükséges 4,5 : 1 alatt. Az új szín #1f4fd6. A hibát eddig semmi nem mérte, mert az átmenetes háttéren az axe nem számol kontrasztot.
+
+### Három terv a rajzolásra („design it twice”)
+
+1. **`corner-shape`** (a D2 megoldása). Elvetve: a `bevel` csúcsa éles, a `superellipse` egyetlen ív; a kért alakot egyik sem adja.
+2. **Gombonkénti SVG és JavaScript** (a minta megoldása). Elvetve, ahogy az [ADR-140](140-button-system.md) is: minden kirajzolás után újra kellene rajzolni, és a gomb mérete nélkül nincs alak.
+3. **`clip-path: shape()` egy rétegen (választott).** Tiszta CSS, a gomb méretét követi. Ára: az arc pszeudoelem, ezért az axe nem látja a gomb hátterét (lásd lent).
+
+### Tervezési review (docs/design-review.md)
+
+- **A lapszabály elrejti** a körvonal geometriáját (a sarkonkénti három hosszt és a két alak közti átmenetet), a rétegeket, az arc és a szerepek színeit. **A hívó** változatlanul a magasságot adja meg, és azt, hogy van-e látható felirat (`--plate-cut:0`).
+- **design, rögzítve:** a körvonal háromszor áll a stíluslapban (az arc, a gyűrű külső és belső köre), egyenként kb. 1400 karakter. A CSS-ben nincs mód egy alakot paraméterrel újrahasználni; a három példányt egy segédszkript írta, a magyarázat a szabály fölött áll.
+- **design, rögzítve:** a `::before` két gazdát szolgál (a vonal gyűrűje és a dolgozó gomb forgó jele). A szabály kizárja az ütközést (`:not([data-busy-shown])`), de a kettő nem látszhat egyszerre.
+- **design, rögzítve:** az axe a pszeudoelemmel rajzolt hátteret nem látja, ezért a lapok feliratának kontrasztját nem ítéli meg. Az elrendezés-kapu ezt maga méri (lent).
+
+### Bizonyíték
+
+- **Elrendezés-kapu** ([browser-layout.playwright.py](../../tests/browser-layout.playwright.py)), 6 képernyőméret × 2 téma × 6 nézet:
+  - a feliratos lap körvonala letörés (a magasság 39,94%-ánál kezdődik a bal oldalon), a felirat nélkülié kerek;
+  - a lap arca egy sík tónus: van színe, nincs átmenete és árnyéka;
+  - a felirat legalább 4,5 : 1 arányban elüt az arcától, minden látható lapon; és szerepenként is, nyugalomban és rámutatva (hét pár, mindkét témában);
+  - legfeljebb két teli lap; a bekapcsolt lapnak vonala és jele van; a választócsoportnak egy kiválasztott része.
+- **Állapotok** ([browser-workbench.playwright.py](../../tests/browser-workbench.playwright.py), `button_states`): a lap sík; a letiltott üres, vonallal, mindkét fajtája egyforma; a dolgozó nem látszik letiltottnak és nincs vonala; a bekapcsoltnak más arca, vonala és jele van.
+- **Mutációs ellenőrzés:** tizenkét rontás, mind megbuktatja a megfelelő tesztet:
+  - ikongomb letöréssel; kisebb letörés (rossz körvonal);
+  - átmenet az arcon; árnyék a lap alatt (nem sík arc);
+  - sötét tónus sötét felirat alatt; a régi rámutatási szín sötét témában (kontraszt);
+  - bekapcsolt gomb jel nélkül; harmadik teli lap; a választócsoport kiválasztott része háttér nélkül;
+  - letiltott gomb arccal; bekapcsolt gomb vonal nélkül; átmenet minden lapon (az állapotteszt).
+  - Két rontást elsőre rosszul írtam meg (az egyik hatástalan volt, a másikra egy másik ellenőrzés bukott előbb); kijavítva mindkettő a saját ellenőrzésén bukik.
+- **Akadálymentességi sor** (axe): 0 hiba; a lapok kontrasztját a fenti mérés fedi.
+- **Képernyőkép-összevetés:** 15 nézet, világos és sötét téma, asztal és telefon, a változtatás előtt és után.
+
 ## Rögzített maradék
 
-- **Safari és Firefox** a vágás helyett kerekítést mutat, amíg a `corner-shape` nem érkezik meg; az iPades tanulók így látják.
+- **Régebbi böngészők** (Chrome és Edge 135 előtt, Safari 18.4 előtt, Firefox a `shape()` megérkezése előtt) a letörés helyett lekerekített téglalapot mutatnak (D3b). A D3b előtt a vágott sarok csak Chromium-alapú böngészőben látszott.
 - **A minta állapotszínei gombként** (zöld, sárga, piros, türkiz, lila lap) nem kerülnek be: a felületen ezek jelzések.
